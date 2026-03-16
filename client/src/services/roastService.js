@@ -1,15 +1,19 @@
-// WHY: reads from .env.local — never hardcode URLs
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-// ─── getRoast ─────────────────────────────────────────────
-// WHY: main function — fetches full roast for a username
-export async function getRoast(username, idempotencyKey = null) {
+// ─── main function — fetches full roast for a username ────────────────────
+export async function getRoast(username, idempotencyKey = null, token = null) {
     const headers = {
         'Content-Type': 'application/json',
     }
 
-    // WHY: attach key so server can deduplicate StrictMode calls
-    //      same key = cached response returned, no DB save
+    // WHY: attach auth token so backend can identify Pro user
+    //      optionalAuth middleware reads this header
+    //      if missing → req.user = null → isPro always false
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+    }
+
+    // WHY: attach idempotency key to block StrictMode duplicates
     if (idempotencyKey) {
         headers['X-Idempotency-Key'] = idempotencyKey
     }
@@ -17,13 +21,11 @@ export async function getRoast(username, idempotencyKey = null) {
     const res = await fetch(`${API_BASE}/api/roast/${username}`, {
         method: 'GET',
         headers,
-        // WHY 15s timeout: GitHub API can be slow
         signal: AbortSignal.timeout(15000),
     })
 
     const json = await res.json()
 
-    // WHY: throw with error code so caller shows right message
     if (!res.ok) {
         const err = new Error(json.message || 'Failed to fetch roast')
         err.code = json.error
@@ -35,7 +37,6 @@ export async function getRoast(username, idempotencyKey = null) {
 }
 
 // ─── getRoastHistory ──────────────────────────────────────
-// WHY: fetch past roasts for a username
 export async function getRoastHistory(username) {
     const res = await fetch(`${API_BASE}/api/history/${username}`, {
         method: 'GET',
@@ -49,10 +50,8 @@ export async function getRoastHistory(username) {
 }
 
 // ─── trackShare ───────────────────────────────────────────
-// WHY: increments share count in MongoDB for analytics
 export async function trackShare(roastId) {
     if (!roastId) return
-
     try {
         await fetch(`${API_BASE}/api/history/${roastId}/share`, {
             method: 'POST',
@@ -64,7 +63,6 @@ export async function trackShare(roastId) {
 }
 
 // ─── checkHealth ──────────────────────────────────────────
-// WHY: quick ping to verify backend is up
 export async function checkHealth() {
     try {
         const res = await fetch(`${API_BASE}/health`, {
