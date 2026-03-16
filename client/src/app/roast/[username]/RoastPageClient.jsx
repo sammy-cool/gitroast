@@ -1,15 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createToast } from 'customizable-toast-notification'
 import AnalyzingScreen from '@/components/AnalyzingScreen'
 import RoastCard from '@/components/RoastCard'
 import ProModal from '@/components/ProModal'
-import { getRoast, checkHealth } from '@/services/roastService'
+import { getRoast } from '@/services/roastService'
 
-// WHY: minimum time to show analyzing screen
-//      even if API responds faster — UX feels more substantial
 const MIN_ANALYSIS_TIME = 5800
 
 export default function RoastPageClient({ username }) {
@@ -18,9 +16,22 @@ export default function RoastPageClient({ username }) {
     const [showProModal, setShowProModal] = useState(false)
     const router = useRouter()
 
+    // WHY useRef for key: persists across re-renders
+    //     but generates fresh on every NEW mount
+    //     StrictMode second mount = same ref = same key
+    const idempotencyKey = useRef(
+        `${username}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    )
+
+    // WHY useRef for fetchStarted:
+    //     blocks StrictMode second mount from fetching at all
+    //     first mount sets it true → second mount exits immediately
+    const fetchStarted = useRef(false)
+
     useEffect(() => {
-        // WHY: validate before hitting API
-        if (!username || username.length > 39 || !/^[a-zA-Z0-9-]+$/.test(username)) {
+        // ── Validate username ──────────────────────────────
+        if (!username || username.length > 39 ||
+            !/^[a-zA-Z0-9-]+$/.test(username)) {
             createToast({
                 type: 'error',
                 message: 'Invalid GitHub username.',
@@ -30,21 +41,64 @@ export default function RoastPageClient({ username }) {
             return
         }
 
+        // ── Check sessionStorage FIRST ─────────────────────
+        // WHY: if user pressed browser back button
+        //      we already have the result — no need to re-fetch
+        //      no new API call, no new DB save, instant display
+        const cacheKey = `gitroast_roast_${username}`
+        const cachedRoast = sessionStorage.getItem(cacheKey)
+
+        if (cachedRoast) {
+            try {
+                const parsed = JSON.parse(cachedRoast)
+
+                // WHY: check cache age — don't show stale data
+                //      older than 10 minutes = fetch fresh
+                const cacheAge = Date.now() - parsed.cachedAt
+                const TEN_MINS = 10 * 60 * 1000
+
+                if (cacheAge < TEN_MINS) {
+                    // WHY: restore from cache — no fetch, no DB save
+                    //      user sees result instantly
+                    setRoastData(parsed.data)
+                    setView('result')
+                    return  // ← exit here, never fetch
+                } else {
+                    // WHY: cache too old → remove it → fetch fresh
+                    sessionStorage.removeItem(cacheKey)
+                }
+            } catch {
+                // WHY: corrupted cache → remove and fetch fresh
+                sessionStorage.removeItem(cacheKey)
+            }
+        }
+
+        // ── Block StrictMode double fetch ──────────────────
+        // WHY: fetchStarted ref persists within same mount cycle
+        //      StrictMode: mount → unmount → remount = same ref
+        //      Second attempt sees fetchStarted = true → exits
+        if (fetchStarted.current) return
+        fetchStarted.current = true
+
         let cancelled = false
 
         async function fetchRoast() {
             try {
-                // WHY Promise.all with timer: API call and minimum
-                //     display time run in PARALLEL.
-                //     Card never flashes in before animation ends.
                 const [data] = await Promise.all([
-                    getRoast(username),
-                    // WHY: this promise resolves after MIN_ANALYSIS_TIME ms
+                    getRoast(username, idempotencyKey.current),
                     new Promise(resolve => setTimeout(resolve, MIN_ANALYSIS_TIME)),
                 ])
 
-                // WHY: if user navigated away while fetching, don't update state
                 if (cancelled) return
+
+                // WHY: save to sessionStorage IMMEDIATELY after fetch
+                //      so browser back button restores this result
+                //      without triggering a new fetch or DB save
+                const cacheKey = `gitroast_roast_${username}`
+                sessionStorage.setItem(cacheKey, JSON.stringify({
+                    data,
+                    cachedAt: Date.now(),
+                }))
 
                 setRoastData(data)
                 setView('result')
@@ -60,11 +114,10 @@ export default function RoastPageClient({ username }) {
             } catch (err) {
                 if (cancelled) return
 
-                // WHY: different toast message per error type
                 if (err.code === 'USER_NOT_FOUND') {
                     createToast({
                         type: 'error',
-                        message: `GitHub user "@${username}" not found. Check the spelling.`,
+                        message: `GitHub user "@${username}" not found.`,
                         position: 'top-center',
                         duration: 5000,
                         showCloseButton: true,
@@ -88,14 +141,13 @@ export default function RoastPageClient({ username }) {
                 if (err.name === 'TimeoutError') {
                     createToast({
                         type: 'error',
-                        message: 'Request timed out. GitHub might be slow — try again.',
+                        message: 'Request timed out. Try again.',
                         position: 'top-center',
                     })
                     router.push('/')
                     return
                 }
 
-                // WHY: generic fallback for unexpected errors
                 createToast({
                     type: 'error',
                     message: 'Something broke. Not your fault... probably.',
@@ -107,11 +159,22 @@ export default function RoastPageClient({ username }) {
 
         fetchRoast()
 
-        // WHY cleanup: prevent state updates if component unmounts
         return () => { cancelled = true }
     }, [username, router])
 
-    // ── Views ────────────────────────────────────────────────
+    // ── "Roast Again" — intentional re-roast ──────────────
+    // WHY: this function is called ONLY when user deliberately
+    //      clicks "Roast Again" — not on back navigation
+    //      clears cache so next mount fetches fresh data
+    function handleRoastAgain() {
+        // WHY: remove cache so fresh roast is fetched + saved
+        const cacheKey = `gitroast_roast_${username}`
+        sessionStorage.removeItem(cacheKey)
+        // WHY: navigate away and back = fresh mount = fresh fetch
+        router.push('/')
+    }
+
+    // ── Views ─────────────────────────────────────────────
     if (view === 'analyzing') {
         return <AnalyzingScreen username={username} />
     }
@@ -125,16 +188,17 @@ export default function RoastPageClient({ username }) {
                             GITROAST 🔥
                         </div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                            {/* ← ADD THIS BUTTON */}
                             <button
                                 className="btn btn-ghost"
                                 onClick={() => router.push(`/history/${roastData.username}`)}
                             >
                                 📈 History
                             </button>
+                            {/* WHY: use handleRoastAgain not router.push
+                  so cache is cleared = fresh roast intended */}
                             <button
                                 className="btn btn-ghost"
-                                onClick={() => router.push('/')}
+                                onClick={handleRoastAgain}
                             >
                                 ← Roast Another
                             </button>
@@ -148,7 +212,9 @@ export default function RoastPageClient({ username }) {
 
                     <div className="upsell-card card">
                         <div>
-                            <p className="upsell-title">📈 Monthly Roast Subscription</p>
+                            <p className="upsell-title">
+                                📈 Monthly Roast Subscription
+                            </p>
                             <p className="upsell-sub font-mono">
                                 Track your improvement. Or your shame.
                             </p>
@@ -180,8 +246,8 @@ export default function RoastPageClient({ username }) {
             width:           100%;
             max-width:       580px;
           }
-          .nav-logo     { font-size: 22px; }
-          .upsell-card  {
+          .nav-logo      { font-size: 22px; }
+          .upsell-card   {
             width:           100%;
             max-width:       580px;
             padding:         1rem 1.5rem;

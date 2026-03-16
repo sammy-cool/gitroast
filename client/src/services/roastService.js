@@ -3,20 +3,27 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 // ─── getRoast ─────────────────────────────────────────────
 // WHY: main function — fetches full roast for a username
-export async function getRoast(username) {
+export async function getRoast(username, idempotencyKey = null) {
+    const headers = {
+        'Content-Type': 'application/json',
+    }
+
+    // WHY: attach key so server can deduplicate StrictMode calls
+    if (idempotencyKey) {
+        headers['X-Idempotency-Key'] = idempotencyKey
+    }
+
     const res = await fetch(`${API_BASE}/api/roast/${username}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        // WHY: 15s timeout — GitHub API can be slow
+        headers,
         signal: AbortSignal.timeout(15000),
     })
 
     const json = await res.json()
 
-    // WHY: throw with error code so caller can show right message
     if (!res.ok) {
         const err = new Error(json.message || 'Failed to fetch roast')
-        err.code = json.error  // USER_NOT_FOUND, RATE_LIMIT_EXCEEDED, etc.
+        err.code = json.error
         err.status = res.status
         throw err
     }

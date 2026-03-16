@@ -6,6 +6,18 @@ const { generateClaudeRoast } = require('../services/claudeService')
 const { optionalAuth, requirePro } = require('../middleware/auth')
 const Roast = require('../models/Roast')
 
+// WHY Map: O(1) lookup, stores key → timestamp
+const processedKeys = new Map()
+
+// WHY: cleanup every 60s — keys only need to live for ~2 seconds
+//      prevents memory leak on busy server
+setInterval(() => {
+    const now = Date.now()
+    for (const [key, val] of processedKeys.entries()) {
+        if (now - val.time > 60000) processedKeys.delete(key)
+    }
+}, 60000)
+
 // ─── GET /api/roast/:username ─────────────────────────────
 // WHY optionalAuth: works for both free + Pro users
 //     req.user = null  → free roast (rule engine)
@@ -13,6 +25,15 @@ const Roast = require('../models/Roast')
 router.get('/:username', optionalAuth, async (req, res) => {
     const { username } = req.params
     const isPro = req.user?.isPro || false
+
+    const idempotencyKey = req.headers['x-idempotency-key']
+    // WHY: same key = same StrictMode double mount
+    //      different key = new "Roast Again" click = allow
+    if (idempotencyKey && processedKeys.has(idempotencyKey)) {
+        console.log(`[Roast] StrictMode duplicate blocked`)
+        // WHY: return the cached response — user sees correct data
+        return res.status(200).json(processedKeys.get(idempotencyKey).response)
+    }
 
     // ── Input validation ─────────────────────────────────
     if (!username || username.length > 39 || !/^[a-zA-Z0-9-]+$/.test(username)) {
