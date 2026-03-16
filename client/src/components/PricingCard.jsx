@@ -45,11 +45,20 @@ const PLAN_CONFIG = {
     },
 }
 
+// WHY: price comes from server as "₹199" — already has symbol
+//      we just render it directly, no conversion needed
 export default function PricingCard({ planKey, price, onSelect }) {
     const config = PLAN_CONFIG[planKey]
     const { isLoggedIn } = useAuth()
 
     if (!config) return null
+
+    // WHY: split symbol from number for separate styling
+    //      "₹199" → symbol "₹" + number "199"
+    //      allows bigger number with smaller symbol
+    const hasRupee = price?.startsWith('₹')
+    const symbol = hasRupee ? '₹' : price?.[0] || ''
+    const amount = hasRupee ? price?.slice(1) : price?.slice(1)
 
     return (
         <div className="pricing-card card">
@@ -66,14 +75,23 @@ export default function PricingCard({ planKey, price, onSelect }) {
             <div className="plan-top">
                 <p className="plan-name font-mono">{config.name}</p>
                 <div className="price-row">
+                    {/* WHY: symbol smaller, number bigger — standard pricing UI */}
+                    <span
+                        className="plan-symbol font-display"
+                        style={{ color: config.color }}
+                    >
+                        {symbol}
+                    </span>
                     <span
                         className="plan-price font-display"
                         style={{ color: config.color }}
                     >
-                        {price ?? '—'}
+                        {amount}
                     </span>
                     <span className="plan-period font-mono">{config.period}</span>
                 </div>
+                {/* WHY: show INR context so global users understand */}
+                <p className="plan-currency font-mono">Indian Rupees (INR)</p>
             </div>
 
             <ul className="features-list">
@@ -100,7 +118,7 @@ export default function PricingCard({ planKey, price, onSelect }) {
             </button>
 
             <p className="plan-note font-mono">
-                Pay via Card · UPI · NetBanking · Wallet
+                Card · UPI · NetBanking · Wallet
             </p>
 
             <style jsx>{`
@@ -139,10 +157,18 @@ export default function PricingCard({ planKey, price, onSelect }) {
         .price-row {
           display:     flex;
           align-items: baseline;
-          gap:         6px;
+          gap:         2px;
         }
-        .plan-price  { font-size: 40px; line-height: 1; }
+        /* WHY: ₹ symbol slightly smaller than number */
+        .plan-symbol { font-size: 22px; line-height: 1; }
+        .plan-price  { font-size: 40px; line-height: 1; margin-right: 6px; }
         .plan-period { font-size: 13px; color: var(--text-secondary); }
+        .plan-currency {
+          font-size:  10px;
+          color:      var(--text-muted);
+          margin-top: 4px;
+          letter-spacing: 0.5px;
+        }
         .features-list {
           list-style:     none;
           display:        flex;

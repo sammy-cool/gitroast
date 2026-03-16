@@ -19,7 +19,6 @@ export default function PricingPage() {
 
     useEffect(() => { setMounted(true) }, [])
 
-    // WHY: fetch live prices from server
     useEffect(() => {
         fetch(`${API_BASE}/api/payment/plans`)
             .then(r => r.json())
@@ -27,9 +26,9 @@ export default function PricingPage() {
             .catch(() => {
                 // WHY fallback: show default prices if server unreachable
                 setPlans([
-                    { key: 'pro_one_time', price: '2.49', label: 'Pro Lifetime' },
-                    { key: 'pro_monthly', price: '5.49', label: 'Pro Monthly' },
-                    { key: 'teams_monthly', price: '9.99', label: 'Teams Monthly' },
+                    { key: 'pro_one_time', price: '₹199', label: 'Pro Lifetime' },
+                    { key: 'pro_monthly', price: '₹499', label: 'Pro Monthly' },
+                    { key: 'teams_monthly', price: '₹999', label: 'Teams Monthly' },
                 ])
             })
     }, [])
@@ -49,7 +48,6 @@ export default function PricingPage() {
     }
 
     function handlePaymentSuccess() {
-        // WHY full reload: forces AuthContext to re-fetch isPro: true
         window.location.href = '/?upgraded=true'
     }
 
@@ -79,10 +77,7 @@ export default function PricingPage() {
                     <p className="font-mono already-pro-sub">
                         You have full access to all Pro features.
                     </p>
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => router.push('/')}
-                    >
+                    <button className="btn btn-primary" onClick={() => router.push('/')}>
                         🔥 Start Roasting
                     </button>
                 </div>
@@ -98,8 +93,13 @@ export default function PricingPage() {
                         <p className="font-mono pricing-sub">
                             Pay with Card, UPI, NetBanking or Wallet. Unlock instantly.
                         </p>
+                        {/* WHY: inform global users about INR pricing upfront */}
+                        <p className="font-mono pricing-inr-note">
+                            💡 Prices in Indian Rupees (INR) · Your bank auto-converts
+                        </p>
                     </div>
 
+                    {/* Pricing cards */}
                     <div className="pricing-grid">
                         {plans.map(plan => (
                             <PricingCard
@@ -118,7 +118,8 @@ export default function PricingPage() {
                             '🌍 Works globally',
                             '⚡ Instant unlock',
                             '📱 UPI supported',
-                            '💳 Cards worldwide',
+                            '💳 All cards accepted',
+                            '🏦 NetBanking',
                         ].map(badge => (
                             <span key={badge} className="trust-badge font-mono">
                                 {badge}
@@ -132,7 +133,7 @@ export default function PricingPage() {
                         {[
                             {
                                 q: 'How do I pay?',
-                                a: 'Click your plan → Razorpay checkout opens → pay with card, UPI, netbanking, or wallet. Works globally.',
+                                a: 'Click your plan → Razorpay checkout opens → pay with card, UPI, netbanking, or wallet.',
                             },
                             {
                                 q: 'How fast does Pro unlock?',
@@ -140,11 +141,15 @@ export default function PricingPage() {
                             },
                             {
                                 q: 'I am in India — can I pay with UPI?',
-                                a: 'Yes — Razorpay supports UPI, all Indian cards, netbanking, and wallets like Paytm.',
+                                a: 'Yes — UPI, all Indian cards, netbanking, and wallets like Paytm are fully supported.',
                             },
                             {
-                                q: 'I am outside India — can I pay?',
-                                a: 'Yes — Razorpay accepts international credit and debit cards in USD, EUR, GBP and 100+ currencies.',
+                                q: 'I am outside India — can I still pay?',
+                                a: 'Yes — Razorpay accepts international credit/debit cards. Prices are in INR and your bank converts automatically.',
+                            },
+                            {
+                                q: 'Why is pricing in INR?',
+                                a: 'GitRoast is built in India and uses Razorpay as the payment gateway. INR pricing works globally — your bank handles the conversion.',
                             },
                             {
                                 q: 'Can I get a refund?',
@@ -189,10 +194,24 @@ export default function PricingPage() {
           align-items:     center;
           width:           100%;
         }
-        .nav-logo      { font-size: 22px; }
-        .pricing-header{ text-align: center; }
-        .pricing-title { font-size: clamp(40px, 10vw, 64px); line-height: 1; }
-        .pricing-sub   { color: var(--text-secondary); font-size: 14px; margin-top: 8px; }
+        .nav-logo       { font-size: 22px; }
+        .pricing-header { text-align: center; }
+        .pricing-title  { font-size: clamp(40px, 10vw, 64px); line-height: 1; }
+        .pricing-sub {
+          color:      var(--text-secondary);
+          font-size:  14px;
+          margin-top: 8px;
+        }
+        .pricing-inr-note {
+          font-size:     12px;
+          color:         var(--text-muted);
+          margin-top:    6px;
+          background:    var(--bg-elevated);
+          border:        1px solid var(--border);
+          border-radius: var(--radius-sm);
+          padding:       6px 14px;
+          display:       inline-block;
+        }
         .pricing-grid {
           display:               grid;
           grid-template-columns: repeat(3, 1fr);
@@ -213,10 +232,7 @@ export default function PricingPage() {
           font-size:     12px;
           color:         var(--text-secondary);
         }
-        .faq {
-          width:   100%;
-          padding: 1.25rem 1.5rem;
-        }
+        .faq          { width: 100%; padding: 1.25rem 1.5rem; }
         .faq-title {
           font-size:      9px;
           text-transform: uppercase;
