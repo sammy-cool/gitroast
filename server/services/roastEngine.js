@@ -1,195 +1,182 @@
 // ============================================================
 // GITROAST — Rule-Based Roast Engine
-// WHY: Zero dependency, zero cost, instant.
-//      Generates savage but funny roasts from GitHub data.
-//      AI API is fallback — this runs first always.
+// WHY: zero dependency, instant, zero cost
+//      generates funny roasts without any API call
+//      Claude/Gemini is fallback — this runs for free users
 // ============================================================
 
-// ─── Roast Template Banks ────────────────────────────────
-// WHY banks: randomize from pool so same score doesn't
-//     always produce identical roast. Keeps it fresh.
+// ─── Roast template banks ────────────────────────────────
+// WHY banks: random pick from pool = same score never
+//            produces identical roast twice
 
 const OPENER_BANK = {
-    // Score 1-25: absolute disaster
     catastrophic: [
-        `@{u}'s GitHub is less a portfolio and more a crime scene.`,
-        `Archaeologists studying @{u}'s GitHub have declared it a site of historical abandonment.`,
-        `@{u}'s commit history reads like a diary of someone who never finishes their sentences`,
-        `Scientists studying @{u}'s GitHub have identified a new syndrome: chronic initial-commit disorder.`,
-        `@{u}'s GitHub profile is what happens when ambition meets attention span in a dark alley.`,
+        `Calling this a developer portfolio is like calling a landfill a real estate investment.`,
+        `If commitment issues were a GitHub profile, this would be it.`,
+        `Somewhere between "I should learn to code" and "I give up" lives this GitHub.`,
+        `This is what happens when inspiration has a longer lifespan than attention span.`,
+        `The gap between the first commit and the last update tells a story. It's a tragedy.`,
     ],
-    // Score 26-40: bad but trying
     rough: [
-        `@{u} clearly codes with the energy of someone who just discovered programming and immediately regretted it.`,
-        `@{u}'s GitHub tells the story of a developer who starts strong and finishes... eventually. Maybe.`,
-        `Looking at @{u}'s profile, it seems the real project was the friends we abandoned along the way.`,
-        `@{u} has committed to committing. The code, however, remains uncommitted.`,
-        `@{u}'s repos have more unfinished business than a Season 1 Netflix show.`,
+        `There's potential here, buried under a lot of creative interpretation of the word "finished".`,
+        `Not the worst GitHub on the internet. A bold claim, but technically defensible.`,
+        `Started with ambition. Somewhere around repo number three, ambition took a personal day.`,
+        `The commit history suggests someone who codes in bursts of inspiration separated by months of reflection.`,
+        `This GitHub has the energy of someone who buys gym equipment in January.`,
     ],
-    // Score 41-60: mediocre
     mediocre: [
-        `@{u} is technically a developer. The evidence is mixed.`,
-        `@{u}'s GitHub sits in the uncanny valley between "hobbyist" and "professional".`,
-        `@{u} codes with the consistency of British weather — occasionally brilliant, mostly unpredictable.`,
-        `@{u} has what statisticians call "a bimodal distribution" of effort: bursts and silence.`,
-        `@{u}'s GitHub profile is a testament to the phrase "good enough".`,
+        `Technically a developer. The evidence is present, though it could use some commits.`,
+        `This GitHub sits in the uncanny valley between "just started" and "ships things".`,
+        `Consistent in exactly one way: consistently almost there.`,
+        `The code exists. Whether it runs is a question left as an exercise for the reader.`,
+        `Not bad enough to roast easily, not good enough to defend. Comfortably average.`,
     ],
-    // Score 61-80: decent but roastable
     decent: [
-        `@{u} is better than average, which still leaves plenty of room to roast.`,
-        `@{u} almost has it together. Almost.`,
-        `@{u}'s GitHub is the coding equivalent of making your bed but leaving dishes in the sink.`,
-        `@{u} writes code the way most people do housework — well when company's coming.`,
-        `@{u} is what happens when "I'll fix it later" becomes a lifestyle.`,
+        `Decent GitHub. Still here. Still roastable. The commits gave it away.`,
+        `Better than most, which still leaves plenty of room for this roast.`,
+        `Almost has it together. The keyword being almost.`,
+        `The GitHub equivalent of making your bed but leaving dishes in the sink.`,
+        `Clean-ish. Respectable-ish. Roastable-ish.`,
     ],
-    // Score 81-99: actually decent, gentle roast
     respectable: [
-        `@{u} has decent GitHub hygiene — still roastable, but we had to try harder.`,
-        `@{u} actually maintains their repos. Suspicious.`,
-        `@{u} is dangerously close to being a responsible developer. Don't worry, the commits give it away.`,
-        `@{u} cleans up their GitHub. The skeletons, however, are still there.`,
-        `@{u} has the audacity to have a good profile. We found the dirt anyway.`,
+        `A good GitHub. We had to dig, but the ammunition was there.`,
+        `Actually maintains repos. Suspicious behaviour for this industry.`,
+        `Dangerously close to responsible developer territory. The early repos betray everything.`,
+        `The public repos are fine. The commit messages from 2019 are not.`,
+        `Good profile. One chaos repo in the corner staring back at us.`,
     ],
 }
 
 const ABANDON_BANK = [
-    `{count} repos started, {count} repos forgotten. At least they're consistent.`,
-    `{count} of those repos have the same lifecycle: excited README-less creation → one commit → eternal silence.`,
-    `{pct}% abandonment rate. That's not a GitHub profile, that's a graveyard with WiFi.`,
-    `{count} repos haven't been touched since their creation day. A moment of silence for the fallen.`,
-    `The abandoned repos alone could fill a museum exhibit titled "Dreams I Had at 2am".`,
-    `{pct}% of repos exist solely to prove the developer had an idea once.`,
+    `{count} repos with a single lonely commit, whispering "initial setup" into the void.`,
+    `Started {count} projects. Finished the part where you make the folder.`,
+    `{pct}% of repos never made it past the scaffolding phase — but hey, the scaffolding looks great.`,
+    `There are {count} repos here that peaked at "hello world" and decided that was enough.`,
+    `The abandoned repos outnumber the active ones {count} to the rest, which is a ratio, not a plan.`,
+    `{count} repos that died doing what they loved: existing as initial commits.`,
 ]
 
 const COMMIT_BANK = {
-    // shame score > 70
     horrible: [
-        `Commit messages include classics like {sample}. Poetry for the ages.`,
-        `The commit history reads like autocorrect having a breakdown: {sample}.`,
-        `{sample} — this is not a commit message, this is a cry for help.`,
-        `Forensic analysts studying the commits found {sample} and immediately filed for emotional damages.`,
-        `The commits tell a story. That story is {sample}. We're sorry.`,
+        `The commit messages read like autocomplete having a panic attack — "{sample}" is in there unironically.`,
+        `Somewhere in this repo's history, someone typed "{sample}" and hit enter with full confidence.`,
+        `The git log is less a development timeline and more a series of increasingly desperate "{sample}" entries.`,
+        `"{sample}" is a real commit message here. The diff does not clarify things.`,
+        `Future archaeologists will find "{sample}" in this commit history and have questions.`,
     ],
-    // shame score 40-70
     bad: [
-        `Commit messages are... descriptive. "{sample}" tells us everything and nothing.`,
-        `The commits suggest a developer who writes code faster than they write descriptions.`,
-        `"{sample}" is in the commit history. We're not judging. We're absolutely judging.`,
-        `Commit quality: technically present. Spiritually absent. See: "{sample}".`,
+        `The commit messages suggest someone typing with one hand and giving up with the other — see: "{sample}".`,
+        `"{sample}" appears in the commit history, which raises more questions than the code does.`,
+        `Not the worst commit history, but "{sample}" is doing a lot of damage to that claim.`,
+        `The commits are descriptive in the same way that "{sample}" is descriptive.`,
     ],
-    // shame score < 40
     acceptable: [
-        `Commit messages are acceptable. A few "{sample}" slip through, but who among us.`,
-        `The commits are coherent, which puts them in the top 30% of GitHub.`,
-        `Descriptive commits. Mostly. "{sample}" sneaks in occasionally like an old habit.`,
+        `Mostly coherent commit messages, which puts this in the top half of GitHub. "{sample}" sneaks in occasionally.`,
+        `The commits are readable. "{sample}" shows up now and then to keep things humble.`,
+        `Decent commit hygiene. "{sample}" is an outlier. Probably.`,
     ],
 }
 
 const LANGUAGE_BANK = {
     PHP: [
-        `The primary language is PHP. We'll give you a moment to explain yourself.`,
-        `PHP in {year}. Bold choice. Controversial. Legally, we cannot say more.`,
-        `Still writing PHP in {year}. The calls are coming from inside the framework.`,
+        `The primary language is PHP in ${new Date().getFullYear()}, a choice made and apparently defended.`,
+        `Still writing PHP. At this point it's not a language, it's a personality.`,
+        `PHP is the main language here, which explains a lot and answers nothing.`,
     ],
     JavaScript: [
-        `JavaScript everywhere. package.json has more dependencies than relationships.`,
-        `Full JavaScript stack. node_modules weighs more than the actual product.`,
-        `JavaScript is the language of choice. npm install is basically a personality trait at this point.`,
+        `All JavaScript, which means node_modules has more commits than the actual product.`,
+        `Full JavaScript stack. The package.json has more dependencies than completed features.`,
+        `JavaScript everywhere — the repos multiply, the ships remain theoretical.`,
     ],
     Python: [
-        `Python developer. The indentation is clean; the life choices, less so.`,
-        `Primary language: Python. The snake is appropriate — projects hiss and disappear.`,
-        `Python for everything. Including things that probably shouldn't be Python.`,
+        `Python developer. The code is clean, the project scope is not.`,
+        `Primary language Python — great for getting started, apparently less great for finishing.`,
+        `Python repos as far as the eye can see, most of them ending somewhere between "works locally" and "never deployed".`,
     ],
     Java: [
-        `Java. The language that makes you write 400 lines to do what Python does in 4.`,
-        `Java developer spotted. AbstractFactoryBeanBuilderManager.java has entered the chat.`,
-        `Java in the repos. Enterprise patterns detected. Soul: optional.`,
-    ],
-    CSS: [
-        `CSS is somehow the primary language. The flexbox alignment is wrong somewhere. It always is.`,
-        `CSS-first developer. Margin: auto. Life: uncentered.`,
+        `Java. The language that requires four files to print hello world, and this repo has all four.`,
+        `Java developer spotted. The AbstractFactoryBeanManager file is somewhere in here.`,
+        `Java in production. Respect. The verbosity of the language matches the silence of the README.`,
     ],
     TypeScript: [
-        `TypeScript purist. Spends 40% of time fighting the compiler, 60% judging JavaScript developers.`,
-        `TypeScript everywhere. type: any detected in 3 repos. The hypocrisy is noted.`,
-    ],
-    'C++': [
-        `C++ developer. Manages their own memory, cannot manage their own repos.`,
-        `C++. Respectable. The segmentation faults are someone else's problem... eventually.`,
+        `TypeScript everywhere, including three repos where type: any appears more than the actual types.`,
+        `TypeScript purist. Has judged a JavaScript file this week. The repos remain unfinished.`,
+        `Full TypeScript stack, because if the code is going to sit undeployed, it should at least be type-safe.`,
     ],
     Rust: [
-        `Rust developer. Has mentioned memory safety unprompted at least once this week.`,
-        `Rust. The borrow checker is satisfied. The commit messages are not.`,
+        `Rust developer. Has mentioned memory safety in casual conversation. The repos are safe if nothing else.`,
+        `Writing Rust, which means the borrow checker is satisfied even if the project isn't finished.`,
+        `Rust main language — technically impressive, practically same number of deployed projects as everyone else.`,
+    ],
+    'C++': [
+        `C++ developer. Manages memory manually, the repos less so.`,
+        `C++ as the primary language, which is either brave or a very specific kind of commitment.`,
+        `Writing C++ in ${new Date().getFullYear()}. The segfaults are someone else's problem. The abandoned repos are not.`,
     ],
     default: [
-        `Primary language: {lang}. Interesting choice. The repos speak for themselves.`,
-        `Commits primarily in {lang}. We'll allow it. The abandoned repos will not.`,
-        `The {lang} era. Some survived. Most did not.`,
+        `Primary language {lang} — an interesting hill to build a portfolio on.`,
+        `Mostly {lang}, which is a choice that was made and stuck with.`,
+        `The {lang} era is well-documented here. The deployment era less so.`,
     ],
 }
 
 const README_BANK = {
     missing: [
-        `The README situation is nonexistent. The code screams into the void. The void has questions.`,
-        `Zero READMEs detected. Strangers who clone these repos are filing for emotional damages.`,
-        `The top repo has no README. Instructions: figure it out. Support: good luck.`,
+        `The top repo has no README, which is one way to ensure nobody ever runs the code but you.`,
+        `Zero documentation. The code speaks for itself. Unfortunately it's speaking in tongues.`,
+        `No README anywhere near the top repo — open source in theory, impenetrable in practice.`,
     ],
     empty: [
-        `The README exists. It contains a title and a prayer. That's it.`,
-        `README quality: technically present. Actually useful: absolutely not.`,
-        `The README is there the way a scarecrow is there — present but not doing the job.`,
+        `The README exists. It has a title. That's where the story ends.`,
+        `There is a README. It contains a project name and the quiet despair of an empty file.`,
+        `The README is technically present in the same way a scarecrow is technically a person.`,
     ],
     exists: [
-        `The README actually has content. You're already in the top 40% of GitHub.`,
-        `Someone wrote a README with actual information. Heroic.`,
+        `Actually wrote a README with real content — a rare and noble act in this industry.`,
+        `The README has actual information in it, which immediately puts this in the top 30% of GitHub.`,
     ],
 }
 
 const CLOSER_BANK = {
     catastrophic: [
-        `In conclusion: @{u}'s GitHub is a masterclass in starting things. Finishing them is a Phase 2 feature that never shipped.`,
-        `The GitHub: roasted. The developer: hopefully still coding. Somewhere. Eventually.`,
-        `This isn't a portfolio. It's a monument to human potential and its complete failure to ship.`,
-        `@{u} codes like they have infinite time and zero deadlines. GitHub disagrees with both.`,
+        `In summary: the code exists, the commits happened, the projects did not survive.`,
+        `The GitHub is not abandoned — it's more of an open-ended creative pause that started {years} years ago.`,
+        `This is not a portfolio. It is evidence. What of, exactly, is between you and the commit logs.`,
+        `Every repo is one more unfinished sentence in a very long story about getting started.`,
     ],
     rough: [
-        `There's potential here, buried under {abandoned} abandoned repos and creative commit messages. It's in there somewhere.`,
-        `@{u} is one focused month away from a decent GitHub. That month has not yet arrived.`,
-        `The code is in there. The commitment is not. The pun is intended.`,
-        `With effort, @{u} could be dangerous. With current effort, the repos are the only ones in danger.`,
+        `There's a good developer in here somewhere, surrounded by {abandoned} repos that never found out.`,
+        `One focused sprint away from a decent GitHub. That sprint has not yet been scheduled.`,
+        `The potential is real. The follow-through is aspirational.`,
+        `Ships nothing, starts everything, remains technically a developer.`,
     ],
     mediocre: [
-        `@{u} is not the worst developer on GitHub. That's the nicest thing we can say.`,
-        `Somewhere between "just started" and "has it together" lives @{u}'s GitHub. Forever.`,
-        `@{u} has achieved the rare equilibrium of mediocrity. Consistent at least.`,
+        `Not the worst GitHub on the internet. Not the best. Aggressively, persistently middle.`,
+        `Exists on GitHub. Commits occasionally. Finishes things in a more of a spiritual sense.`,
+        `A GitHub in equilibrium: equal parts started and abandoned, perpetually almost there.`,
     ],
     decent: [
-        `@{u} is doing fine. "Fine" is the most haunting word in software development.`,
-        `Better than most. Still here. Still roastable. Still @{u}.`,
-        `Not bad. Not great. A solid B- in the university of GitHub.`,
+        `Doing fine. Fine is the most haunting word in software development.`,
+        `Better than average. Still roastable. The {lang} phase lives in the early repos forever.`,
+        `Not bad. Not great. A solid B- in the ongoing exam of putting things on the internet.`,
     ],
     respectable: [
-        `@{u} wins the prize for "most embarrassing repo on an otherwise decent profile." It knows which one.`,
-        `Clean GitHub. One chaos repo in the corner giving everything away. You know the one.`,
-        `@{u} has earned a respectful roast. The GitHub is good. The early repos are not.`,
+        `Good GitHub overall. The one chaotic repo in the corner knows what it did.`,
+        `Earned a respectful roast. The early commits are the gift that keeps giving.`,
+        `The current repos are fine. The 2019 ones are why we're here.`,
     ],
 }
 
-// ─── Helper: pick random item from array ─────────────────
-// WHY: variety across roasts — same profile = different text
+// ─── Helpers ─────────────────────────────────────────────
+
 function pick(arr) {
     return arr[Math.floor(Math.random() * arr.length)]
 }
 
-// ─── Helper: fill template placeholders ──────────────────
-// WHY: templates use {u}, {count}, {pct} etc.
-//      this replaces them with real values
 function fill(template, vars) {
     return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`)
 }
 
-// ─── Helper: get tier from score ─────────────────────────
 function getTier(score) {
     if (score <= 25) return 'catastrophic'
     if (score <= 40) return 'rough'
@@ -198,25 +185,20 @@ function getTier(score) {
     return 'respectable'
 }
 
-// ─── Helper: get commit shame score ──────────────────────
-function getCommitShame(commitAnalysis) {
-    return 100 - (commitAnalysis?.qualityScore ?? 50)
+function pickN(arr, n) {
+    return [...arr].sort(() => Math.random() - 0.5).slice(0, n)
 }
 
-// ─── Section builders ─────────────────────────────────────
-// WHY separate builders: each section handles one roast angle
-//     combine them to build full roast paragraph
+// ─── Section builders ────────────────────────────────────
 
-function buildOpener(username, score) {
+function buildOpener(score) {
     const tier = getTier(score)
-    const template = pick(OPENER_BANK[tier])
-    return fill(template, { u: username })
+    return pick(OPENER_BANK[tier])
 }
 
 function buildAbandonSection(repoAnalysis) {
     if (!repoAnalysis || repoAnalysis.abandonedCount === 0) return ''
-    const template = pick(ABANDON_BANK)
-    return fill(template, {
+    return fill(pick(ABANDON_BANK), {
         count: repoAnalysis.abandonedCount,
         pct: repoAnalysis.abandonedPct,
     })
@@ -224,90 +206,60 @@ function buildAbandonSection(repoAnalysis) {
 
 function buildCommitSection(commitAnalysis) {
     if (!commitAnalysis || commitAnalysis.total === 0) return ''
-
-    const shameScore = getCommitShame(commitAnalysis)
+    const shameScore = 100 - (commitAnalysis.qualityScore ?? 50)
     const tier = shameScore > 70 ? 'horrible'
         : shameScore > 40 ? 'bad'
             : 'acceptable'
-
-    // WHY: pick a real commit message to quote if available
-    const sample = commitAnalysis.shameList?.[0]
-        || commitAnalysis.shameList?.[1]
-        || 'initial commit'
-
-    const template = pick(COMMIT_BANK[tier])
-    return fill(template, { sample })
+    const sample = commitAnalysis.shameList?.[0] || 'initial commit'
+    return fill(pick(COMMIT_BANK[tier]), { sample })
 }
 
-function buildLanguageSection(raw) {
-    if (!raw?.topLanguage || raw.topLanguage === 'Nothing') return ''
-
-    const lang = raw.topLanguage
+function buildLanguageSection(_raw) {
+    if (!_raw?.topLanguage || _raw.topLanguage === 'Nothing') return ''
+    const lang = _raw.topLanguage
     const templates = LANGUAGE_BANK[lang] || LANGUAGE_BANK.default
-    const template = pick(templates)
-    return fill(template, { lang, year: new Date().getFullYear() })
+    return fill(pick(templates), { lang, year: new Date().getFullYear() })
 }
 
 function buildReadmeSection(readme) {
     if (!readme) return ''
-
     if (!readme.exists) return pick(README_BANK.missing)
     if (readme.isEmpty) return pick(README_BANK.empty)
     return pick(README_BANK.exists)
 }
 
-function buildCloser(username, score, repoAnalysis) {
+function buildCloser(score, repoAnalysis, _raw) {
     const tier = getTier(score)
-    const template = pick(CLOSER_BANK[tier])
-    return fill(template, {
-        u: username,
+    return fill(pick(CLOSER_BANK[tier]), {
         abandoned: repoAnalysis?.abandonedCount ?? 0,
+        years: new Date().getFullYear() - (_raw?.joinYear ?? new Date().getFullYear()),
+        lang: _raw?.topLanguage || 'JavaScript',
     })
 }
 
-// ─── MAIN EXPORT: generateRoast ──────────────────────────
-// WHY: assembles all sections into one cohesive roast
-//      called by the route after GitHub analysis
-//
-// data shape (from githubService.analyzeProfile):
-//   username, score, _raw, repoAnalysis, commitAnalysis, readme
+// ─── MAIN EXPORT ─────────────────────────────────────────
 function generateRoast(data) {
-    const {
-        username,
-        score,
-        _raw,
-        repoAnalysis,
-        commitAnalysis,
-        readme,
-    } = data
+    const { score, _raw, repoAnalysis, commitAnalysis, readme } = data
 
-    // ── Build each section ────────────────────────────────
-    const opener = buildOpener(username, score)
+    const opener = buildOpener(score)
     const abandon = buildAbandonSection(repoAnalysis)
     const commits = buildCommitSection(commitAnalysis)
     const language = buildLanguageSection(_raw)
     const readmeS = buildReadmeSection(readme)
-    const closer = buildCloser(username, score, repoAnalysis)
+    const closer = buildCloser(score, repoAnalysis, _raw)
 
-    // ── Assemble: filter empty sections, join with spaces ─
-    // WHY filter: some sections may be empty (no commits found etc.)
-    //     joining empty strings creates double spaces
-    const sections = [opener, abandon, commits, language, readmeS, closer]
+    // WHY: filter empty, pick best middle sections, always keep opener + closer
+    const middleSections = [abandon, commits, language, readmeS]
         .filter(s => s && s.trim().length > 0)
 
-    // WHY: limit to 4 sections max — roast should be punchy
-    //      not a 500-word essay
-    const selected = sections.length > 4
-        ? [sections[0], ...pickN(sections.slice(1, -1), 2), sections[sections.length - 1]]
-        : sections
+    // WHY: 2 middle sections max — roast should be punchy not exhaustive
+    const selected = [
+        opener,
+        ...pickN(middleSections, 2),
+        closer,
+    ].filter(Boolean)
 
     return selected.join(' ')
-}
-
-// ─── Helper: pick N random items from array ───────────────
-function pickN(arr, n) {
-    const shuffled = [...arr].sort(() => Math.random() - 0.5)
-    return shuffled.slice(0, n)
 }
 
 module.exports = { generateRoast }
