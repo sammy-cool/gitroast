@@ -1,0 +1,257 @@
+/* ============================================================
+   GITROAST — Global Design System
+   WHY: Single source of truth for all colors, fonts, spacing.
+        Change one variable here → updates entire app.
+   ============================================================ */
+
+/* ── Google Fonts ────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fira+Code:wght@300;400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+/* ── CSS Variables (Design Tokens) ──────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg-primary: #070707;
+  --bg-card: #0F0F0F;
+  --bg-elevated: #141414;
+  --bg-input: #0A0A0A;
+
+  /* Borders */
+  --border: #1C1C1C;
+  --border-hover: #2E2E2E;
+  --border-focus: rgba(255, 69, 0, 0.5);
+
+  /* Brand — Fire */
+  --fire: #FF4500;
+  --fire-mid: #FF6B00;
+  --fire-warm: #FFB700;
+  --fire-grad: linear-gradient(135deg, #FF4500 0%, #FF6B00 50%, #FFB700 100%);
+
+  /* Semantic */
+  --bad: #FF3D3D;
+  --good: #00E676;
+  --warn: #FFB700;
+  --info: #FF6B00;
+
+  /* Text */
+  --text-primary: #F5F5F5;
+  --text-secondary: #777777;
+  --text-muted: #3A3A3A;
+  --text-ghost: #222222;
+
+  /* Typography */
+  --font-display: 'Bebas Neue', 'Impact', sans-serif;
+  --font-mono: 'Fira Code', 'Courier New', monospace;
+  --font-body: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+
+  /* Spacing */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Transitions */
+  --ease: all 0.18s ease;
+}
+
+/* ── Reset ───────────────────────────────────────────────── */
+/* WHY: Browsers have different default styles.
+        Reset makes every browser start from same point. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Base ────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  /* WHY: prevents horizontal scroll on mobile */
+  overflow-x: hidden;
+  /* WHY: smooth font rendering on Mac */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Typography Helpers ──────────────────────────────────── */
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Gradient text — used for GitRoast logo */
+.text-fire {
+  background: var(--fire-grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 15px;
+  transition: var(--ease);
+  text-decoration: none;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+/* Primary — fire gradient */
+.btn-primary {
+  background: var(--fire-grad);
+  color: #fff;
+  padding: 13px 24px;
+}
+
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(255, 69, 0, 0.3);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Outline — fire border */
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--fire);
+  color: var(--fire);
+  padding: 13px 24px;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: rgba(255, 69, 0, 0.08);
+}
+
+/* Ghost — subtle */
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* ── Animations ──────────────────────────────────────────── */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+
+  50% {
+    opacity: 0.28;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.animate-fadeUp {
+  animation: fadeUp 0.3s ease forwards;
+}
+
+.animate-blink {
+  animation: blink 1s infinite;
+}
+
+.animate-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+/* WHY: Makes scrollbar match our dark theme */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* ── Selection ───────────────────────────────────────────── */
+/* WHY: Text selection color matches our brand */
+::selection {
+  background: rgba(255, 69, 0, 0.3);
+  color: var(--text-primary);
+}
