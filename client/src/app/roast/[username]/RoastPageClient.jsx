@@ -233,25 +233,26 @@ export default function RoastPageClient({ username }) {
                         onProClick={() => setShowProModal(true)}
                     />
 
-                    {/* Monthly subscription upsell */}
+                    {/* Monthly subscription upsell — INR pricing */}
                     <div className="upsell-card card">
                         <div>
-                            <p className="upsell-title">
-                                📈 Monthly Roast Subscription
-                            </p>
+                            <p className="upsell-title">📈 Monthly Roast Subscription</p>
                             <p className="upsell-sub font-mono">
                                 Track your improvement. Or your shame.
                             </p>
                         </div>
                         <div className="upsell-price">
-                            <span className="font-display upsell-amount">$4.99</span>
+                            {/* WHY: ₹ symbol smaller, number bigger */}
+                            <div className="upsell-amount-row">
+                                <span className="font-display upsell-symbol">₹</span>
+                                <span className="font-display upsell-number">499</span>
+                            </div>
                             <span className="font-mono upsell-period">/month</span>
                         </div>
                     </div>
 
                 </main>
 
-                {/* Pro modal */}
                 {showProModal && (
                     <ProModal onClose={() => setShowProModal(false)} />
                 )}
@@ -272,8 +273,8 @@ export default function RoastPageClient({ username }) {
             width:           100%;
             max-width:       580px;
           }
-          .nav-logo      { font-size: 22px; }
-          .upsell-card   {
+          .nav-logo { font-size: 22px; }
+          .upsell-card {
             width:           100%;
             max-width:       580px;
             padding:         1rem 1.5rem;
@@ -285,7 +286,15 @@ export default function RoastPageClient({ username }) {
           .upsell-title  { font-size: 14px; font-weight: 500; margin: 0 0 4px; }
           .upsell-sub    { color: var(--text-secondary); font-size: 12px; }
           .upsell-price  { text-align: right; flex-shrink: 0; }
-          .upsell-amount { font-size: 26px; color: var(--fire); }
+          .upsell-amount-row {
+            display:     flex;
+            align-items: baseline;
+            gap:         1px;
+            justify-content: flex-end;
+          }
+          /* WHY: ₹ symbol smaller than number */
+          .upsell-symbol { font-size: 16px; color: var(--fire); line-height: 1; }
+          .upsell-number { font-size: 26px; color: var(--fire); line-height: 1; }
           .upsell-period { font-size: 11px; color: var(--text-secondary); }
         `}</style>
             </>

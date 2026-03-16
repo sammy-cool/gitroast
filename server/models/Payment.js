@@ -20,14 +20,14 @@ const paymentSchema = new mongoose.Schema(
         },
 
         // ── Payment amounts ───────────────────────────────────
-        amountUSD: {
+        amountINR: {
             type: Number,
             required: true,
         },
 
         // ── PayPal specific ───────────────────────────────────
         // WHY: PayPal order ID — our reference for every transaction
-        paypalOrderId: {
+        razorPayOrderId: {
             type: String,
             index: true,
         },

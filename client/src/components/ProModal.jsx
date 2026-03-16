@@ -1,12 +1,9 @@
 'use client'
 
-// WHY useEffect: we need to lock body scroll when modal is open
-//     and restore it when modal closes
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-
-import GitHubLoginBtn from './GitHubLoginBtn'
 import { useAuth } from '@/context/AuthContext'
+import GitHubLoginBtn from './GitHubLoginBtn'
 
 const FREE_FEATURES = [
     '1 roast per day',
@@ -28,18 +25,17 @@ const PRO_FEATURES = [
 export default function ProModal({ onClose }) {
     const { isLoggedIn } = useAuth()
     const router = useRouter()
-
     const [mounted, setMounted] = useState(false)
+
     useEffect(() => { setMounted(true) }, [])
 
-    // WHY: prevent page scrolling behind the modal
+    // WHY: prevent page scrolling behind modal
     useEffect(() => {
         document.body.style.overflow = 'hidden'
-        // WHY return: cleanup runs when modal closes
         return () => { document.body.style.overflow = '' }
     }, [])
 
-    // WHY: click outside modal = close it
+    // WHY: click outside modal = close
     function handleBackdropClick(e) {
         if (e.target === e.currentTarget) onClose()
     }
@@ -48,7 +44,7 @@ export default function ProModal({ onClose }) {
         <div className="modal-backdrop" onClick={handleBackdropClick}>
             <div className="modal-box card animate-fadeUp">
 
-                {/* ── Header ── */}
+                {/* Header */}
                 <div className="modal-header">
                     <div>
                         <h2 className="font-display modal-title text-fire">⚡ Go Pro</h2>
@@ -63,7 +59,7 @@ export default function ProModal({ onClose }) {
                     </button>
                 </div>
 
-                {/* ── Comparison grid ── */}
+                {/* Free vs Pro comparison */}
                 <div className="modal-grid">
 
                     {/* Free column */}
@@ -91,30 +87,48 @@ export default function ProModal({ onClose }) {
                     </div>
                 </div>
 
-                {/* ── Private repo highlight ── */}
+                {/* Private repo highlight */}
                 <div className="private-repo-note font-mono">
                     🔐 Private repos require GitHub login — we only read, never write.
                     Your code stays yours.
                 </div>
 
-                {/* ── Pricing ── */}
+                {/* Pricing — INR */}
                 <div className="modal-pricing">
                     <div className="price-option">
-                        <span className="font-display price-amount" style={{ color: 'var(--fire)' }}>
-                            $1.99
-                        </span>
-                        <span className="price-label font-mono">one-time</span>
+                        {/* WHY: ₹ symbol smaller, number bigger — standard pricing UI */}
+                        <div className="price-amount-row">
+                            <span className="font-display price-symbol" style={{ color: 'var(--fire)' }}>
+                                ₹
+                            </span>
+                            <span className="font-display price-number" style={{ color: 'var(--fire)' }}>
+                                199
+                            </span>
+                        </div>
+                        <span className="price-label font-mono">one time</span>
                     </div>
+
                     <div className="price-divider font-mono">or</div>
+
                     <div className="price-option">
-                        <span className="font-display price-amount" style={{ color: 'var(--fire-warm)' }}>
-                            $4.99
-                        </span>
+                        <div className="price-amount-row">
+                            <span className="font-display price-symbol" style={{ color: 'var(--fire-warm)' }}>
+                                ₹
+                            </span>
+                            <span className="font-display price-number" style={{ color: 'var(--fire-warm)' }}>
+                                499
+                            </span>
+                        </div>
                         <span className="price-label font-mono">/month · teams</span>
                     </div>
                 </div>
 
-                {/* ── CTA ── */}
+                {/* INR note for global users */}
+                <p className="inr-note font-mono">
+                    💡 Prices in INR · Your bank auto-converts to your local currency
+                </p>
+
+                {/* CTA */}
                 {mounted && (
                     isLoggedIn ? (
                         <button
@@ -129,7 +143,7 @@ export default function ProModal({ onClose }) {
                 )}
 
                 <p className="modal-disclaimer font-mono">
-                    Coming soon · Zero setup · Cancel anytime
+                    Pay with Card · UPI · NetBanking · Wallet via Razorpay
                 </p>
             </div>
 
@@ -146,23 +160,23 @@ export default function ProModal({ onClose }) {
           backdrop-filter: blur(4px);
         }
         .modal-box {
-          width:      100%;
-          max-width:  540px;
-          max-height: 90vh;
-          overflow-y: auto;
-          padding:    1.75rem;
-          display:    flex;
+          width:          100%;
+          max-width:      540px;
+          max-height:     90vh;
+          overflow-y:     auto;
+          padding:        1.75rem;
+          display:        flex;
           flex-direction: column;
-          gap:        1.25rem;
+          gap:            1.25rem;
         }
         .modal-header {
-          display:     flex;
+          display:         flex;
           justify-content: space-between;
-          align-items: flex-start;
+          align-items:     flex-start;
         }
-        .modal-title   { font-size: 36px; line-height: 1; }
+        .modal-title    { font-size: 36px; line-height: 1; }
         .modal-subtitle { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
-        .modal-close   { padding: 6px 10px; }
+        .modal-close    { padding: 6px 10px; }
         .modal-grid {
           display:               grid;
           grid-template-columns: 1fr 1fr;
@@ -201,16 +215,31 @@ export default function ProModal({ onClose }) {
           color:         var(--text-secondary);
           line-height:   1.6;
         }
+        /* Pricing row */
         .modal-pricing {
-          display:     flex;
-          align-items: center;
+          display:         flex;
+          align-items:     center;
           justify-content: center;
-          gap:         1.5rem;
+          gap:             1.5rem;
         }
-        .price-option  { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .price-amount  { font-size: 36px; line-height: 1; }
-        .price-label   { font-size: 11px; color: var(--text-secondary); }
-        .price-divider { color: var(--text-muted); font-size: 13px; }
+        .price-option     { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .price-amount-row { display: flex; align-items: baseline; gap: 1px; }
+        /* WHY: symbol smaller than number — standard pricing pattern */
+        .price-symbol     { font-size: 20px; line-height: 1; }
+        .price-number     { font-size: 36px; line-height: 1; }
+        .price-label      { font-size: 11px; color: var(--text-secondary); }
+        .price-divider    { color: var(--text-muted); font-size: 13px; }
+        /* INR note */
+        .inr-note {
+          text-align:    center;
+          font-size:     11px;
+          color:         var(--text-muted);
+          background:    var(--bg-elevated);
+          border:        1px solid var(--border);
+          border-radius: var(--radius-sm);
+          padding:       6px 12px;
+        }
+        /* CTA */
         .modal-cta {
           width:          100%;
           padding:        14px;
