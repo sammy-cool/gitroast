@@ -19,7 +19,7 @@ const PRO_FEATURES = [
     'Unlimited roasts',
     'Public + Private repos',
     'HD card — no watermark',
-    'AI-powered Claude roast',
+    'AI-powered roast',
     'Monthly progress comparison',
     'Shareable link forever',
     'Team leaderboard',

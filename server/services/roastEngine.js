@@ -2,7 +2,7 @@
 // GITROAST — Rule-Based Roast Engine
 // WHY: Zero dependency, zero cost, instant.
 //      Generates savage but funny roasts from GitHub data.
-//      Claude API is fallback — this runs first always.
+//      AI API is fallback — this runs first always.
 // ============================================================
 
 // ─── Roast Template Banks ────────────────────────────────

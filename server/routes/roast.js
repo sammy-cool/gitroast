@@ -2,14 +2,18 @@ const express = require('express')
 const router = express.Router()
 const { analyzeProfile } = require('../services/githubService')
 const { generateRoast } = require('../services/roastEngine')
-const { generateClaudeRoast } = require('../services/claudeService')
+const { generateAIRoast } = require('../services/aiService')
 const { optionalAuth, requirePro } = require('../middleware/auth')
 const Roast = require('../models/Roast')
 
+// ─── Idempotency key store ────────────────────────────────
+// WHY: prevents StrictMode double-mount from saving 2 roasts
+//      same key = same request = return cached response
+//      different key = new intentional roast = process fully
 // WHY Map: O(1) lookup, stores key → timestamp
 const processedKeys = new Map()
 
-// WHY: cleanup every 60s — keys only need to live for ~2 seconds
+// WHY: cleanup every 60s — keys only need to live ~2 seconds
 //      prevents memory leak on busy server
 setInterval(() => {
     const now = Date.now()
@@ -19,33 +23,34 @@ setInterval(() => {
 }, 60000)
 
 // ─── GET /api/roast/:username ─────────────────────────────
-// WHY optionalAuth: works for both free + Pro users
-//     req.user = null  → free roast (rule engine)
-//     req.user.isPro   → Pro roast (Claude API)
 router.get('/:username', optionalAuth, async (req, res) => {
     const { username } = req.params
     const isPro = req.user?.isPro || false
-
     const idempotencyKey = req.headers['x-idempotency-key']
-    // WHY: same key = same StrictMode double mount
-    //      different key = new "Roast Again" click = allow
+
+    // ── Idempotency check ─────────────────────────────────
+    // WHY: if we already processed this exact key
+    //      return cached response — no DB save, no API call
     if (idempotencyKey && processedKeys.has(idempotencyKey)) {
-        console.log(`[Roast] StrictMode duplicate blocked`)
-        // WHY: return the cached response — user sees correct data
-        return res.status(200).json(processedKeys.get(idempotencyKey).response)
+        console.log(`[Roast] Duplicate blocked: ${idempotencyKey}`)
+        return res.status(200).json(
+            processedKeys.get(idempotencyKey).response
+        )
     }
 
-    // ── Input validation ─────────────────────────────────
-    if (!username || username.length > 39 || !/^[a-zA-Z0-9-]+$/.test(username)) {
+    // ── Input validation ──────────────────────────────────
+    if (
+        !username ||
+        username.length > 39 ||
+        !/^[a-zA-Z0-9-]+$/.test(username)
+    ) {
         return res.status(400).json({
             error: 'INVALID_USERNAME',
             message: 'Invalid GitHub username format.',
         })
     }
 
-    // ── Free user daily limit check ───────────────────────
-    // WHY: free users get 1 roast per day
-    //      Pro users get unlimited
+    // ── Free user daily limit ─────────────────────────────
     if (req.user && !isPro) {
         const canRoast = req.user.canRoastToday()
         if (!canRoast) {
@@ -57,49 +62,40 @@ router.get('/:username', optionalAuth, async (req, res) => {
     }
 
     try {
-        // ── Fetch GitHub data ──────────────────────────────
-        // WHY: use user's GitHub token if Pro (private repos)
-        //      use default token if free (public only)
+        // ── Fetch GitHub data ─────────────────────────────
         const githubToken = isPro
-            ? req.user?.githubAccessToken   // Pro: their personal token
-            : null                          // Free: server default token
+            ? req.user?.githubAccessToken
+            : null
 
         const data = await analyzeProfile(username, githubToken)
 
-        // ── Generate roast ─────────────────────────────────
-        // WHY: Pro users always get Claude
-        //      Free users get rule engine
-        //      If Claude fails → fall back to rule engine
+        // ── Generate roast text ───────────────────────────
         let roast = null
         let roastSource = 'rules'
 
         if (isPro) {
-            // Pro: try Claude first
-            roast = await generateClaudeRoast(data)
+            roast = await generateAIRoast(data)
             if (roast) {
-                roastSource = 'claude'
+                roastSource = 'ai'
             } else {
-                // WHY: Claude failed (API down, timeout etc.)
-                //      silently fall back — user still gets a roast
-                console.warn(`[Roast] Claude failed for ${username}, using rule engine`)
+                console.warn(`[Roast] AI failed for ${username}, using rules`)
                 roast = generateRoast(data)
             }
         } else {
-            // Free: rule engine only
             roast = generateRoast(data)
         }
 
-        // WHY: roast should never be empty — final safety net
+        // WHY: safety net — roast should never be empty
         if (!roast || roast.trim().length === 0) {
             roast = `@${username}'s GitHub exists. That's the nicest thing the data supports.`
         }
 
         data.roast = roast
-        data.roastSource = roastSource   // WHY: frontend can show "AI Roast" badge
+        data.roastSource = roastSource
 
-        // ── Save roast to MongoDB ──────────────────────────
-        // WHY try/catch separately: saving to DB should NEVER
-        //     block the response — user gets roast regardless
+        // ── Save roast to MongoDB ─────────────────────────
+        // WHY separate try/catch: DB save should NEVER block
+        //     the response — user gets roast regardless
         try {
             const savedRoast = await Roast.create({
                 username,
@@ -120,19 +116,14 @@ router.get('/:username', optionalAuth, async (req, res) => {
                 },
                 stats: data.stats,
                 shameCommits: data.shameCommits,
-                isPro: isPro,
+                isPro,
             })
-
-            // WHY: send roastId to frontend so Share button
-            //      can call /api/history/:id/share to track shares
             data.roastId = savedRoast._id
-
         } catch (dbErr) {
-            // WHY: log but never crash — roast still returns fine
             console.error('[Roast] DB save failed:', dbErr.message)
         }
 
-        // ── Update roast count if logged in ───────────────
+        // ── Update user roast count ───────────────────────
         if (req.user) {
             req.user.roastCount += 1
             req.user.lastRoastDate = new Date()
@@ -141,7 +132,18 @@ router.get('/:username', optionalAuth, async (req, res) => {
             )
         }
 
-        return res.status(200).json({ success: true, data })
+        const responseData = { success: true, data }
+
+        // ── Cache response against idempotency key ────────
+        // WHY: store so duplicate request returns same response
+        if (idempotencyKey) {
+            processedKeys.set(idempotencyKey, {
+                response: responseData,
+                time: Date.now(),
+            })
+        }
+
+        return res.status(200).json(responseData)
 
     } catch (err) {
 
@@ -168,12 +170,15 @@ router.get('/:username', optionalAuth, async (req, res) => {
 })
 
 // ─── GET /api/roast/:username/pro ─────────────────────────
-// WHY: dedicated Pro endpoint — always uses Claude
-//      requires auth + Pro status
+// WHY: dedicated Pro endpoint — always uses AI roast
 router.get('/:username/pro', requirePro, async (req, res) => {
     const { username } = req.params
 
-    if (!username || username.length > 39 || !/^[a-zA-Z0-9-]+$/.test(username)) {
+    if (
+        !username ||
+        username.length > 39 ||
+        !/^[a-zA-Z0-9-]+$/.test(username)
+    ) {
         return res.status(400).json({
             error: 'INVALID_USERNAME',
             message: 'Invalid GitHub username format.',
@@ -182,22 +187,24 @@ router.get('/:username/pro', requirePro, async (req, res) => {
 
     try {
         const data = await analyzeProfile(username, req.user.githubAccessToken)
-        const roast = await generateClaudeRoast(data) || generateRoast(data)
+        const roast = await generateAIRoast(data) || generateRoast(data)
 
         data.roast = roast
-        data.roastSource = 'claude'
+        data.roastSource = 'ai'
 
         return res.status(200).json({ success: true, data })
 
     } catch (err) {
         if (err.message === 'USER_NOT_FOUND') {
             return res.status(404).json({
-                error: 'USER_NOT_FOUND', message: `"@${username}" not found on GitHub.`,
+                error: 'USER_NOT_FOUND',
+                message: `"@${username}" not found on GitHub.`,
             })
         }
         console.error(`[ProRoast] Error for ${username}:`, err.message)
         return res.status(500).json({
-            error: 'SERVER_ERROR', message: 'Something went wrong.',
+            error: 'SERVER_ERROR',
+            message: 'Something went wrong.',
         })
     }
 })

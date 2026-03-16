@@ -52,10 +52,10 @@ Total Stars:      ${_raw?.totalStars ?? 0}
 Write ONLY the roast not facts you have to roast in funny way. No quotes. No preamble. No explanation. And Must create smile on anyone face whenever someone's read it!`
 }
 
-// ─── generateClaudeRoast ─────────────────────────────────────
+// ─── generateAIRoast ─────────────────────────────────────
 // WHY returns string | null:
 //   null = caller uses rule engine fallback silently
-async function generateClaudeRoast(data) {
+async function generateAIRoast(data) {
 
   // WHY: never crash if key is missing — just fall back
   if (!process.env.GEMINI_API_KEY) {
@@ -114,4 +114,4 @@ async function generateClaudeRoast(data) {
   }
 }
 
-module.exports = { generateClaudeRoast }
+module.exports = { generateAIRoast }

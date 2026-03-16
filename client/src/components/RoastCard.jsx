@@ -61,8 +61,8 @@ export default function RoastCard({ data, onProClick }) {
             <div className="roast-text-block">
                 <div className="roast-text-header">
                     <p className="roast-text-label font-mono">🔥 The Roast</p>
-                    {/* WHY: show badge if Claude generated this roast */}
-                    {data.roastSource === 'claude' && (
+                    {/* WHY: show badge if AI generated this roast */}
+                    {data.roastSource === 'ai' && (
                         <span className="ai-badge font-mono">⚡ AI Roast</span>
                     )}
                 </div>
