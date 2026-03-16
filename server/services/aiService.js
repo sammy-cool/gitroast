@@ -94,7 +94,7 @@ async function generateAIRoast(data) {
     }
 
     const json  = await response.json()
-
+    console.log('josn', json)
     // WHY: Gemini response shape is different from OpenAI
     //      text lives at candidates[0].content.parts[0].text
     const roast = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()

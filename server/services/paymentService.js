@@ -1,184 +1,177 @@
 // ============================================================
-// GITROAST — PayPal Payment Service
-// WHY PayPal: user already has account, globally trusted,
-//             zero monthly fee, simple REST API,
-//             no credit card needed to set up
+// GITROAST — Razorpay Payment Service
+// WHY Razorpay: Indian company, works globally, free to setup
+//               USD/INR/100+ currencies, full sandbox, 2% fee
+// FLOW:
+//   1. Backend creates Razorpay order → gets order_id
+//   2. Frontend opens Razorpay checkout with order_id
+//   3. User pays → Razorpay sends back 3 values:
+//      razorpay_order_id, razorpay_payment_id, razorpay_signature
+//   4. Backend verifies signature using HMAC SHA256
+//   5. Signature valid → unlock Pro in MongoDB
 // ============================================================
 
+const Razorpay = require('razorpay')
+const crypto = require('crypto')  // WHY: built-in Node.js — zero dependency
 const Payment = require('../models/Payment')
 const User = require('../models/User')
 
-// WHY: switch API base based on mode
-//      sandbox = test money, live = real money
-const PAYPAL_BASE = process.env.PAYPAL_MODE === 'live'
-    ? 'https://api-m.paypal.com'
-    : 'https://api-m.sandbox.paypal.com'
+// WHY: instantiate once — reuse across all calls
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET,
+})
 
-// ─── Plan config ─────────────────────────────────────────
-// WHY central object: change prices in one place only
+// ─── Plan config ──────────────────────────────────────────
+// WHY: single source of truth for all plan details
+//      amount in CENTS (USD) — Razorpay requirement
 const PLANS = {
     pro_one_time: {
-        price: parseFloat(process.env.PRO_ONE_TIME_PRICE || '2.49'),
+        amount: parseInt(process.env.PRO_ONE_TIME_PRICE || '19900'),
+        currency: 'INR',
         description: 'GitRoast Pro — Lifetime Access',
-        label: 'Pro One Time',
+        label: 'Pro Lifetime',
+        displayPrice: '₹199',
     },
     pro_monthly: {
-        price: parseFloat(process.env.PRO_MONTHLY_PRICE || '5.49'),
+        amount: parseInt(process.env.PRO_MONTHLY_PRICE || '49900'),
+        currency: 'INR',
         description: 'GitRoast Pro — Monthly Subscription',
         label: 'Pro Monthly',
+        displayPrice: '₹499',
     },
     teams_monthly: {
-        price: parseFloat(process.env.TEAMS_MONTHLY_PRICE || '10.99'),
+        amount: parseInt(process.env.TEAMS_MONTHLY_PRICE || '99900'),
+        currency: 'INR',
         description: 'GitRoast Teams — Monthly Subscription',
         label: 'Teams Monthly',
+        displayPrice: '₹999',
     },
-}
-
-// ─── getAccessToken ───────────────────────────────────────
-// WHY: PayPal uses OAuth 2.0
-//      exchange Client ID + Secret → short-lived access token
-//      this token is then used for all API calls
-async function getAccessToken() {
-    // WHY base64: HTTP Basic Auth format PayPal requires
-    const credentials = Buffer.from(
-        `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
-    ).toString('base64')
-
-    const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
-        method: 'POST',
-        headers: {
-            Authorization: `Basic ${credentials}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: 'grant_type=client_credentials',
-        signal: AbortSignal.timeout(10000),
-    })
-
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        console.error('[PayPal] Auth failed:', err)
-        throw new Error('PAYPAL_AUTH_FAILED')
-    }
-
-    const json = await res.json()
-    return json.access_token
 }
 
 // ─── createOrder ─────────────────────────────────────────
-// WHY: Step 1 of PayPal flow
-//      creates an order on PayPal servers
-//      returns orderId → frontend shows PayPal button with it
-async function createOrder(plan) {
+// WHY: Step 1 — create order on Razorpay servers
+//      returns order_id which frontend needs to open checkout
+async function createOrder(plan, userId) {
     const planConfig = PLANS[plan]
     if (!planConfig) throw new Error('INVALID_PLAN')
 
-    const token = await getAccessToken()
+    // WHY receipt: unique identifier for this order
+    //     Razorpay shows it in dashboard + emails
+    const receipt = `gitroast_${plan}_${userId}_${Date.now()}`
 
-    const res = await fetch(`${PAYPAL_BASE}/v2/checkout/orders`, {
-        method: 'POST',
-        headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+    const order = await razorpay.orders.create({
+        amount: planConfig.amount,
+        currency: planConfig.currency,
+        receipt: receipt.slice(0, 40), // WHY: Razorpay max 40 chars
+        // WHY notes: stored in Razorpay dashboard — helpful for support
+        notes: {
+            plan,
+            userId: userId.toString(),
+            description: planConfig.description,
         },
-        body: JSON.stringify({
-            intent: 'CAPTURE',
-            purchase_units: [
-                {
-                    amount: {
-                        currency_code: 'USD',
-                        value: planConfig.price.toFixed(2),
-                    },
-                    description: planConfig.description,
-                    // WHY custom_id: links PayPal order back to our plan
-                    //     readable in PayPal dashboard too
-                    custom_id: plan,
-                },
-            ],
-            application_context: {
-                brand_name: 'GitRoast',
-                user_action: 'PAY_NOW',
-                // WHY: fallback URLs if JS popup fails
-                return_url: `${process.env.CLIENT_URL}/pricing?status=success`,
-                cancel_url: `${process.env.CLIENT_URL}/pricing?status=cancelled`,
-            },
-        }),
-        signal: AbortSignal.timeout(10000),
+        // WHY payment_capture 1: auto-capture payment immediately
+        //     no manual capture step needed
+        payment_capture: 1,
     })
-
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        console.error('[PayPal] Create order failed:', err)
-        throw new Error('PAYPAL_ORDER_FAILED')
-    }
-
-    const order = await res.json()
 
     return {
         orderId: order.id,
-        price: planConfig.price,
+        amount: order.amount,
+        currency: order.currency,
+        amountFloat: (order.amount / 100).toFixed(2), // WHY: for display
         label: planConfig.label,
+        displayPrice: planConfig.displayPrice,
+        description: planConfig.description,
+    }
+}
+
+// ─── verifySignature ──────────────────────────────────────
+// WHY: CRITICAL security step
+//      Razorpay sends back a signature after payment
+//      We MUST verify it using HMAC SHA256 before unlocking Pro
+//      Without this anyone could fake a successful payment
+//
+// HOW it works:
+//   Razorpay creates: HMAC_SHA256(order_id + "|" + payment_id, key_secret)
+//   We recreate the same hash
+//   If they match → payment is genuine
+//   If they don't → someone tampered with the response
+function verifySignature(orderId, paymentId, signature) {
+    // WHY: exact format Razorpay uses to generate signature
+    const body = `${orderId}|${paymentId}`
+    const expectedSig = crypto
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+        .update(body)
+        .digest('hex')
+
+    // WHY timingSafeEqual: prevents timing attacks
+    //     normal string comparison leaks timing info
+    //     timingSafeEqual always takes same time regardless
+    try {
+        return crypto.timingSafeEqual(
+            Buffer.from(expectedSig),
+            Buffer.from(signature)
+        )
+    } catch {
+        return false
     }
 }
 
 // ─── captureAndUnlock ────────────────────────────────────
-// WHY: Step 2 of PayPal flow — AFTER user approves in popup
-//      captures = actually moves the money to your account
-//      then immediately upgrades user to Pro in our DB
-async function captureAndUnlock(orderId, userId, plan) {
-
-    // ── Capture payment on PayPal ────────────────────────
-    const token = await getAccessToken()
-
-    const res = await fetch(
-        `${PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`,
-        {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-            signal: AbortSignal.timeout(10000),
-        }
+// WHY: Step 3 — called after frontend gets payment success
+//      1. Verify signature (security)
+//      2. Save payment to MongoDB
+//      3. Upgrade user to Pro
+async function captureAndUnlock({
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    plan,
+    userId,
+}) {
+    // ── Step 1: Verify signature ─────────────────────────
+    // WHY: NEVER skip this — it's the only proof payment is real
+    const isValid = verifySignature(
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature
     )
 
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        console.error('[PayPal] Capture failed:', err)
-        throw new Error('PAYPAL_CAPTURE_FAILED')
+    if (!isValid) {
+        throw new Error('SIGNATURE_INVALID')
     }
 
-    const capture = await res.json()
-
-    // WHY: verify PayPal says COMPLETED — not just any response
-    if (capture.status !== 'COMPLETED') {
-        throw new Error(`PAYMENT_NOT_COMPLETED: ${capture.status}`)
+    // ── Step 2: Get payment details from Razorpay ─────────
+    // WHY: fetch actual amount paid for accurate records
+    let paymentDetails = null
+    try {
+        paymentDetails = await razorpay.payments.fetch(razorpay_payment_id)
+    } catch (err) {
+        // WHY: signature already verified — safe to proceed
+        //      even if this fetch fails
+        console.warn('[Payment] Could not fetch payment details:', err.message)
     }
 
-    // ── Extract payer email for records ──────────────────
-    const payerEmail = capture.payer?.email_address || null
-    const paidAmount = parseFloat(
-        capture.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || 0
-    )
+    const amountPaid = paymentDetails
+        ? (paymentDetails.amount / 100).toFixed(2)
+        : (PLANS[plan]?.amount / 100).toFixed(2)
 
-    // ── Save payment to MongoDB ───────────────────────────
-    // WHY: permanent record of every payment for support + analytics
+    // ── Step 3: Save to MongoDB ──────────────────────────
     const payment = await Payment.create({
         userId,
         plan,
-        amountUSD: paidAmount,
-        paypalOrderId: orderId,
-        payerEmail,
+        amountUSD: parseFloat(amountPaid),
+        paypalOrderId: razorpay_order_id,   // WHY: reusing field for Razorpay order ID
+        payerEmail: paymentDetails?.email || null,
         status: 'confirmed',
         confirmedAt: new Date(),
-        // WHY: monthly plans expire after 30 days
-        //      one-time plans never expire (null)
         subscriptionEndsAt: plan !== 'pro_one_time'
             ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
             : null,
     })
 
-    // ── Upgrade user to Pro in MongoDB ────────────────────
-    // WHY findByIdAndUpdate: atomic — no race conditions
+    // ── Step 4: Upgrade user to Pro ──────────────────────
     await User.findByIdAndUpdate(userId, {
         $set: {
             isPro: true,
@@ -186,7 +179,7 @@ async function captureAndUnlock(orderId, userId, plan) {
         },
     })
 
-    return { payment, capture }
+    return { payment, paymentId: razorpay_payment_id }
 }
 
-module.exports = { createOrder, captureAndUnlock, PLANS }
+module.exports = { createOrder, captureAndUnlock, verifySignature, PLANS }

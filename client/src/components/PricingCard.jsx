@@ -2,7 +2,6 @@
 
 import { useAuth } from '@/context/AuthContext'
 
-// WHY: plan config lives here — one place to update UI copy
 const PLAN_CONFIG = {
     pro_one_time: {
         name: 'Pro — Lifetime',
@@ -55,7 +54,6 @@ export default function PricingCard({ planKey, price, onSelect }) {
     return (
         <div className="pricing-card card">
 
-            {/* ── Popular badge ── */}
             {config.badge && (
                 <div
                     className="plan-badge font-mono"
@@ -65,7 +63,6 @@ export default function PricingCard({ planKey, price, onSelect }) {
                 </div>
             )}
 
-            {/* ── Name + price ── */}
             <div className="plan-top">
                 <p className="plan-name font-mono">{config.name}</p>
                 <div className="price-row">
@@ -73,13 +70,12 @@ export default function PricingCard({ planKey, price, onSelect }) {
                         className="plan-price font-display"
                         style={{ color: config.color }}
                     >
-                        ${price ?? '—'}
+                        {price ?? '—'}
                     </span>
                     <span className="plan-period font-mono">{config.period}</span>
                 </div>
             </div>
 
-            {/* ── Features list ── */}
             <ul className="features-list">
                 {config.features.map(f => (
                     <li key={f} className="feature-item font-mono">
@@ -89,7 +85,6 @@ export default function PricingCard({ planKey, price, onSelect }) {
                 ))}
             </ul>
 
-            {/* ── CTA button ── */}
             <button
                 className="btn plan-cta"
                 style={{
@@ -104,9 +99,8 @@ export default function PricingCard({ planKey, price, onSelect }) {
                 {isLoggedIn ? `Get ${config.name} ⚡` : 'Connect GitHub to Pay'}
             </button>
 
-            {/* ── Payment method note ── */}
             <p className="plan-note font-mono">
-                Paid securely via PayPal · No card stored on our servers
+                Pay via Card · UPI · NetBanking · Wallet
             </p>
 
             <style jsx>{`
@@ -117,7 +111,6 @@ export default function PricingCard({ planKey, price, onSelect }) {
           padding:        1.5rem;
           position:       relative;
         }
-        /* Badge — top right corner */
         .plan-badge {
           position:       absolute;
           top:            -1px;
@@ -132,7 +125,6 @@ export default function PricingCard({ planKey, price, onSelect }) {
           text-transform: uppercase;
           background:     var(--bg-card);
         }
-        /* Top section */
         .plan-top {
           border-bottom:  1px solid var(--border);
           padding-bottom: 1rem;
@@ -151,7 +143,6 @@ export default function PricingCard({ planKey, price, onSelect }) {
         }
         .plan-price  { font-size: 40px; line-height: 1; }
         .plan-period { font-size: 13px; color: var(--text-secondary); }
-        /* Features */
         .features-list {
           list-style:     none;
           display:        flex;
@@ -160,7 +151,6 @@ export default function PricingCard({ planKey, price, onSelect }) {
           flex:           1;
         }
         .feature-item { font-size: 13px; color: var(--text-primary); }
-        /* CTA */
         .plan-cta {
           width:          100%;
           padding:        13px;
@@ -172,7 +162,6 @@ export default function PricingCard({ planKey, price, onSelect }) {
           opacity:   0.9;
           transform: translateY(-1px);
         }
-        /* Note */
         .plan-note {
           text-align: center;
           color:      var(--text-ghost);

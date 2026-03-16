@@ -17,41 +17,21 @@ export default function PricingPage() {
     const { isLoggedIn, isPro } = useAuth()
     const router = useRouter()
 
-    // WHY: fetch live prices from server so .env is source of truth
+    useEffect(() => { setMounted(true) }, [])
+
+    // WHY: fetch live prices from server
     useEffect(() => {
         fetch(`${API_BASE}/api/payment/plans`)
             .then(r => r.json())
             .then(d => setPlans(d.plans || []))
             .catch(() => {
-                // WHY: fallback prices if server unreachable
+                // WHY fallback: show default prices if server unreachable
                 setPlans([
-                    { key: 'pro_one_time', price: 2.49, label: 'Pro One Time' },
-                    { key: 'pro_monthly', price: 5.49, label: 'Pro Monthly' },
-                    { key: 'teams_monthly', price: 10.99, label: 'Teams Monthly' },
+                    { key: 'pro_one_time', price: '2.49', label: 'Pro Lifetime' },
+                    { key: 'pro_monthly', price: '5.49', label: 'Pro Monthly' },
+                    { key: 'teams_monthly', price: '9.99', label: 'Teams Monthly' },
                 ])
             })
-    }, [])
-
-    useEffect(() => { setMounted(true) }, [])
-
-    // WHY: check URL for status params from PayPal redirect fallback
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search)
-        if (params.get('status') === 'success') {
-            createToast({
-                type: 'success',
-                message: '🔥 Payment received! Pro features unlocking...',
-                position: 'top-center',
-                duration: 5000,
-            })
-        }
-        if (params.get('status') === 'cancelled') {
-            createToast({
-                type: 'warning',
-                message: 'Payment cancelled. No charge was made.',
-                position: 'top-center',
-            })
-        }
     }, [])
 
     function handleSelectPlan(planKey) {
@@ -69,7 +49,7 @@ export default function PricingPage() {
     }
 
     function handlePaymentSuccess() {
-        // WHY: full page reload so AuthContext re-fetches isPro from server
+        // WHY full reload: forces AuthContext to re-fetch isPro: true
         window.location.href = '/?upgraded=true'
     }
 
@@ -78,7 +58,7 @@ export default function PricingPage() {
     return (
         <main className="pricing-page">
 
-            {/* ── Nav ── */}
+            {/* Nav */}
             <div className="pricing-nav">
                 <div
                     className="font-display nav-logo text-fire"
@@ -90,8 +70,7 @@ export default function PricingPage() {
                 <GitHubLoginBtn variant="compact" />
             </div>
 
-            {/* ── Already Pro state ── */}
-            {/* WHY mounted check: prevents hydration mismatch */}
+            {/* Already Pro */}
             {mounted && isPro && (
                 <div className="already-pro card">
                     <p className="font-display already-pro-title text-fire">
@@ -109,8 +88,7 @@ export default function PricingPage() {
                 </div>
             )}
 
-            {/* ── Plan selection ── */}
-            {/* WHY mounted check: auth state only known after client loads */}
+            {/* Plan selection */}
             {mounted && !isPro && !selectedPlan && (
                 <>
                     <div className="pricing-header">
@@ -118,11 +96,10 @@ export default function PricingPage() {
                             UNLOCK PRO 🔥
                         </h1>
                         <p className="font-mono pricing-sub">
-                            Pay securely with PayPal. Unlock instantly.
+                            Pay with Card, UPI, NetBanking or Wallet. Unlock instantly.
                         </p>
                     </div>
 
-                    {/* Pricing cards */}
                     <div className="pricing-grid">
                         {plans.map(plan => (
                             <PricingCard
@@ -137,10 +114,11 @@ export default function PricingPage() {
                     {/* Trust badges */}
                     <div className="trust-row">
                         {[
-                            '🔒 Secured by PayPal',
+                            '🔒 Secured by Razorpay',
                             '🌍 Works globally',
                             '⚡ Instant unlock',
-                            '🛡️ No card stored',
+                            '📱 UPI supported',
+                            '💳 Cards worldwide',
                         ].map(badge => (
                             <span key={badge} className="trust-badge font-mono">
                                 {badge}
@@ -151,23 +129,26 @@ export default function PricingPage() {
                     {/* FAQ */}
                     <div className="faq card">
                         <p className="faq-title font-mono">FAQ</p>
-
                         {[
                             {
                                 q: 'How do I pay?',
-                                a: 'Click your plan → PayPal popup opens → login or pay as guest → done.',
+                                a: 'Click your plan → Razorpay checkout opens → pay with card, UPI, netbanking, or wallet. Works globally.',
                             },
                             {
                                 q: 'How fast does Pro unlock?',
-                                a: 'Instantly after PayPal confirms — usually under 5 seconds.',
+                                a: 'Instantly after payment is verified — usually under 5 seconds.',
                             },
                             {
-                                q: 'Do I need a PayPal account?',
-                                a: 'No — PayPal also accepts credit/debit cards as guest checkout.',
+                                q: 'I am in India — can I pay with UPI?',
+                                a: 'Yes — Razorpay supports UPI, all Indian cards, netbanking, and wallets like Paytm.',
+                            },
+                            {
+                                q: 'I am outside India — can I pay?',
+                                a: 'Yes — Razorpay accepts international credit and debit cards in USD, EUR, GBP and 100+ currencies.',
                             },
                             {
                                 q: 'Can I get a refund?',
-                                a: 'Yes — contact us within 7 days. We will process it through PayPal.',
+                                a: 'Yes — contact us within 7 days with your payment ID. We process refunds through Razorpay.',
                             },
                         ].map(item => (
                             <div key={item.q} className="faq-item">
@@ -179,7 +160,7 @@ export default function PricingPage() {
                 </>
             )}
 
-            {/* ── Payment flow ── */}
+            {/* Payment flow */}
             {mounted && !isPro && selectedPlan && selectedPlanData && (
                 <div className="payment-wrap card">
                     <PaymentFlow
@@ -202,26 +183,22 @@ export default function PricingPage() {
           max-width:      860px;
           margin:         0 auto;
         }
-        /* Nav */
         .pricing-nav {
           display:         flex;
           justify-content: space-between;
           align-items:     center;
           width:           100%;
         }
-        .nav-logo { font-size: 22px; }
-        /* Header */
-        .pricing-header { text-align: center; }
-        .pricing-title  { font-size: clamp(40px, 10vw, 64px); line-height: 1; }
-        .pricing-sub    { color: var(--text-secondary); font-size: 14px; margin-top: 8px; }
-        /* Grid */
+        .nav-logo      { font-size: 22px; }
+        .pricing-header{ text-align: center; }
+        .pricing-title { font-size: clamp(40px, 10vw, 64px); line-height: 1; }
+        .pricing-sub   { color: var(--text-secondary); font-size: 14px; margin-top: 8px; }
         .pricing-grid {
           display:               grid;
           grid-template-columns: repeat(3, 1fr);
           gap:                   1rem;
           width:                 100%;
         }
-        /* Trust */
         .trust-row {
           display:         flex;
           flex-wrap:       wrap;
@@ -236,7 +213,6 @@ export default function PricingPage() {
           font-size:     12px;
           color:         var(--text-secondary);
         }
-        /* FAQ */
         .faq {
           width:   100%;
           padding: 1.25rem 1.5rem;
@@ -255,7 +231,6 @@ export default function PricingPage() {
         .faq-item:last-child { border-bottom: none; }
         .faq-q { font-size: 13px; color: var(--text-primary); margin-bottom: 4px; }
         .faq-a { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
-        /* Already Pro */
         .already-pro {
           padding:        2rem;
           text-align:     center;
@@ -266,9 +241,7 @@ export default function PricingPage() {
         }
         .already-pro-title { font-size: 32px; }
         .already-pro-sub   { color: var(--text-secondary); font-size: 13px; }
-        /* Payment wrap */
         .payment-wrap { width: 100%; max-width: 520px; overflow: hidden; }
-        /* Mobile */
         @media (max-width: 640px) {
           .pricing-grid { grid-template-columns: 1fr; }
         }

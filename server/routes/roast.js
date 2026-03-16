@@ -72,7 +72,9 @@ router.get('/:username', optionalAuth, async (req, res) => {
         // ── Generate roast text ───────────────────────────
         let roast = null
         let roastSource = 'rules'
-
+        console.log(isPro,"iprwkp")
+        console.log(githubToken,"github")
+        console.log(req.user?.githubAccessToken,"req.user?.githubAccessToken")
         if (isPro) {
             roast = await generateAIRoast(data)
             if (roast) {
