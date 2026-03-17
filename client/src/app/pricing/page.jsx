@@ -37,6 +37,7 @@ export default function PricingPage() {
         if (!isLoggedIn) {
             createToast({
                 type: 'info',
+                textColor: "#ffffff",
                 message: 'Connect GitHub first to unlock Pro.',
                 position: 'top-center',
                 duration: 5000,

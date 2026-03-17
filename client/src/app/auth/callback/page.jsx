@@ -26,6 +26,7 @@ export default function AuthCallbackPage() {
                 message: messages[authError] || 'Login failed.',
                 position: 'top-center',
                 duration: 5000,
+                textColor: "#ffffff"
             })
             router.replace('/')
             return
@@ -40,6 +41,7 @@ export default function AuthCallbackPage() {
             position: 'top-center',
             showProgressBar: true,
             duration: 4000,
+            textColor: "#ffffff"
         })
 
         // WHY router.replace not push: removes /auth/callback

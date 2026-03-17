@@ -22,6 +22,7 @@ export default function HomePage() {
         message: 'Enter a GitHub username first!',
         position: 'top-center',
         showProgressBar: true,
+        textColor: "#ffffff"
       })
       return
     }
