@@ -1,5 +1,4 @@
-// WHY no 'use client' here:
-//     layout.jsx stays a Server Component intentionally
+// WHY no 'use client': layout.jsx stays a Server Component
 //     Server Components handle metadata, SEO, initial HTML
 //     Client-side features (auth, toast) live in child components
 
@@ -8,20 +7,38 @@ import { Suspense } from 'react'
 import ToastConfig from '@/components/ToastConfig'
 import './globals.css'
 
+// ─── Viewport Export ──────────────────────────────────────
+// WHY separate from metadata: Next.js 14+ requires themeColor
+//     to live in viewport export NOT metadata export
+//     Putting it in metadata causes the warning you saw
+export const viewport = {
+  // WHY #FF4500: GitRoast fire orange — controls browser UI
+  //     color on mobile (address bar, tab bar on Android/iOS)
+  themeColor: '#FF4500',
+  // WHY: ensures proper scaling on all mobile devices
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+}
+
 // ─── SEO Metadata ─────────────────────────────────────────
-// WHY here: Next.js App Router reads this export on the server
-//           and injects correct <head> tags before sending HTML
-//           This makes Google, Twitter, LinkedIn previews work
-//           Without this — roast cards share as blank links
+// WHY metadataBase: Next.js uses this to resolve relative
+//     image URLs in openGraph and twitter
+//     Without it → warning in terminal + broken OG images
+//     in production because /og-default.png becomes
+//     http://localhost:3000/og-default.png
+//     With it → becomes https://gitroast.dev/og-default.png
 export const metadata = {
+  // WHY metadataBase: REQUIRED for OG images to work in production
+  //     resolves /og-default.png → https://gitroast.dev/og-default.png
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  ),
   title: 'GitRoast 🔥 — Get Your GitHub Brutally Roasted',
   description: 'Paste your GitHub username. Get savagely roasted. Share the pain.',
   keywords: 'github roast, developer humor, github profile, code roast, github stats',
   authors: [{ name: 'GitRoast' }],
-  // WHY: tells Google this is a web application
   applicationName: 'GitRoast',
-  // WHY: controls how page appears in browser tab on mobile
-  themeColor: '#FF4500',
   openGraph: {
     title: 'GitRoast 🔥 — Get Your GitHub Brutally Roasted',
     description: 'Paste your GitHub username. Get savagely roasted. Share the pain.',
@@ -29,7 +46,7 @@ export const metadata = {
     url: 'https://gitroast.dev',
     siteName: 'GitRoast',
     images: [{
-      url: '/og-default.png',
+      url: '/og-default.png',   // WHY: resolved by metadataBase above
       width: 1200,
       height: 630,
       alt: 'GitRoast — GitHub Roast Generator',
@@ -40,7 +57,6 @@ export const metadata = {
     title: 'GitRoast 🔥',
     description: 'Get your GitHub brutally roasted.',
     images: ['/og-default.png'],
-    // WHY: replace with your actual Twitter handle when live
     creator: '@gitroast',
   },
   // WHY robots: tells Google to index all pages by default
@@ -58,17 +74,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-
-        {/* WHY ToastConfig FIRST inside body:
-            initializes toast brand colors before any page renders
-            so the very first toast that fires already has correct colors
-            Must be client component — see ToastConfig.jsx for why */}
+        {/* WHY ToastConfig first: initializes brand colors
+            before any page renders so first toast is already
+            styled correctly — see ToastConfig.jsx */}
         <ToastConfig />
 
-        {/* WHY AuthProvider wraps everything:
-            makes useAuth() available in every component in the app
-            login state, isPro, getToken — all accessible anywhere
-            without prop drilling through every component */}
+        {/* WHY AuthProvider: makes useAuth() available
+            in every component without prop drilling */}
         <AuthProvider>
 
           {/* WHY Suspense wraps children:
