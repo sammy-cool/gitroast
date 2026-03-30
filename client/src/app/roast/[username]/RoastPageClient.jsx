@@ -33,7 +33,7 @@ export default function RoastPageClient({ username }) {
         ) {
             createToast({
                 type: 'error',
-                textColor: "#ffffff",
+                textColor: "snow",
                 message: 'Invalid GitHub username.',
                 position: 'top-center'
             })
@@ -95,7 +95,7 @@ export default function RoastPageClient({ username }) {
 
                 createToast({
                     type: 'success',
-                    textColor: "#ffffff",
+                    textColor: "snow",
                     message: `🔥 @${username}'s roast is ready!`,
                     position: 'top-center',
                     showProgressBar: true,
@@ -109,7 +109,7 @@ export default function RoastPageClient({ username }) {
                     createToast({
                         type: 'error', message: `GitHub user "@${username}" not found.`,
                         position: 'top-center', duration: 5000, showCloseButton: true,
-                        textColor: "#ffffff"
+                        textColor: "snow"
                     })
                     router.push('/')
                     return
@@ -118,7 +118,7 @@ export default function RoastPageClient({ username }) {
                     createToast({
                         type: 'warning', message: 'GitHub rate limit hit. Try again in 60 seconds.',
                         position: 'top-center', duration: 6000, showCloseButton: true,
-                        textColor: "#ffffff"
+                        textColor: "snow"
                     })
                     router.push('/')
                     return
@@ -126,14 +126,14 @@ export default function RoastPageClient({ username }) {
                 if (err.name === 'TimeoutError') {
                     createToast({
                         type: 'error', message: 'Request timed out. Try again.',
-                        textColor: "#ffffff", position: 'top-center'
+                        textColor: "snow", position: 'top-center'
                     })
                     router.push('/')
                     return
                 }
                 createToast({
                     type: 'error', message: 'Something broke. Not your fault... probably.',
-                    position: 'top-center', textColor: "#ffffff",
+                    position: 'top-center', textColor: "snow",
                 })
                 router.push('/')
             }

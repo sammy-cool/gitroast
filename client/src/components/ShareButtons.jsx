@@ -23,7 +23,7 @@ export default function ShareButtons({ username, roastId, onProClick }) {
                 // WHY your toast: instant feedback, on-brand
                 createToast({
                     type: 'success',
-                    textColor: "#ffffff",
+                    textColor: "snow",
                     message: '🔥 Roast link copied! Go share your shame.',
                     position: 'top-center',
                     showProgressBar: true,
@@ -36,7 +36,7 @@ export default function ShareButtons({ username, roastId, onProClick }) {
             .catch(() => {
                 createToast({
                     type: 'error',
-                    textColor: "#ffffff",
+                    textColor: "snow",
                     message: 'Could not copy link. Try manually.',
                 })
             })
@@ -46,7 +46,7 @@ export default function ShareButtons({ username, roastId, onProClick }) {
         // WHY toast CTA: nudge user toward Pro with action button
         createToast({
             type: 'info',
-            textColor: "#ffffff",
+            textColor: "snow",
             message: '⚡ Unlock private repos + AI roast with Pro!',
             duration: 6000,
             showCloseButton: true,

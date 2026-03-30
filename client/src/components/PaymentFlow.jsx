@@ -38,7 +38,7 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
             setErrorMsg('Razorpay failed to load. Check your connection.')
             createToast({
                 type: 'error', message: 'Payment SDK failed to load.',
-                position: 'top-center', textColor: "#ffffff",
+                position: 'top-center', textColor: "snow",
 
             })
         }
@@ -85,7 +85,7 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
                             type: 'warning',
                             message: 'Payment cancelled. No charge was made.',
                             position: 'top-center',
-                            textColor: "#ffffff"
+                            textColor: "snow"
                         })
                         setStatus('ready')
                     },
@@ -99,7 +99,7 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
             rzp.on('payment.failed', function (response) {
                 createToast({
                     type: 'error',
-                    textColor: "#ffffff",
+                    textColor: "snow",
                     message: `Payment failed: ${response.error.description}`,
                     position: 'top-center',
                     duration: 6000,
@@ -115,7 +115,7 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
             setErrorMsg(err.message || 'Could not create payment session.')
             createToast({
                 type: 'error', message: err.message || 'Payment setup failed.',
-                position: 'top-center', textColor: "#ffffff",
+                position: 'top-center', textColor: "snow",
             })
         }
     }
@@ -144,7 +144,7 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
 
             createToast({
                 type: 'success',
-                textColor: "#ffffff",
+                textColor: "snow",
                 message: '🔥 Payment confirmed! You are now Pro!',
                 position: 'top-center',
                 showProgressBar: true,
@@ -158,7 +158,7 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
             setErrorMsg(err.message || 'Payment verification failed.')
             createToast({
                 type: 'error',
-                textColor: "#ffffff",
+                textColor: "snow",
                 message: err.message || 'Verification failed. Contact support.',
                 position: 'top-center',
                 duration: 8000,
