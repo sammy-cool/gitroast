@@ -35,30 +35,25 @@ router.get('/github/callback', async (req, res) => {
 
     // WHY: user denied permission on GitHub
     if (error || !code) {
-        return res.redirect(
-            `${CLIENT_URL}?auth_error=access_denied`
-        )
+        return res.redirect(`${CLIENT_URL}?auth_error=access_denied`)
     }
 
     try {
-        // ── Exchange code for access token ─────────────────
+        // Exchange code for access token
         // WHY: code is single-use + short-lived (10 min)
-        //      we must exchange it for a real token immediately
-        const tokenRes = await fetch(
-            'https://github.com/login/oauth/access_token',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({
-                    client_id: process.env.GITHUB_CLIENT_ID,
-                    client_secret: process.env.GITHUB_CLIENT_SECRET,
-                    code,
-                }),
-            }
-        )
+        // we must exchange it for a real token immediately
+        const tokenRes = await fetch('https://github.com/login/oauth/access_token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                client_id: process.env.GITHUB_CLIENT_ID,
+                client_secret: process.env.GITHUB_CLIENT_SECRET,
+                code,
+            }),
+        })
 
         const tokenData = await tokenRes.json()
 
@@ -83,16 +78,13 @@ router.get('/github/callback', async (req, res) => {
         let email = profile.email
         if (!email) {
             try {
-                const emailRes = await fetch(
-                    'https://api.github.com/user/emails',
-                    {
-                        headers: {
-                            Authorization: `token ${accessToken}`,
-                            Accept: 'application/vnd.github.v3+json',
-                            'User-Agent': 'GitRoast-App',
-                        },
-                    }
-                )
+                const emailRes = await fetch('https://api.github.com/user/emails', {
+                    headers: {
+                        Authorization: `token ${accessToken}`,
+                        Accept: 'application/vnd.github.v3+json',
+                        'User-Agent': 'GitRoast-App',
+                    },
+                })
                 const emails = await emailRes.json()
                 // WHY: find primary verified email
                 const primary = emails.find(e => e.primary && e.verified)
@@ -114,7 +106,9 @@ router.get('/github/callback', async (req, res) => {
                     username: profile.login,
                     email: email,
                     avatarUrl: profile.avatar_url,
-                    githubAccessToken: accessToken,   // WHY: store for private repo calls
+                    // WHY: always update access token on login
+                    //      token can expire or be revoked — refresh it
+                    githubAccessToken: accessToken,
                 },
                 // WHY $setOnInsert: only set these on first creation
                 //     don't overwrite isPro if they're already Pro
@@ -123,19 +117,23 @@ router.get('/github/callback', async (req, res) => {
                     roastCount: 0,
                 },
             },
-            {
-                upsert: true,   // WHY: create if doesn't exist
-                new: true,   // WHY: return updated document
-                runValidators: true,
-            }
+            // WHY returnDocument: 'after' instead of new: true:
+            //     Mongoose deprecated new: true in recent versions
+            //     returnDocument: 'after' = same behaviour
+            //     returns the document AFTER the update is applied
+            //     'before' would return the original pre-update doc
+            { upsert: true, returnDocument: 'after', runValidators: true }
         )
 
-        // ── Create JWT ──────────────────────────────────────
+        // WHY: JWT only stores userId for lookup
+        //      isPro is NOT stored in JWT — always read fresh from DB
+        //      this fixes the stale isPro issue completely
         const jwt = createToken({
             userId: user._id,
             githubId: user.githubId,
             username: user.username,
-            isPro: user.isPro,
+            // WHY isPro NOT included: reading from DB in middleware
+            //     is the only source of truth for Pro status
         })
 
         // WHY: redirect to frontend with token in URL param
@@ -153,6 +151,7 @@ router.get('/github/callback', async (req, res) => {
 // WHY: frontend calls this on page load to restore session
 //      if valid token exists → returns user profile
 router.get('/me', requireAuth, (req, res) => {
+    // WHY toSafeObject: never expose githubAccessToken to frontend
     res.json({
         success: true,
         user: req.user.toSafeObject(),
