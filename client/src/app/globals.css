@@ -1,11 +1,14 @@
 /* ============================================================
    GITROAST — Global Design System
    WHY: Single source of truth for all colors, fonts, spacing.
-        Change one variable here → updates entire app.
+        Change one variable → updates entire app.
    ============================================================ */
 
-/* ── Google Fonts ────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fira+Code:wght@300;400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+/* WHY no @import here anymore:
+   Fonts are now loaded via next/font in layout.jsx
+   next/font self-hosts fonts = zero layout shift
+   @import would cause FOUT (Flash of Unstyled Text)
+   which was causing the layout shift on landing page */
 
 /* ── CSS Variables (Design Tokens) ──────────────────────── */
 :root {
@@ -38,10 +41,13 @@
   --text-muted: #3A3A3A;
   --text-ghost: #222222;
 
-  /* Typography */
-  --font-display: 'Bebas Neue', 'Impact', sans-serif;
-  --font-mono: 'Fira Code', 'Courier New', monospace;
-  --font-body: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
+  /* WHY font variables reference next/font CSS variables:
+     layout.jsx sets --font-display-loaded, --font-mono-loaded,
+     --font-body-loaded on <html> via next/font
+     We read them here + add fallbacks for safety */
+  --font-display: var(--font-display-loaded, 'Impact', sans-serif);
+  --font-mono: var(--font-mono-loaded, 'Courier New', monospace);
+  --font-body: var(--font-body-loaded, 'Segoe UI', system-ui, sans-serif);
 
   /* Spacing */
   --radius-sm: 6px;
@@ -54,8 +60,8 @@
 }
 
 /* ── Reset ───────────────────────────────────────────────── */
-/* WHY: Browsers have different default styles.
-        Reset makes every browser start from same point. */
+/* WHY: browsers have different default styles
+        Reset makes every browser start from same point */
 *,
 *::before,
 *::after {
@@ -218,6 +224,32 @@ body {
   }
 }
 
+/* WHY pulse: used by GitHubLoginBtn placeholder
+   while auth state loads — prevents layout shift */
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* WHY fadeIn: landing page fades in after mount
+   hides any flash of unstyled content */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
 .animate-fadeUp {
   animation: fadeUp 0.3s ease forwards;
 }
@@ -230,8 +262,11 @@ body {
   animation: pulse-glow 3s ease-in-out infinite;
 }
 
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease forwards;
+}
+
 /* ── Scrollbar ───────────────────────────────────────────── */
-/* WHY: Makes scrollbar match our dark theme */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -250,7 +285,6 @@ body {
 }
 
 /* ── Selection ───────────────────────────────────────────── */
-/* WHY: Text selection color matches our brand */
 ::selection {
   background: rgba(255, 69, 0, 0.3);
   color: var(--text-primary);

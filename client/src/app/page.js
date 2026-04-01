@@ -3,20 +3,32 @@
 //     'use client' tells it: "this one needs browser JavaScript"
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createToast } from 'customizable-toast-notification'
 import UsernameInput from '@/components/UsernameInput'
 import ProModal from '@/components/ProModal'
 
 export default function HomePage() {
-  // WHY useState: tracks whether Pro modal is open
   const [showProModal, setShowProModal] = useState(false)
+  // WHY mounted state:
+  //   Server renders this page first (no JS)
+  //   Then browser loads JS and React hydrates
+  //   During that gap — buttons exist but have no handlers
+  //   mounted = false → render nothing → no layout shift
+  //   mounted = true  → render everything → fully interactive
+  //   The fadeIn animation covers the transition smoothly
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
+
+  useEffect(() => {
+    // WHY: runs only in browser after hydration completes
+    //      setting mounted = true triggers the fade-in animation
+    setMounted(true)
+  }, [])
 
   function handleRoast(username) {
     if (!username.trim()) {
-      // WHY: use YOUR toast package for all user feedback
       createToast({
         type: 'warning',
         message: 'Enter a GitHub username first!',
@@ -26,17 +38,25 @@ export default function HomePage() {
       })
       return
     }
-    // WHY: navigate to /roast/[username] — Next.js dynamic route
     router.push(`/roast/${username.trim().toLowerCase()}`)
   }
 
-  return (
-    <main className="landing-page">
+  // WHY: return null until mounted
+  //      prevents server HTML vs client HTML mismatch
+  //      eliminates layout shift completely
+  //      user sees nothing for ~50ms then smooth fade in
+  if (!mounted) return null
 
-      {/* ── Ambient glow background ─────────────── */}
+  return (
+    // WHY animate-fadeIn: smooth appearance after mount
+    //     hides the flash of content appearing
+    //     0.4s is fast enough to not feel slow
+    <main className="landing-page animate-fadeIn">
+
+      {/* ── Ambient glow background ── */}
       <div className="landing-glow animate-glow" />
 
-      {/* ── Logo ─────────────────────────────────── */}
+      {/* ── Logo ── */}
       <div className="landing-logo">
         <h1 className="font-display text-fire">GITROAST 🔥</h1>
         <p className="landing-tagline">
@@ -46,16 +66,16 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* ── Input ─────────────────────────────────── */}
+      {/* ── Input ── */}
       <UsernameInput onSubmit={handleRoast} />
 
-      {/* ── Social proof ──────────────────────────── */}
+      {/* ── Social proof ── */}
       <p className="landing-social-proof font-mono">
         <span style={{ color: 'var(--fire)' }}>1,247</span>
         {' '}devs roasted this week
       </p>
 
-      {/* ── Pro teaser and Pricing btn ────────────────────────────── */}
+      {/* ── CTA buttons ── */}
       <div style={{ display: 'flex', gap: '10px' }}>
         <button
           className="btn btn-outline"
@@ -71,7 +91,7 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* leaderboard link */}
+      {/* ── Leaderboard link ── */}
       <button
         className="btn btn-ghost"
         onClick={() => router.push('/leaderboard')}
@@ -79,43 +99,44 @@ export default function HomePage() {
         🏆 Wall of Shame
       </button>
 
-      {/* ── Sample roast card ─────────────────────── */}
+      {/* ── Sample roast card ── */}
       <div className="sample-roast card">
         <p className="sample-roast-label font-mono">SAMPLE ROAST</p>
         <p className="sample-roast-text">
-          &ldquo;Your GitHub is a graveyard of ambition. 47 repos, zero READMEs,
-          and a commit that says &apos;pls work&apos; at 3:47 AM.&rdquo;
+          &ldquo;This is not a developer portfolio.
+          It is a detailed public record of every time
+          enthusiasm lasted one weekend.&rdquo;
         </p>
       </div>
 
-      {/* ── Pro Modal ─────────────────────────────── */}
+      {/* ── Pro Modal ── */}
       {showProModal && (
         <ProModal onClose={() => setShowProModal(false)} />
       )}
 
       <style jsx>{`
         .landing-page {
-          min-height: 100vh;
-          display:        flex;
-          flex-direction: column;
-          align-items:    center;
+          min-height:      100vh;
+          display:         flex;
+          flex-direction:  column;
+          align-items:     center;
           justify-content: center;
-          padding:        2rem 1rem;
-          position:       relative;
-          overflow:       hidden;
-          gap:            1.5rem;
+          padding:         2rem 1rem;
+          position:        relative;
+          overflow:        hidden;
+          gap:             1.5rem;
         }
         .landing-glow {
-          position:   absolute;
-          inset:      0;
-          background: radial-gradient(
+          position:       absolute;
+          inset:          0;
+          background:     radial-gradient(
             ellipse 80% 40% at 50% 100%,
             rgba(255, 69, 0, 0.2) 0%,
             transparent 100%
           );
           pointer-events: none;
         }
-        .landing-logo { text-align: center; }
+        .landing-logo   { text-align: center; }
         .landing-logo h1 {
           font-size:      clamp(56px, 14vw, 96px);
           letter-spacing: 4px;
@@ -146,7 +167,7 @@ export default function HomePage() {
           margin-bottom:  8px;
         }
         .sample-roast-text {
-          color:       #555;
+          color:       var(--text-muted);
           font-size:   13px;
           font-style:  italic;
           line-height: 1.7;
