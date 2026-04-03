@@ -134,7 +134,7 @@ roastSchema.statics.incrementShare = function (roastId) {
     return this.findByIdAndUpdate(
         roastId,
         { $inc: { shareCount: 1 } },
-        { new: true }
+        { returnDocument: 'after' }
     )
 }
 
