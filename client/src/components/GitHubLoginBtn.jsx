@@ -12,9 +12,30 @@ export default function GitHubLoginBtn({ variant = 'full' }) {
     const [mounted, setMounted] = useState(false)
     useEffect(() => { setMounted(true) }, [])
 
-    // WHY: render nothing until client is ready
-    //      both server and client agree = no mismatch
-    if (!mounted || loading) return null
+    // WHY placeholder instead of null:
+    //   return null = empty space = layout shifts when button appears
+    //   placeholder = same size as real button = zero layout shift
+    //   pulse animation = tells user something is loading here
+    //
+    // WHY variant-specific sizes:
+    //   compact → used in navbars → fixed ~120px wide × 34px tall
+    //   full    → used in forms  → full width × 50px tall
+    //   sizes match the real button dimensions exactly
+    if (!mounted || loading) {
+        return (
+            <div
+                style={{
+                    width: variant === 'compact' ? '130px' : '100%',
+                    height: variant === 'compact' ? '34px' : '50px',
+                    background: 'var(--bg-elevated)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    flexShrink: 0,   // WHY: prevents collapsing in flex navbars
+                }}
+            />
+        )
+    }
 
     // ── Logged in ─────────────────────────────────────────
     if (user) {
@@ -47,7 +68,7 @@ export default function GitHubLoginBtn({ variant = 'full' }) {
             border-radius: 50%;
             border:        1px solid var(--border);
           }
-          .user-name   { font-size: 13px; color: var(--text-secondary); }
+          .user-name { font-size: 13px; color: var(--text-secondary); }
           .pro-badge {
             font-size:     10px;
             padding:       2px 7px;
