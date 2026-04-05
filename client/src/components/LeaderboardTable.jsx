@@ -104,7 +104,8 @@ export default function LeaderboardTable({ entries }) {
         .lb-row:last-child { border-bottom: none; }
         .lb-row:hover      { background: var(--bg-elevated); }
 
-        .lb-rank     { font-size: 18px; }
+        .lb-row      { color: inherit; }
+        .lb-rank     { font-size: 18px; color: var(--text-secondary); }
         .lb-username { font-size: 13px; color: var(--text-primary); }
         .lb-score    { font-size: 24px; }
         .lb-count    { font-size: 12px; color: var(--text-secondary); }
