@@ -14,28 +14,172 @@ export default function HistoryPageClient({ username }) {
         avgScore, roastCount, hasHistory,
     } = useRoastHistory(username)
 
-    // ── Loading state ────────────────────────────────────────
+    // ── Loading state — Skeleton ─────────────────────────────
+    // WHY skeleton instead of text + cursor:
+    //   skeleton shows the SHAPE of the content coming
+    //   user understands what they're waiting for
+    //   shimmer animation gives active feedback
+    //   text cursor gives no layout context at all
     if (loading) {
         return (
-            <div className="history-loading">
-                <p className="font-mono" style={{ color: 'var(--fire)' }}>
-                    $ loading history for @{username}
-                    <span className="animate-blink" style={{
-                        display: 'inline-block',
-                        width: '2px',
-                        height: '13px',
-                        background: 'var(--fire)',
-                        verticalAlign: 'middle',
-                        marginLeft: '4px',
-                        borderRadius: '1px',
-                    }} />
-                </p>
+            <div className="history-page">
+
+                {/* Nav stays real — always visible */}
+                <div className="history-nav">
+                    <div className="font-display nav-logo text-fire">GITROAST 🔥</div>
+                    <button className="btn btn-ghost" onClick={() => router.push('/')}>
+                        ← Home
+                    </button>
+                </div>
+
+                {/* Header skeleton — matches real header card */}
+                <div className="skel-card card">
+                    <div className="skel-header-inner">
+                        <div>
+                            <div className="skel skel-title" />
+                            <div className="skel skel-sub" />
+                        </div>
+                        <div className="skel skel-roast-btn" />
+                    </div>
+                </div>
+
+                {/* Stats skeleton — matches 4-column grid */}
+                <div className="stats-summary">
+                    {[1, 2, 3, 4].map(i => (
+                        <div key={i} className="summary-box">
+                            <div className="skel skel-stat-label" />
+                            <div className="skel skel-stat-value" />
+                        </div>
+                    ))}
+                </div>
+
+                {/* Chart skeleton */}
+                <div className="skel-card card">
+                    <div className="skel skel-section-title" />
+                    <div className="skel skel-chart" />
+                </div>
+
+                {/* Timeline skeleton — 3 history rows */}
+                <div className="skel-card card">
+                    <div className="skel skel-section-title" />
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="skel-history-row">
+                            <div className="skel skel-score-circle" />
+                            <div className="skel-row-mid">
+                                <div className="skel skel-roast-text" />
+                                <div className="skel skel-roast-text skel-roast-text-sm" />
+                                <div className="skel skel-roast-meta" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
                 <style jsx>{`
-          .history-loading {
-            min-height:      100vh;
+          .history-page {
+            min-height:     100vh;
+            display:        flex;
+            flex-direction: column;
+            align-items:    center;
+            padding:        1.5rem 1rem 3rem;
+            gap:            1.25rem;
+            max-width:      620px;
+            margin:         0 auto;
+          }
+          .history-nav {
             display:         flex;
+            justify-content: space-between;
             align-items:     center;
-            justify-content: center;
+            width:           100%;
+          }
+          .nav-logo { font-size: 22px; }
+
+          /* Stats grid */
+          .stats-summary {
+            display:               grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap:                   10px;
+            width:                 100%;
+          }
+          .summary-box {
+            background:    var(--bg-card);
+            border:        1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding:       0.875rem 1rem;
+            text-align:    center;
+            display:       flex;
+            flex-direction:column;
+            align-items:   center;
+            gap:           8px;
+          }
+
+          /* Skeleton card wrapper */
+          .skel-card {
+            width:   100%;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap:     0.875rem;
+          }
+          .skel-header-inner {
+            display:         flex;
+            justify-content: space-between;
+            align-items:     center;
+            gap:             1rem;
+          }
+
+          /* History row skeleton */
+          .skel-history-row {
+            display:       flex;
+            align-items:   flex-start;
+            gap:           1rem;
+            padding:       1rem 0;
+            border-bottom: 1px solid var(--border);
+          }
+          .skel-history-row:last-child { border-bottom: none; }
+          .skel-row-mid {
+            flex:           1;
+            display:        flex;
+            flex-direction: column;
+            gap:            8px;
+          }
+
+          /* WHY shimmer gradient:
+             moves left to right giving sense of loading progress
+             color uses CSS vars so it matches dark theme perfectly */
+          .skel {
+            background: linear-gradient(
+              90deg,
+              var(--bg-elevated) 25%,
+              var(--border-hover, #2E2E2E) 50%,
+              var(--bg-elevated) 75%
+            );
+            background-size: 200% 100%;
+            animation:       skelShimmer 1.5s ease-in-out infinite;
+            border-radius:   var(--radius-sm);
+          }
+
+          /* WHY each size matches the real element exactly:
+             user sees skeleton in same position as real content
+             no layout shift when real data arrives */
+          .skel-title        { height: 36px; width: 55%;  }
+          .skel-sub          { height: 10px; width: 35%; margin-top: 6px; }
+          .skel-roast-btn    { height: 36px; width: 120px; flex-shrink: 0; border-radius: var(--radius-md); }
+          .skel-stat-label   { height: 9px;  width: 70%;  }
+          .skel-stat-value   { height: 32px; width: 50%;  }
+          .skel-section-title{ height: 9px;  width: 40%;  }
+          .skel-chart        { height: 160px;width: 100%; }
+          .skel-score-circle { width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; }
+          .skel-roast-text   { height: 12px; width: 92%;  }
+          .skel-roast-text-sm{ width: 75%;                }
+          .skel-roast-meta   { height: 10px; width: 40%;  }
+
+          @keyframes skelShimmer {
+            0%   { background-position:  200% 0; }
+            100% { background-position: -200% 0; }
+          }
+
+          @media (max-width: 480px) {
+            .stats-summary { grid-template-columns: repeat(2, 1fr); }
           }
         `}</style>
             </div>
@@ -43,15 +187,22 @@ export default function HistoryPageClient({ username }) {
     }
 
     // ── Error state ──────────────────────────────────────────
+    // WHY toast + inline: toast catches attention immediately
+    //     inline error gives context about what failed
     if (error) {
         return (
             <div className="history-error">
                 <p className="font-mono" style={{ color: 'var(--bad)', marginBottom: '1rem' }}>
                     ❌ {error}
                 </p>
-                <button className="btn btn-ghost" onClick={refetch}>
-                    Try Again
-                </button>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button className="btn btn-primary" onClick={refetch}>
+                        Try Again
+                    </button>
+                    <button className="btn btn-ghost" onClick={() => router.push('/')}>
+                        ← Home
+                    </button>
+                </div>
                 <style jsx>{`
           .history-error {
             min-height:      100vh;
@@ -59,12 +210,14 @@ export default function HistoryPageClient({ username }) {
             flex-direction:  column;
             align-items:     center;
             justify-content: center;
+            gap:             0.5rem;
           }
         `}</style>
             </div>
         )
     }
 
+    // ── Loaded state ─────────────────────────────────────────
     return (
         <main className="history-page">
 
@@ -93,7 +246,7 @@ export default function HistoryPageClient({ username }) {
             </div>
 
             {!hasHistory ? (
-                // ── Empty state ──────────────────────────────────
+                // ── Empty state ────────────────────────────────────
                 <div className="empty-state card">
                     <p className="font-display empty-title text-fire">NO HISTORY YET</p>
                     <p className="font-mono empty-sub">
@@ -118,8 +271,10 @@ export default function HistoryPageClient({ username }) {
                         ].map(stat => (
                             <div key={stat.label} className="summary-box">
                                 <p className="font-mono summary-label">{stat.label}</p>
-                                <p className="font-display summary-value"
-                                    style={{ color: stat.color }}>
+                                <p
+                                    className="font-display summary-value"
+                                    style={{ color: stat.color }}
+                                >
                                     {stat.value}
                                 </p>
                             </div>
@@ -191,8 +346,8 @@ export default function HistoryPageClient({ username }) {
           gap:             1rem;
           flex-wrap:       wrap;
         }
-        .header-title { font-size: 32px; line-height: 1; }
-        .header-sub   { color: var(--text-secondary); font-size: 12px; margin-top: 4px; }
+        .header-title    { font-size: 32px; line-height: 1; }
+        .header-sub      { color: var(--text-secondary); font-size: 12px; margin-top: 4px; }
         .roast-again-btn { padding: 10px 18px; font-size: 14px; }
         /* Stats summary */
         .stats-summary {

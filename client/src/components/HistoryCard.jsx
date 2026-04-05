@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 export default function HistoryCard({ roast, index }) {
     const scoreColor =
         roast.score < 40 ? 'var(--bad)' :
