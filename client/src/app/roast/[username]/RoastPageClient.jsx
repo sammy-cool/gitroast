@@ -12,197 +12,213 @@ import { useAuth } from '@/context/AuthContext'
 const MIN_ANALYSIS_TIME = 5800
 
 export default function RoastPageClient({ username }) {
-    const [view, setView] = useState('analyzing')
-    const [roastData, setRoastData] = useState(null)
-    const [showProModal, setShowProModal] = useState(false)
-    const router = useRouter()
-    // WHY: get token from AuthContext so we can send it with roast request
-    //      without this → backend never knows user is Pro
-    const { getToken } = useAuth()
+  const [view, setView] = useState('analyzing')
+  const [roastData, setRoastData] = useState(null)
+  const [showProModal, setShowProModal] = useState(false)
+  const router = useRouter()
+  const { getToken } = useAuth()
 
-    const idempotencyKey = useRef(
-        `${username}-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    )
-    const fetchStarted = useRef(false)
+  // WHY idempotencyKey as useRef:
+  //   useRef value PERSISTS across StrictMode remounts
+  //   Both Mount 1 and Mount 2 use the SAME key
+  //   Server sees same key on 2nd request → returns cached result
+  //   No duplicate DB saves regardless of how many mounts happen
+  const idempotencyKey = useRef(
+    `${username}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  )
 
-    useEffect(() => {
-        if (
-            !username ||
-            username.length > 39 ||
-            !/^[a-zA-Z0-9-]+$/.test(username)
-        ) {
-            createToast({
-                type: 'error',
-                textColor: "snow",
-                message: 'Invalid GitHub username.',
-                position: 'top-center'
-            })
-            router.push('/')
-            return
+  // WHY fetchStarted.current is REMOVED:
+  //   It was the root cause of the "stuck at 100%" bug
+  //
+  //   Old broken flow with fetchStarted:
+  //     Mount 1: fetchStarted = false → set true → fetch starts
+  //              StrictMode cleanup fires → cancelled = true → fetch ignored
+  //     Mount 2: fetchStarted = true → RETURNS EARLY → no fetch ever runs
+  //     Result: animation hits 100% → view never switches → stuck forever
+  //
+  //   New correct flow without fetchStarted:
+  //     Mount 1: fetch starts → cleanup fires → cancelled = true → ignored ✓
+  //     Mount 2: fetch starts with SAME idempotencyKey → server returns
+  //              cached result (no DB duplicate) → setView('result') ✓
+  //     Result: works correctly every time
+
+  useEffect(() => {
+    if (
+      !username ||
+      username.length > 39 ||
+      !/^[a-zA-Z0-9-]+$/.test(username)
+    ) {
+      createToast({
+        type: 'error',
+        message: 'Invalid GitHub username.',
+        position: 'top-center',
+      })
+      router.push('/')
+      return
+    }
+
+    // ── Check sessionStorage cache ────────────────────────
+    // WHY: handles browser back button
+    //      restores result without re-fetch or duplicate DB save
+    const cacheKey = `gitroast_roast_${username}`
+    const cachedRoast = sessionStorage.getItem(cacheKey)
+
+    if (cachedRoast) {
+      try {
+        const parsed = JSON.parse(cachedRoast)
+        const cacheAge = Date.now() - parsed.cachedAt
+        const TEN_MINS = 10 * 60 * 1000
+        if (cacheAge < TEN_MINS) {
+          setRoastData(parsed.data)
+          setView('result')
+          return
+        } else {
+          sessionStorage.removeItem(cacheKey)
         }
-
-        // ── Check sessionStorage cache first ─────────────────
-        // WHY: handles browser back button — no re-fetch, no duplicate DB save
-        const cacheKey = `gitroast_roast_${username}`
-        const cachedRoast = sessionStorage.getItem(cacheKey)
-
-        if (cachedRoast) {
-            try {
-                const parsed = JSON.parse(cachedRoast)
-                const cacheAge = Date.now() - parsed.cachedAt
-                const TEN_MINS = 10 * 60 * 1000
-                if (cacheAge < TEN_MINS) {
-                    setRoastData(parsed.data)
-                    setView('result')
-                    return
-                } else {
-                    sessionStorage.removeItem(cacheKey)
-                }
-            } catch {
-                sessionStorage.removeItem(cacheKey)
-            }
-        }
-
-        // ── Block StrictMode double fetch ─────────────────────
-        if (fetchStarted.current) return
-        fetchStarted.current = true
-
-        let cancelled = false
-
-        async function fetchRoast() {
-            try {
-                // WHY: get JWT token from localStorage via AuthContext
-                //      pass it to getRoast so backend can identify Pro user
-                //      optionalAuth middleware reads Authorization header
-                //      if header missing → req.user = null → isPro = false → no AI roast
-                const token = getToken()
-
-                const [data] = await Promise.all([
-                    getRoast(username, idempotencyKey.current, token),
-                    new Promise(resolve => setTimeout(resolve, MIN_ANALYSIS_TIME)),
-                ])
-
-                if (cancelled) return
-
-                // WHY: cache result so browser back button restores without re-fetching
-                sessionStorage.setItem(cacheKey, JSON.stringify({
-                    data,
-                    cachedAt: Date.now(),
-                }))
-
-                setRoastData(data)
-                setView('result')
-
-                createToast({
-                    type: 'success',
-                    textColor: "snow",
-                    message: `🔥 @${username}'s roast is ready!`,
-                    position: 'top-center',
-                    showProgressBar: true,
-                    duration: 3500,
-                })
-
-            } catch (err) {
-                if (cancelled) return
-
-                if (err.code === 'USER_NOT_FOUND') {
-                    createToast({
-                        type: 'error', message: `GitHub user "@${username}" not found.`,
-                        position: 'top-center', duration: 5000, showCloseButton: true,
-                        textColor: "snow"
-                    })
-                    router.push('/')
-                    return
-                }
-                if (err.code === 'RATE_LIMIT_EXCEEDED') {
-                    createToast({
-                        type: 'warning', message: 'GitHub rate limit hit. Try again in 60 seconds.',
-                        position: 'top-center', duration: 6000, showCloseButton: true,
-                        textColor: "snow"
-                    })
-                    router.push('/')
-                    return
-                }
-                if (err.name === 'TimeoutError') {
-                    createToast({
-                        type: 'error', message: 'Request timed out. Try again.',
-                        textColor: "snow", position: 'top-center'
-                    })
-                    router.push('/')
-                    return
-                }
-                createToast({
-                    type: 'error', message: 'Something broke. Not your fault... probably.',
-                    position: 'top-center', textColor: "snow",
-                })
-                router.push('/')
-            }
-        }
-
-        fetchRoast()
-        return () => { cancelled = true }
-    }, [username, router, getToken])
-
-    // WHY: clears cache so next roast fetches fresh data
-    function handleRoastAnother() {
-        const cacheKey = `gitroast_roast_${username}`
+      } catch {
         sessionStorage.removeItem(cacheKey)
+      }
+    }
+
+    // WHY cancelled flag kept:
+    //   still needed for when user navigates AWAY mid-fetch
+    //   without it: user leaves page → fetch completes →
+    //   setView called on unmounted component → React warning
+    let cancelled = false
+
+    async function fetchRoast() {
+      try {
+        const token = getToken()
+
+        const [data] = await Promise.all([
+          getRoast(username, idempotencyKey.current, token),
+          new Promise(resolve => setTimeout(resolve, MIN_ANALYSIS_TIME)),
+        ])
+
+        if (cancelled) return
+
+        // Cache result so browser back button works
+        sessionStorage.setItem(cacheKey, JSON.stringify({
+          data,
+          cachedAt: Date.now(),
+        }))
+
+        setRoastData(data)
+        setView('result')
+
+        createToast({
+          type: 'success',
+          message: `🔥 @${username}'s roast is ready!`,
+          position: 'top-center',
+          showProgressBar: true,
+          duration: 3500,
+        })
+
+      } catch (err) {
+        if (cancelled) return
+
+        if (err.code === 'USER_NOT_FOUND') {
+          createToast({
+            type: 'error',
+            message: `GitHub user "@${username}" not found.`,
+            position: 'top-center',
+            duration: 5000,
+            showCloseButton: true,
+          })
+          router.push('/')
+          return
+        }
+        if (err.code === 'RATE_LIMIT_EXCEEDED') {
+          createToast({
+            type: 'warning',
+            message: 'GitHub rate limit hit. Try again in 60 seconds.',
+            position: 'top-center',
+            duration: 6000,
+            showCloseButton: true,
+          })
+          router.push('/')
+          return
+        }
+        if (err.name === 'TimeoutError') {
+          createToast({
+            type: 'error',
+            message: 'Request timed out. Try again.',
+            position: 'top-center',
+          })
+          router.push('/')
+          return
+        }
+        createToast({
+          type: 'error',
+          message: 'Something broke. Not your fault... probably.',
+          position: 'top-center',
+        })
         router.push('/')
+      }
     }
 
-    if (view === 'analyzing') {
-        return <AnalyzingScreen username={username} />
-    }
+    fetchRoast()
+    return () => { cancelled = true }
+  }, [username, router, getToken])
 
-    if (view === 'result' && roastData) {
-        return (
-            <>
-                <main className="result-page">
+  function handleRoastAnother() {
+    sessionStorage.removeItem(`gitroast_roast_${username}`)
+    router.push('/')
+  }
 
-                    <div className="result-nav">
-                        <div className="font-display nav-logo text-fire">GITROAST 🔥</div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                                className="btn btn-ghost"
-                                onClick={() => router.push(`/history/${roastData.username}`)}
-                            >
-                                📈 History
-                            </button>
-                            <button className="btn btn-ghost" onClick={handleRoastAnother}>
-                                ← Roast Another
-                            </button>
-                        </div>
-                    </div>
+  if (view === 'analyzing') {
+    return <AnalyzingScreen username={username} />
+  }
 
-                    <RoastCard
-                        data={roastData}
-                        onProClick={() => setShowProModal(true)}
-                    />
+  if (view === 'result' && roastData) {
+    return (
+      <>
+        <main className="result-page">
 
-                    {/* Monthly subscription upsell */}
-                    <div className="upsell-card card">
-                        <div>
-                            <p className="upsell-title">📈 Monthly Roast Subscription</p>
-                            <p className="upsell-sub font-mono">
-                                Track your improvement. Or your shame.
-                            </p>
-                        </div>
-                        <div className="upsell-price">
-                            <div className="upsell-amount-row">
-                                <span className="font-display upsell-symbol">₹</span>
-                                <span className="font-display upsell-number">499</span>
-                            </div>
-                            <span className="font-mono upsell-period">/month</span>
-                        </div>
-                    </div>
+          <div className="result-nav">
+            <div className="font-display nav-logo text-fire">GITROAST 🔥</div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className="btn btn-ghost"
+                onClick={() => router.push(`/history/${roastData.username}`)}
+              >
+                📈 History
+              </button>
+              <button className="btn btn-ghost" onClick={handleRoastAnother}>
+                ← Roast Another
+              </button>
+            </div>
+          </div>
 
-                </main>
+          <RoastCard
+            data={roastData}
+            onProClick={() => setShowProModal(true)}
+          />
 
-                {showProModal && (
-                    <ProModal onClose={() => setShowProModal(false)} />
-                )}
+          {/* Monthly upsell */}
+          <div className="upsell-card card">
+            <div>
+              <p className="upsell-title">📈 Monthly Roast Subscription</p>
+              <p className="upsell-sub font-mono">
+                Track your improvement. Or your shame.
+              </p>
+            </div>
+            <div className="upsell-price">
+              <div className="upsell-amount-row">
+                <span className="font-display upsell-symbol">₹</span>
+                <span className="font-display upsell-number">499</span>
+              </div>
+              <span className="font-mono upsell-period">/month</span>
+            </div>
+          </div>
 
-                <style jsx>{`
+        </main>
+
+        {showProModal && (
+          <ProModal onClose={() => setShowProModal(false)} />
+        )}
+
+        <style jsx>{`
           .result-page {
             min-height:     100vh;
             display:        flex;
@@ -241,9 +257,9 @@ export default function RoastPageClient({ username }) {
           .upsell-number { font-size: 26px; color: var(--fire); line-height: 1; }
           .upsell-period { font-size: 11px; color: var(--text-secondary); }
         `}</style>
-            </>
-        )
-    }
+      </>
+    )
+  }
 
-    return null
+  return null
 }

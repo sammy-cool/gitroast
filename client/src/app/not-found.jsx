@@ -1,0 +1,110 @@
+// WHY no 'use client': not-found.jsx can be a server component
+//     no hooks, no browser APIs needed here
+//     Next.js renders this automatically on 404
+'use client'
+import Link from 'next/link'
+
+export const metadata = {
+  title: 'GitRoast 🔥 — Page Not Found',
+}
+
+export default function NotFound() {
+  return (
+    <main className="nf-page">
+
+      {/* Ambient glow */}
+      <div className="nf-glow" />
+
+      {/* Logo */}
+      <p className="font-display nf-logo text-fire">GITROAST 🔥</p>
+
+      {/* 404 card */}
+      <div className="nf-card card">
+
+        <p className="font-display nf-code text-fire">404</p>
+
+        <p className="font-display nf-title">
+          Page Not Found
+        </p>
+
+        {/* WHY roast the 404: on-brand, memorable, shareable */}
+        <p className="font-mono nf-roast">
+          &ldquo;Even this URL has more abandoned commits than
+          your actual repos. At least it tried.&rdquo;
+        </p>
+
+        <div className="nf-actions">
+          <Link href="/" className="btn btn-primary nf-btn">
+            🔥 Roast Someone Instead
+          </Link>
+          <Link href="/leaderboard" className="btn btn-ghost nf-btn-ghost">
+            🏆 Wall of Shame
+          </Link>
+        </div>
+
+      </div>
+
+      <style jsx>{`
+        .nf-page {
+          min-height:      100vh;
+          display:         flex;
+          flex-direction:  column;
+          align-items:     center;
+          justify-content: center;
+          padding:         2rem 1rem;
+          gap:             1.5rem;
+          position:        relative;
+          overflow:        hidden;
+        }
+        .nf-glow {
+          position:       absolute;
+          inset:          0;
+          background:     radial-gradient(
+            ellipse 60% 40% at 50% 100%,
+            rgba(255, 69, 0, 0.15) 0%,
+            transparent 100%
+          );
+          pointer-events: none;
+        }
+        .nf-logo { font-size: 22px; }
+        .nf-card {
+          width:           100%;
+          max-width:       480px;
+          padding:         2.5rem 2rem;
+          display:         flex;
+          flex-direction:  column;
+          align-items:     center;
+          gap:             1.25rem;
+          text-align:      center;
+        }
+        .nf-code  {
+          font-size:   96px;
+          line-height: 1;
+          /* WHY: large 404 is the first thing eyes land on */
+        }
+        .nf-title {
+          font-size: 28px;
+          color:     var(--text-primary);
+        }
+        .nf-roast {
+          font-size:   13px;
+          font-style:  italic;
+          color:       var(--text-secondary);
+          line-height: 1.7;
+          padding:     0 1rem;
+          border-left: 2px solid var(--fire);
+          text-align:  left;
+        }
+        .nf-actions {
+          display:        flex;
+          flex-direction: column;
+          gap:            10px;
+          width:          100%;
+          margin-top:     0.5rem;
+        }
+        .nf-btn      { width: 100%; padding: 13px; font-size: 15px; }
+        .nf-btn-ghost{ width: 100%; }
+      `}</style>
+    </main>
+  )
+}
