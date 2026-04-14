@@ -164,7 +164,7 @@ async function generateAIRoast(data) {
             topK: 40,
           },
         }),
-        signal: AbortSignal.timeout(20000),
+        signal: AbortSignal.timeout(50000),
       }
     )
 
