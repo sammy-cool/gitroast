@@ -1,0 +1,25 @@
+# WHY .dockerignore:
+#   tells Docker which files to EXCLUDE from image
+#   same concept as .gitignore
+#   smaller build context = faster deploys
+
+# Dependencies — reinstalled fresh inside container
+node_modules
+
+# Environment files — injected by Render dashboard
+# NEVER bake secrets into Docker image
+.env
+.env.local
+.env.production
+
+# Logs — not needed in production
+*.log
+npm-debug.log*
+
+# Git — not needed to run the app
+.git
+.gitignore
+
+# Dev files — not needed in production
+.DS_Store
+*.md
