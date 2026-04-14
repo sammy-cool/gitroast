@@ -1,24 +1,20 @@
-// WHY no 'use client': not-found.jsx can be a server component
-//     no hooks, no browser APIs needed here
-//     Next.js renders this automatically on 404
 'use client'
-import Link from 'next/link'
 
-export const metadata = {
-  title: 'GitRoast 🔥 — Page Not Found',
-}
+// WHY no useRouter here:
+//   Next.js prerenderes /_not-found at build time
+//   useRouter requires router context which doesn't exist
+//   during static prerendering → TypeError: Cannot read
+//   properties of undefined (reading '$$typeof')
+//   Fix: use plain <a href> tags — work in all contexts
 
 export default function NotFound() {
   return (
     <main className="nf-page">
 
-      {/* Ambient glow */}
       <div className="nf-glow" />
 
-      {/* Logo */}
       <p className="font-display nf-logo text-fire">GITROAST 🔥</p>
 
-      {/* 404 card */}
       <div className="nf-card card">
 
         <p className="font-display nf-code text-fire">404</p>
@@ -27,19 +23,21 @@ export default function NotFound() {
           Page Not Found
         </p>
 
-        {/* WHY roast the 404: on-brand, memorable, shareable */}
         <p className="font-mono nf-roast">
           &ldquo;Even this URL has more abandoned commits than
           your actual repos. At least it tried.&rdquo;
         </p>
 
         <div className="nf-actions">
-          <Link href="/" className="btn btn-primary nf-btn">
+          {/* WHY <a href> not router.push:
+              prerender-safe — no router context needed
+              same navigation behaviour in production */}
+          <a href="/" className="btn btn-primary nf-btn">
             🔥 Roast Someone Instead
-          </Link>
-          <Link href="/leaderboard" className="btn btn-ghost nf-btn-ghost">
+          </a>
+          <a href="/leaderboard" className="btn btn-ghost nf-btn-ghost">
             🏆 Wall of Shame
-          </Link>
+          </a>
         </div>
 
       </div>
@@ -77,15 +75,8 @@ export default function NotFound() {
           gap:             1.25rem;
           text-align:      center;
         }
-        .nf-code  {
-          font-size:   96px;
-          line-height: 1;
-          /* WHY: large 404 is the first thing eyes land on */
-        }
-        .nf-title {
-          font-size: 28px;
-          color:     var(--text-primary);
-        }
+        .nf-code  { font-size: 96px; line-height: 1; }
+        .nf-title { font-size: 28px; color: var(--text-primary); }
         .nf-roast {
           font-size:   13px;
           font-style:  italic;
@@ -102,8 +93,8 @@ export default function NotFound() {
           width:          100%;
           margin-top:     0.5rem;
         }
-        .nf-btn      { width: 100%; padding: 13px; font-size: 15px; }
-        .nf-btn-ghost{ width: 100%; }
+        .nf-btn       { width: 100%; padding: 13px; font-size: 15px; text-align: center; }
+        .nf-btn-ghost { width: 100%; text-align: center; }
       `}</style>
     </main>
   )
