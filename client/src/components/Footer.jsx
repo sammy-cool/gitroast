@@ -4,46 +4,46 @@
 'use client'
 
 export default function Footer() {
-    const year = new Date().getFullYear()
+  const year = new Date().getFullYear()
 
-    return (
-        <footer className="site-footer font-mono">
+  return (
+    <footer className="site-footer font-mono">
 
-            <div className="footer-inner">
+      <div className="footer-inner">
 
-                {/* Brand */}
-                <div className="footer-brand">
-                    <span className="footer-logo">GITROAST 🔥</span>
-                    <span className="footer-tagline">
-                        Made with 🔥 in India
-                    </span>
-                </div>
+        {/* Brand */}
+        <div className="footer-brand">
+          <span className="footer-logo">GITROAST 🔥</span>
+          <span className="footer-tagline">
+            Made with 🔥 in India
+          </span>
+        </div>
 
-                {/* Links */}
-                <div className="footer-links">
-                    <a href="/leaderboard" className="footer-link">
-                        Wall of Shame
-                    </a>
-                    <a href="/pricing" className="footer-link">
-                        Pricing
-                    </a>
-                    {/* WHY mailto: simple contact before we have a contact page */}
-                    <a
-                        href="mailto:hello@gitroast.dev"
-                        className="footer-link"
-                    >
-                        Contact
-                    </a>
-                </div>
+        {/* Links */}
+        <div className="footer-links">
+          <a href="/leaderboard" className="footer-link">
+            Wall of Shame
+          </a>
+          <a href="/pricing" className="footer-link">
+            Pricing
+          </a>
+          {/* WHY mailto: simple contact before we have a contact page */}
+          <a
+            href="mailto:priyanshu.alt191@gmail.com"
+            className="footer-link"
+          >
+            Contact
+          </a>
+        </div>
 
-                {/* Copyright */}
-                <p className="footer-copy">
-                    © {year} GitRoast · All your repos are belong to us
-                </p>
+        {/* Copyright */}
+        <p className="footer-copy">
+          © {year} GitRoast · All your repos are belong to us
+        </p>
 
-            </div>
+      </div>
 
-            <style jsx>{`
+      <style jsx>{`
         .site-footer {
           position:   fixed;
           bottom:     0;
@@ -101,6 +101,6 @@ export default function Footer() {
           .footer-copy     { display: none; }
         }
       `}</style>
-        </footer>
-    )
+    </footer>
+  )
 }
