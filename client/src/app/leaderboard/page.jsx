@@ -1,44 +1,41 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import LeaderboardTable from '@/components/LeaderboardTable'
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import LeaderboardTable from "@/components/LeaderboardTable";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export default function LeaderboardPage() {
-    const [entries, setEntries] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(false)
-    const router = useRouter()
+    const [entries, setEntries] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         fetch(`${API_BASE}/api/history/leaderboard/worst`)
-            .then(r => r.json())
-            .then(d => setEntries(d.leaderboard || []))
+            .then((r) => r.json())
+            .then((d) => setEntries(d.leaderboard || []))
             .catch(() => {
-                setEntries([])
-                setError(true)
+                setEntries([]);
+                setError(true);
             })
-            .finally(() => setLoading(false))
-    }, [])
+            .finally(() => setLoading(false));
+    }, []);
 
     return (
         <main className="lb-page">
-
             {/* ── Nav — always visible, never skeleton ── */}
             <div className="lb-nav">
                 <div className="font-display nav-logo text-fire">GITROAST 🔥</div>
-                <button className="btn btn-ghost" onClick={() => router.push('/')}>
+                <button className="btn btn-ghost" onClick={() => router.push("/")}>
                     ← Home
                 </button>
             </div>
 
             {/* ── Header ── */}
             <div className="lb-title-block">
-                <h1 className="font-display lb-title text-fire">
-                    🏆 Wall of Shame
-                </h1>
+                <h1 className="font-display lb-title text-fire">🏆 Wall of Shame</h1>
                 <p className="font-mono lb-sub">
                     The most brutally roasted GitHub profiles. Globally.
                 </p>
@@ -53,7 +50,6 @@ export default function LeaderboardPage() {
                     //   no layout shift when real data arrives
                     //   shimmer gives active loading feedback
                     <div className="lb-skeleton">
-
                         {/* WHY header row: LeaderboardTable has column headers
                 skeleton header makes it clear what columns are coming */}
                         <div className="skel-header-row">
@@ -65,7 +61,7 @@ export default function LeaderboardPage() {
 
                         {/* WHY 7 rows: leaderboard shows top 10
                 7 gives enough visual weight without overdoing it */}
-                        {[1, 2, 3, 4, 5, 6, 7].map(i => (
+                        {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                             <div key={i} className="skel-row">
                                 {/* Rank number */}
                                 <div className="skel skel-rank" />
@@ -85,7 +81,10 @@ export default function LeaderboardPage() {
                     // WHY inline error: fetch failed entirely
                     //     give user context + action to retry
                     <div className="lb-error">
-                        <p className="font-mono" style={{ color: 'var(--bad)', marginBottom: '1rem' }}>
+                        <p
+                            className="font-mono"
+                            style={{ color: "var(--bad)", marginBottom: "1rem" }}
+                        >
                             ❌ Could not load leaderboard. Check your connection.
                         </p>
                         <button
@@ -103,73 +102,89 @@ export default function LeaderboardPage() {
             {/* ── CTA ── */}
             <button
                 className="btn btn-primary lb-cta"
-                onClick={() => router.push('/')}
+                onClick={() => router.push("/")}
             >
                 🔥 Add Yourself to the List
             </button>
 
             <style jsx>{`
         .lb-page {
-          min-height:     100vh;
-          display:        flex;
+          min-height: 100vh;
+          display: flex;
           flex-direction: column;
-          align-items:    center;
-          padding:        1.5rem 1rem 3rem;
-          gap:            1.25rem;
-          max-width:      620px;
-          margin:         0 auto;
+          align-items: center;
+          padding: 1.5rem 1rem 3rem;
+          gap: 1.25rem;
+          max-width: 620px;
+          margin: 0 auto;
         }
 
         /* Nav */
         .lb-nav {
-          display:         flex;
+          display: flex;
           justify-content: space-between;
-          align-items:     center;
-          width:           100%;
+          align-items: center;
+          width: 100%;
         }
-        .nav-logo { font-size: 22px; }
+        .nav-logo {
+          font-size: 22px;
+        }
 
         /* Header */
-        .lb-title-block { text-align: center; }
-        .lb-title { font-size: clamp(36px, 10vw, 56px); line-height: 1; }
-        .lb-sub   { color: var(--text-secondary); font-size: 13px; margin-top: 8px; }
+        .lb-title-block {
+          text-align: center;
+        }
+        .lb-title {
+          font-size: clamp(36px, 10vw, 56px);
+          line-height: 1;
+        }
+        .lb-sub {
+          color: var(--text-secondary);
+          font-size: 13px;
+          margin-top: 8px;
+        }
 
         /* Card */
-        .lb-card { width: 100%; overflow: hidden; }
+        .lb-card {
+          width: 100%;
+          overflow: hidden;
+        }
 
         /* ── Skeleton ── */
         .lb-skeleton {
-          display:        flex;
+          display: flex;
           flex-direction: column;
-          width:          100%;
+          width: 100%;
         }
 
         /* WHY header row matches LeaderboardTable column layout:
            rank | username | score | count
            same grid so content drops in with zero shift */
         .skel-header-row {
-          display:       grid;
+          display: grid;
           grid-template-columns: 48px 1fr 80px 64px;
-          gap:           1rem;
-          padding:       0.75rem 1.25rem;
+          gap: 1rem;
+          padding: 0.75rem 1.25rem;
           border-bottom: 1px solid var(--border);
-          align-items:   center;
+          align-items: center;
         }
         .skel-row {
-          display:       grid;
+          display: grid;
           grid-template-columns: 48px 1fr 80px 64px;
-          gap:           1rem;
-          padding:       1rem 1.25rem;
+          gap: 1rem;
+          padding: 1rem 1.25rem;
           border-bottom: 1px solid var(--border);
-          align-items:   center;
+          align-items: center;
         }
-        .skel-row:last-child { border-bottom: none; }
+        .skel-row:last-child {
+          border-bottom: none;
+        }
 
         /* Avatar + username grouped in one cell */
         .skel-user-col {
-          display:     flex;
+          display: flex;
           align-items: center;
-          gap:         10px;
+          gap: 10px;
         }
 
         /* WHY shimmer animation:
@@ -179,12 +194,12 @@ export default function LeaderboardPage() {
           background: linear-gradient(
             90deg,
             var(--bg-elevated) 25%,
-            var(--border-hover, #2E2E2E) 50%,
+            var(--border-hover, #2e2e2e) 50%,
             var(--bg-elevated) 75%
           );
           background-size: 200% 100%;
-          animation:       skelShimmer 1.5s ease-in-out infinite;
-          border-radius:   var(--radius-sm);
+          animation: skelShimmer 1.5s ease-in-out infinite;
+          border-radius: var(--radius-sm);
         }
 
         /* WHY each size matches real LeaderboardTable cell:
@@ -193,38 +208,70 @@ export default function LeaderboardPage() {
            username → medium text
            score  → bold number badge
            count  → small number */
-        .skel-col-rank  { height: 10px; width: 20px;  }
-        .skel-col-user  { height: 10px; width: 80px;  }
-        .skel-col-score { height: 10px; width: 40px;  }
-        .skel-col-count { height: 10px; width: 30px;  }
-        .skel-rank      { height: 20px; width: 28px;  }
-        .skel-avatar    {
-          width:         32px;
-          height:        32px;
-          flex-shrink:   0;
-          border-radius: 50%;  /* WHY: avatar is circular */
+        .skel-col-rank {
+          height: 10px;
+          width: 20px;
         }
-        .skel-username  { height: 12px; width: 120px; }
-        .skel-score     { height: 28px; width: 52px; border-radius: var(--radius-md); }
-        .skel-count     { height: 12px; width: 28px; }
+        .skel-col-user {
+          height: 10px;
+          width: 80px;
+        }
+        .skel-col-score {
+          height: 10px;
+          width: 40px;
+        }
+        .skel-col-count {
+          height: 10px;
+          width: 30px;
+        }
+        .skel-rank {
+          height: 20px;
+          width: 28px;
+        }
+        .skel-avatar {
+          width: 32px;
+          height: 32px;
+          flex-shrink: 0;
+          border-radius: 50%; /* WHY: avatar is circular */
+        }
+        .skel-username {
+          height: 12px;
+          width: 120px;
+        }
+        .skel-score {
+          height: 28px;
+          width: 52px;
+          border-radius: var(--radius-md);
+        }
+        .skel-count {
+          height: 12px;
+          width: 28px;
+        }
 
         @keyframes skelShimmer {
-          0%   { background-position:  200% 0; }
-          100% { background-position: -200% 0; }
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
         }
 
         /* Error state */
         .lb-error {
-          padding:        2rem;
-          display:        flex;
+          padding: 2rem;
+          display: flex;
           flex-direction: column;
-          align-items:    center;
-          text-align:     center;
+          align-items: center;
+          text-align: center;
         }
 
         /* CTA */
-        .lb-cta { padding: 13px 28px; font-size: 15px; }
+        .lb-cta {
+          padding: 13px 28px;
+          font-size: 15px;
+        }
       `}</style>
         </main>
-    )
+    );
 }
