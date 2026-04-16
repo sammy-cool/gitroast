@@ -1,54 +1,61 @@
-// WHY no 'use client': loading.jsx works as server component
-//     Next.js renders this instantly during route transitions
-//     no hooks needed — pure UI
-
-// WHY loading.jsx:
-//   Next.js App Router shows this automatically between
-//   route changes while the next page is loading
-//   without it → white flash between pages
-//   with it → seamless branded transition
 'use client'
 
-export default function Loading() {
-  return (
-    <div className="loading-page">
+import { useEffect, useState } from 'react'
 
-      <div className="loading-glow" />
+export default function HydrationWrapper({ children }) {
+    const [hydrated, setHydrated] = useState(false)
 
-      {/* Logo stays visible during transition */}
-      <p
-        className="font-display loading-logo"
-        style={{
-          background: 'linear-gradient(135deg, #FF4500, #FF6B00, #FFB700)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          fontSize: '28px',
-        }}
-      >
-        GITROAST 🔥
-      </p>
+    useEffect(() => {
+        document.body.classList.add('loading')
 
-      {/* WHY terminal-style loader: matches AnalyzingScreen aesthetic
+        // const t = setTimeout(() => {
+        setHydrated(true)
+        document.body.classList.remove('loading')
+        // }, 300) // small delay for smooth UX
+
+        return () => clearTimeout(t)
+    }, [])
+
+    if (!hydrated) {
+        return (
+            <div className="loading-page">
+
+                <div className="loading-glow" />
+
+                {/* Logo stays visible during transition */}
+                <p
+                    className="font-display loading-logo gitroast-loader-text-fire"
+                    style={{
+                        background: 'linear-gradient(135deg, #FF4500, #FF6B00, #FFB700)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        fontSize: '28px',
+                    }}
+                >
+                    GITROAST 🔥
+                </p>
+
+                {/* WHY terminal-style loader: matches AnalyzingScreen aesthetic
           consistent with brand throughout the app */}
-      <div className="loading-card">
-        <p
-          className="font-mono loading-text"
-          style={{ color: 'var(--text-secondary)', fontSize: '13px' }}
-        >
-          Loading
-          <span className="loading-dot">.</span>
-          <span className="loading-dot">.</span>
-          <span className="loading-dot">.</span>
-        </p>
+                <div className="loading-card">
+                    <p
+                        className="font-mono loading-text"
+                        style={{ color: 'var(--text-secondary)', fontSize: '13px' }}
+                    >
+                        Loading
+                        <span className="loading-dot">.</span>
+                        <span className="loading-dot">.</span>
+                        <span className="loading-dot">.</span>
+                    </p>
 
-        {/* Progress bar — same style as PaymentFlow loader */}
-        <div className="loading-track">
-          <div className="loading-fill" />
-        </div>
-      </div>
+                    {/* Progress bar — same style as PaymentFlow loader */}
+                    <div className="loading-track">
+                        <div className="loading-fill" />
+                    </div>
+                </div>
 
-      <style jsx>{`
+                <style jsx>{`
         .loading-page {
           min-height:      100vh;
           display:         flex;
@@ -115,6 +122,9 @@ export default function Loading() {
           100% { width: 0%;   margin-left: 100%; }
         }
       `}</style>
-    </div>
-  )
+            </div>
+
+        )
+    }
+    return <>{children}</>
 }

@@ -14,40 +14,40 @@
 :root {
   /* Backgrounds */
   --bg-primary: #070707;
-  --bg-card: #0F0F0F;
+  --bg-card: #0f0f0f;
   --bg-elevated: #141414;
-  --bg-input: #0A0A0A;
+  --bg-input: #0a0a0a;
 
   /* Borders */
-  --border: #1C1C1C;
-  --border-hover: #2E2E2E;
+  --border: #1c1c1c;
+  --border-hover: #2e2e2e;
   --border-focus: rgba(255, 69, 0, 0.5);
 
   /* Brand — Fire */
-  --fire: #FF4500;
-  --fire-mid: #FF6B00;
-  --fire-warm: #FFB700;
-  --fire-grad: linear-gradient(135deg, #FF4500 0%, #FF6B00 50%, #FFB700 100%);
+  --fire: #ff4500;
+  --fire-mid: #ff6b00;
+  --fire-warm: #ffb700;
+  --fire-grad: linear-gradient(135deg, #ff4500 0%, #ff6b00 50%, #ffb700 100%);
 
   /* Semantic */
-  --bad: #FF3D3D;
-  --good: #00E676;
-  --warn: #FFB700;
-  --info: #FF6B00;
+  --bad: #ff3d3d;
+  --good: #00e676;
+  --warn: #ffb700;
+  --info: #ff6b00;
 
   /* Text */
-  --text-primary: #F5F5F5;
+  --text-primary: #f5f5f5;
   --text-secondary: #777777;
-  --text-muted: #3A3A3A;
+  --text-muted: #3a3a3a;
   --text-ghost: #222222;
 
   /* WHY font variables reference next/font CSS variables:
      layout.jsx sets --font-display-loaded, --font-mono-loaded,
      --font-body-loaded on <html> via next/font
      We read them here + add fallbacks for safety */
-  --font-display: var(--font-display-loaded, 'Impact', sans-serif);
-  --font-mono: var(--font-mono-loaded, 'Courier New', monospace);
-  --font-body: var(--font-body-loaded, 'Segoe UI', system-ui, sans-serif);
+  --font-display: var(--font-display-loaded, "Impact", sans-serif);
+  --font-mono: var(--font-mono-loaded, "Courier New", monospace);
+  --font-body: var(--font-body-loaded, "Segoe UI", system-ui, sans-serif);
 
   /* Spacing */
   --radius-sm: 6px;
@@ -191,7 +191,6 @@ body {
 }
 
 @keyframes blink {
-
   0%,
   100% {
     opacity: 1;
@@ -203,7 +202,6 @@ body {
 }
 
 @keyframes pulse-glow {
-
   0%,
   100% {
     opacity: 0.15;
@@ -227,7 +225,6 @@ body {
 /* WHY pulse: used by GitHubLoginBtn placeholder
    while auth state loads — prevents layout shift */
 @keyframes pulse {
-
   0%,
   100% {
     opacity: 1;
@@ -288,4 +285,126 @@ body {
 ::selection {
   background: rgba(255, 69, 0, 0.3);
   color: var(--text-primary);
+}
+
+/* loader overlay and fixed hydration css */
+.hw-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+}
+
+.hw-overlay--hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+/* optional scroll lock */
+body.loading {
+  overflow: hidden;
+}
+
+/* loader specific critical css */
+.loading-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  background: #070707;
+  position: relative;
+  overflow: hidden;
+}
+.loading-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 60% 40% at 50% 100%,
+    rgba(255, 69, 0, 0.12) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.gitroast-loader-text-fire {
+  background: "linear-gradient(135deg, #FF4500, #FF6B00, #FFB700)";
+  background-clip: text;
+  -webkit-background-clip: text; /* For Safari */
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-size: 28px;
+}
+
+.loading-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 200px;
+}
+
+.loading-card > p {
+  color: var(--text-secondary);
+  font-size: "13px";
+}
+
+/* WHY staggered dots: gives life to loading state
+           each dot fades in at different delay
+           creates natural "loading..." rhythm */
+.loading-dot {
+  display: inline-block;
+  animation: dotPulse 1.4s ease-in-out infinite;
+  color: var(--fire);
+}
+.loading-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+.loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotPulse {
+  0%,
+  80%,
+  100% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+/* Progress bar */
+.loading-track {
+  width: 100%;
+  height: 2px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.loading-fill {
+  height: 100%;
+  background: linear-gradient(135deg, #ff4500, #ff6b00, #ffb700);
+  border-radius: 2px;
+  animation: loadingBar 1.8s ease-in-out infinite;
+}
+@keyframes loadingBar {
+  0% {
+    width: 0%;
+    margin-left: 0;
+  }
+  50% {
+    width: 70%;
+    margin-left: 15%;
+  }
+  100% {
+    width: 0%;
+    margin-left: 100%;
+  }
 }

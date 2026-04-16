@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import ToastConfig from "@/components/ToastConfig";
 import Footer from "@/components/Footer";
 import "./globals.css";
+import HydrationWrapper from "@/components/HydrationWrapper";
 
 // ─── Fonts ────────────────────────────────────────────────
 const bebasNeue = Bebas_Neue({
@@ -86,7 +87,11 @@ export default function RootLayout({ children }) {
         <ToastConfig />
 
         <AuthProvider>
-          <Suspense fallback={null}>{children}</Suspense>
+          <HydrationWrapper>
+            <Suspense fallback={null}>
+              {children}
+            </Suspense>
+          </HydrationWrapper>
         </AuthProvider>
 
         {/* WHY Footer outside AuthProvider:

@@ -11,12 +11,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
 export default function HomePage() {
   const [showProModal, setShowProModal] = useState(false)
-  const [mounted, setMounted] = useState(false)
   const [totalRoasts, setTotalRoasts] = useState(null)
   const router = useRouter()
 
   useEffect(() => {
-    setMounted(true)
 
     fetch(`${API_BASE}/api/roast/stats`)
       .then(r => r.json())
@@ -38,22 +36,6 @@ export default function HomePage() {
       return
     }
     router.push(`/roast/${username.trim().toLowerCase()}`)
-  }
-
-  // WHY placeholder instead of null:
-  //   returning null = blank page + footer floats alone (see screenshot)
-  //   placeholder = full-height dark screen = footer stays at bottom
-  //   same background color = invisible to user = zero flash
-  //   mounted=true → placeholder swapped for real content with fadeIn
-  if (!mounted) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#070707',
-        // WHY: exact same background as landing page
-        //      user sees nothing — seamless
-      }} />
-    )
   }
 
   return (
