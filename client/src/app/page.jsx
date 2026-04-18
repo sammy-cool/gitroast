@@ -9,21 +9,82 @@ import GitHubLoginBtn from '@/components/GitHubLoginBtn'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
+// WHY config here: single source of truth for intensity options
+//     label, emoji, description, color, isPro all in one place
+const INTENSITIES = [
+  {
+    key: 'mild',
+    emoji: '🌶',
+    label: 'Mild',
+    description: 'Gentle observations. Still burns.',
+    color: '#FFB700',
+    isPro: false,
+  },
+  {
+    key: 'savage',
+    emoji: '🔥',
+    label: 'Savage',
+    description: 'Brutal comedy. The default.',
+    color: '#FF6B00',
+    isPro: false,
+  },
+  {
+    key: 'nuclear',
+    emoji: '☢️',
+    label: 'Nuclear',
+    description: 'Absolutely no mercy.',
+    color: '#FF3D3D',
+    isPro: true,   // WHY: locked behind Pro — incentivises upgrade
+  },
+]
+
 export default function HomePage() {
   const [showProModal, setShowProModal] = useState(false)
   const [totalRoasts, setTotalRoasts] = useState(null)
+  // WHY default 'savage': current behaviour unchanged for existing users
+  const [intensity, setIntensity] = useState('savage')
   const router = useRouter()
 
   useEffect(() => {
-
     fetch(`${API_BASE}/api/roast/stats`)
       .then(r => r.json())
       .then(d => { if (d.totalRoasts > 0) setTotalRoasts(d.totalRoasts) })
-      .catch(() => {
-        // WHY: stats failing silently is fine
-        // social proof just stays hidden
-      })
+      .catch(() => { })
+
+    // WHY: restore last used intensity from sessionStorage
+    //      user refreshes → same intensity selected
+    const saved = sessionStorage.getItem('gitroast_intensity')
+    if (saved && INTENSITIES.find(i => i.key === saved)) {
+      setIntensity(saved)
+    }
   }, [])
+
+  function handleIntensitySelect(key) {
+    const selected = INTENSITIES.find(i => i.key === key)
+
+    // WHY: Nuclear = Pro only
+    //      show Pro modal so user understands the value
+    //      don't just silently block — explain why
+    if (selected.isPro) {
+      createToast({
+        type: 'info',
+        message: '☢️ Nuclear mode is a Pro feature.',
+        position: 'top-center',
+        duration: 5000,
+        showCloseButton: true,
+        showProgressBar: true,
+        cta: {
+          label: 'See Plans ⚡',
+          onClick: () => setShowProModal(true),
+          autoClose: true,
+        },
+      })
+      return
+    }
+
+    setIntensity(key)
+    sessionStorage.setItem('gitroast_intensity', key)
+  }
 
   function handleRoast(username) {
     if (!username.trim()) {
@@ -35,17 +96,22 @@ export default function HomePage() {
       })
       return
     }
+
+    // WHY: store intensity in sessionStorage
+    //      RoastPageClient reads it and passes to backend
+    sessionStorage.setItem('gitroast_intensity', intensity)
+
     router.push(`/roast/${username.trim().toLowerCase()}`)
   }
 
+  const selectedIntensity = INTENSITIES.find(i => i.key === intensity)
+
   return (
-    <main className="landing-page animate-fadeIn">
+    <main className="landing-page">
 
       <div className="landing-glow animate-glow" />
 
-      {/* GitHub login in top-right corner */}
       <nav className="landing-nav">
-        <div />
         <GitHubLoginBtn variant="compact" />
       </nav>
 
@@ -59,10 +125,41 @@ export default function HomePage() {
         </p>
       </div>
 
+      {/* WHY intensity selector ABOVE input:
+          first decision before typing = feels intentional
+          sets expectation for what's coming */}
+      <div className="intensity-wrap">
+        <p className="intensity-label font-mono">Choose your intensity:</p>
+        <div className="intensity-options">
+          {INTENSITIES.map(opt => (
+            <button
+              key={opt.key}
+              className={`intensity-btn font-mono ${intensity === opt.key ? 'intensity-btn--active' : ''} ${opt.isPro ? 'intensity-btn--pro' : ''}`}
+              style={{
+                '--intensity-color': opt.color,
+                borderColor: intensity === opt.key ? opt.color : undefined,
+              }}
+              onClick={() => handleIntensitySelect(opt.key)}
+              title={opt.isPro ? `${opt.label} — Pro only` : opt.description}
+            >
+              <span className="intensity-emoji">{opt.emoji}</span>
+              <span className="intensity-name">{opt.label}</span>
+              {opt.isPro && (
+                <span className="intensity-pro-tag">PRO</span>
+              )}
+            </button>
+          ))}
+        </div>
+        {/* WHY description: tells user what they're getting into */}
+        <p className="intensity-desc font-mono">
+          {selectedIntensity.emoji} {selectedIntensity.description}
+        </p>
+      </div>
+
       {/* Input */}
       <UsernameInput onSubmit={handleRoast} />
 
-      {/* Real social proof */}
+      {/* Social proof */}
       {totalRoasts && (
         <p className="landing-social-proof font-mono">
           <span style={{ color: 'var(--fire)' }}>
@@ -88,7 +185,6 @@ export default function HomePage() {
         </button>
       </div>
 
-      {/* Leaderboard */}
       <button
         className="btn btn-ghost"
         onClick={() => router.push('/leaderboard')}
@@ -96,7 +192,6 @@ export default function HomePage() {
         🏆 Wall of Shame
       </button>
 
-      {/* Sample roast */}
       <div className="sample-roast card">
         <p className="sample-roast-label font-mono">SAMPLE ROAST</p>
         <p className="sample-roast-text">
@@ -120,7 +215,7 @@ export default function HomePage() {
           padding:         1rem 1rem 6rem;
           position:        relative;
           overflow:        hidden;
-          gap:             1.5rem;
+          gap:             1.25rem;
         }
         .landing-nav {
           position: absolute;
@@ -149,6 +244,70 @@ export default function HomePage() {
           font-size:  17px;
           margin-top: 10px;
         }
+
+        /* ── Intensity selector ── */
+        .intensity-wrap {
+          display:        flex;
+          flex-direction: column;
+          align-items:    center;
+          gap:            10px;
+          width:          100%;
+          max-width:      460px;
+        }
+        .intensity-label {
+          font-size:      10px;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          color:          var(--text-muted);
+        }
+        .intensity-options {
+          display: flex;
+          gap:     8px;
+          width:   100%;
+        }
+        .intensity-btn {
+          flex:          1;
+          display:       flex;
+          flex-direction:column;
+          align-items:   center;
+          gap:           4px;
+          padding:       10px 8px;
+          background:    var(--bg-card);
+          border:        1px solid var(--border);
+          border-radius: var(--radius-md);
+          cursor:        pointer;
+          transition:    all 0.18s ease;
+          position:      relative;
+        }
+        .intensity-btn:hover {
+          border-color: var(--intensity-color, var(--fire));
+          background:   var(--bg-elevated);
+        }
+        /* WHY: active state uses dynamic color per intensity */
+        .intensity-btn--active {
+          border-color: var(--intensity-color, var(--fire));
+          background:   color-mix(in srgb, var(--intensity-color, var(--fire)) 8%, var(--bg-card));
+          box-shadow:   0 0 12px color-mix(in srgb, var(--intensity-color, var(--fire)) 20%, transparent);
+        }
+        .intensity-emoji { font-size: 20px; line-height: 1; }
+        .intensity-name  { font-size: 11px; color: var(--text-primary); }
+        .intensity-pro-tag {
+          position:      absolute;
+          top:           -6px;
+          right:         -6px;
+          font-size:     8px;
+          padding:       1px 5px;
+          background:    var(--fire);
+          color:         #fff;
+          border-radius: var(--radius-sm);
+          letter-spacing:1px;
+        }
+        .intensity-desc {
+          font-size: 12px;
+          color:     var(--text-secondary);
+          height:    18px; /* WHY: fixed height prevents layout shift on text change */
+        }
+
         .landing-social-proof {
           color:     var(--text-secondary);
           font-size: 13px;

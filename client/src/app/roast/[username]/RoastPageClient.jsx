@@ -18,11 +18,6 @@ export default function RoastPageClient({ username }) {
   const router = useRouter()
   const { getToken, isPro } = useAuth()
 
-  // WHY idempotencyKey as useRef:
-  //   useRef value PERSISTS across StrictMode remounts
-  //   Both Mount 1 and Mount 2 use the SAME key
-  //   Server sees same key on 2nd request → returns cached result
-  //   No duplicate DB saves regardless of how many mounts happen
   const idempotencyKey = useRef(
     `${username}-${Date.now()}-${Math.random().toString(36).slice(2)}`
   )
@@ -33,18 +28,12 @@ export default function RoastPageClient({ username }) {
       username.length > 39 ||
       !/^[a-zA-Z0-9-]+$/.test(username)
     ) {
-      createToast({
-        type: 'error',
-        message: 'Invalid GitHub username.',
-        position: 'top-center',
-      })
+      createToast({ type: 'error', message: 'Invalid GitHub username.', position: 'top-center' })
       router.push('/')
       return
     }
 
     // ── Check sessionStorage cache ────────────────────────
-    // WHY: handles browser back button
-    //      restores result without re-fetch or duplicate DB save
     const cacheKey = `gitroast_roast_${username}`
     const cachedRoast = sessionStorage.getItem(cacheKey)
 
@@ -65,24 +54,24 @@ export default function RoastPageClient({ username }) {
       }
     }
 
-    // WHY cancelled flag kept:
-    //   still needed for when user navigates AWAY mid-fetch
-    //   without it: user leaves page → fetch completes →
-    //   setView called on unmounted component → React warning
     let cancelled = false
 
     async function fetchRoast() {
       try {
         const token = getToken()
 
+        // WHY: read intensity from sessionStorage
+        //      set by landing page when user clicks Roast
+        //      defaults to 'savage' if not set
+        const intensity = sessionStorage.getItem('gitroast_intensity') || 'savage'
+
         const [data] = await Promise.all([
-          getRoast(username, idempotencyKey.current, token),
+          getRoast(username, idempotencyKey.current, token, intensity),
           new Promise(resolve => setTimeout(resolve, MIN_ANALYSIS_TIME)),
         ])
 
         if (cancelled) return
 
-        // Cache result so browser back button works
         sessionStorage.setItem(cacheKey, JSON.stringify({
           data,
           cachedAt: Date.now(),
@@ -104,47 +93,33 @@ export default function RoastPageClient({ username }) {
 
         if (err.code === 'USER_NOT_FOUND') {
           createToast({
-            type: 'error',
-            message: `GitHub user "@${username}" not found.`,
-            position: 'top-center',
-            duration: 5000,
-            showCloseButton: true,
+            type: 'error', message: `GitHub user "@${username}" not found.`,
+            position: 'top-center', duration: 5000, showCloseButton: true,
           })
           router.push('/')
           return
         }
         if (err.code === 'RATE_LIMIT_EXCEEDED') {
           createToast({
-            type: 'warning',
-            message: 'GitHub rate limit hit. Try again in 60 seconds.',
-            position: 'top-center',
-            duration: 6000,
-            showCloseButton: true,
+            type: 'warning', message: 'GitHub rate limit hit. Try again in 60 seconds.',
+            position: 'top-center', duration: 6000, showCloseButton: true,
           })
           router.push('/')
           return
         }
         if (err.name === 'TimeoutError') {
-          createToast({
-            type: 'error',
-            message: 'Request timed out. Try again.',
-            position: 'top-center',
-          })
+          createToast({ type: 'error', message: 'Request timed out. Try again.', position: 'top-center' })
           router.push('/')
           return
         }
-        createToast({
-          type: 'error',
-          message: 'Something broke. Not your fault... probably.',
-          position: 'top-center',
-        })
+        createToast({ type: 'error', message: 'Something broke. Not your fault... probably.', position: 'top-center' })
         router.push('/')
       }
     }
 
     fetchRoast()
     return () => { cancelled = true }
-  }, [username, router])
+  }, [username, router])  // WHY: getToken removed from deps — called inside fetchRoast safely
 
   function handleRoastAnother() {
     sessionStorage.removeItem(`gitroast_roast_${username}`)
@@ -159,7 +134,6 @@ export default function RoastPageClient({ username }) {
     return (
       <>
         <main className="result-page">
-
           <div className="result-nav">
             <div className="font-display nav-logo text-fire">GITROAST 🔥</div>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -180,13 +154,10 @@ export default function RoastPageClient({ username }) {
             onProClick={() => setShowProModal(true)}
           />
 
-          {/* Monthly upsell */}
           <div className="upsell-card card">
             <div>
               <p className="upsell-title">📈 Monthly Roast Subscription</p>
-              <p className="upsell-sub font-mono">
-                Track your improvement. Or your shame.
-              </p>
+              <p className="upsell-sub font-mono">Track your improvement. Or your shame.</p>
             </div>
             <div className="upsell-price">
               <div className="upsell-amount-row">
@@ -196,48 +167,28 @@ export default function RoastPageClient({ username }) {
               <span className="font-mono upsell-period">/month</span>
             </div>
           </div>
-
         </main>
 
-        {showProModal && (
-          <ProModal onClose={() => setShowProModal(false)} />
-        )}
+        {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
 
         <style jsx>{`
           .result-page {
-            min-height:     100vh;
-            display:        flex;
-            flex-direction: column;
-            align-items:    center;
-            padding:        1.5rem 1rem 3rem;
-            gap:            1.25rem;
+            min-height: 100vh; display: flex; flex-direction: column;
+            align-items: center; padding: 1.5rem 1rem 3rem; gap: 1.25rem;
           }
           .result-nav {
-            display:         flex;
-            justify-content: space-between;
-            align-items:     center;
-            width:           100%;
-            max-width:       580px;
+            display: flex; justify-content: space-between;
+            align-items: center; width: 100%; max-width: 580px;
           }
           .nav-logo { font-size: 22px; }
           .upsell-card {
-            width:           100%;
-            max-width:       580px;
-            padding:         1rem 1.5rem;
-            display:         flex;
-            justify-content: space-between;
-            align-items:     center;
-            gap:             1rem;
+            width: 100%; max-width: 580px; padding: 1rem 1.5rem;
+            display: flex; justify-content: space-between; align-items: center; gap: 1rem;
           }
           .upsell-title  { font-size: 14px; font-weight: 500; margin: 0 0 4px; }
           .upsell-sub    { color: var(--text-secondary); font-size: 12px; }
           .upsell-price  { text-align: right; flex-shrink: 0; }
-          .upsell-amount-row {
-            display:         flex;
-            align-items:     baseline;
-            gap:             1px;
-            justify-content: flex-end;
-          }
+          .upsell-amount-row { display: flex; align-items: baseline; gap: 1px; justify-content: flex-end; }
           .upsell-symbol { font-size: 16px; color: var(--fire); line-height: 1; }
           .upsell-number { font-size: 26px; color: var(--fire); line-height: 1; }
           .upsell-period { font-size: 11px; color: var(--text-secondary); }

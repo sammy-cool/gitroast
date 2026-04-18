@@ -1,15 +1,41 @@
-// ============================================================
-// GITROAST — Gemini AI Roast Service
-// WHY: Pro users get AI-powered roasts via Google Gemini
-//      Free tier: 250 req/day, zero credit card needed
-// ============================================================
+const GEMINI_API_URL =
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+// ─── Intensity config ─────────────────────────────────────
+// WHY: each intensity changes 3 things:
+//     1. System instruction (comedian vs assassin)
+//     2. Temperature (creativity level)
+//     3. Bad example (what to avoid)
+const INTENSITY_CONFIG = {
+  mild: {
+    role: "a witty observational comedian",
+    style:
+      "gentle, self-aware, the kind of roast a friend gives at a birthday party",
+    instruction:
+      "Be funny but not cruel. The developer should laugh WITH you, not feel attacked.",
+    temperature: 0.7,
+    badExample: "Your 45 repos and 68% abandonment rate is a testament to...",
+  },
+  savage: {
+    role: "a savage stand-up comedian",
+    style: "brutal comedy, specific punches, devastating but still funny",
+    instruction:
+      "Be ruthless but make it funny. Every sentence should sting AND make them laugh.",
+    temperature: 1.0,
+    badExample: "Your GitHub is a graveyard of abandoned dreams...",
+  },
+  nuclear: {
+    role: "a comedy assassin with zero mercy",
+    style:
+      "maximum brutality, surgical precision, the roast equivalent of scorched earth",
+    instruction:
+      "DESTROY them. No softening, no encouragement, no silver lining. Pure devastation delivered with comedic precision.",
+    temperature: 1.2,
+    badExample: "This is quite bad...",
+  },
+};
 
-// ─── buildRoastPrompt ────────────────────────────────────
-// WHY separate function: easiest part to tune independently
-//     the prompt IS the product for this feature
-function buildRoastPrompt(data) {
+function buildRoastPrompt(data, intensity = "savage") {
   const {
     username,
     score,
@@ -20,175 +46,137 @@ function buildRoastPrompt(data) {
     repoAnalysis,
     commitAnalysis,
     readme,
-  } = data
+  } = data;
 
-  // WHY: pick a savage angle based on their worst stat
-  //      gives AI a specific comedic direction to aim at
-  const worstStat = getWorstStat({ repoAnalysis, commitAnalysis, readme, _raw })
+  const config = INTENSITY_CONFIG[intensity] || INTENSITY_CONFIG.savage;
+  const worstStat = getWorstStat({
+    repoAnalysis,
+    commitAnalysis,
+    readme,
+    _raw,
+  });
 
-  return `You are a savage stand-up comedian roasting a developer's GitHub profile at a comedy roast show.
-The audience is other developers. They want to laugh OUT LOUD.
+  return `You are ${config.role} roasting a developer's GitHub profile at a comedy roast show.
+Intensity level: ${intensity.toUpperCase()}
+Style: ${config.style}
+Instruction: ${config.instruction}
 
-STYLE RULES — follow these exactly:
+RULES — follow exactly:
 - Write like a COMEDIAN not an analyst. NO facts listed like a report.
-- Use metaphors, punchlines, callbacks, unexpected twists.
-- Make it PERSONAL to this specific profile — reference their actual username, language, commit messages.
-- Funny > brutal. The roast should make the developer laugh at themselves.
-- Exactly 3 sentences. Each sentence lands a separate punch.
-- Sentence 1: savage opener — establish the vibe of their GitHub
-- Sentence 2: specific evidence — use ONE real detail from their data
-- Sentence 3: mic-drop closer — the punchline that ties it together
-- NEVER start with "@username" — that's boring. Start with a metaphor or observation.
-- NEVER list statistics like "45 repos, 9 stars, 68%". That's a data analyst, not a comedian.
-- NEVER use the phrase "testament to" or "sprawling cemetery" or any cliché.
-- Write in active, punchy present tense. Short sentences hit harder.
+- Use metaphors, punchlines, unexpected twists.
+- Make it personal — reference their username, language, commit messages.
+- Exactly 3 sentences. Each lands a separate punch.
+- Sentence 1: opener — establish the vibe of their GitHub
+- Sentence 2: specific evidence — ONE real detail from their data
+- Sentence 3: mic-drop closer — the punchline
+- NEVER start with "@username" — boring. Start with metaphor or observation.
+- NEVER list statistics like "45 repos, 9 stars, 68%". That is a data analyst.
+- NEVER use: "testament to", "sprawling cemetery", or any cliché.
+- Active, punchy present tense. Short sentences hit harder.
+${intensity === "nuclear" ? "- Nuclear mode: every sentence must be MORE devastating than the last. No mercy." : ""}
+${intensity === "mild" ? "- Mild mode: roast with affection. Mean it kindly." : ""}
 
-THEIR DATA (use this as inspiration, NOT as a list to recite):
+THEIR DATA:
 Username:         @${username}
-GitHub since:     ${joinYear} (${new Date().getFullYear() - joinYear} years of this)
+GitHub since:     ${joinYear} (${new Date().getFullYear() - joinYear} years)
 Total repos:      ${totalRepos}
-Top language:     ${_raw?.topLanguage || 'unknown'}
-Abandoned repos:  ${repoAnalysis?.abandonedCount ?? 0} out of ${repoAnalysis?.totalOwn ?? 0}
-Commit quality:   ${commitAnalysis?.qualityScore ?? 0}% (lower = more shameful messages)
-Worst commits:    ${commitAnalysis?.shameList?.slice(0, 2).join(' and ') || 'none found'}
-README:           ${readme?.exists ? (readme.isEmpty ? 'exists but basically empty' : 'actually has content') : 'completely missing'}
+Top language:     ${_raw?.topLanguage || "unknown"}
+Abandoned repos:  ${repoAnalysis?.abandonedCount ?? 0} of ${repoAnalysis?.totalOwn ?? 0}
+Commit quality:   ${commitAnalysis?.qualityScore ?? 0}%
+Worst commits:    ${commitAnalysis?.shameList?.slice(0, 2).join(" and ") || "none"}
+README:           ${readme?.exists ? (readme.isEmpty ? "exists but empty" : "has content") : "missing"}
 Total stars:      ${_raw?.totalStars ?? 0}
-Roast score:      ${score}/100 (Grade: ${grade})
+Score:            ${score}/100 (Grade: ${grade})
 
-THEIR WORST ANGLE (focus your roast HERE):
+FOCUS YOUR ROAST ON THIS ANGLE:
 ${worstStat}
 
-EXAMPLES OF GOOD ROAST STYLE (never copy these, just match the energy):
-- "Calling this a portfolio is generous — it's more of a support group for unfinished ideas that never made it to version 0.2."
-- "The commit history reads like a person who discovered programming, got excited, committed 'initial setup', and then discovered Netflix."
-- "In ${new Date().getFullYear() - parseInt(joinYear) || 3} years of coding, the most consistent thing about this GitHub is how consistently nothing ships."
+BAD EXAMPLE (never write like this):
+"${config.badExample}"
 
-BAD STYLE (never do this):
-- "With 52 repos and only 9 stars, your 68% abandonment rate is a testament to..." ← data report, not comedy
-- "@sammy-cool, your GitHub is a graveyard of..." ← cliché opener
-- "Your commit messages show that..." ← too analytical
-
-Write ONLY the 3-sentence roast. No quotes around it. No intro. No explanation. Just the roast.`
+Write ONLY the 3-sentence roast. No quotes. No intro. No explanation. Just the roast.`;
 }
 
-// ─── getWorstStat ────────────────────────────────────────
-// WHY: gives AI a specific angle to attack
-//      roasts with a clear target are funnier than vague ones
 function getWorstStat({ repoAnalysis, commitAnalysis, readme, _raw }) {
-  const angles = []
+  const angles = [];
 
   if ((repoAnalysis?.abandonedPct ?? 0) > 60) {
     angles.push(
-      `ABANDONMENT: They abandon ${repoAnalysis.abandonedPct}% of their repos. ` +
-      `Most die after the first commit. Make jokes about starting things and never finishing.`
-    )
+      `ABANDONMENT: ${repoAnalysis.abandonedPct}% repos abandoned. ` +
+        `Joke about starting things and never finishing.`,
+    );
   }
-
   if ((commitAnalysis?.qualityScore ?? 100) < 30) {
-    const sample = commitAnalysis?.shameList?.[0] || 'pls work'
+    const sample = commitAnalysis?.shameList?.[0] || "pls work";
     angles.push(
-      `COMMIT MESSAGES: Only ${commitAnalysis.qualityScore}% quality score. ` +
-      `They write things like "${sample}". Make jokes about their commit messages being ` +
-      `more like diary entries from someone having a breakdown.`
-    )
+      `COMMIT MESSAGES: ${commitAnalysis.qualityScore}% quality. ` +
+        `They wrote "${sample}". Joke about commit messages as a cry for help.`,
+    );
   }
-
   if (!readme?.exists) {
     angles.push(
-      `NO README: Their top repo has zero documentation. ` +
-      `Make jokes about code existing that no human can understand, including the author.`
-    )
+      `NO README: Top repo has zero docs. ` +
+        `Joke about code nobody can understand including the author.`,
+    );
   }
-
   if ((_raw?.totalStars ?? 0) < 5 && (repoAnalysis?.totalOwn ?? 0) > 10) {
     angles.push(
-      `ZERO RECOGNITION: ${repoAnalysis.totalOwn} repos, ${_raw.totalStars} total stars. ` +
-      `The internet has collectively decided to look away. Make jokes about ` +
-      `building in public but nobody showing up.`
-    )
+      `ZERO RECOGNITION: ${repoAnalysis.totalOwn} repos, ${_raw.totalStars} stars. ` +
+        `The internet collectively decided to look away.`,
+    );
   }
-
-  if (_raw?.topLanguage === 'PHP') {
-    angles.push(
-      `PHP IN ${new Date().getFullYear()}: Still writing PHP. ` +
-      `Make jokes about this being a lifestyle choice nobody asked for.`
-    )
-  }
-
-  if (_raw?.topLanguage === 'JavaScript' && (repoAnalysis?.abandonedPct ?? 0) > 40) {
-    angles.push(
-      `JAVASCRIPT GRAVEYARD: JavaScript repos everywhere, most abandoned. ` +
-      `Make jokes about the npm install to project death pipeline.`
-    )
-  }
-
-  // WHY: if no clear worst stat, attack the overall mediocrity
   if (angles.length === 0) {
     angles.push(
-      `MEDIOCRITY: Nothing is catastrophically bad, nothing is good. ` +
-      `Make jokes about being comfortably, professionally, persistently average. ` +
-      `The most roastable thing here is how thoroughly unremarkable it all is.`
-    )
+      `MEDIOCRITY: Nothing catastrophically bad, nothing good. ` +
+        `Joke about being persistently, professionally average.`,
+    );
   }
 
-  // WHY: pick the most roastable angle
-  return angles[0]
+  return angles[0];
 }
 
-// ─── generateAIRoast ─────────────────────────────────────
-// WHY returns string | null:
-//   null = caller uses rule engine fallback silently
-async function generateAIRoast(data) {
-
+async function generateAIRoast(data, intensity = "savage") {
   if (!process.env.GEMINI_API_KEY) {
-    console.warn('[AI] No Gemini API key — using rule engine')
-    return null
+    console.warn("[AI] No Gemini API key — using rule engine");
+    return null;
   }
+
+  const config = INTENSITY_CONFIG[intensity] || INTENSITY_CONFIG.savage;
 
   try {
     const response = await fetch(
       `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: buildRoastPrompt(data) }],
-            },
-          ],
+          contents: [{ parts: [{ text: buildRoastPrompt(data, intensity) }] }],
           generationConfig: {
-            // maxOutputTokens: 250,  // WHY 250: 3 punchy sentences, no more
-            temperature: 1.0,  // WHY 1.0: maximum creativity for comedy
+            maxOutputTokens: 250,
+            temperature: config.temperature,
             topP: 0.95,
             topK: 40,
           },
         }),
-        signal: AbortSignal.timeout(50000),
-      }
-    )
+        signal: AbortSignal.timeout(10000),
+      },
+    );
 
     if (!response.ok) {
-      const err = await response.json().catch(() => ({}))
-      console.error('[AI] Gemini API error:', response.status, err?.error?.message)
-      return null
+      console.error("[AI] Gemini error:", response.status);
+      return null;
     }
 
-    const json = await response.json()
-    const roast = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim()
+    const json = await response.json();
+    const roast = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
-    if (!roast || roast.length < 20) {
-      console.warn('[AI] Empty or too-short Gemini response')
-      return null
-    }
+    if (!roast || roast.length < 20) return null;
 
-    // WHY: strip any accidental surrounding quotes Gemini sometimes adds
-    return roast.replace(/^["']|["']$/g, '').trim()
-
+    return roast.replace(/^["']|["']$/g, "").trim();
   } catch (err) {
-    console.error('[AI] Gemini request failed:', err.message)
-    return null
+    console.error("[AI] Gemini failed:", err.message);
+    return null;
   }
 }
 
-module.exports = { generateAIRoast }
+module.exports = { generateAIRoast };
