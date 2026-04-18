@@ -27,21 +27,6 @@ export default function RoastPageClient({ username }) {
     `${username}-${Date.now()}-${Math.random().toString(36).slice(2)}`
   )
 
-  // WHY fetchStarted.current is REMOVED:
-  //   It was the root cause of the "stuck at 100%" bug
-  //
-  //   Old broken flow with fetchStarted:
-  //     Mount 1: fetchStarted = false → set true → fetch starts
-  //              StrictMode cleanup fires → cancelled = true → fetch ignored
-  //     Mount 2: fetchStarted = true → RETURNS EARLY → no fetch ever runs
-  //     Result: animation hits 100% → view never switches → stuck forever
-  //
-  //   New correct flow without fetchStarted:
-  //     Mount 1: fetch starts → cleanup fires → cancelled = true → ignored ✓
-  //     Mount 2: fetch starts with SAME idempotencyKey → server returns
-  //              cached result (no DB duplicate) → setView('result') ✓
-  //     Result: works correctly every time
-
   useEffect(() => {
     if (
       !username ||
@@ -159,7 +144,7 @@ export default function RoastPageClient({ username }) {
 
     fetchRoast()
     return () => { cancelled = true }
-  }, [username, router, getToken])
+  }, [username, router])
 
   function handleRoastAnother() {
     sessionStorage.removeItem(`gitroast_roast_${username}`)
