@@ -8,12 +8,12 @@ export default function HydrationWrapper({ children }) {
   useEffect(() => {
     document.body.classList.add('loading')
 
-    // const t = setTimeout(() => {
-    setHydrated(true)
-    document.body.classList.remove('loading')
-    // }, 300) // small delay for smooth UX
+    const t = setTimeout(() => {
+      setHydrated(true)
+      document.body.classList.remove('loading')
+    }, 300) // small delay for smooth UX
 
-    // return () => clearTimeout(t)
+    return () => clearTimeout(t)
   }, [])
 
   if (!hydrated) {

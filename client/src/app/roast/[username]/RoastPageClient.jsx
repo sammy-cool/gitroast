@@ -16,7 +16,7 @@ export default function RoastPageClient({ username }) {
   const [roastData, setRoastData] = useState(null)
   const [showProModal, setShowProModal] = useState(false)
   const router = useRouter()
-  const { getToken } = useAuth()
+  const { getToken, isPro } = useAuth()
 
   // WHY idempotencyKey as useRef:
   //   useRef value PERSISTS across StrictMode remounts
@@ -191,7 +191,7 @@ export default function RoastPageClient({ username }) {
           </div>
 
           <RoastCard
-            data={roastData}
+            data={{ ...roastData, isPro }}
             onProClick={() => setShowProModal(true)}
           />
 
