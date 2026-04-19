@@ -51,6 +51,7 @@ app.use("/api/roast", roastLimiter, require("./routes/roast"));
 app.use("/api/auth", authLimiter, require("./routes/auth"));
 app.use("/api/history", require("./routes/history"));
 app.use("/api/payment", require("./routes/payment"));
+app.use("/api/battle", require("./routes/battle"));
 
 // ─── Health Check ─────────────────────────────────────────
 app.get("/health", (req, res) => {

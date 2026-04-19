@@ -82,3 +82,26 @@ export async function checkHealth() {
     return false;
   }
 }
+
+// ─── getBattleRoast ───────────────────────────────────────
+// WHY: fetches battle result for two users
+//      called by BattlePageClient
+export async function getBattleRoast(user1, user2, token = null) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(
+    `${API_BASE}/api/battle/${encodeURIComponent(user1)}/vs/${encodeURIComponent(user2)}`,
+    { method: "GET", headers, signal: AbortSignal.timeout(20000) },
+  );
+
+  const json = await res.json();
+  if (!res.ok) {
+    const err = new Error(json.message || "Battle failed");
+    err.code = json.error;
+    err.status = res.status;
+    throw err;
+  }
+
+  return json.data;
+}

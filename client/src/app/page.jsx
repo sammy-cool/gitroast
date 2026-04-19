@@ -192,6 +192,13 @@ export default function HomePage() {
         🏆 Wall of Shame
       </button>
 
+      <button
+        className="btn btn-ghost"
+        onClick={() => router.push('/battle')}
+      >
+        ⚔️ Roast Battle
+      </button>
+
       <div className="sample-roast card">
         <p className="sample-roast-label font-mono">SAMPLE ROAST</p>
         <p className="sample-roast-text">
