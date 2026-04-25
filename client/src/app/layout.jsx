@@ -1,3 +1,4 @@
+import Script from "next/script";
 import { Bebas_Neue, Fira_Code, Plus_Jakarta_Sans } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { Suspense } from "react";
@@ -98,6 +99,24 @@ export default function RootLayout({ children }) {
             Footer has no auth dependency
             Renders on every page automatically */}
         <Footer />
+
+        {/* Google Analytics */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=G-3CT533X7R2`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-3CT533X7R2', {
+              page_path: window.location.pathname,
+            });
+          `}
+        </Script>
+
       </body>
     </html>
   );
