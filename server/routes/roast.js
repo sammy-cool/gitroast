@@ -30,7 +30,7 @@ router.get("/stats", async (req, res) => {
 router.get("/:username", optionalAuth, async (req, res) => {
   const { username } = req.params;
   const isPro = req.user?.isPro || false;
-  const idempotencyKey = req.headers["X-Idempotency-Key"];
+  const idempotencyKey = req.headers["x-idempotency-key"];
 
   // WHY: read intensity from query param
   //      validate it — only allow known values
