@@ -152,13 +152,13 @@ async function generateAIRoast(data, intensity = "savage") {
         body: JSON.stringify({
           contents: [{ parts: [{ text: buildRoastPrompt(data, intensity) }] }],
           generationConfig: {
-            maxOutputTokens: 250,
+            // maxOutputTokens: 250,
             temperature: config.temperature,
             topP: 0.95,
             topK: 40,
           },
         }),
-        signal: AbortSignal.timeout(10000),
+        signal: AbortSignal.timeout(50000),
       },
     );
 

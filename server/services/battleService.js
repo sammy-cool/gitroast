@@ -37,7 +37,7 @@ RULES:
 - Reference their actual usernames and stats
 - NEVER list numbers like "45 repos, 9 stars"
 
-Write ONLY the 2 sentences. No quotes. No intro.`;
+No quotes. No intro.`;
 
   try {
     const res = await fetch(
@@ -48,12 +48,12 @@ Write ONLY the 2 sentences. No quotes. No intro.`;
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            maxOutputTokens: 150,
+            // maxOutputTokens: 300,
             temperature: 1.1,
             topP: 0.95,
           },
         }),
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(50000),
       },
     );
 
