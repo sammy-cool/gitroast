@@ -42,7 +42,7 @@ export default function ShareButtons({ username, roastId, roastText, isPro, onPr
     // ── Copy roast text ─────────────────────────────────────
     function handleCopyText() {
         if (!roastText) return
-        const textToCopy = `"${roastText}" — gitroast.dev/roast/${username}`
+        const textToCopy = `"${roastText}" — gitroast-dev.vercel.app/roast/${username}`
         navigator.clipboard.writeText(textToCopy)
             .then(() => {
                 setCopiedText(true)
@@ -132,7 +132,7 @@ export default function ShareButtons({ username, roastId, roastText, isPro, onPr
                 ctx.textAlign = 'center'
                 ctx.textBaseline = 'middle'
                 ctx.fillText(
-                    'gitroast.dev — Upgrade to Pro for HD card',
+                    'gitroast — Upgrade to Pro for HD card',
                     canvas.width / 2,
                     canvas.height - 18
                 )
@@ -193,7 +193,7 @@ export default function ShareButtons({ username, roastId, roastText, isPro, onPr
 
             {/* Watermark row */}
             <div className="watermark-row">
-                <span className="font-mono watermark-url">gitroast.dev</span>
+                <span className="font-mono watermark-url">gitroast</span>
                 <span className="font-mono watermark-badge">
                     {isPro ? 'PRO ⚡ · HD CARD' : 'FREE TIER · WATERMARKED'}
                 </span>

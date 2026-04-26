@@ -100,7 +100,7 @@ app.use("/api/battle", require("./routes/battle"));
 // WHAT: Returns server status — used by Docker HEALTHCHECK and Render
 // WHY: Without this, Render doesn't know if the container is ready
 //      and routes traffic to a container that hasn't fully started
-app.get("/health", (req, res) => {
+app.get("/health", generalLimiter, (req, res) => {
   res.json({
     status: "🔥 GitRoast server is alive",
     time: new Date().toISOString(),

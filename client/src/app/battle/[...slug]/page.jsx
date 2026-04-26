@@ -21,7 +21,7 @@ export async function generateMetadata({ params }) {
         description: `Who codes worse? ${user1} vs ${user2} — GitRoast Battle`,
         openGraph: {
             title: `⚔️ ${user1} vs ${user2} — GitRoast Battle`,
-            description: `Who codes worse? Find out at gitroast.dev`,
+            description: `Who codes worse? Find out at gitroast`,
         },
     }
 }

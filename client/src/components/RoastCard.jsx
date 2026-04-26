@@ -82,10 +82,10 @@ export default function RoastCard({ data, onProClick }) {
         </div>
 
         {/* WHY branding inside capture area:
-            every downloaded image shows gitroast.dev
+            every downloaded image shows gitroast
             free organic marketing on every share */}
         <div className="card-brand font-mono">
-          gitroast.dev 🔥
+          gitroast 🔥
         </div>
 
       </div>{/* end #roast-card-capture */}
@@ -202,7 +202,7 @@ export default function RoastCard({ data, onProClick }) {
         }
 
         /* WHY brand row inside capture:
-           every shared image shows gitroast.dev
+           every shared image shows gitroast
            zero effort marketing */
         .card-brand {
           padding:         8px 1.5rem;

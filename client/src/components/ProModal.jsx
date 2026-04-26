@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import GitHubLoginBtn from './GitHubLoginBtn'
@@ -25,9 +25,6 @@ const PRO_FEATURES = [
 export default function ProModal({ onClose }) {
     const { isLoggedIn } = useAuth()
     const router = useRouter()
-    const [mounted, setMounted] = useState(false)
-
-    useEffect(() => { setMounted(true) }, [])
 
     // WHY: prevent page scrolling behind modal
     useEffect(() => {
@@ -129,7 +126,7 @@ export default function ProModal({ onClose }) {
                 </p>
 
                 {/* CTA */}
-                {mounted && (
+                {
                     isLoggedIn ? (
                         <button
                             className="btn btn-primary modal-cta"
@@ -140,7 +137,7 @@ export default function ProModal({ onClose }) {
                     ) : (
                         <GitHubLoginBtn variant="full" />
                     )
-                )}
+                }
 
                 <p className="modal-disclaimer font-mono">
                     Pay with Card · UPI · NetBanking · Wallet via Razorpay

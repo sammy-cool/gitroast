@@ -19,10 +19,10 @@ export async function generateMetadata({ params }) {
             title: `@${username} just got roasted on GitRoast 🔥`,
             description: `Commit messages, abandoned repos, and coding shame — all exposed.`,
             type: 'website',
-            url: `https://gitroast.dev/roast/${username}`,
+            url: `https://gitroast-dev.vercel.app/roast/${username}`,
             // WHY: dynamic OG image per user (we build this in Phase 5)
             images: [{
-                url: `https://gitroast.dev/api/og?username=${username}`,
+                url: `https://gitroast-dev.vercel.app/api/og?username=${username}`,
                 width: 1200,
                 height: 630,
                 alt: `@${username}'s GitRoast card`,
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }) {
             card: 'summary_large_image',
             title: `@${username} got roasted 🔥`,
             description: 'Get your GitHub brutally roasted on GitRoast.',
-            images: [`https://gitroast.dev/api/og?username=${username}`],
+            images: [`https://gitroast-dev.vercel.app/api/og?username=${username}`],
         },
     }
 }

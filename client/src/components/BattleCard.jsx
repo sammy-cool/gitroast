@@ -55,7 +55,7 @@ export default function BattleCard({ data }) {
                 <p className="battle-card-title font-display text-fire">
                     ⚔️ ROAST BATTLE
                 </p>
-                <p className="battle-card-sub font-mono">gitroast.dev</p>
+                <p className="battle-card-sub font-mono">gitroast</p>
             </div>
 
             {/* Two players */}
