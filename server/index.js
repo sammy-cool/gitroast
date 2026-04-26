@@ -1,63 +1,108 @@
+// ============================================================
+// GITROAST — Express Server Entry Point
+// ============================================================
+// WHAT: Bootstraps the entire backend application.
+//       Wires together: middleware → routes → DB connection → server start.
+//
+// WHY this order matters:
+//   1. Logger + process handlers FIRST — catch errors from startup
+//   2. Security headers BEFORE cors/body-parser
+//   3. Rate limiters BEFORE routes — blocks bad actors early
+//   4. Routes registered with their specific limiters
+//   5. Error handlers LAST — catches anything that falls through
+//
+// WHERE: Entry point for Docker container → CMD ["node", "index.js"]
+// ============================================================
+
 require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
-
 const { errorHandler, notFoundHandler } = require("./middleware/errorHandler");
 const {
   roastLimiter,
   authLimiter,
   generalLimiter,
 } = require("./middleware/rateLimiter");
+const { logger, logRequest, attachProcessHandlers } = require("./utils/logger");
+
+// ── Step 1: Attach process-level error handlers ───────────────
+// WHY FIRST: ensures uncaughtException and unhandledRejection are
+//            captured even during server startup (DB connect, etc.)
+attachProcessHandlers();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// ─── Security Headers ─────────────────────────────────────
-// WHY: basic security hardening — no extra package needed
+// ── Step 2: Security headers ──────────────────────────────────
+// WHY before everything: applied to every response regardless of route
+// WHY manual instead of helmet: zero additional dependency
 app.use((req, res, next) => {
-  // WHY: prevents clickjacking attacks
+  // WHY X-Frame-Options: prevents clickjacking — embedding in iframes
   res.setHeader("X-Frame-Options", "DENY");
-  // WHY: prevents MIME type sniffing
+
+  // WHY X-Content-Type-Options: prevents MIME sniffing
+  //     browser won't try to guess content type — prevents certain XSS vectors
   res.setHeader("X-Content-Type-Options", "nosniff");
-  // WHY: forces HTTPS in production
+
+  // WHY HSTS: forces HTTPS only in production — prevents SSL stripping attacks
   if (process.env.NODE_ENV === "production") {
     res.setHeader("Strict-Transport-Security", "max-age=31536000");
   }
+
   next();
 });
 
-// ─── Core Middleware ──────────────────────────────────────
+// ── Step 3: CORS ──────────────────────────────────────────────
+// WHAT: Allows browser requests from frontend domain only
+// WHY allowedHeaders: without this, preflight OPTIONS request fails
+//     for any request with Authorization or X-Idempotency-Key header
+//     which breaks auth and idempotency silently
 app.use(
   cors({
     origin: [process.env.CLIENT_URL || "http://localhost:3000"],
     credentials: true,
+    // WHY: explicitly list every custom header the frontend sends
     allowedHeaders: ["Content-Type", "Authorization", "X-Idempotency-Key"],
   }),
 );
-app.use(express.json({ limit: "10kb" })); // WHY limit: prevent payload attacks
+
+// ── Step 4: Body parsing + cookies ───────────────────────────
+// WHY limit 10kb: prevents payload attacks (large JSON bodies crashing server)
+app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
-// ─── General rate limit on all routes ────────────────────
+// ── Step 5: HTTP request logger ───────────────────────────────
+// WHY: logs every request AFTER body parsed, BEFORE routes
+//      so we can see what came in if a route throws
+app.use(logRequest);
+
+// ── Step 6: General rate limit on ALL /api routes ─────────────
+// WHY: applied broadly — specific routes get stricter limiters below
 app.use("/api", generalLimiter);
 
-// ─── Routes ───────────────────────────────────────────────
-// WHY specific limiters per route group:
-//     roast = most expensive (GitHub API calls)
-//     auth  = security sensitive
+// ── Step 7: Routes with specific rate limiters ────────────────
+// WHY route-specific limiters:
+//   /roast  — most expensive (GitHub API calls per request) → strictest
+//   /auth   — security sensitive (brute-force risk) → strict
+//   /battle — expensive (2x GitHub API + AI) → handled inside battle route
+//   others  — covered by generalLimiter above
 app.use("/api/roast", roastLimiter, require("./routes/roast"));
 app.use("/api/auth", authLimiter, require("./routes/auth"));
 app.use("/api/history", require("./routes/history"));
 app.use("/api/payment", require("./routes/payment"));
 app.use("/api/battle", require("./routes/battle"));
 
-// ─── Health Check ─────────────────────────────────────────
+// ── Step 8: Health check ──────────────────────────────────────
+// WHAT: Returns server status — used by Docker HEALTHCHECK and Render
+// WHY: Without this, Render doesn't know if the container is ready
+//      and routes traffic to a container that hasn't fully started
 app.get("/health", (req, res) => {
   res.json({
-    status: "GitRoast server is alive 🔥",
+    status: "🔥 GitRoast server is alive",
     time: new Date().toISOString(),
     mongoDb:
       mongoose.connection.readyState === 1 ? "connected" : "disconnected",
@@ -65,42 +110,33 @@ app.get("/health", (req, res) => {
   });
 });
 
-// ─── 404 + Global Error Handlers ─────────────────────────
-// WHY: must come AFTER all routes — Express reads top to bottom
+// ── Step 9: 404 + global error handlers ──────────────────────
+// WHY LAST: Express reads middleware top to bottom
+//           if no route matched → falls to notFoundHandler
+//           if any route called next(err) → falls to errorHandler
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// ─── MongoDB + Server Start ───────────────────────────────
-// WHY: start server ONLY after DB connects
-//      routes that need DB won't fail on first request
+// ── Step 10: Connect DB then start server ─────────────────────
+// WHY connect BEFORE listen: routes need DB — don't accept traffic until ready
 mongoose
   .connect(process.env.MONGODB_URI, {
-    // WHY these options: prevents mongoose deprecation warnings
-    serverSelectionTimeoutMS: 5000, // WHY: fail fast if Atlas unreachable
+    // WHY: fail fast if Atlas unreachable — better 500 than hanging forever
+    serverSelectionTimeoutMS: 5000,
   })
   .then(() => {
-    console.log("✅ MongoDB Atlas connected");
+    logger.info("MongoDB", "✅ Connected to Atlas");
     app.listen(PORT, () => {
-      console.log(`🔥 GitRoast server running on port ${PORT}`);
-      console.log(`📡 Health: http://localhost:${PORT}/health`);
+      logger.info("Server", `🚀 Running on port ${PORT}`, {
+        env: process.env.NODE_ENV || "development",
+        port: PORT,
+      });
     });
   })
   .catch((err) => {
-    console.error("❌ MongoDB connection failed:", err.message);
+    logger.error("MongoDB", "❌ Connection failed — server cannot start", {
+      message: err.message,
+    });
+    // WHY exit(1): DB is critical — no point running without it
     process.exit(1);
   });
-
-// ─── Graceful shutdown ────────────────────────────────────
-// WHY: close DB connection cleanly when server stops
-//      prevents data corruption on unexpected shutdown
-process.on("SIGTERM", async () => {
-  console.log("🛑 SIGTERM received — shutting down gracefully");
-  await mongoose.connection.close();
-  process.exit(0);
-});
-
-process.on("SIGINT", async () => {
-  console.log("🛑 SIGINT received — shutting down gracefully");
-  await mongoose.connection.close();
-  process.exit(0);
-});
