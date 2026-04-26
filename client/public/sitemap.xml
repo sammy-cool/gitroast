@@ -18,14 +18,14 @@
     <!-- Battle entry page — static UI, changes rarely -->
     <url>
         <loc>https://gitroast-dev.vercel.app/battle</loc>
-        <changefreq>weekly</changefreq>
+        <changefreq>daily</changefreq>
         <priority>0.8</priority>
     </url>
 
     <!-- Pricing — changes only when plans change -->
     <url>
         <loc>https://gitroast-dev.vercel.app/pricing</loc>
-        <changefreq>monthly</changefreq>
+        <changefreq>daily</changefreq>
         <priority>0.7</priority>
     </url>
 
