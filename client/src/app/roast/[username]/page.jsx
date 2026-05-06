@@ -1,45 +1,79 @@
-// WHY no 'use client' at top: this page starts as a server component
-//     generateMetadata MUST run on server for SEO to work
-//     Interactive parts are inside child components that have 'use client'
+// ============================================================
+// GITROAST — Roast Result Page (SSR Shell)
+// ============================================================
+// WHAT: Server component that generates per-roast metadata
+//       then hands rendering to RoastPageClient.
+//
+// WHY server component:
+//   generateMetadata runs on the server — can fetch roast data
+//   and build custom OG tags per username.
+//   Client component cannot export generateMetadata.
+//
+// WHY dynamic OG image URL:
+//   Each roast gets a unique preview card showing real score/grade.
+//   When @someone shares /roast/torvalds on Twitter:
+//     → Twitter fetches /api/og?username=torvalds
+//     → Gets a 1200×630 PNG with Linus's actual score
+//     → Much more compelling than a generic GitRoast image
+//     → Higher click-through rate → more users → more roasts
+//
+// WHERE: client/src/app/roast/[username]/page.jsx
+// ============================================================
 
 import { Suspense } from 'react'
 import RoastPageClient from './RoastPageClient'
 
-// ─── SEO: generateMetadata ────────────────────────────────
-// WHY: Next.js calls this on the SERVER before rendering.
-//      Twitter/LinkedIn bots get proper OG tags for rich previews.
-//      This is WHY we chose Next.js over plain React.
+// WHY generateMetadata (not static metadata export):
+//   Static metadata is the same for every page.
+//   generateMetadata runs per-request with access to params
+//   so /roast/torvalds and /roast/sam get different titles + OG images.
 export async function generateMetadata({ params }) {
     const { username } = await params
 
+    // WHY NEXT_PUBLIC_SITE_URL:
+    //   OG image URL must be absolute — Twitter/LinkedIn need full URL
+    //   In development: http://localhost:3000
+    //   In production:  https://gitroast-dev.vercel.app
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+
+    // WHY dynamic OG image URL:
+    //   Each username gets their own preview card
+    //   /api/og?username=torvalds → Edge function renders score + roast
+    const ogImageUrl = `${siteUrl}/api/og?username=${encodeURIComponent(username)}`
+
     return {
-        title: `@${username}'s GitHub Roast 🔥 — GitRoast`,
-        description: `See how brutally @${username}'s GitHub got roasted. Public repos, commit messages, README quality — all judged.`,
+        // WHY template format: "Get @torvalds Roasted — GitRoast 🔥"
+        //   Username first = most scannable in browser tab + search results
+        title: `Get @${username} Roasted — GitRoast 🔥`,
+        description: `See @${username}'s GitHub brutally roasted. Score, grade, and a savage roast. Can you do worse?`,
+
         openGraph: {
-            title: `@${username} just got roasted on GitRoast 🔥`,
-            description: `Commit messages, abandoned repos, and coding shame — all exposed.`,
+            title: `@${username}'s GitHub got roasted 🔥`,
+            description: `See the score, grade, and roast. Then get roasted yourself.`,
             type: 'website',
-            url: `https://gitroast-dev.vercel.app/roast/${username}`,
-            // WHY: dynamic OG image per user (we build this in Phase 5)
+            url: `${siteUrl}/roast/${username}`,
+            // WHY dynamic image: each roast shows different score/grade preview
             images: [{
-                url: `https://gitroast-dev.vercel.app/api/og?username=${username}`,
+                url: ogImageUrl,
                 width: 1200,
                 height: 630,
                 alt: `@${username}'s GitRoast card`,
             }],
         },
+
         twitter: {
             card: 'summary_large_image',
-            title: `@${username} got roasted 🔥`,
-            description: 'Get your GitHub brutally roasted on GitRoast.',
-            images: [`https://gitroast-dev.vercel.app/api/og?username=${username}`],
+            // WHY: Large image card on Twitter = more visual real estate
+            //      More attention = higher click-through rate
+            title: `@${username}'s GitHub got roasted 🔥`,
+            description: `See the damage. Then get roasted yourself.`,
+            images: [ogImageUrl],
         },
     }
 }
 
-// ─── Page Component ───────────────────────────────────────
-// WHY Suspense: wraps client component — shows nothing while
-//     JS loads, then hydrates. Required for server+client split.
+// WHAT: Passes parsed username down to client component
+// WHY async: params is a Promise in Next.js 15+ — must await
 export default async function RoastPage({ params }) {
     const { username } = await params
 
