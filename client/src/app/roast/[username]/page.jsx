@@ -57,7 +57,7 @@ export async function generateMetadata({ params }) {
                 url: ogImageUrl,
                 width: 1200,
                 height: 630,
-                alt: `@${username}'s GitRoast card`,
+                alt: `@${username}'s GitRoast score card`,
             }],
         },
 
