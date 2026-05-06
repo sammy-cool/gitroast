@@ -51,12 +51,13 @@ export async function GET(request) {
     try {
       const apiBase =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiBase}/api/history/${username}?limit=1`, {
+      const res = await fetch(`${apiBase}/api/history/${username}`, {
         next: { revalidate: 3600 },
       });
       if (res.ok) {
         const json = await res.json();
-        roastData = json?.roasts?.[0] || null;
+
+        roastData = json?.history?.[0] || null;
       }
     } catch {
       // WHY silent: fallback to generic image — never 500 from fetch failure
@@ -79,6 +80,7 @@ export async function GET(request) {
         background: "#070707",
         display: "flex", // ← REQUIRED by Satori
         flexDirection: "column",
+        justifyContent: "space-between",
         position: "relative",
         overflow: "hidden",
         fontFamily: '"Courier New", monospace',
@@ -322,7 +324,6 @@ export async function GET(request) {
           padding: "14px 64px",
           borderTop: "1px solid #1C1C1C",
           background: "#080808",
-          marginTop: "24px",
         }}
       >
         <div
