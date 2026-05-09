@@ -1,258 +1,318 @@
 'use client'
 
-import { useEffect } from 'react'
+// ============================================================
+// GITROAST — Pro Modal (Upgrade Prompt)
+// ============================================================
+// WHAT: Shown when user hits a Pro-gated feature (Nuclear intensity,
+//       HD download, etc.) or clicks "Go Pro" anywhere in the app.
+//
+// WHY modal not redirect to /pricing:
+//   Modal = zero context switch — user stays on their roast
+//   Redirect = user loses roast context = lower conversion
+//   Modal shows value RIGHT where desire is highest
+//
+// WHY outcome language:
+//   "Destroyed by real AI" sells better than "AI roast enabled"
+//   Users buy transformation, not features
+//
+// WHERE: Triggered by onProClick from RoastCard, ShareButtons,
+//        intensity selector on landing page
+// ============================================================
+
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import PaymentFlow from './PaymentFlow'
 import { useAuth } from '@/context/AuthContext'
-import GitHubLoginBtn from './GitHubLoginBtn'
+import { createToast } from 'customizable-toast-notification'
 
-const FREE_FEATURES = [
-    '1 roast per day',
-    'Public repos only',
-    'Watermarked card',
-    'Basic rule-based roast',
-]
-
-const PRO_FEATURES = [
-    'Unlimited roasts',
-    'Public + Private repos',
-    'HD card — no watermark',
-    'AI-powered roast',
-    'Monthly progress comparison',
-    'Shareable link forever',
-    'Team leaderboard',
+// WHY inline plans: modal shows 2 plans max — full pricing page has all 3
+//     modal is a quick decision prompt, not a full comparison
+const MODAL_PLANS = [
+    {
+        id: 'roaster',
+        name: '🔥 Roaster',
+        tagline: 'The Real Roast',
+        displayPrice: '₹99',
+        period: '/month',
+        badge: 'MOST POPULAR',
+        highlight: true,
+        cta: 'Get Roasted for Real',
+        bullets: [
+            '🤖 Real Gemini AI — not a script',
+            '☢️ Nuclear intensity unlocked',
+            '⬇️ HD card — no watermark',
+            '♾️ Unlimited roasts',
+            '⚡ Pro badge on your card',
+        ],
+    },
+    {
+        id: 'historian',
+        name: '📈 Historian',
+        tagline: 'The Long Game',
+        displayPrice: '₹199',
+        period: '/month',
+        badge: 'FOR POWER USERS',
+        highlight: false,
+        cta: 'Track My Shame',
+        bullets: [
+            'Everything in Roaster',
+            '📧 Monthly roast report email',
+            '📉 Score trend tracking',
+            '🔥 Roast streak',
+            '🏆 Historian badge on card',
+        ],
+    },
 ]
 
 export default function ProModal({ onClose }) {
-    const { isLoggedIn } = useAuth()
+    const [selectedPlan, setSelectedPlan] = useState(null)
+    const { user } = useAuth()
     const router = useRouter()
 
-    // WHY: prevent page scrolling behind modal
-    useEffect(() => {
-        document.body.style.overflow = 'hidden'
-        return () => { document.body.style.overflow = '' }
-    }, [])
+    function handlePlanSelect(planId) {
+        if (!user) {
+            createToast({
+                type: 'info',
+                message: '🔐 Connect GitHub first to upgrade.',
+                position: 'top-center',
+                duration: 5000,
+                showCloseButton: true,
+                cta: {
+                    label: 'Connect GitHub',
+                    onClick: () => { onClose(); router.push('/') },
+                    autoClose: true,
+                },
+            })
+            return
+        }
+        setSelectedPlan(planId)
+    }
 
-    // WHY: click outside modal = close
-    function handleBackdropClick(e) {
-        if (e.target === e.currentTarget) onClose()
+    // WHY: if PaymentFlow is open, render it instead of modal
+    if (selectedPlan) {
+        return (
+            <PaymentFlow
+                planId={selectedPlan}
+                onClose={() => {
+                    setSelectedPlan(null)
+                    onClose()
+                }}
+            />
+        )
     }
 
     return (
-        <div className="modal-backdrop" onClick={handleBackdropClick}>
-            <div className="modal-box card animate-fadeUp">
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-box card" onClick={e => e.stopPropagation()}>
+
+                {/* Close button */}
+                <button className="modal-close font-mono" onClick={onClose}>✕</button>
 
                 {/* Header */}
                 <div className="modal-header">
-                    <div>
-                        <h2 className="font-display modal-title text-fire">⚡ Go Pro</h2>
-                        <p className="modal-subtitle">Unlock the full roast experience</p>
-                    </div>
-                    <button
-                        className="btn btn-ghost modal-close"
-                        onClick={onClose}
-                        aria-label="Close modal"
-                    >
-                        ✕
-                    </button>
+                    <p className="font-display modal-title text-fire">
+                        UPGRADE YOUR ROAST
+                    </p>
+                    <p className="font-mono modal-sub">
+                        Your free roast was generated by rules.<br />
+                        See what real AI says about your GitHub.
+                    </p>
                 </div>
 
-                {/* Free vs Pro comparison */}
-                <div className="modal-grid">
-
-                    {/* Free column */}
-                    <div className="modal-col">
-                        <p className="col-label font-mono">FREE</p>
-                        <ul className="feature-list">
-                            {FREE_FEATURES.map(f => (
-                                <li key={f} className="feature-item feature-bad">
-                                    <span className="feature-icon">✗</span> {f}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-
-                    {/* Pro column */}
-                    <div className="modal-col modal-col-pro">
-                        <p className="col-label font-mono col-label-pro">PRO ⚡</p>
-                        <ul className="feature-list">
-                            {PRO_FEATURES.map(f => (
-                                <li key={f} className="feature-item feature-good">
-                                    <span className="feature-icon">✓</span> {f}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-
-                {/* Private repo highlight */}
-                <div className="private-repo-note font-mono">
-                    🔐 Private repos require GitHub login — we only read, never write.
-                    Your code stays yours.
-                </div>
-
-                {/* Pricing — INR */}
-                <div className="modal-pricing">
-                    <div className="price-option">
-                        {/* WHY: ₹ symbol smaller, number bigger — standard pricing UI */}
-                        <div className="price-amount-row">
-                            <span className="font-display price-symbol" style={{ color: 'var(--fire)' }}>
-                                ₹
-                            </span>
-                            <span className="font-display price-number" style={{ color: 'var(--fire)' }}>
-                                199
-                            </span>
-                        </div>
-                        <span className="price-label font-mono">one time</span>
-                    </div>
-
-                    <div className="price-divider font-mono">or</div>
-
-                    <div className="price-option">
-                        <div className="price-amount-row">
-                            <span className="font-display price-symbol" style={{ color: 'var(--fire-warm)' }}>
-                                ₹
-                            </span>
-                            <span className="font-display price-number" style={{ color: 'var(--fire-warm)' }}>
-                                499
-                            </span>
-                        </div>
-                        <span className="price-label font-mono">/month · teams</span>
-                    </div>
-                </div>
-
-                {/* INR note for global users */}
-                <p className="inr-note font-mono">
-                    💡 Prices in INR · Your bank auto-converts to your local currency
-                </p>
-
-                {/* CTA */}
-                {
-                    isLoggedIn ? (
-                        <button
-                            className="btn btn-primary modal-cta"
-                            onClick={() => { onClose(); router.push('/pricing') }}
+                {/* Plans */}
+                <div className="modal-plans">
+                    {MODAL_PLANS.map(plan => (
+                        <div
+                            key={plan.id}
+                            className={`modal-plan ${plan.highlight ? 'modal-plan--highlight' : ''}`}
                         >
-                            ⚡ See Pricing → Unlock Pro
-                        </button>
-                    ) : (
-                        <GitHubLoginBtn variant="full" />
-                    )
-                }
+                            {/* Badge */}
+                            <div className={`modal-badge font-mono ${plan.highlight ? 'modal-badge--hot' : ''}`}>
+                                {plan.badge}
+                            </div>
 
-                <p className="modal-disclaimer font-mono">
-                    Pay with Card · UPI · NetBanking · Wallet via Razorpay
+                            {/* Plan name + price */}
+                            <div className="modal-plan-top">
+                                <div>
+                                    <p className="font-display modal-plan-name">{plan.name}</p>
+                                    <p className="font-mono modal-plan-tagline">{plan.tagline}</p>
+                                </div>
+                                <div className="modal-price-block">
+                                    <div className="modal-price-row">
+                                        <span className="font-display modal-currency">₹</span>
+                                        <span className="font-display modal-amount">
+                                            {plan.displayPrice.replace('₹', '')}
+                                        </span>
+                                    </div>
+                                    <p className="font-mono modal-period">{plan.period}</p>
+                                </div>
+                            </div>
+
+                            {/* Bullets */}
+                            <ul className="modal-bullets">
+                                {plan.bullets.map((b, i) => (
+                                    <li key={i} className="modal-bullet font-mono">
+                                        <span className="bullet-check">✓</span>
+                                        <span>{b}</span>
+                                    </li>
+                                ))}
+                            </ul>
+
+                            {/* CTA */}
+                            <button
+                                className={`btn modal-cta ${plan.highlight ? 'btn-primary' : 'btn-outline'}`}
+                                onClick={() => handlePlanSelect(plan.id)}
+                            >
+                                {plan.cta}
+                            </button>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Compare all plans link */}
+                <button
+                    className="btn btn-ghost modal-compare"
+                    onClick={() => { onClose(); router.push('/pricing') }}
+                >
+                    Compare all plans →
+                </button>
+
+                {/* Trust signals */}
+                <p className="font-mono modal-trust">
+                    🔒 Razorpay secured · UPI & cards · Cancel anytime
                 </p>
-            </div>
 
-            <style jsx>{`
-        .modal-backdrop {
-          position:        fixed;
-          inset:           0;
-          background:      rgba(0, 0, 0, 0.85);
-          display:         flex;
-          align-items:     center;
-          justify-content: center;
-          padding:         1rem;
-          z-index:         1000;
-          backdrop-filter: blur(4px);
-        }
-        .modal-box {
-          width:          100%;
-          max-width:      540px;
-          max-height:     90vh;
-          overflow-y:     auto;
-          padding:        1.75rem;
-          display:        flex;
-          flex-direction: column;
-          gap:            1.25rem;
-        }
-        .modal-header {
-          display:         flex;
-          justify-content: space-between;
-          align-items:     flex-start;
-        }
-        .modal-title    { font-size: 36px; line-height: 1; }
-        .modal-subtitle { color: var(--text-secondary); font-size: 14px; margin-top: 4px; }
-        .modal-close    { padding: 6px 10px; }
-        .modal-grid {
-          display:               grid;
-          grid-template-columns: 1fr 1fr;
-          gap:                   1rem;
-        }
-        .modal-col {
-          background:    var(--bg-elevated);
-          border:        1px solid var(--border);
-          border-radius: var(--radius-md);
-          padding:       1rem;
-        }
-        .modal-col-pro {
-          border-color: var(--fire);
-          background:   rgba(255, 69, 0, 0.04);
-        }
-        .col-label {
-          font-size:      10px;
-          letter-spacing: 2px;
-          color:          var(--text-muted);
-          margin-bottom:  10px;
-          text-transform: uppercase;
-        }
-        .col-label-pro { color: var(--fire); }
-        .feature-list  { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-        .feature-item  { font-size: 13px; display: flex; gap: 8px; line-height: 1.4; }
-        .feature-bad   { color: var(--text-secondary); }
-        .feature-good  { color: var(--text-primary); }
-        .feature-icon  { flex-shrink: 0; font-size: 12px; margin-top: 1px; }
-        .private-repo-note {
-          background:    var(--bg-elevated);
-          border:        1px solid var(--border);
-          border-left:   3px solid var(--fire-warm);
-          border-radius: var(--radius-sm);
-          padding:       10px 14px;
-          font-size:     12px;
-          color:         var(--text-secondary);
-          line-height:   1.6;
-        }
-        /* Pricing row */
-        .modal-pricing {
-          display:         flex;
-          align-items:     center;
-          justify-content: center;
-          gap:             1.5rem;
-        }
-        .price-option     { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .price-amount-row { display: flex; align-items: baseline; gap: 1px; }
-        /* WHY: symbol smaller than number — standard pricing pattern */
-        .price-symbol     { font-size: 20px; line-height: 1; }
-        .price-number     { font-size: 36px; line-height: 1; }
-        .price-label      { font-size: 11px; color: var(--text-secondary); }
-        .price-divider    { color: var(--text-muted); font-size: 13px; }
-        /* INR note */
-        .inr-note {
-          text-align:    center;
-          font-size:     11px;
-          color:         var(--text-muted);
-          background:    var(--bg-elevated);
-          border:        1px solid var(--border);
-          border-radius: var(--radius-sm);
-          padding:       6px 12px;
-        }
-        /* CTA */
-        .modal-cta {
-          width:          100%;
-          padding:        14px;
-          font-size:      15px;
-          border-radius:  var(--radius-md);
-          letter-spacing: 0.5px;
-        }
-        .modal-disclaimer {
-          text-align: center;
-          color:      var(--text-ghost);
-          font-size:  11px;
-        }
-        @media (max-width: 480px) {
-          .modal-grid { grid-template-columns: 1fr; }
-        }
-      `}</style>
+                <style jsx>{`
+          .modal-overlay {
+            position:        fixed;
+            inset:           0;
+            background:      rgba(0,0,0,0.85);
+            display:         flex;
+            align-items:     center;
+            justify-content: center;
+            z-index:         1000;
+            padding:         1rem;
+            backdrop-filter: blur(4px);
+          }
+          .modal-box {
+            width:         100%;
+            max-width:     640px;
+            padding:       2rem;
+            position:      relative;
+            display:       flex;
+            flex-direction:column;
+            gap:           1.5rem;
+            max-height:    90vh;
+            overflow-y:    auto;
+          }
+          .modal-close {
+            position:   absolute;
+            top:        1rem;
+            right:      1rem;
+            background: transparent;
+            border:     none;
+            color:      var(--text-muted);
+            cursor:     pointer;
+            font-size:  16px;
+            padding:    4px 8px;
+            transition: color 0.15s;
+          }
+          .modal-close:hover { color: var(--text-primary); }
+
+          /* Header */
+          .modal-header { text-align: center; }
+          .modal-title  { font-size: clamp(24px, 5vw, 36px); line-height: 1; }
+          .modal-sub    {
+            font-size:  13px;
+            color:      var(--text-secondary);
+            margin-top: 8px;
+            line-height:1.6;
+          }
+
+          /* Plans side by side */
+          .modal-plans {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap:     1rem;
+          }
+          .modal-plan {
+            padding:       1.25rem;
+            background:    var(--bg-elevated);
+            border:        1px solid var(--border);
+            border-radius: var(--radius-md);
+            display:       flex;
+            flex-direction:column;
+            gap:           1rem;
+            position:      relative;
+          }
+          .modal-plan--highlight {
+            border-color: var(--fire);
+            background:   rgba(255,69,0,0.04);
+          }
+
+          /* Badge */
+          .modal-badge {
+            font-size:     8px;
+            padding:       2px 8px;
+            border-radius: var(--radius-sm);
+            border:        1px solid var(--border);
+            color:         var(--text-muted);
+            letter-spacing:1.5px;
+            align-self:    flex-start;
+          }
+          .modal-badge--hot {
+            background: var(--fire-grad);
+            color:      #fff;
+            border:     none;
+          }
+
+          /* Plan top row */
+          .modal-plan-top {
+            display:         flex;
+            justify-content: space-between;
+            align-items:     flex-start;
+          }
+          .modal-plan-name    { font-size: 18px; color: var(--text-primary); line-height: 1; }
+          .modal-plan-tagline { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+          .modal-price-block  { text-align: right; }
+          .modal-price-row    { display: flex; align-items: baseline; gap: 1px; justify-content: flex-end; }
+          .modal-currency     { font-size: 14px; color: var(--fire); }
+          .modal-amount       { font-size: 28px; color: var(--fire); line-height: 1; }
+          .modal-period       { font-size: 10px; color: var(--text-muted); }
+
+          /* Bullets */
+          .modal-bullets {
+            list-style: none;
+            display:    flex;
+            flex-direction: column;
+            gap:        8px;
+            flex:       1;
+          }
+          .modal-bullet {
+            display:     flex;
+            gap:         8px;
+            font-size:   12px;
+            color:       var(--text-secondary);
+            line-height: 1.4;
+          }
+          .bullet-check { color: var(--good); flex-shrink: 0; }
+          .modal-cta    { width: 100%; padding: 11px; font-size: 13px; }
+
+          .modal-compare {
+            align-self: center;
+            font-size:  13px;
+          }
+          .modal-trust {
+            text-align: center;
+            font-size:  11px;
+            color:      var(--text-muted);
+          }
+
+          @media (max-width: 480px) {
+            .modal-plans { grid-template-columns: 1fr; }
+          }
+        `}</style>
+            </div>
         </div>
     )
 }
