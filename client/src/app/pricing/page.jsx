@@ -17,7 +17,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createToast } from 'customizable-toast-notification'
-import PaymentFlow from '@/components/PaymentFlow'
+import PaymentModal from '@/components/PaymentModal'
 import GitHubLoginBtn from '@/components/GitHubLoginBtn'
 import { useAuth } from '@/context/AuthContext'
 
@@ -307,8 +307,10 @@ export default function PricingPage() {
                 </div>
             </div>
 
+            {/* WHY PaymentModal: handles its own portal + overlay
+          renders centered on screen regardless of page scroll position */}
             {selectedPlan && (
-                <PaymentFlow
+                <PaymentModal
                     planId={selectedPlan}
                     onClose={() => setSelectedPlan(null)}
                 />
