@@ -77,11 +77,19 @@ export default function ProModal({ onClose }) {
     }
 
     if (selectedPlan) {
-        return (
-            <PaymentFlow
-                planId={selectedPlan}
-                onClose={() => { setSelectedPlan(null); onClose() }}
-            />
+        return createPortal(
+            <div
+                className="modal-overlay"
+                style={{ zIndex: 9999 }}
+            >
+                <div className="modal-box card">
+                    <PaymentFlow
+                        planId={selectedPlan}
+                        onClose={() => { setSelectedPlan(null); onClose() }}
+                    />
+                </div>
+            </div>,
+            document.body
         )
     }
 
