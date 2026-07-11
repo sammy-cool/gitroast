@@ -1,5 +1,26 @@
 'use client'
 
+// ============================================================
+// GITROAST — PaymentFlow Component
+// ============================================================
+// WHAT: Handles the complete Razorpay payment sequence.
+//       Loads Razorpay SDK → creates order → opens popup →
+//       verifies payment → unlocks Pro.
+//
+// PROPS:
+//   planId   — string: 'roaster' | 'historian'
+//   onClose  — function: called on success OR cancel
+//
+// WHY planId not planKey:
+//   Old system used planKey ('pro_one_time' etc)
+//   New system uses planId ('roaster'/'historian')
+//   Backend /api/payment/create-order now expects { planId }
+//
+// WHY no price prop:
+//   Price comes from backend with the order
+//   Frontend never dictates price — prevents tampering
+// ============================================================
+
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { createToast } from 'customizable-toast-notification'
@@ -7,18 +28,23 @@ import { createToast } from 'customizable-toast-notification'
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
 
-const PLAN_LABELS = {
-    pro_one_time: 'Pro — Lifetime',
-    pro_monthly: 'Pro — Monthly',
-    teams_monthly: 'Teams — Monthly',
+// WHY local map: display labels for each planId
+//     not fetched from server — just UI strings
+const PLAN_DISPLAY = {
+    roaster: { name: '🔥 Roaster', label: 'The Real Roast' },
+    historian: { name: '📈 Historian', label: 'The Long Game' },
 }
 
-export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
+export default function PaymentFlow({ planId, onClose }) {
     const { getToken, user } = useAuth()
     const [status, setStatus] = useState('sdk_loading')
     const [errorMsg, setErrorMsg] = useState('')
+    const [planInfo, setPlanInfo] = useState(null) // WHY: store price from server
 
-    // ── Load Razorpay checkout SDK ───────────────────────────
+    // ── Load Razorpay SDK ──────────────────────────────────────
+    // WHY load on mount not on click:
+    //   SDK takes ~1s to load — preloading avoids delay when user clicks Pay
+    //   If already loaded → skip
     useEffect(() => {
         if (window.Razorpay) { setStatus('ready'); return }
 
@@ -37,15 +63,20 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
             setStatus('error')
             setErrorMsg('Razorpay failed to load. Check your connection.')
             createToast({
-                type: 'error', message: 'Payment SDK failed to load.',
-                position: 'top-center', textColor: "snow",
-
+                type: 'error',
+                message: 'Payment SDK failed to load. Try refreshing.',
+                position: 'top-center',
+                duration: 5000,
+                showCloseButton: true,
             })
         }
         document.body.appendChild(script)
     }, [])
 
-    // ── Open Razorpay checkout ───────────────────────────────
+    // ── Create order + open Razorpay popup ────────────────────
+    // WHY server-side order creation:
+    //   Amount must be set on server — user cannot tamper with price
+    //   key_secret stays on server — never exposed to browser
     async function handlePayment() {
         setStatus('creating')
 
@@ -54,38 +85,47 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    // WHY Authorization: server needs to know which user is paying
                     Authorization: `Bearer ${getToken()}`,
                 },
-                body: JSON.stringify({ plan: planKey }),
+                // WHY planId not plan: new backend expects planId
+                body: JSON.stringify({ planId }),
             })
 
             const json = await res.json()
             if (!json.success) throw new Error(json.message)
+
+            // WHY store planInfo: show price in UI summary
+            setPlanInfo({ amount: json.amount, currency: json.currency })
 
             const options = {
                 key: json.keyId || RAZORPAY_KEY,
                 amount: json.amount,
                 currency: json.currency,
                 name: 'GitRoast 🔥',
-                description: json.description,
+                description: `${PLAN_DISPLAY[planId]?.name} — ${PLAN_DISPLAY[planId]?.label}`,
                 order_id: json.orderId,
                 prefill: {
                     email: user?.email || '',
                     name: user?.username || '',
                 },
-                notes: { plan: planKey },
+                notes: { planId },
                 theme: { color: '#FF4500' },
+
+                // WHY handler on popup close with success:
+                //   Razorpay calls this after user pays in popup
+                //   We then verify on server before unlocking Pro
                 handler: async function (response) {
                     setStatus('processing')
                     await verifyPayment(response, json.orderId)
                 },
+
                 modal: {
                     ondismiss: function () {
                         createToast({
                             type: 'warning',
                             message: 'Payment cancelled. No charge was made.',
                             position: 'top-center',
-                            textColor: "snow"
                         })
                         setStatus('ready')
                     },
@@ -96,10 +136,12 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
 
             const rzp = new window.Razorpay(options)
 
+            // WHY payment.failed listener:
+            //   Razorpay popup handles UI for failures
+            //   But we need to reset our state and inform user
             rzp.on('payment.failed', function (response) {
                 createToast({
                     type: 'error',
-                    textColor: "snow",
                     message: `Payment failed: ${response.error.description}`,
                     position: 'top-center',
                     duration: 6000,
@@ -109,18 +151,27 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
             })
 
             rzp.open()
+            setStatus('ready') // WHY: reset while popup is open
 
         } catch (err) {
             setStatus('error')
             setErrorMsg(err.message || 'Could not create payment session.')
             createToast({
-                type: 'error', message: err.message || 'Payment setup failed.',
-                position: 'top-center', textColor: "snow",
+                type: 'error',
+                message: err.message || 'Payment setup failed. Try again.',
+                position: 'top-center',
+                duration: 5000,
+                showCloseButton: true,
             })
         }
     }
 
-    // ── Verify payment on backend ────────────────────────────
+    // ── Verify payment on server ──────────────────────────────
+    // WHY verify server-side:
+    //   Razorpay sends payment details to frontend after popup
+    //   We forward to our server which verifies HMAC signature
+    //   If signature valid → server sets isPro = true in MongoDB
+    //   Without verification: anyone could fake a successful payment
     async function verifyPayment(razorpayResponse, orderId) {
         try {
             const res = await fetch(`${API_BASE}/api/payment/verify`, {
@@ -130,10 +181,11 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
                     Authorization: `Bearer ${getToken()}`,
                 },
                 body: JSON.stringify({
-                    razorpay_order_id: razorpayResponse.razorpay_order_id || orderId,
-                    razorpay_payment_id: razorpayResponse.razorpay_payment_id,
-                    razorpay_signature: razorpayResponse.razorpay_signature,
-                    plan: planKey,
+                    orderId: razorpayResponse.razorpay_order_id || orderId,
+                    paymentId: razorpayResponse.razorpay_payment_id,
+                    signature: razorpayResponse.razorpay_signature,
+                    // WHY planId: server logs which plan was purchased
+                    planId,
                 }),
             })
 
@@ -144,22 +196,21 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
 
             createToast({
                 type: 'success',
-                textColor: "snow",
-                message: '🔥 Payment confirmed! You are now Pro!',
+                message: '⚡ You are now Pro! AI roasts + Nuclear unlocked.',
                 position: 'top-center',
                 showProgressBar: true,
                 duration: 5000,
             })
 
-            setTimeout(() => onSuccess(), 2000)
+            // WHY 2s delay: let user see success screen before closing
+            setTimeout(() => onClose(), 2000)
 
         } catch (err) {
             setStatus('error')
             setErrorMsg(err.message || 'Payment verification failed.')
             createToast({
                 type: 'error',
-                textColor: "snow",
-                message: err.message || 'Verification failed. Contact support.',
+                message: err.message || 'Verification failed. Contact support with your payment ID.',
                 position: 'top-center',
                 duration: 8000,
                 showCloseButton: true,
@@ -167,14 +218,14 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
         }
     }
 
-    // ── Render: Loading states ───────────────────────────────
+    const display = PLAN_DISPLAY[planId] || { name: 'Pro', label: '' }
+
+    // ── Loading states ────────────────────────────────────────
     if (status === 'sdk_loading' || status === 'creating') {
         return (
             <div className="pf-center">
                 <p className="font-mono pf-msg">
-                    {status === 'sdk_loading'
-                        ? 'Loading payment system...'
-                        : 'Setting up your order...'}
+                    {status === 'sdk_loading' ? 'Loading payment system...' : 'Setting up your order...'}
                     <span className="animate-blink pf-cursor" />
                 </p>
                 <style jsx>{STYLES}</style>
@@ -200,7 +251,7 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
         return (
             <div className="pf-center" style={{ flexDirection: 'column', gap: '1rem', textAlign: 'center' }}>
                 <p className="font-display text-fire" style={{ fontSize: '36px' }}>
-                    🔥 YOU&apos;RE PRO!
+                    ⚡ YOU&apos;RE PRO!
                 </p>
                 <p className="font-mono" style={{ fontSize: '14px', color: 'var(--good)' }}>
                     Redirecting you now...
@@ -212,8 +263,7 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
 
     if (status === 'error') {
         return (
-            <div className="pf-center"
-                style={{ flexDirection: 'column', gap: '1rem', padding: '2rem', textAlign: 'center' }}>
+            <div className="pf-center" style={{ flexDirection: 'column', gap: '1rem', padding: '2rem', textAlign: 'center' }}>
                 <p className="font-mono" style={{ color: 'var(--bad)', fontSize: '14px' }}>
                     ❌ {errorMsg || 'Something went wrong.'}
                 </p>
@@ -224,25 +274,28 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
                     >
                         Try Again
                     </button>
-                    <button className="btn btn-ghost" onClick={onCancel}>Cancel</button>
+                    <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
                 </div>
                 <style jsx>{STYLES}</style>
             </div>
         )
     }
 
-    // ── Render: Ready — plan summary + pay button ────────────
+    // ── Ready state — main payment UI ─────────────────────────
     return (
         <div className="payment-flow">
 
-            {/* Plan + price summary */}
+            {/* Plan summary */}
             <div className="pf-summary">
                 <div>
-                    <p className="pf-plan-name font-mono">{PLAN_LABELS[planKey]}</p>
-                    <p className="pf-plan-sub font-mono">Secure payment via Razorpay</p>
+                    <p className="pf-plan-name font-mono">{display.name}</p>
+                    <p className="pf-plan-sub font-mono">{display.label} · Secure payment via Razorpay</p>
                 </div>
-                {/* WHY: show full price string as-is eg "₹199" */}
-                <div className="pf-price font-display">{price}</div>
+                {planInfo && (
+                    <div className="pf-price font-display">
+                        ₹{planInfo.amount / 100}
+                    </div>
+                )}
             </div>
 
             {/* Payment methods */}
@@ -253,17 +306,19 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
                     <span className="pf-method">📱 UPI</span>
                     <span className="pf-method">🏦 NetBanking</span>
                     <span className="pf-method">👛 Wallet</span>
-                    <span className="pf-method">🌍 International Cards</span>
                 </div>
             </div>
 
             {/* What unlocks */}
             <div className="pf-unlocks font-mono">
                 <p className="pf-unlocks-title">After payment you unlock:</p>
-                <p className="pf-unlock-item">✓ Private repo access</p>
-                <p className="pf-unlock-item">✓ AI-powered roasts (Gemini)</p>
+                <p className="pf-unlock-item">✓ Real Gemini AI roasts — not scripts</p>
+                <p className="pf-unlock-item">✓ ☢️ Nuclear intensity — zero mercy</p>
                 <p className="pf-unlock-item">✓ HD card — no watermark</p>
-                <p className="pf-unlock-item">✓ Unlimited roasts</p>
+                <p className="pf-unlock-item">✓ Unlimited roasts per day</p>
+                {planId === 'historian' && (
+                    <p className="pf-unlock-item">✓ Monthly roast report email</p>
+                )}
             </div>
 
             {/* Pay button */}
@@ -271,20 +326,14 @@ export default function PaymentFlow({ planKey, price, onSuccess, onCancel }) {
                 className="btn btn-primary pf-pay-btn"
                 onClick={handlePayment}
             >
-                🔥 Pay {price} with Razorpay
+                🔥 Pay with Razorpay
             </button>
 
-            {/* INR note for global users */}
-            <p className="pf-inr-note font-mono">
-                💡 Prices in INR. Your bank auto-converts to your local currency.
-            </p>
-
-            {/* Security */}
             <p className="pf-secure font-mono">
-                🔒 Secured by Razorpay · PCI DSS compliant · Works globally
+                🔒 Secured by Razorpay · PCI DSS compliant
             </p>
 
-            <button className="btn btn-ghost pf-cancel" onClick={onCancel}>
+            <button className="btn btn-ghost pf-cancel" onClick={onClose}>
                 ← Cancel
             </button>
 
@@ -348,11 +397,7 @@ const STYLES = `
     color:          var(--text-muted);
     margin-bottom:  8px;
   }
-  .pf-methods-list {
-    display:   flex;
-    flex-wrap: wrap;
-    gap:       8px;
-  }
+  .pf-methods-list { display: flex; flex-wrap: wrap; gap: 8px; }
   .pf-method {
     font-size:     12px;
     color:         var(--text-secondary);
@@ -382,16 +427,6 @@ const STYLES = `
     font-size:      16px;
     letter-spacing: 0.5px;
     border-radius:  var(--radius-md);
-  }
-  .pf-inr-note {
-    text-align:  center;
-    font-size:   11px;
-    color:       var(--text-secondary);
-    background:  var(--bg-elevated);
-    border:      1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding:     8px 12px;
-    line-height: 1.6;
   }
   .pf-secure { text-align: center; font-size: 11px; color: var(--text-muted); }
   .pf-cancel { align-self: center; }
