@@ -1,18 +1,22 @@
 // ============================================================
 // GITROAST — Payment Routes
 // ============================================================
-// WHAT: Handles Razorpay order creation and payment verification.
-//       Two endpoints:
-//         POST /api/payment/create-order → creates Razorpay order
-//         POST /api/payment/verify       → verifies + unlocks Pro
-//         GET  /api/payment/plans        → returns plan definitions
-//         GET  /api/payment/history      → user payment history
+// WHAT: Three endpoints for the payment lifecycle:
+//   GET  /api/payment/plans        → returns plan list to frontend
+//   POST /api/payment/create-order → creates Razorpay order
+//   POST /api/payment/verify       → verifies + unlocks Pro
 //
-// WHY server-side order creation:
-//   Razorpay key_secret must NEVER be in the browser
-//   Order amount is set server-side — user cannot tamper with price
+// WHY GET /plans:
+//   Frontend reads plan data from backend — single source of truth
+//   If price changes in paymentService.js → frontend auto-updates
+//   No hardcoded prices in React components
 //
-// WHERE: Registered in index.js as app.use('/api/payment', require('./routes/payment'))
+// WHY POST for create-order (not GET):
+//   Creates a resource on Razorpay servers — POST is correct
+//   Also: GET requests should not have side effects (REST principle)
+//
+// WHERE: Registered in index.js as:
+//   app.use('/api/payment', require('./routes/payment'))
 // ============================================================
 
 const express = require("express");
@@ -24,44 +28,49 @@ const {
   createOrder,
   verifyPayment,
 } = require("../services/paymentService");
-const { logger } = require("../utils/logger");
 
 // ── GET /api/payment/plans ────────────────────────────────────
-// WHAT: Returns plan definitions to frontend
-// WHY: Single source of truth — prices defined in paymentService.js
-//      Frontend reads from here, not hardcoded
-// WHY public (no auth): pricing page is visible to everyone
+// WHAT: Returns all available plans to frontend
+// WHY public (no auth): pricing page visible to everyone
+// WHY strip sensitive fields: amount in paise confuses frontend
+//     only send display-ready data
 router.get("/plans", (req, res) => {
-  // WHY: strip sensitive fields before sending to frontend
-  //      amount in paise is confusing — send displayPrice only
   const publicPlans = Object.values(PLANS).map((plan) => ({
     id: plan.id,
     name: plan.name,
-    tagline: plan.tagline,
-    displayPrice: plan.displayPrice,
-    period: plan.period,
-    badge: plan.badge,
-    highlight: plan.highlight,
-    comingSoon: plan.comingSoon || false,
-    features: plan.features,
-    notIncluded: plan.notIncluded,
-    cta: plan.cta,
-    ctaSubtext: plan.ctaSubtext,
+    amount: plan.amount,
+    currency: plan.currency,
   }));
   res.json({ success: true, plans: publicPlans });
 });
 
 // ── POST /api/payment/create-order ───────────────────────────
-// WHAT: Creates a Razorpay order — returns orderId + amount to frontend
-// WHY requireAuth: only logged-in users can buy Pro
-//     anonymous users have no account to upgrade
+// WHAT: Creates a Razorpay order and returns orderId to frontend
+//
+// WHY requireAuth:
+//   Only logged-in users can buy Pro
+//   Anonymous users have no account to upgrade
+//
+// WHY planId from body (not URL param):
+//   POST body is not logged by proxies/CDNs
+//   URL params are logged — plan info shouldn't be in logs
 router.post("/create-order", requireAuth, async (req, res) => {
   const { planId } = req.body;
 
   if (!planId) {
     return res.status(400).json({
       error: "MISSING_PLAN",
-      message: "Plan ID is required.",
+      message: "planId is required.",
+    });
+  }
+
+  // WHY check PLANS here too (not just in service):
+  //   Fast fail before hitting Razorpay API
+  //   Gives clearer error message to frontend
+  if (!PLANS[planId]) {
+    return res.status(400).json({
+      error: "INVALID_PLAN",
+      message: `Unknown plan: ${planId}. Valid plans: ${Object.keys(PLANS).join(", ")}`,
     });
   }
 
@@ -75,13 +84,14 @@ router.post("/create-order", requireAuth, async (req, res) => {
       currency: order.currency,
       planName: plan.name,
       planId: plan.id,
-      // WHY send key_id to frontend: Razorpay SDK needs it to open popup
-      //     key_id is PUBLIC — safe to send. key_secret is NEVER sent.
+      // WHY send keyId to frontend:
+      //   Razorpay SDK needs key_id to open checkout popup
+      //   key_id is PUBLIC — safe to expose
+      //   key_SECRET is NEVER sent to frontend
       keyId: process.env.RAZORPAY_KEY_ID,
     });
   } catch (err) {
-    logger.error("Payment", "Order creation failed", { message: err.message });
-    return res.status(500).json({
+    return res.status(err.statusCode || 500).json({
       error: "ORDER_FAILED",
       message: err.message || "Could not create payment order.",
     });
@@ -89,31 +99,32 @@ router.post("/create-order", requireAuth, async (req, res) => {
 });
 
 // ── POST /api/payment/verify ──────────────────────────────────
-// WHAT: Verifies Razorpay payment signature and upgrades user to Pro
+// WHAT: Verifies payment signature → sets isPro = true on user
 //
-// WHY HMAC verification before any DB write:
-//   Without verification, anyone could POST fake payment data
-//   and get Pro for free. Signature uses key_secret — only Razorpay
-//   and our server know it. Match = payment is real.
+// WHY verify before ANY DB write:
+//   Signature check uses HMAC + key_secret
+//   If signature invalid → reject immediately, no DB changes
+//   Prevents free Pro by posting fake payment data
+//
+// WHY duplicate payment check:
+//   User might retry if network dropped after Razorpay succeeded
+//   Without check: second verify = second Payment doc created
+//   With check: idempotent — same payment processed once only
 router.post("/verify", requireAuth, async (req, res) => {
   const { orderId, paymentId, signature, planId } = req.body;
 
   if (!orderId || !paymentId || !signature || !planId) {
     return res.status(400).json({
       error: "MISSING_FIELDS",
-      message: "orderId, paymentId, signature and planId are required.",
+      message: "orderId, paymentId, signature and planId are all required.",
     });
   }
 
-  // WHY: verify first, DB write second
-  //      if verification fails → reject immediately → no DB changes
+  // WHY verify first, DB write second:
+  //   If verify fails → reject immediately → no DB changes
   const isValid = verifyPayment({ orderId, paymentId, signature });
 
   if (!isValid) {
-    logger.warn("Payment", "Signature verification FAILED", {
-      orderId,
-      userId: req.user._id,
-    });
     return res.status(400).json({
       error: "INVALID_SIGNATURE",
       message:
@@ -122,21 +133,22 @@ router.post("/verify", requireAuth, async (req, res) => {
   }
 
   try {
-    // WHY check duplicate: user might retry verify if they had a network error
-    //     without this check: second verify call would create a duplicate Payment doc
+    // WHY check duplicate before writing:
+    //   Same paymentId = same transaction
+    //   Return 200 silently — not an error, just already processed
     const existing = await Payment.findOne({ razorpayPaymentId: paymentId });
     if (existing) {
-      logger.info("Payment", "Duplicate verify request — already processed", {
-        paymentId,
+      return res.status(200).json({
+        success: true,
+        message: "Already processed.",
+        isPro: true,
       });
-      return res
-        .status(200)
-        .json({ success: true, message: "Already processed." });
     }
 
     // WHY save Payment before updating User:
-    //     if User.save() fails, we still have a record of the payment
-    //     makes it recoverable manually
+    //   If User.save() fails — Payment doc still exists
+    //   Can manually recover Pro status from payment record
+    //   Audit trail for every transaction
     await Payment.create({
       userId: req.user._id,
       razorpayOrderId: orderId,
@@ -146,16 +158,8 @@ router.post("/verify", requireAuth, async (req, res) => {
       status: "captured",
     });
 
-    // WHY returnDocument 'after': returns updated doc with isPro: true
-    //     needed to confirm the update actually happened
     req.user.isPro = true;
     await req.user.save();
-
-    logger.info("Payment", "✅ Pro unlocked", {
-      userId: req.user._id,
-      planId,
-      paymentId,
-    });
 
     return res.status(200).json({
       success: true,
@@ -163,33 +167,10 @@ router.post("/verify", requireAuth, async (req, res) => {
       isPro: true,
     });
   } catch (err) {
-    logger.error("Payment", "Verify DB write failed", {
-      message: err.message,
-      orderId,
-      paymentId,
-    });
     return res.status(500).json({
       error: "DB_ERROR",
       message:
-        "Payment verified but account upgrade failed. Contact support with payment ID.",
-    });
-  }
-});
-
-// ── GET /api/payment/history ──────────────────────────────────
-// WHAT: Returns user's payment history
-// WHY: Shows user their past payments — builds trust + useful for disputes
-router.get("/history", requireAuth, async (req, res) => {
-  try {
-    const payments = await Payment.find({ userId: req.user._id })
-      .sort({ createdAt: -1 })
-      .limit(10);
-
-    return res.status(200).json({ success: true, payments });
-  } catch (err) {
-    return res.status(500).json({
-      error: "FETCH_FAILED",
-      message: "Could not fetch payment history.",
+        "Payment verified but account upgrade failed. Contact support with your payment ID.",
     });
   }
 });
