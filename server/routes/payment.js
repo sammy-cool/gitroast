@@ -55,6 +55,7 @@ router.get("/plans", (req, res) => {
 //   POST body is not logged by proxies/CDNs
 //   URL params are logged — plan info shouldn't be in logs
 router.post("/create-order", requireAuth, async (req, res) => {
+  console.log("[Payment] create-order body:", req.body);
   const { planId } = req.body;
 
   if (!planId) {

@@ -55,7 +55,7 @@ const PLANS = {
 // WHY receipt: links Razorpay dashboard entries to your DB records
 async function createOrder(planId, userId) {
   const plan = PLANS[planId];
-
+  console.log(plan, planId, userId, "createOrderfn");
   // WHY explicit check: unknown planId = reject before hitting Razorpay
   //     prevents accidental orders for non-existent plans
   if (!plan) {
