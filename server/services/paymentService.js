@@ -56,6 +56,8 @@ const PLANS = {
 async function createOrder(planId, userId) {
   const plan = PLANS[planId];
   console.log(plan, planId, userId, "createOrderfn");
+  //   [Payment] create-order body: { planId: 'roaster' }
+  // { id: 'roaster', name: '🔥 Roaster', amount: 9900, currency: 'INR' } roaster new ObjectId('6a55d0368fc2be6d14c219b4') createOrderfn
   // WHY explicit check: unknown planId = reject before hitting Razorpay
   //     prevents accidental orders for non-existent plans
   if (!plan) {
@@ -64,16 +66,25 @@ async function createOrder(planId, userId) {
     throw err;
   }
 
-  const order = await getRazorpay().orders.create({
-    amount: plan.amount,
-    currency: plan.currency,
-    // WHY receipt format: human-readable in Razorpay dashboard
-    receipt: `gr_${planId}_${userId}_${Date.now()}`,
-    notes: {
-      planId,
-      userId: userId?.toString(),
-    },
-  });
+  let order;
+  try {
+    order = await getRazorpay().orders.create({
+      amount: plan.amount,
+      currency: plan.currency,
+      receipt: `gr_${planId}_${userId}_${Date.now()}`,
+      notes: {
+        planId,
+        userId: userId?.toString(),
+      },
+    });
+  } catch (razorErr) {
+    // WHY: log exact Razorpay error — not the generic message
+    console.error(
+      "[Razorpay] orders.create failed:",
+      razorErr?.error || razorErr?.message || razorErr,
+    );
+    throw razorErr;
+  }
 
   return { order, plan };
 }
