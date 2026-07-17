@@ -39,21 +39,21 @@ const PORT = process.env.PORT || 5000;
 // ── Step 2: Security headers ──────────────────────────────────
 // WHY before everything: applied to every response regardless of route
 // WHY manual instead of helmet: zero additional dependency
-app.use((req, res, next) => {
-  // WHY X-Frame-Options: prevents clickjacking — embedding in iframes
-  res.setHeader("X-Frame-Options", "DENY");
+// app.use((req, res, next) => {
+//   // WHY X-Frame-Options: prevents clickjacking — embedding in iframes
+//   res.setHeader("X-Frame-Options", "DENY");
 
-  // WHY X-Content-Type-Options: prevents MIME sniffing
-  //     browser won't try to guess content type — prevents certain XSS vectors
-  res.setHeader("X-Content-Type-Options", "nosniff");
+//   // WHY X-Content-Type-Options: prevents MIME sniffing
+//   //     browser won't try to guess content type — prevents certain XSS vectors
+//   res.setHeader("X-Content-Type-Options", "nosniff");
 
-  // WHY HSTS: forces HTTPS only in production — prevents SSL stripping attacks
-  if (process.env.NODE_ENV === "production") {
-    res.setHeader("Strict-Transport-Security", "max-age=31536000");
-  }
+//   // WHY HSTS: forces HTTPS only in production — prevents SSL stripping attacks
+//   if (process.env.NODE_ENV === "production") {
+//     res.setHeader("Strict-Transport-Security", "max-age=31536000");
+//   }
 
-  next();
-});
+//   next();
+// });
 
 // ── Step 3: CORS ──────────────────────────────────────────────
 // WHAT: Allows browser requests from frontend domain only

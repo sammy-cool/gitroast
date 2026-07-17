@@ -31,8 +31,8 @@ const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
 // WHY local map: display labels for each planId
 //     not fetched from server — just UI strings
 const PLAN_DISPLAY = {
-    roaster: { name: '🔥 Roaster', label: 'The Real Roast' },
-    historian: { name: '📈 Historian', label: 'The Long Game' },
+    roaster: { name: 'Roaster', label: 'The Real Roast' },
+    historian: { name: 'Historian', label: 'The Long Game' },
 }
 
 export default function PaymentFlow({ planId, onClose }) {
