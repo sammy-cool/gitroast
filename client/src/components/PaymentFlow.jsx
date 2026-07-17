@@ -103,7 +103,9 @@ export default function PaymentFlow({ planId, onClose }) {
                 amount: json.amount,
                 currency: json.currency,
                 name: 'GitRoast 🔥',
-                description: `${PLAN_DISPLAY[planId]?.name} — ${PLAN_DISPLAY[planId]?.label}`,
+                // WHY hyphen not em dash: Razorpay description only accepts ASCII chars
+                // em dash (—) is Unicode \u2014 → Razorpay rejects it with BAD_REQUEST_ERROR
+                description: `${PLAN_DISPLAY[planId]?.name} - ${PLAN_DISPLAY[planId]?.label}`,
                 order_id: json.orderId,
                 prefill: {
                     email: user?.email || '',
