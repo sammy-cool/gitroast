@@ -71,7 +71,7 @@ async function createOrder(planId, userId) {
     order = await getRazorpay().orders.create({
       amount: plan.amount,
       currency: plan.currency,
-      receipt: `gr_${planId}_${userId}_${Date.now()}`,
+      receipt: `gr_${planId}_${userId.toString().slice(-8)}_${Date.now().toString().slice(-8)}`,
       notes: {
         planId,
         userId: userId?.toString(),
