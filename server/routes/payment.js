@@ -163,6 +163,7 @@ router.post("/verify", requireAuth, async (req, res) => {
     }
 
     req.user.isPro = true;
+    req.user.proSince = new Date();
     await req.user.save();
 
     return res.status(200).json({
