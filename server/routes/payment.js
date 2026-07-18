@@ -134,30 +134,33 @@ router.post("/verify", requireAuth, async (req, res) => {
   }
 
   try {
-    // WHY check duplicate before writing:
-    //   Same paymentId = same transaction
-    //   Return 200 silently — not an error, just already processed
     const existing = await Payment.findOne({ razorpayPaymentId: paymentId });
     if (existing) {
-      return res.status(200).json({
-        success: true,
-        message: "Already processed.",
-        isPro: true,
-      });
+      return res
+        .status(200)
+        .json({ success: true, message: "Already processed.", isPro: true });
     }
 
-    // WHY save Payment before updating User:
-    //   If User.save() fails — Payment doc still exists
-    //   Can manually recover Pro status from payment record
-    //   Audit trail for every transaction
-    await Payment.create({
-      userId: req.user._id,
-      razorpayOrderId: orderId,
-      razorpayPaymentId: paymentId,
-      planId,
-      amount: PLANS[planId]?.amount || 0,
-      status: "captured",
-    });
+    // WHY separate try/catch for Payment.create:
+    //   Payment logging failure should NOT block Pro unlock
+    //   User already paid — they must get access regardless
+    try {
+      await Payment.create({
+        userId: req.user._id,
+        razorpayOrderId: orderId,
+        razorpayPaymentId: paymentId,
+        planId,
+        amount: PLANS[planId]?.amount || 0,
+        status: "captured",
+      });
+    } catch (paymentErr) {
+      // WHY: log but don't throw — Pro unlock is more important
+      console.error(
+        "[Payment] Payment.create failed:",
+        paymentErr.message,
+        paymentErr,
+      );
+    }
 
     req.user.isPro = true;
     await req.user.save();
@@ -168,6 +171,7 @@ router.post("/verify", requireAuth, async (req, res) => {
       isPro: true,
     });
   } catch (err) {
+    console.error("[Payment] verify DB error:", err.message, err);
     return res.status(500).json({
       error: "DB_ERROR",
       message:

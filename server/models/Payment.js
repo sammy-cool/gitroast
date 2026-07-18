@@ -1,76 +1,99 @@
-const mongoose = require('mongoose')
+// ============================================================
+// GITROAST — Payment Model
+// ============================================================
+// WHAT: Stores every payment transaction permanently.
+//       Audit trail for support, analytics, and Pro verification.
+//
+// WHY keep payment records:
+//   If User.isPro accidentally reset → can restore from Payment docs
+//   Dispute resolution — proof of payment with Razorpay IDs
+//   Revenue analytics — how much earned, which plans popular
+//
+// FIELD NAMING CONVENTION:
+//   razorpay prefix = data that came from Razorpay
+//   camelCase throughout — matches JavaScript conventions
+// ============================================================
 
-// WHY: every payment ever made is stored here
-//      powers payment history, Pro verification, analytics
+const mongoose = require("mongoose");
+
 const paymentSchema = new mongoose.Schema(
-    {
-        // ── Who paid ──────────────────────────────────────────
-        userId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User',
-            required: true,
-            index: true,
-        },
-
-        // ── What they bought ──────────────────────────────────
-        plan: {
-            type: String,
-            required: true,
-            enum: ['pro_one_time', 'pro_monthly', 'teams_monthly'],
-        },
-
-        // ── Payment amounts ───────────────────────────────────
-        amountINR: {
-            type: Number,
-            required: true,
-        },
-
-        // ── PayPal specific ───────────────────────────────────
-        // WHY: PayPal order ID — our reference for every transaction
-        razorPayOrderId: {
-            type: String,
-            index: true,
-        },
-
-        // WHY: payer's PayPal email — for receipts + support
-        payerEmail: {
-            type: String,
-            default: null,
-        },
-
-        // ── Status ────────────────────────────────────────────
-        // pending   → order created, user hasn't paid yet
-        // confirmed → PayPal captured payment successfully
-        // failed    → capture failed
-        // refunded  → payment refunded
-        status: {
-            type: String,
-            enum: ['pending', 'confirmed', 'failed', 'refunded'],
-            default: 'pending',
-            index: true,
-        },
-
-        // ── Timestamps ────────────────────────────────────────
-        confirmedAt: {
-            type: Date,
-            default: null,
-        },
-
-        // WHY: for monthly plans — when subscription expires
-        subscriptionEndsAt: {
-            type: Date,
-            default: null,
-        },
+  {
+    // ── Who paid ──────────────────────────────────────────────
+    // WHY index: most queries filter by userId
+    //     "show all payments for this user" is the most common query
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
     },
-    {
-        // WHY: auto-adds createdAt + updatedAt to every document
-        timestamps: true,
-    }
-)
 
-// ─── Compound index ───────────────────────────────────────
-// WHY: fastest query = all payments for one user, newest first
-roastSchema = paymentSchema
-paymentSchema.index({ userId: 1, createdAt: -1 })
+    // ── What plan they bought ─────────────────────────────────
+    // WHY planId not plan:
+    //   Old field was 'plan' with PayPal-era enum values
+    //   New system uses planId: 'roaster' | 'historian'
+    //   Renamed for clarity + matches frontend/backend naming
+    planId: {
+      type: String,
+      required: true,
+      enum: ["roaster", "historian"],
+    },
 
-module.exports = mongoose.model('Payment', paymentSchema)
+    // ── Amount paid ───────────────────────────────────────────
+    // WHY paise: Razorpay stores amounts in paise (₹1 = 100 paise)
+    //     storing same unit = no conversion errors
+    //     ₹99 = 9900 paise, ₹199 = 19900 paise
+    amount: {
+      type: Number,
+      required: true,
+    },
+
+    // ── Razorpay identifiers ──────────────────────────────────
+    // WHY store both orderId and paymentId:
+    //   orderId   = created by us before payment (Razorpay order)
+    //   paymentId = created by Razorpay after user pays
+    //   Both needed for disputes + duplicate payment checks
+    razorpayOrderId: {
+      type: String,
+      index: true,
+    },
+
+    // WHY unique + sparse:
+    //   unique: one payment ID can only exist once — no duplicates
+    //   sparse: allows null values (index only on non-null docs)
+    //   This is how we check for duplicate verify calls
+    razorpayPaymentId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+
+    // ── Payment status ────────────────────────────────────────
+    // WHY these specific statuses:
+    //   pending   → order created, user hasn't paid yet
+    //   captured  → Razorpay confirmed payment received ✅
+    //   failed    → user's payment method declined
+    //   refunded  → we issued a refund
+    status: {
+      type: String,
+      enum: ["pending", "captured", "failed", "refunded"],
+      default: "pending",
+      index: true,
+    },
+  },
+  {
+    // WHY timestamps:
+    //   createdAt = when payment was initiated
+    //   updatedAt = when status last changed
+    //   Both useful for support queries and analytics
+    timestamps: true,
+  },
+);
+
+// ── Compound index ─────────────────────────────────────────
+// WHY: most common query = all payments for one user, newest first
+//      compound index serves this in O(log n)
+paymentSchema.index({ userId: 1, createdAt: -1 });
+
+module.exports = mongoose.model("Payment", paymentSchema);
