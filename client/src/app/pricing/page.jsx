@@ -3,13 +3,19 @@
 // ============================================================
 // GITROAST — Pricing Page
 // ============================================================
-// WHAT: Displays all 3 plans with outcome-focused copy.
-//       Fully responsive across mobile, tablet, desktop.
+// WHAT: Displays all 3 plans using PricingCard component.
+//       Fetches plan data from backend — single source of truth.
 //
-// RESPONSIVE STRATEGY:
-//   Mobile  (<480px): 1 column, stacked layout
-//   Tablet  (480-768px): 2 col plans + Squad below
-//   Desktop (>768px): 3 col plans side by side
+// WHY fetch from backend (GET /api/payment/plans):
+//   If price changes in paymentService.js → page auto-updates
+//   No need to update frontend hardcoded values separately
+//   Single source of truth = no price mismatch bugs
+//
+// WHY PricingCard component (not inline card JSX):
+//   DRY principle — card design in one place
+//   Pricing page = layout + logic only
+//   PricingCard = display only
+//   Change card design once → all plans update
 //
 // WHERE: client/src/app/pricing/page.jsx
 // ============================================================
@@ -18,16 +24,24 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createToast } from 'customizable-toast-notification'
 import PaymentModal from '@/components/PaymentModal'
+import PricingCard from '@/components/PricingCard'
 import GitHubLoginBtn from '@/components/GitHubLoginBtn'
 import { useAuth } from '@/context/AuthContext'
 
-const PLANS = [
-    {
-        id: 'roaster',
-        name: '🔥 Roaster',
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+
+// WHY frontend PLANS config separate from backend:
+//   Backend PLANS has: id, name, amount, currency (payment data)
+//   Frontend needs: features, badge, highlight, cta, comingSoon (display data)
+//   Merge both → complete plan object passed to PricingCard
+//
+// WHY not fetch features from backend:
+//   Features are marketing copy — not business logic
+//   Changing feature bullet = frontend deploy only (fast)
+//   Changing price = backend deploy + env var (intentionally harder)
+const PLANS_DISPLAY = {
+    roaster: {
         tagline: 'The Real Roast',
-        displayPrice: '₹99',
-        period: '/month',
         badge: 'MOST POPULAR',
         highlight: true,
         comingSoon: false,
@@ -43,12 +57,8 @@ const PLANS = [
             { text: 'Full score history + charts', hot: false },
         ],
     },
-    {
-        id: 'historian',
-        name: '📈 Historian',
+    historian: {
         tagline: 'The Long Game',
-        displayPrice: '₹199',
-        period: '/month',
         badge: 'POWER USERS',
         highlight: false,
         comingSoon: false,
@@ -64,17 +74,14 @@ const PLANS = [
             { text: 'Deep analytics — 6 month history', hot: false },
         ],
     },
-    {
-        id: 'squad',
-        name: '⚔️ Squad',
+    squad: {
         tagline: 'The Bloodbath',
-        displayPrice: 'Coming Soon',
-        period: '',
         badge: 'COMING SOON',
         highlight: false,
         comingSoon: true,
         cta: 'Notify Me When Live',
         ctaSubtext: 'Be first when we launch',
+        displayPrice: 'Coming Soon',
         features: [
             { text: 'Roast your entire engineering team', hot: true },
             { text: 'Private team leaderboard', hot: false },
@@ -84,7 +91,7 @@ const PLANS = [
             { text: 'Weekly team roast digest email', hot: false },
         ],
     },
-]
+}
 
 const FAQ = [
     {
@@ -100,13 +107,14 @@ const FAQ = [
         a: "UPI, credit/debit cards, netbanking, and wallets. All via Razorpay — India's most trusted payment gateway.",
     },
     {
-        q: 'Roaster vs Historian — what\'s different?',
+        q: "Roaster vs Historian — what's different?",
         a: 'Roaster gets you the full AI roast experience. Historian adds monthly automated reports — score trends, improvement tracking, roast streak. For developers who track everything.',
     },
 ]
 
 export default function PricingPage() {
     const [selectedPlan, setSelectedPlan] = useState(null)
+    const [plans, setPlans] = useState([])
     const [plansLoading, setPlansLoading] = useState(true)
     const [waitlistEmail, setWaitlistEmail] = useState('')
     const [waitlistDone, setWaitlistDone] = useState(false)
@@ -114,12 +122,59 @@ export default function PricingPage() {
     const router = useRouter()
 
     useEffect(() => {
-        const t = setTimeout(() => setPlansLoading(false), 600)
-        return () => clearTimeout(t)
+        // WHY fetch from backend:
+        //   Price (amount) is the source of truth on server
+        //   Merge server payment data with frontend display config
+        async function loadPlans() {
+            try {
+                const res = await fetch(`${API_BASE}/api/payment/plans`)
+                const json = await res.json()
+
+                if (json.success && json.plans) {
+                    // WHY merge: server has price, frontend has features/display
+                    const merged = json.plans.map(serverPlan => ({
+                        ...serverPlan,
+                        ...(PLANS_DISPLAY[serverPlan.id] || {}),
+                        // WHY format displayPrice from amount:
+                        //   Server sends amount in paise (9900)
+                        //   Convert: 9900 / 100 = ₹99
+                        displayPrice: PLANS_DISPLAY[serverPlan.id]?.comingSoon
+                            ? 'Coming Soon'
+                            : `₹${serverPlan.amount / 100}`,
+                    }))
+
+                    // WHY add Squad manually:
+                    //   Squad is coming soon — not in backend PLANS
+                    //   Frontend defines it as a placeholder
+                    const hasSquad = merged.find(p => p.id === 'squad')
+                    if (!hasSquad) {
+                        merged.push({ id: 'squad', ...PLANS_DISPLAY.squad })
+                    }
+
+                    setPlans(merged)
+                }
+            } catch (err) {
+                // WHY fallback to display config only:
+                //   If backend unreachable — still show pricing page
+                //   User sees plans without price → better than blank page
+                console.error('[Pricing] Failed to load plans:', err.message)
+                const fallback = Object.entries(PLANS_DISPLAY).map(([id, display]) => ({
+                    id,
+                    name: id === 'roaster' ? '🔥 Roaster' : id === 'historian' ? '📈 Historian' : '⚔️ Squad',
+                    ...display,
+                }))
+                setPlans(fallback)
+            } finally {
+                setPlansLoading(false)
+            }
+        }
+
+        loadPlans()
     }, [])
 
     function handleSelectPlan(planId) {
-        const plan = PLANS.find(p => p.id === planId)
+        const plan = plans.find(p => p.id === planId)
+
         if (plan?.comingSoon) {
             document.getElementById('squad-waitlist')?.scrollIntoView({ behavior: 'smooth' })
             return
@@ -189,75 +244,22 @@ export default function PricingPage() {
                 </div>
             </div>
 
-            {/* Plans */}
+            {/* Plans grid — uses PricingCard component */}
             {plansLoading ? (
                 <div className="plans-grid">
                     {[1, 2, 3].map(i => <div key={i} className="plan-skeleton" />)}
                 </div>
             ) : (
                 <div className="plans-grid">
-                    {PLANS.map(plan => (
-                        <div
+                    {plans.map(plan => (
+                        // WHY PricingCard not inline JSX:
+                        //   DRY — card design in one place
+                        //   This page = layout + logic only
+                        <PricingCard
                             key={plan.id}
-                            className={`plan-card card ${plan.highlight ? 'plan-card--highlight' : ''} ${plan.comingSoon ? 'plan-card--soon' : ''}`}
-                        >
-                            {/* Badge */}
-                            <div className={`plan-badge font-mono ${plan.highlight ? 'plan-badge--hot' :
-                                plan.comingSoon ? 'plan-badge--soon' :
-                                    'plan-badge--default'
-                                }`}>
-                                {plan.badge}
-                            </div>
-
-                            {/* Header */}
-                            <div className="plan-header">
-                                <div className="plan-info">
-                                    <p className="font-display plan-name">{plan.name}</p>
-                                    <p className="font-mono plan-tagline">{plan.tagline}</p>
-                                </div>
-                                <div className="plan-price-block">
-                                    {plan.comingSoon ? (
-                                        <p className="plan-soon-emoji">🔜</p>
-                                    ) : (
-                                        <>
-                                            <div className="plan-price-row">
-                                                <span className="font-display plan-currency">₹</span>
-                                                <span className="font-display plan-amount">
-                                                    {plan.displayPrice.replace('₹', '')}
-                                                </span>
-                                            </div>
-                                            <p className="font-mono plan-period">{plan.period}</p>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Features */}
-                            <ul className="plan-features">
-                                {plan.features.map((f, i) => (
-                                    <li key={i} className={`plan-feature font-mono ${f.hot ? 'plan-feature--hot' : ''}`}>
-                                        <span className="feature-icon">{f.hot ? '🔥' : '✓'}</span>
-                                        <span>{f.text}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            {/* CTA */}
-                            <div className="plan-cta">
-                                <button
-                                    className={`btn plan-btn ${plan.comingSoon ? 'btn-ghost' :
-                                        isPro ? 'btn-ghost' :
-                                            plan.highlight ? 'btn-primary' :
-                                                'btn-outline'
-                                        }`}
-                                    onClick={() => handleSelectPlan(plan.id)}
-                                    disabled={isPro && !plan.comingSoon}
-                                >
-                                    {isPro && !plan.comingSoon ? '✓ Already Pro' : plan.cta}
-                                </button>
-                                <p className="font-mono plan-subtext">{plan.ctaSubtext}</p>
-                            </div>
-                        </div>
+                            plan={plan}
+                            onSelect={handleSelectPlan}
+                        />
                     ))}
                 </div>
             )}
@@ -284,10 +286,7 @@ export default function PricingPage() {
                             onKeyDown={e => e.key === 'Enter' && handleWaitlist(e)}
                             className="waitlist-input font-mono"
                         />
-                        <button
-                            className="btn btn-primary waitlist-btn"
-                            onClick={handleWaitlist}
-                        >
+                        <button className="btn btn-primary waitlist-btn" onClick={handleWaitlist}>
                             Notify Me ⚔️
                         </button>
                     </div>
@@ -307,8 +306,7 @@ export default function PricingPage() {
                 </div>
             </div>
 
-            {/* WHY PaymentModal: handles its own portal + overlay
-          renders centered on screen regardless of page scroll position */}
+            {/* Payment modal — portal-based */}
             {selectedPlan && (
                 <PaymentModal
                     planId={selectedPlan}
@@ -333,8 +331,6 @@ export default function PricingPage() {
           background:     radial-gradient(ellipse 80% 40% at 50% 0%, rgba(255,69,0,0.12) 0%, transparent 100%);
           pointer-events: none;
         }
-
-        /* Nav */
         .pricing-nav {
           display:         flex;
           justify-content: space-between;
@@ -342,16 +338,14 @@ export default function PricingPage() {
           width:           100%;
           max-width:       960px;
         }
-
-        /* Header */
         .pricing-header {
-          text-align: center;
-          width:      100%;
-          max-width:  640px;
-          display:    flex;
+          text-align:     center;
+          width:          100%;
+          max-width:      640px;
+          display:        flex;
           flex-direction: column;
-          align-items: center;
-          gap:        12px;
+          align-items:    center;
+          gap:            12px;
         }
         .pricing-title { font-size: clamp(28px, 7vw, 56px); line-height: 1.05; }
         .pricing-sub   { color: var(--text-secondary); font-size: 15px; }
@@ -366,22 +360,19 @@ export default function PricingPage() {
           line-height:   1.6;
         }
 
-        /* Plans grid
-           Desktop (>768px):  3 columns
-           Tablet (480-768px): 2 columns + Squad below (via grid area)
-           Mobile (<480px):   1 column stack */
+        /* WHY minmax(280px): cards never overflow on mobile
+           auto-fit: 3 col desktop, 2 col tablet, 1 col mobile */
         .plans-grid {
-          display:   grid;
-          gap:       1.25rem;
-          width:     100%;
-          max-width: 960px;
-          /* WHY 300px min: ensures readable card width */
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          /* WHY align-items start: cards can have different heights */
-          align-items: start;
+          display:               grid;
+          gap:                   1.25rem;
+          width:                 100%;
+          max-width:             960px;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          align-items:           start;
+          /* WHY overflow visible: PricingCard badges overflow top edge */
+          overflow:              visible;
+          padding-top:           12px; /* WHY: space for badge overflow */
         }
-
-        /* Skeleton */
         .plan-skeleton {
           height:        480px;
           border-radius: var(--radius-lg);
@@ -389,96 +380,6 @@ export default function PricingPage() {
           background-size: 200%;
           animation:     shimmer 1.5s infinite;
         }
-
-        /* Plan card */
-        .plan-card {
-          display:        flex;
-          flex-direction: column;
-          padding:        1.5rem;
-          padding-top:    2rem; /* WHY: space for absolute badge */
-          gap:            1.25rem;
-          position:       relative;
-          transition:     transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .plan-card:hover:not(.plan-card--soon) {
-          transform:  translateY(-3px);
-          box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        }
-        .plan-card--highlight {
-          border-color: var(--fire);
-          box-shadow:   0 0 24px rgba(255,69,0,0.15);
-        }
-        .plan-card--soon { opacity: 0.7; }
-
-        /* Badge */
-        .plan-badge {
-          position:      absolute;
-          top:           -11px;
-          left:          50%;
-          transform:     translateX(-50%);
-          font-size:     9px;
-          padding:       3px 12px;
-          border-radius: var(--radius-sm);
-          letter-spacing:1.5px;
-          white-space:   nowrap;
-        }
-        .plan-badge--hot {
-          background: var(--fire-grad);
-          color:      #fff;
-        }
-        .plan-badge--soon {
-          background: var(--bg-elevated);
-          border:     1px solid var(--border);
-          color:      var(--text-muted);
-        }
-        .plan-badge--default {
-          background: var(--bg-elevated);
-          border:     1px solid var(--border);
-          color:      var(--text-secondary);
-        }
-
-        /* Plan header */
-        .plan-header {
-          display:         flex;
-          justify-content: space-between;
-          align-items:     flex-start;
-          gap:             8px;
-        }
-        .plan-info      { min-width: 0; }
-        .plan-name      { font-size: 20px; color: var(--text-primary); line-height: 1; }
-        .plan-tagline   { font-size: 11px; color: var(--text-muted); margin-top: 4px; letter-spacing: 1px; }
-
-        /* Price */
-        .plan-price-block { text-align: right; flex-shrink: 0; }
-        .plan-price-row   { display: flex; align-items: baseline; justify-content: flex-end; gap: 2px; }
-        .plan-currency    { font-size: 16px; color: var(--fire); line-height: 1; }
-        .plan-amount      { font-size: 34px; color: var(--fire); line-height: 1; }
-        .plan-period      { font-size: 11px; color: var(--text-muted); }
-        .plan-soon-emoji  { font-size: 28px; }
-
-        /* Features */
-        .plan-features {
-          list-style:     none;
-          display:        flex;
-          flex-direction: column;
-          gap:            10px;
-          flex:           1;
-        }
-        .plan-feature {
-          display:     flex;
-          gap:         10px;
-          font-size:   13px;
-          color:       var(--text-secondary);
-          line-height: 1.4;
-          align-items: flex-start;
-        }
-        .plan-feature--hot { color: var(--text-primary); font-weight: 500; }
-        .feature-icon      { flex-shrink: 0; width: 18px; }
-
-        /* CTA */
-        .plan-cta     { display: flex; flex-direction: column; gap: 6px; }
-        .plan-btn     { width: 100%; padding: 13px; font-size: 14px; }
-        .plan-subtext { font-size: 10px; color: var(--text-muted); text-align: center; }
 
         /* Waitlist */
         .waitlist-section {
@@ -496,9 +397,9 @@ export default function PricingPage() {
         .waitlist-sub     { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
         .waitlist-done    { font-size: 14px; color: var(--good); }
         .waitlist-form {
-          display: flex;
-          gap:     10px;
-          width:   100%;
+          display:   flex;
+          gap:       10px;
+          width:     100%;
           max-width: 460px;
         }
         .waitlist-input {
@@ -510,7 +411,6 @@ export default function PricingPage() {
           color:         var(--text-primary);
           font-size:     14px;
           outline:       none;
-          /* WHY min-width 0: flex items can shrink below content size */
           min-width:     0;
         }
         .waitlist-input:focus { border-color: var(--fire); }
@@ -518,14 +418,12 @@ export default function PricingPage() {
 
         /* FAQ */
         .faq-section { width: 100%; max-width: 960px; }
-        .faq-title   {
+        .faq-title {
           font-size:     clamp(22px, 5vw, 32px);
           color:         var(--text-primary);
           margin-bottom: 1rem;
           text-align:    center;
         }
-        /* WHY minmax(280px): smaller min = never overflows on mobile
-           was 400px before → caused horizontal overflow on 360px phones */
         .faq-grid {
           display:               grid;
           grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -535,32 +433,14 @@ export default function PricingPage() {
         .faq-q    { font-size: 15px; color: var(--text-primary); line-height: 1.4; }
         .faq-a    { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
 
-        /* ── Responsive breakpoints ─────────────────────── */
-
-        /* Tablet: 768px — force 2 col for plans, Squad goes full width */
-        @media (max-width: 768px) {
-          .plans-grid {
-            /* WHY: auto-fit with 300px min naturally creates 2 col at 640-768px
-               Squad card stretches to fill → looks intentional as CTA */
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-          }
-        }
-
-        /* Mobile: 540px */
+        /* Responsive */
         @media (max-width: 540px) {
           .pricing-page  { padding: 1.25rem 0.875rem 6rem; gap: 1.5rem; }
-          .plans-grid    { grid-template-columns: 1fr; }
-          .faq-grid      { grid-template-columns: 1fr; }
           .waitlist-form { flex-direction: column; align-items: stretch; }
           .waitlist-btn  { width: 100%; }
           .faq-item      { padding: 1rem 1.25rem; }
         }
-
-        /* Small phone: 380px */
         @media (max-width: 380px) {
-          .plan-card   { padding: 1.25rem; padding-top: 1.75rem; }
-          .plan-amount { font-size: 28px; }
-          .plan-name   { font-size: 18px; }
           .free-reminder { font-size: 11px; }
         }
       `}</style>
