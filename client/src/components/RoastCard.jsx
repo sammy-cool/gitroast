@@ -1,10 +1,91 @@
 'use client'
 
+// ============================================================
+// GITROAST — RoastCard Component
+// ============================================================
+// WHAT: Displays the full roast result — profile, score, stats,
+//       shame commits, roast text (with typewriter reveal), share buttons.
+//
+// WHAT'S NEW — Typewriter Effect on Roast Text:
+//   WHY: Roast text appearing word by word feels like AI is "thinking"
+//        More dramatic → more screenshot-worthy moment
+//        Competitors dump text instantly — this feels premium
+//        First-time users get a cinematic reveal experience
+//
+// HOW typewriter works:
+//   useState tracks how many characters are currently shown
+//   useEffect runs a setInterval — adds chars every TYPING_SPEED ms
+//   When all chars revealed → clears interval → shows cursor blink briefly
+//   ShareButtons only renders after full reveal → no early download
+//
+// WHY #roast-card-capture wraps content but NOT ShareButtons:
+//   html2canvas captures only what's inside that div
+//   Share buttons are UI — should not appear in downloaded PNG
+// ============================================================
+
+import { useState, useEffect, useRef } from 'react'
 import StatsGrid from './StatsGrid'
 import CommitShame from './CommitShame'
 import ShareButtons from './ShareButtons'
 
+// WHY 18ms: feels like natural typing speed
+//     too fast (5ms) = looks instant = loses drama
+//     too slow (50ms) = user gets impatient
+const TYPING_SPEED = 18
+
 export default function RoastCard({ data, onProClick }) {
+
+  // WHY displayedText state:
+  //   Tracks how much of roast text to show
+  //   Starts empty → fills character by character
+  const [displayedText, setDisplayedText] = useState('')
+  const [typingDone, setTypingDone] = useState(false)
+  const [showCursor, setShowCursor] = useState(true)
+  const intervalRef = useRef(null)
+  const cursorTimerRef = useRef(null)
+
+  const roastText = data.roast || ''
+
+  useEffect(() => {
+    // WHY reset on new roast data:
+    //   If user navigates to new roast without unmounting,
+    //   animation replays correctly
+    setDisplayedText('')
+    setTypingDone(false)
+    setShowCursor(true)
+
+    let currentIndex = 0
+
+    intervalRef.current = setInterval(() => {
+      currentIndex += 1
+      setDisplayedText(roastText.slice(0, currentIndex))
+
+      if (currentIndex >= roastText.length) {
+        clearInterval(intervalRef.current)
+        setTypingDone(true)
+
+        // WHY blink cursor briefly then hide:
+        //   Cursor blinks 3 times after typing = feels like AI finished
+        //   Then disappears so screenshot looks clean
+        let blinks = 0
+        cursorTimerRef.current = setInterval(() => {
+          setShowCursor(prev => !prev)
+          blinks++
+          if (blinks >= 6) {
+            clearInterval(cursorTimerRef.current)
+            setShowCursor(false)
+          }
+        }, 400)
+      }
+    }, TYPING_SPEED)
+
+    // WHY cleanup: component unmounting mid-typing
+    //   prevents setState on unmounted component warning
+    return () => {
+      clearInterval(intervalRef.current)
+      clearInterval(cursorTimerRef.current)
+    }
+  }, [roastText])
 
   const scoreColor =
     data.score < 40 ? 'var(--bad)' :
@@ -21,9 +102,8 @@ export default function RoastCard({ data, onProClick }) {
     <div className="roast-card card">
 
       {/* WHY id="roast-card-capture":
-          html2canvas targets this exact div
-          captures everything inside as a PNG
-          ShareButtons excluded — they are UI not content */}
+          html2canvas targets this div for PNG download
+          ShareButtons excluded — UI should not appear in image */}
       <div id="roast-card-capture">
 
         {/* ── Card header ── */}
@@ -45,20 +125,14 @@ export default function RoastCard({ data, onProClick }) {
             className="score-block"
             title={`Roast Score: ${data.score}/100 — ${scoreExplain}`}
           >
-            <div
-              className="score-number font-display"
-              style={{ color: scoreColor }}
-            >
+            <div className="score-number font-display" style={{ color: scoreColor }}>
               {data.score}
             </div>
             <div className="score-label font-mono">/100 ROAST SCORE</div>
             <div className="score-hint font-mono">
               {data.score < 50 ? 'lower = more roastable' : 'higher = better dev'}
             </div>
-            <div
-              className="grade-badge font-mono"
-              style={{ color: 'var(--bad)' }}
-            >
+            <div className="grade-badge font-mono" style={{ color: 'var(--bad)' }}>
               GRADE: {data.grade}
             </div>
           </div>
@@ -70,7 +144,7 @@ export default function RoastCard({ data, onProClick }) {
         {/* ── Shame commits ── */}
         <CommitShame commits={data.shameCommits} />
 
-        {/* ── Roast text ── */}
+        {/* ── Roast text — with typewriter effect ── */}
         <div className="roast-text-block">
           <div className="roast-text-header">
             <p className="roast-text-label font-mono">🔥 The Roast</p>
@@ -78,26 +152,44 @@ export default function RoastCard({ data, onProClick }) {
               <span className="ai-badge font-mono">⚡ AI Roast</span>
             )}
           </div>
-          <p className="roast-text">&ldquo;{data.roast}&rdquo;</p>
+
+          <p className="roast-text">
+            &ldquo;{displayedText}
+            {/* WHY conditional cursor:
+                Shows during typing = user knows something is happening
+                Blinks briefly when done = cinematic "AI finished" moment
+                Hidden after = clean screenshot */}
+            {!typingDone && (
+              <span className="typing-cursor animate-blink" />
+            )}
+            {typingDone && showCursor && (
+              <span className="typing-cursor" />
+            )}
+            &rdquo;
+          </p>
         </div>
 
-        {/* WHY branding inside capture area:
-            every downloaded image shows gitroast
-            free organic marketing on every share */}
+        {/* WHY brand inside capture:
+            Every downloaded PNG shows "gitroast"
+            Free organic marketing on every share */}
         <div className="card-brand font-mono">
           gitroast 🔥
         </div>
 
-      </div>{/* end #roast-card-capture */}
+      </div>
 
-      {/* ── Share + Pro buttons — NOT captured ── */}
-      <ShareButtons
-        username={data.username}
-        roastId={data.roastId}
-        roastText={data.roast}
-        isPro={data.isPro}
-        onProClick={onProClick}
-      />
+      {/* WHY render ShareButtons only after typing done:
+          Prevents user downloading mid-typed roast as PNG
+          Also feels intentional — buttons appear after reveal */}
+      {typingDone && (
+        <ShareButtons
+          username={data.username}
+          roastId={data.roastId}
+          roastText={data.roast}
+          isPro={data.isPro}
+          onProClick={onProClick}
+        />
+      )}
 
       <style jsx>{`
         .roast-card {
@@ -172,6 +264,9 @@ export default function RoastCard({ data, onProClick }) {
           border-bottom: 1px solid var(--border);
           border-left:   3px solid var(--fire);
           background:    linear-gradient(135deg, #110900 0%, #0F0F0F 100%);
+          /* WHY min-height: prevents layout shift as text types in
+             card maintains consistent height during animation */
+          min-height:    120px;
         }
         .roast-text-header {
           display:         flex;
@@ -190,7 +285,22 @@ export default function RoastCard({ data, onProClick }) {
           font-size:   14px;
           line-height: 1.8;
           font-style:  italic;
+          /* WHY min-height: prevents card collapsing at start of animation */
+          min-height:  48px;
         }
+
+        /* WHY typing-cursor styled separately from animate-blink:
+           animate-blink is global — typing-cursor adds specific sizing */
+        .typing-cursor {
+          display:        inline-block;
+          width:          2px;
+          height:         14px;
+          background:     var(--fire);
+          vertical-align: middle;
+          margin-left:    2px;
+          border-radius:  1px;
+        }
+
         .ai-badge {
           font-size:      9px;
           padding:        2px 8px;
@@ -201,24 +311,22 @@ export default function RoastCard({ data, onProClick }) {
           letter-spacing: 1px;
         }
 
-        /* WHY brand row inside capture:
-           every shared image shows gitroast
-           zero effort marketing */
+        /* Brand row */
         .card-brand {
-          padding:         8px 1.5rem;
-          font-size:       10px;
-          color:           var(--fire);
-          text-align:      right;
-          letter-spacing:  1px;
-          background:      #080808;
-          border-top:      1px solid var(--border);
+          padding:        8px 1.5rem;
+          font-size:      10px;
+          color:          var(--fire);
+          text-align:     right;
+          letter-spacing: 1px;
+          background:     #080808;
+          border-top:     1px solid var(--border);
         }
 
         /* Mobile */
         @media (max-width: 480px) {
-          .card-header    { flex-direction: column; align-items: flex-start; }
-          .score-block    { text-align: left; }
-          .profile-name   { max-width: 100%; }
+          .card-header  { flex-direction: column; align-items: flex-start; }
+          .score-block  { text-align: left; }
+          .profile-name { max-width: 100%; }
         }
       `}</style>
     </div>
