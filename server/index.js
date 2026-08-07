@@ -24,6 +24,7 @@ const { errorHandler, notFoundHandler } = require("./middleware/errorHandler");
 const {
   roastLimiter,
   authLimiter,
+  battleLimiter, // WHY: battle = 2x GitHub API + AI — needs strict limit
   generalLimiter,
 } = require("./middleware/rateLimiter");
 const { logger, logRequest, attachProcessHandlers } = require("./utils/logger");
@@ -94,7 +95,7 @@ app.use("/api/roast", roastLimiter, require("./routes/roast"));
 app.use("/api/auth", authLimiter, require("./routes/auth"));
 app.use("/api/history", require("./routes/history"));
 app.use("/api/payment", require("./routes/payment"));
-app.use("/api/battle", require("./routes/battle"));
+app.use("/api/battle", battleLimiter, require("./routes/battle"));
 
 // ── Step 8: Health check ──────────────────────────────────────
 // WHAT: Returns server status — used by Docker HEALTHCHECK and Render
