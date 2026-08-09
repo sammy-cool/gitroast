@@ -6,11 +6,10 @@ import { createToast } from 'customizable-toast-notification'
 import UsernameInput from '@/components/UsernameInput'
 import ProModal from '@/components/ProModal'
 import GitHubLoginBtn from '@/components/GitHubLoginBtn'
+import RateLimitBanner from '@/components/RateLimitBanner'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
-// WHY config here: single source of truth for intensity options
-//     label, emoji, description, color, isPro all in one place
 const INTENSITIES = [
   {
     key: 'mild',
@@ -34,15 +33,19 @@ const INTENSITIES = [
     label: 'Nuclear',
     description: 'Absolutely no mercy.',
     color: '#FF3D3D',
-    isPro: true,   // WHY: locked behind Pro — incentivises upgrade
+    isPro: true,
   },
 ]
 
 export default function HomePage() {
   const [showProModal, setShowProModal] = useState(false)
   const [totalRoasts, setTotalRoasts] = useState(null)
-  // WHY default 'savage': current behaviour unchanged for existing users
   const [intensity, setIntensity] = useState('savage')
+  // WHY rateLimitSeconds:
+  //   When RoastPageClient hits 429 and redirects back to /
+  //   sessionStorage stores the retryAfter seconds
+  //   HomePage reads it → shows RateLimitBanner with countdown
+  const [rateLimitSecs, setRateLimitSecs] = useState(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -51,20 +54,30 @@ export default function HomePage() {
       .then(d => { if (d.totalRoasts > 0) setTotalRoasts(d.totalRoasts) })
       .catch(() => { })
 
-    // WHY: restore last used intensity from sessionStorage
-    //      user refreshes → same intensity selected
     const saved = sessionStorage.getItem('gitroast_intensity')
     if (saved && INTENSITIES.find(i => i.key === saved)) {
       setIntensity(saved)
+    }
+
+    // WHY read from sessionStorage:
+    //   RoastPageClient sets 'gitroast_rate_limit' when 429 received
+    //   HomePage reads it on mount → shows banner immediately
+    //   User lands back on home → sees countdown, not confusion
+    const rl = sessionStorage.getItem('gitroast_rate_limit')
+    if (rl) {
+      const { retryAfter, setAt } = JSON.parse(rl)
+      const elapsed = Math.floor((Date.now() - setAt) / 1000)
+      const remaining = retryAfter - elapsed
+      if (remaining > 0) {
+        setRateLimitSecs(remaining)
+      } else {
+        sessionStorage.removeItem('gitroast_rate_limit')
+      }
     }
   }, [])
 
   function handleIntensitySelect(key) {
     const selected = INTENSITIES.find(i => i.key === key)
-
-    // WHY: Nuclear = Pro only
-    //      show Pro modal so user understands the value
-    //      don't just silently block — explain why
     if (selected.isPro) {
       createToast({
         type: 'info',
@@ -81,12 +94,24 @@ export default function HomePage() {
       })
       return
     }
-
     setIntensity(key)
     sessionStorage.setItem('gitroast_intensity', key)
   }
 
   function handleRoast(username) {
+    // WHY block roast if rate limited:
+    //   User might try again before timer expires
+    //   Without this check: they'd navigate to /roast → immediate 429 → back to /
+    //   With this check: show banner, let timer run
+    if (rateLimitSecs && rateLimitSecs > 0) {
+      createToast({
+        type: 'warning',
+        message: `⏱ Rate limited. Wait ${rateLimitSecs} more seconds.`,
+        position: 'top-center',
+      })
+      return
+    }
+
     if (!username.trim()) {
       createToast({
         type: 'warning',
@@ -97,10 +122,7 @@ export default function HomePage() {
       return
     }
 
-    // WHY: store intensity in sessionStorage
-    //      RoastPageClient reads it and passes to backend
     sessionStorage.setItem('gitroast_intensity', intensity)
-
     router.push(`/roast/${username.trim().toLowerCase()}`)
   }
 
@@ -115,7 +137,6 @@ export default function HomePage() {
         <GitHubLoginBtn variant="compact" />
       </nav>
 
-      {/* Logo */}
       <div className="landing-logo">
         <h1 className="font-display text-fire">GITROAST 🔥</h1>
         <p className="landing-tagline">
@@ -125,9 +146,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      {/* WHY intensity selector ABOVE input:
-          first decision before typing = feels intentional
-          sets expectation for what's coming */}
+      {/* Intensity selector */}
       <div className="intensity-wrap">
         <p className="intensity-label font-mono">Choose your intensity:</p>
         <div className="intensity-options">
@@ -144,22 +163,31 @@ export default function HomePage() {
             >
               <span className="intensity-emoji">{opt.emoji}</span>
               <span className="intensity-name">{opt.label}</span>
-              {opt.isPro && (
-                <span className="intensity-pro-tag">PRO</span>
-              )}
+              {opt.isPro && <span className="intensity-pro-tag">PRO</span>}
             </button>
           ))}
         </div>
-        {/* WHY description: tells user what they're getting into */}
         <p className="intensity-desc font-mono">
           {selectedIntensity.emoji} {selectedIntensity.description}
         </p>
       </div>
 
-      {/* Input */}
       <UsernameInput onSubmit={handleRoast} />
 
-      {/* Social proof */}
+      {/* WHY RateLimitBanner here (between input and social proof):
+          User sees it right below the input they just used
+          Context: "you just tried to roast → here's why you can't yet"
+          Disappears automatically when timer expires */}
+      {rateLimitSecs && (
+        <RateLimitBanner
+          seconds={rateLimitSecs}
+          onExpired={() => {
+            setRateLimitSecs(null)
+            sessionStorage.removeItem('gitroast_rate_limit')
+          }}
+        />
+      )}
+
       {totalRoasts && (
         <p className="landing-social-proof font-mono">
           <span style={{ color: 'var(--fire)' }}>
@@ -169,33 +197,20 @@ export default function HomePage() {
         </p>
       )}
 
-      {/* CTA buttons */}
       <div style={{ display: 'flex', gap: '10px' }}>
-        <button
-          className="btn btn-outline"
-          onClick={() => router.push('/pricing')}
-        >
+        <button className="btn btn-outline" onClick={() => router.push('/pricing')}>
           ⚡ Pricing
         </button>
-        <button
-          className="btn btn-ghost"
-          onClick={() => setShowProModal(true)}
-        >
+        <button className="btn btn-ghost" onClick={() => setShowProModal(true)}>
           What&apos;s in Pro?
         </button>
       </div>
 
-      <button
-        className="btn btn-ghost"
-        onClick={() => router.push('/leaderboard')}
-      >
+      <button className="btn btn-ghost" onClick={() => router.push('/leaderboard')}>
         🏆 Wall of Shame
       </button>
 
-      <button
-        className="btn btn-ghost"
-        onClick={() => router.push('/battle')}
-      >
+      <button className="btn btn-ghost" onClick={() => router.push('/battle')}>
         ⚔️ Roast Battle
       </button>
 
@@ -208,9 +223,7 @@ export default function HomePage() {
         </p>
       </div>
 
-      {showProModal && (
-        <ProModal onClose={() => setShowProModal(false)} />
-      )}
+      {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
 
       <style jsx>{`
         .landing-page {
@@ -251,8 +264,6 @@ export default function HomePage() {
           font-size:  17px;
           margin-top: 10px;
         }
-
-        /* ── Intensity selector ── */
         .intensity-wrap {
           display:        flex;
           flex-direction: column;
@@ -273,31 +284,30 @@ export default function HomePage() {
           width:   100%;
         }
         .intensity-btn {
-          flex:          1;
-          display:       flex;
-          flex-direction:column;
-          align-items:   center;
-          gap:           4px;
-          padding:       10px 8px;
-          background:    var(--bg-card);
-          border:        1px solid var(--border);
-          border-radius: var(--radius-md);
-          cursor:        pointer;
-          transition:    all 0.18s ease;
-          position:      relative;
+          flex:           1;
+          display:        flex;
+          flex-direction: column;
+          align-items:    center;
+          gap:            4px;
+          padding:        10px 8px;
+          background:     var(--bg-card);
+          border:         1px solid var(--border);
+          border-radius:  var(--radius-md);
+          cursor:         pointer;
+          transition:     all 0.18s ease;
+          position:       relative;
         }
         .intensity-btn:hover {
           border-color: var(--intensity-color, var(--fire));
           background:   var(--bg-elevated);
         }
-        /* WHY: active state uses dynamic color per intensity */
         .intensity-btn--active {
           border-color: var(--intensity-color, var(--fire));
           background:   color-mix(in srgb, var(--intensity-color, var(--fire)) 8%, var(--bg-card));
           box-shadow:   0 0 12px color-mix(in srgb, var(--intensity-color, var(--fire)) 20%, transparent);
         }
-        .intensity-emoji { font-size: 20px; line-height: 1; }
-        .intensity-name  { font-size: 11px; color: var(--text-primary); }
+        .intensity-emoji   { font-size: 20px; line-height: 1; }
+        .intensity-name    { font-size: 11px; color: var(--text-primary); }
         .intensity-pro-tag {
           position:      absolute;
           top:           -6px;
@@ -310,11 +320,10 @@ export default function HomePage() {
           letter-spacing:1px;
         }
         .intensity-desc {
-          font-size: 12px;
-          color:     var(--text-secondary);
-          height:    18px; /* WHY: fixed height prevents layout shift on text change */
+          font-size:  12px;
+          color:      var(--text-secondary);
+          height:     18px;
         }
-
         .landing-social-proof {
           color:     var(--text-secondary);
           font-size: 13px;

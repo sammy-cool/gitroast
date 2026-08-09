@@ -114,14 +114,20 @@ export default function RoastPageClient({ username }) {
         }
 
         if (err.code === 'RATE_LIMIT_EXCEEDED') {
-          // WHY differentiate our limit vs GitHub's limit:
-          //   status 429 from our server = our rate limiter
-          //   err.retryAfter = exact seconds from server (not hardcoded 60)
-          //   GitHub rate limit = different message, GitHub's own timing
           const isOurLimit = err.status === 429
-          const seconds = err.retryAfter
-            ? `${err.retryAfter} seconds`
-            : '60 seconds'
+          const retryAfter = err.retryAfter || 60
+          const seconds = `${retryAfter} seconds`
+
+          // WHY store in sessionStorage:
+          //   Homepage reads this on mount → shows RateLimitBanner
+          //   User sees live countdown instead of confusion
+          //   Cleared when timer expires or on next successful roast
+          if (isOurLimit && retryAfter) {
+            sessionStorage.setItem('gitroast_rate_limit', JSON.stringify({
+              retryAfter,
+              setAt: Date.now(),
+            }))
+          }
 
           createToast({
             type: 'warning',
@@ -129,7 +135,7 @@ export default function RoastPageClient({ username }) {
               ? `⏱ Too many requests. Try again in ${seconds}.`
               : `GitHub rate limit hit. Try again in ${seconds}.`,
             position: 'top-center',
-            duration: (err.retryAfter || 6) * 1000,
+            duration: Math.min(retryAfter * 1000, 8000),
             showCloseButton: true,
           })
           router.push('/')
