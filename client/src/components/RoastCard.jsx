@@ -1,43 +1,14 @@
 'use client'
 
-// ============================================================
-// GITROAST — RoastCard Component
-// ============================================================
-// WHAT: Displays the full roast result — profile, score, stats,
-//       shame commits, roast text (with typewriter reveal), share buttons.
-//
-// WHAT'S NEW — Typewriter Effect on Roast Text:
-//   WHY: Roast text appearing word by word feels like AI is "thinking"
-//        More dramatic → more screenshot-worthy moment
-//        Competitors dump text instantly — this feels premium
-//        First-time users get a cinematic reveal experience
-//
-// HOW typewriter works:
-//   useState tracks how many characters are currently shown
-//   useEffect runs a setInterval — adds chars every TYPING_SPEED ms
-//   When all chars revealed → clears interval → shows cursor blink briefly
-//   ShareButtons only renders after full reveal → no early download
-//
-// WHY #roast-card-capture wraps content but NOT ShareButtons:
-//   html2canvas captures only what's inside that div
-//   Share buttons are UI — should not appear in downloaded PNG
-// ============================================================
-
 import { useState, useEffect, useRef } from 'react'
 import StatsGrid from './StatsGrid'
 import CommitShame from './CommitShame'
 import ShareButtons from './ShareButtons'
+import RoastReactions from './RoastReactions'
 
-// WHY 18ms: feels like natural typing speed
-//     too fast (5ms) = looks instant = loses drama
-//     too slow (50ms) = user gets impatient
 const TYPING_SPEED = 18
 
 export default function RoastCard({ data, onProClick }) {
-
-  // WHY displayedText state:
-  //   Tracks how much of roast text to show
-  //   Starts empty → fills character by character
   const [displayedText, setDisplayedText] = useState('')
   const [typingDone, setTypingDone] = useState(false)
   const [showCursor, setShowCursor] = useState(true)
@@ -47,9 +18,6 @@ export default function RoastCard({ data, onProClick }) {
   const roastText = data.roast || ''
 
   useEffect(() => {
-    // WHY reset on new roast data:
-    //   If user navigates to new roast without unmounting,
-    //   animation replays correctly
     setDisplayedText('')
     setTypingDone(false)
     setShowCursor(true)
@@ -64,9 +32,6 @@ export default function RoastCard({ data, onProClick }) {
         clearInterval(intervalRef.current)
         setTypingDone(true)
 
-        // WHY blink cursor briefly then hide:
-        //   Cursor blinks 3 times after typing = feels like AI finished
-        //   Then disappears so screenshot looks clean
         let blinks = 0
         cursorTimerRef.current = setInterval(() => {
           setShowCursor(prev => !prev)
@@ -79,8 +44,6 @@ export default function RoastCard({ data, onProClick }) {
       }
     }, TYPING_SPEED)
 
-    // WHY cleanup: component unmounting mid-typing
-    //   prevents setState on unmounted component warning
     return () => {
       clearInterval(intervalRef.current)
       clearInterval(cursorTimerRef.current)
@@ -101,14 +64,10 @@ export default function RoastCard({ data, onProClick }) {
   return (
     <div className="roast-card card">
 
-      {/* WHY id="roast-card-capture":
-          html2canvas targets this div for PNG download
-          ShareButtons excluded — UI should not appear in image */}
       <div id="roast-card-capture">
 
-        {/* ── Card header ── */}
+        {/* ── Header ── */}
         <div className="card-header">
-
           <div className="profile-info">
             <div className="avatar font-display">
               {data.username[0].toUpperCase()}
@@ -138,13 +97,13 @@ export default function RoastCard({ data, onProClick }) {
           </div>
         </div>
 
-        {/* ── Stats grid ── */}
+        {/* ── Stats ── */}
         <StatsGrid stats={data.stats} />
 
         {/* ── Shame commits ── */}
         <CommitShame commits={data.shameCommits} />
 
-        {/* ── Roast text — with typewriter effect ── */}
+        {/* ── Roast text with typewriter ── */}
         <div className="roast-text-block">
           <div className="roast-text-header">
             <p className="roast-text-label font-mono">🔥 The Roast</p>
@@ -152,35 +111,33 @@ export default function RoastCard({ data, onProClick }) {
               <span className="ai-badge font-mono">⚡ AI Roast</span>
             )}
           </div>
-
           <p className="roast-text">
             &ldquo;{displayedText}
-            {/* WHY conditional cursor:
-                Shows during typing = user knows something is happening
-                Blinks briefly when done = cinematic "AI finished" moment
-                Hidden after = clean screenshot */}
-            {!typingDone && (
-              <span className="typing-cursor animate-blink" />
-            )}
-            {typingDone && showCursor && (
-              <span className="typing-cursor" />
-            )}
+            {!typingDone && <span className="typing-cursor animate-blink" />}
+            {typingDone && showCursor && <span className="typing-cursor" />}
             &rdquo;
           </p>
         </div>
 
-        {/* WHY brand inside capture:
-            Every downloaded PNG shows "gitroast"
-            Free organic marketing on every share */}
+        {/* WHY reactions INSIDE capture div:
+            Downloaded PNG shows how many people reacted
+            Social proof visible in every shared image
+            Adds credibility + curiosity for viewers */}
+        {typingDone && data.roastId && (
+          <RoastReactions
+            roastId={data.roastId}
+            initialReactions={data.reactions || {}}
+          />
+        )}
+
+        {/* Brand row — always last inside capture */}
         <div className="card-brand font-mono">
           gitroast 🔥
         </div>
 
-      </div>
+      </div>{/* end #roast-card-capture */}
 
-      {/* WHY render ShareButtons only after typing done:
-          Prevents user downloading mid-typed roast as PNG
-          Also feels intentional — buttons appear after reveal */}
+      {/* Share buttons — outside capture */}
       {typingDone && (
         <ShareButtons
           username={data.username}
@@ -192,12 +149,8 @@ export default function RoastCard({ data, onProClick }) {
       )}
 
       <style jsx>{`
-        .roast-card {
-          width:     100%;
-          max-width: 580px;
-        }
+        .roast-card { width: 100%; max-width: 580px; }
 
-        /* Header */
         .card-header {
           padding:         1.25rem 1.5rem;
           background:      linear-gradient(160deg, #111 0%, #180800 100%);
@@ -236,13 +189,8 @@ export default function RoastCard({ data, onProClick }) {
           white-space:   nowrap;
           max-width:     200px;
         }
-        .profile-meta {
-          color:     var(--text-secondary);
-          font-size: 11px;
-          margin:    2px 0 0;
-        }
+        .profile-meta { color: var(--text-secondary); font-size: 11px; margin: 2px 0 0; }
 
-        /* Score */
         .score-block  { text-align: right; flex-shrink: 0; cursor: help; }
         .score-number { font-size: clamp(36px, 8vw, 52px); line-height: 1; }
         .score-label  { color: var(--text-muted); font-size: 10px; }
@@ -258,14 +206,11 @@ export default function RoastCard({ data, onProClick }) {
           font-weight:   600;
         }
 
-        /* Roast text */
         .roast-text-block {
           padding:       1.4rem 1.5rem;
           border-bottom: 1px solid var(--border);
           border-left:   3px solid var(--fire);
           background:    linear-gradient(135deg, #110900 0%, #0F0F0F 100%);
-          /* WHY min-height: prevents layout shift as text types in
-             card maintains consistent height during animation */
           min-height:    120px;
         }
         .roast-text-header {
@@ -285,12 +230,8 @@ export default function RoastCard({ data, onProClick }) {
           font-size:   14px;
           line-height: 1.8;
           font-style:  italic;
-          /* WHY min-height: prevents card collapsing at start of animation */
           min-height:  48px;
         }
-
-        /* WHY typing-cursor styled separately from animate-blink:
-           animate-blink is global — typing-cursor adds specific sizing */
         .typing-cursor {
           display:        inline-block;
           width:          2px;
@@ -300,7 +241,6 @@ export default function RoastCard({ data, onProClick }) {
           margin-left:    2px;
           border-radius:  1px;
         }
-
         .ai-badge {
           font-size:      9px;
           padding:        2px 8px;
@@ -310,8 +250,6 @@ export default function RoastCard({ data, onProClick }) {
           color:          var(--fire-warm);
           letter-spacing: 1px;
         }
-
-        /* Brand row */
         .card-brand {
           padding:        8px 1.5rem;
           font-size:      10px;
@@ -322,7 +260,6 @@ export default function RoastCard({ data, onProClick }) {
           border-top:     1px solid var(--border);
         }
 
-        /* Mobile */
         @media (max-width: 480px) {
           .card-header  { flex-direction: column; align-items: flex-start; }
           .score-block  { text-align: left; }
