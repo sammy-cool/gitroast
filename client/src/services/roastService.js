@@ -114,3 +114,25 @@ export async function getBattleRoast(user1, user2, token = null) {
 
   return json.data;
 }
+
+// ── reactToRoast ──────────────────────────────────────────────
+// WHAT: Sends a reaction (relatable/destroyed/savage) to a roast
+// WHY silent on error: reaction failure must never break UX
+//     same pattern as trackShare
+// WHY returns data: component updates counts from response
+//     avoids separate fetch after reacting
+export async function reactToRoast(roastId, type) {
+  try {
+    const res = await fetch(`${API_BASE}/api/history/${roastId}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type }),
+      signal: AbortSignal.timeout(5000),
+    });
+    const json = await res.json();
+    return json;
+  } catch {
+    // WHY: silently fail — reaction is non-critical
+    return null;
+  }
+}
