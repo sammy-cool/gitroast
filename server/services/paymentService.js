@@ -16,6 +16,7 @@
 
 const Razorpay = require("razorpay");
 const crypto = require("crypto");
+const { logger } = require("../utils/logger");
 
 // WHY lazy init: throws if keys missing — lazy = server starts in dev without keys
 let _razorpay = null;
@@ -55,7 +56,7 @@ const PLANS = {
 // WHY receipt: links Razorpay dashboard entries to your DB records
 async function createOrder(planId, userId) {
   const plan = PLANS[planId];
-  console.log(plan, planId, userId, "createOrderfn");
+  logger.debug("Payment", "createOrder called", { planId });
   //   [Payment] create-order body: { planId: 'roaster' }
   // { id: 'roaster', name: '🔥 Roaster', amount: 9900, currency: 'INR' } roaster new ObjectId('6a55d0368fc2be6d14c219b4') createOrderfn
   // WHY explicit check: unknown planId = reject before hitting Razorpay
@@ -79,10 +80,9 @@ async function createOrder(planId, userId) {
     });
   } catch (razorErr) {
     // WHY: log exact Razorpay error — not the generic message
-    console.error(
-      "[Razorpay] orders.create failed:",
-      razorErr?.error || razorErr?.message || razorErr,
-    );
+    logger.error("Payment", "Razorpay orders.create failed", {
+      error: razorErr?.error || razorErr?.message,
+    });
     throw razorErr;
   }
 

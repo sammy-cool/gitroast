@@ -28,6 +28,7 @@ const {
   createOrder,
   verifyPayment,
 } = require("../services/paymentService");
+const { logger } = require("../utils/logger");
 
 // ── GET /api/payment/plans ────────────────────────────────────
 // WHAT: Returns all available plans to frontend
@@ -55,7 +56,7 @@ router.get("/plans", (req, res) => {
 //   POST body is not logged by proxies/CDNs
 //   URL params are logged — plan info shouldn't be in logs
 router.post("/create-order", requireAuth, async (req, res) => {
-  console.log("[Payment] create-order body:", req.body);
+  logger.debug("Payment", "create-order body", { body: req.body });
   const { planId } = req.body;
 
   if (!planId) {
@@ -155,11 +156,7 @@ router.post("/verify", requireAuth, async (req, res) => {
       });
     } catch (paymentErr) {
       // WHY: log but don't throw — Pro unlock is more important
-      console.error(
-        "[Payment] Payment.create failed:",
-        paymentErr.message,
-        paymentErr,
-      );
+      logger.error("Payment", "Verify failed", { message: paymentErr.message });
     }
 
     req.user.isPro = true;
@@ -172,7 +169,7 @@ router.post("/verify", requireAuth, async (req, res) => {
       isPro: true,
     });
   } catch (err) {
-    console.error("[Payment] verify DB error:", err.message, err);
+    logger.error("Payment", "Verify DB error", { message: err.message });
     return res.status(500).json({
       error: "DB_ERROR",
       message:

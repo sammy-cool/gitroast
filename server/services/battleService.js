@@ -3,6 +3,7 @@
 const { analyzeProfile } = require("./githubService");
 const { generateRoast } = require("./roastEngine");
 const { generateAIRoast } = require("./aiService");
+const { logger } = require("../utils/logger");
 
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
@@ -63,7 +64,7 @@ No quotes. No intro.`;
     const roast = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
     return roast?.replace(/^["']|["']$/g, "").trim() || null;
   } catch (err) {
-    console.error("[Battle] AI verdict failed:", err.message);
+    logger.error("Battle", "AI verdict failed", { message: err.message });
     return null;
   }
 }

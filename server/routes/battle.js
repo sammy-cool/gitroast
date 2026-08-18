@@ -5,6 +5,7 @@ const router = express.Router();
 const { runBattle } = require("../services/battleService");
 const { optionalAuth } = require("../middleware/auth");
 const { createRateLimiter } = require("../middleware/rateLimiter");
+const { logger } = require("../utils/logger");
 
 const battleLimiter = createRateLimiter({
   windowMs: 60 * 1000,
@@ -63,7 +64,7 @@ router.get(
           message: "GitHub rate limit hit. Try again in 60 seconds.",
         });
       }
-      console.error("[Battle] Error:", err.message);
+      logger.error("Battle", "Route error", { message: err.message });
       return res.status(500).json({
         error: "SERVER_ERROR",
         message: "Battle failed. Both developers live to code another day.",
