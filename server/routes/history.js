@@ -18,8 +18,22 @@
 const express = require("express");
 const router = express.Router();
 const Roast = require("../models/Roast");
-const { optionalAuth } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
+
+// ── GET /api/history/leaderboard/worst ───────────────────────
+// WHY above /:username: specific route must come before dynamic
+router.get("/leaderboard/worst", async (req, res) => {
+  try {
+    const leaderboard = await Roast.getLeaderboard(10);
+    return res.status(200).json({ success: true, leaderboard });
+  } catch (err) {
+    logger.error("Leaderboard", "Fetch failed", { message: err.message });
+    return res.status(500).json({
+      error: "SERVER_ERROR",
+      message: "Could not fetch leaderboard.",
+    });
+  }
+});
 
 // ── GET /api/history/:username ────────────────────────────────
 router.get("/:username", async (req, res) => {
@@ -47,21 +61,6 @@ router.get("/:username", async (req, res) => {
     return res.status(500).json({
       error: "SERVER_ERROR",
       message: "Could not fetch history.",
-    });
-  }
-});
-
-// ── GET /api/history/leaderboard/worst ───────────────────────
-// WHY above /:username: specific route must come before dynamic
-router.get("/leaderboard/worst", async (req, res) => {
-  try {
-    const leaderboard = await Roast.getLeaderboard(10);
-    return res.status(200).json({ success: true, leaderboard });
-  } catch (err) {
-    logger.error("Leaderboard", "Fetch failed", { message: err.message });
-    return res.status(500).json({
-      error: "SERVER_ERROR",
-      message: "Could not fetch leaderboard.",
     });
   }
 });

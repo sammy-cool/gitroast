@@ -129,6 +129,11 @@ router.get("/:username", optionalAuth, async (req, res) => {
         isPro,
       });
       data.roastId = savedRoast._id;
+      data.reactions = savedRoast.reactions || {
+        relatable: 0,
+        destroyed: 0,
+        savage: 0,
+      };
     } catch (dbErr) {
       logger.error("Roast", "DB save failed", { message: dbErr.message });
     }
@@ -164,6 +169,7 @@ router.get("/:username", optionalAuth, async (req, res) => {
       return res.status(429).json({
         error: "RATE_LIMIT_EXCEEDED",
         message: "GitHub rate limit hit. Try again in 60 seconds.",
+        retryAfter: 60,
       });
     }
     logger.error("Roast", `Error for ${username}`, { message: err.message });
