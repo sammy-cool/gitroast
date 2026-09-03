@@ -145,6 +145,8 @@ export default function RoastCard({ data, onProClick }) {
           roastText={data.roast}
           isPro={data.isPro}
           onProClick={onProClick}
+          score={data.score}
+          grade={data.grade}
         />
       )}
 

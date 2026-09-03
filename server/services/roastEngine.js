@@ -1,4 +1,19 @@
-// ─── Intensity-aware opener banks ────────────────────────
+// ============================================================
+// GITROAST — Roast Engine
+// ============================================================
+// WHAT: Rule-based comedy roast generator.
+//       Intensity-aware tone banks for opener/middle/closer.
+//       Language-specific roast packs for personalization.
+//
+// WHY language packs (Feature 1):
+//   Generic roasts feel like templates.
+//   "Your Python is showing" feels PERSONAL and accurate.
+//   Developers share things that feel uncomfortably true.
+//   Each language has a stereotype — we lean into it.
+//   Zero API cost — pure rule engine, works for free users too.
+// ============================================================
+
+// ── Opener banks ───────────────────────────────────────────────
 const OPENER_BANK = {
   mild: {
     catastrophic: [
@@ -83,8 +98,7 @@ const OPENER_BANK = {
   },
 };
 
-// ─── Middle section banks — same across intensities ───────
-// WHY: the middle sections vary by tone adjective not template structure
+// ── Abandon banks ──────────────────────────────────────────────
 const ABANDON_BANK = {
   mild: [
     `{count} repos never quite made it to version two, which is more common than anyone admits.`,
@@ -102,6 +116,7 @@ const ABANDON_BANK = {
   ],
 };
 
+// ── Commit banks ───────────────────────────────────────────────
 const COMMIT_BANK = {
   mild: [
     `The commit messages could use a little more context — "{sample}" does leave something to the imagination.`,
@@ -119,6 +134,199 @@ const COMMIT_BANK = {
   ],
 };
 
+// ── Language-specific roast packs ─────────────────────────────
+// WHAT: Personalised roast line based on top GitHub language.
+// WHY: Generic roasts feel templated. Language-specific ones feel
+//      uncomfortably accurate — "how did it know?" = shareworthy.
+// WHY stereotypes used carefully:
+//   These are widely known developer community in-jokes.
+//   Every language community jokes about itself this way.
+//   Not punching down — punching sideways at shared experiences.
+const LANGUAGE_PACKS = {
+  JavaScript: {
+    mild: [
+      `The JavaScript here has that charming quality of "it works and nobody knows why, including the author."`,
+      `This is a JavaScript developer, which explains the 47 package.json files and the general sense of chaos.`,
+    ],
+    savage: [
+      `JavaScript — the language that lets you make any mistake you want and call it a feature.`,
+      `We found 12 different state management solutions across these repos, which is either research or a cry for help.`,
+      `Node, React, Vue, Svelte, and something called "my-custom-framework" — this developer collects JavaScript frameworks the way others collect regrets.`,
+    ],
+    nuclear: [
+      `This is a JavaScript developer, which means the code works in Chrome on their laptop and nowhere else, ever, under any circumstances.`,
+      `The package-lock.json here is larger than the actual application, which is either an achievement or a war crime.`,
+      `console.log debugging, callback hell, and a dependency on a package last updated in 2019 — this is not code, it is an archaeological site.`,
+    ],
+  },
+
+  TypeScript: {
+    mild: [
+      `TypeScript here — the "any" type used liberally, which somewhat defeats the purpose but shows good intentions.`,
+    ],
+    savage: [
+      `TypeScript — chosen because they wanted type safety, deployed because they had already written 200 "as any" casts and there was no going back.`,
+      `This codebase has TypeScript in the same way some people have gym memberships — technically true, never actually used properly.`,
+    ],
+    nuclear: [
+      `TypeScript with "strict: false" in tsconfig — the coding equivalent of wearing a seatbelt but only around your waist.`,
+      `The TypeScript here has so many "any" types that the compiler has given up and is just nodding along politely.`,
+    ],
+  },
+
+  Python: {
+    mild: [
+      `Python — clean, readable, and judging by these Jupyter notebooks, primarily used for tutorials that never got finished.`,
+    ],
+    savage: [
+      `Python developer — which means half these repos are machine learning projects that trained on the Titanic dataset and were never opened again.`,
+      `The Python here comes with a requirements.txt that hasn't been updated since 2021 and a virtual environment that has somehow been committed to git.`,
+      `Ah, a Python developer. We found 6 Django projects, 4 Flask APIs, and 0 things deployed anywhere.`,
+    ],
+    nuclear: [
+      `Python — the language chosen by people who want to do machine learning but primarily end up doing pandas tutorials and calling it "data science."`,
+      `This Python codebase has indentation errors in the README, which is impressive given that Python literally runs on indentation.`,
+    ],
+  },
+
+  Java: {
+    mild: [
+      `Java — the language of enterprise, stability, and XML configuration files that are longer than the actual logic.`,
+    ],
+    savage: [
+      `Java developer — 47 design patterns for a to-do app, a factory that makes factories, and enough abstraction layers to lose the original problem entirely.`,
+      `This is a Java codebase, which means there is an AbstractSingletonProxyFactoryBean somewhere and nobody remembers why.`,
+      `Enterprise Java: where a 3-line solution becomes a 47-class architecture with its own submodule and a Confluence page explaining the Confluence page.`,
+    ],
+    nuclear: [
+      `Java — chosen for its performance, then blamed for everything else. These repos have more boilerplate than actual logic, which is either impressive or deeply sad.`,
+      `This codebase has a class called "UserManagerServiceImplFactoryBean" and everyone involved has made peace with their choices.`,
+    ],
+  },
+
+  "C++": {
+    mild: [
+      `C++ — the language that gives you all the power to shoot yourself in the foot, both feet, and anyone standing nearby.`,
+    ],
+    savage: [
+      `C++ code here — memory managed by hand, segfaults managed by prayer, and documentation managed by nobody.`,
+      `This is either very impressive C++ or a elaborate threat. The distinction is unclear.`,
+    ],
+    nuclear: [
+      `C++ — where undefined behaviour is not a bug, it is a lifestyle choice made at 2am and never revisited.`,
+      `The memory leaks in this codebase are so old they have their own commit history and a sentimental attachment.`,
+    ],
+  },
+
+  "C#": {
+    mild: [
+      `C# — Microsoft's gift to the world, used here with the enthusiasm of someone who read three tutorials and declared themselves a .NET developer.`,
+    ],
+    savage: [
+      `A C# developer — which means there is a Windows Forms project in here from 2018 that "still works fine" and "doesn't need updating."`,
+      `The dependency injection here is so deeply nested that finding the actual logic requires an archaeological expedition and a torch.`,
+    ],
+    nuclear: [
+      `C# and ASP.NET — chosen for the job, kept out of familiarity, responsible for every meeting that could have been an email.`,
+    ],
+  },
+
+  PHP: {
+    mild: [
+      `PHP — a bold choice in 2025, and this developer is committed to it in a way that is almost admirable.`,
+    ],
+    savage: [
+      `PHP — the language that has been declared dead every year since 2010 and continues to power 78% of the internet out of sheer stubbornness.`,
+      `This is a PHP developer, which means somewhere in this codebase there is an include() of an include() of a file called "functions2.php".`,
+    ],
+    nuclear: [
+      `PHP — where SQL injection is not a vulnerability, it is a tradition, and $_ GET is still making executive decisions.`,
+      `This PHP codebase pre-dates namespaces, and the developer has decided to keep it that way as a tribute to a simpler time.`,
+    ],
+  },
+
+  Ruby: {
+    mild: [
+      `Ruby — beautiful, expressive, and according to these repos, primarily used to generate a Rails scaffold and then move on.`,
+    ],
+    savage: [
+      `Ruby on Rails developer — "convention over configuration" taken so literally that the actual business logic has been configured away entirely.`,
+      `The Ruby here is very readable. Shame about the 47 gems that each do one thing and collectively do nothing.`,
+    ],
+    nuclear: [
+      `Ruby — the language that convinced a generation of developers that metaprogramming was a good idea at scale. These repos are the evidence.`,
+    ],
+  },
+
+  Go: {
+    mild: [
+      `Go — simple, fast, and deployed with the confidence of someone who has read the spec twice and considers themselves an expert.`,
+    ],
+    savage: [
+      `Go developer — error handling by checking "if err != nil" 400 times per file, which is either discipline or a personality disorder.`,
+      `The Go here has so many goroutines that the race detector has simply given up and gone home.`,
+    ],
+    nuclear: [
+      `Go — chosen for its simplicity, which is why this codebase has a custom error type for every conceivable situation and a 900-line main.go.`,
+    ],
+  },
+
+  Rust: {
+    mild: [
+      `Rust — the language of memory safety, zero-cost abstractions, and spending three days fighting the borrow checker for a function that returns a string.`,
+    ],
+    savage: [
+      `A Rust developer — rewrote something in Rust for performance, spent 6 weeks on lifetime annotations, and the original Python version is still running in production.`,
+      `The borrow checker errors in this commit history suggest a developer who is either learning or has accepted suffering as a core part of their identity.`,
+    ],
+    nuclear: [
+      `Rust — where memory safety comes at the cost of your sanity, your weekends, and your previously held belief that programming was enjoyable.`,
+      `This Rust codebase is technically correct, which is the best kind of correct, and also the only thing going for it at this stage.`,
+    ],
+  },
+
+  Swift: {
+    mild: [
+      `Swift — beautiful language, Apple ecosystem, and based on these repos, primarily used to build apps that work on exactly one developer's iPhone.`,
+    ],
+    savage: [
+      `An iOS developer — which means these apps require the latest Xcode, the latest macOS, and a level of Apple hardware loyalty that borders on religious conviction.`,
+    ],
+    nuclear: [
+      `Swift developer with an Android app in the repo — the betrayal is noted, catalogued, and will be referenced at every opportunity.`,
+    ],
+  },
+
+  Kotlin: {
+    mild: [
+      `Kotlin — the more civilised Java, used here by someone who clearly had enough and made the switch, then kept all the old Java files just in case.`,
+    ],
+    savage: [
+      `Kotlin — chosen to escape Java, deployed alongside Java, because old habits are immortal and refactoring is someone else's problem.`,
+    ],
+    nuclear: [
+      `This Kotlin codebase coexists with Java in a state of mutual toleration, like two colleagues who have stopped trying to understand each other.`,
+    ],
+  },
+
+  // WHY default: catches any language not in the list above
+  // e.g. Dart, Elixir, Haskell, Lua, Perl, R, Scala, Shell, etc.
+  default: {
+    mild: [
+      `The language choice here is interesting — not wrong, just interesting, in the way that many life choices are interesting in retrospect.`,
+    ],
+    savage: [
+      `The primary language here is {lang} — a choice that tells a very specific story about this developer's journey.`,
+      `Committing to {lang} in this economy takes a kind of confidence that the rest of the profile has not yet confirmed.`,
+    ],
+    nuclear: [
+      `{lang} — chosen deliberately, which raises more questions than it answers.`,
+      `The {lang} here is either visionary or a cry for help. The rest of the profile suggests the latter.`,
+    ],
+  },
+};
+
+// ── Closer banks ───────────────────────────────────────────────
 const CLOSER_BANK = {
   mild: {
     catastrophic: [
@@ -186,7 +394,7 @@ const CLOSER_BANK = {
   },
 };
 
-// ─── Helpers ─────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────
 function pick(arr) {
   if (!arr || arr.length === 0) return "";
   return arr[Math.floor(Math.random() * arr.length)];
@@ -208,7 +416,7 @@ function pickN(arr, n) {
   return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
 }
 
-// ─── Section builders ────────────────────────────────────
+// ── Section builders ───────────────────────────────────────────
 function buildOpener(score, intensity) {
   const tier = getTier(score);
   const bank = OPENER_BANK[intensity]?.[tier] || OPENER_BANK.savage[tier];
@@ -233,6 +441,23 @@ function buildCommitSection(commitAnalysis, intensity) {
   return fill(pick(bank), { sample });
 }
 
+// WHY buildLanguageSection:
+//   Adds a language-specific insult to the roast
+//   Makes the roast feel tailored — "how did it know?"
+//   Only fires when we have a clear top language
+//   Uses default pack for unknown languages (Dart, Elixir, etc.)
+function buildLanguageSection(lang, intensity) {
+  if (!lang || lang === "unknown" || lang === "") return "";
+
+  // WHY normalize: GitHub API can return "JavaScript" or "javascript"
+  const normalized = lang.charAt(0).toUpperCase() + lang.slice(1);
+  const pack = LANGUAGE_PACKS[normalized] || LANGUAGE_PACKS.default;
+  const bank = pack[intensity] || pack.savage || pack.mild || [];
+
+  const line = fill(pick(bank), { lang: normalized });
+  return line;
+}
+
 function buildCloser(score, repoAnalysis, _raw, intensity) {
   const tier = getTier(score);
   const bank = CLOSER_BANK[intensity]?.[tier] || CLOSER_BANK.savage[tier];
@@ -242,14 +467,20 @@ function buildCloser(score, repoAnalysis, _raw, intensity) {
   });
 }
 
-// ─── MAIN EXPORT ─────────────────────────────────────────
+// ── Main export ────────────────────────────────────────────────
 function generateRoast(data, intensity = "savage") {
   const { score, _raw, repoAnalysis, commitAnalysis } = data;
 
   const opener = buildOpener(score, intensity);
   const closer = buildCloser(score, repoAnalysis, _raw, intensity);
 
+  // WHY language section in middles pool:
+  //   Treated like any other middle section
+  //   pickN selects up to 2 middles randomly
+  //   Language line competes with abandon + commit lines
+  //   Prevents roast feeling too crowded with language stereotypes
   const middles = [
+    buildLanguageSection(_raw?.topLanguage, intensity),
     buildAbandonSection(repoAnalysis, intensity),
     buildCommitSection(commitAnalysis, intensity),
   ].filter((s) => s && s.trim().length > 0);
