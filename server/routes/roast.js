@@ -16,6 +16,25 @@ setInterval(() => {
   }
 }, 60000);
 
+// WHY /feed above /stats and /:username: specific route must come before dynamic
+// WHAT: Returns last 10 public roasts for live feed on homepage
+// WHY limit 10: enough to show activity, not overwhelming
+// WHY select specific fields: don't expose full roast data publicly
+//     only username, score, grade, intensity, createdAt needed for feed
+router.get("/feed", async (req, res) => {
+  try {
+    const feed = await Roast.find({})
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select("username score grade intensity createdAt")
+      .lean();
+
+    return res.status(200).json({ success: true, feed });
+  } catch (err) {
+    return res.status(200).json({ success: true, feed: [] });
+  }
+});
+
 // ─── GET /api/roast/stats ─────────────────────────────────
 // WHY: MUST be before /:username — specific routes first
 router.get("/stats", async (req, res) => {
