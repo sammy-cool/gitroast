@@ -164,6 +164,26 @@ export default function RoastPageClient({ username }) {
           return
         }
 
+        if (err.code === 'CAPTCHA_REQUIRED' || err.code === 'CAPTCHA_FAILED') {
+          createToast({
+            type: 'warning',
+            message: err.message || 'Bot verification blocked by browser shield. Please log in with GitHub to roast!',
+            position: 'top-center',
+            duration: 8000,
+            showCloseButton: true,
+            cta: {
+              label: 'Login via GitHub ↗',
+              onClick: () => {
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+                window.location.href = `${apiBase}/api/auth/github`
+              },
+              autoClose: true,
+            },
+          })
+          router.push('/')
+          return
+        }
+
         if (err.name === 'TimeoutError') {
           createToast({
             type: 'error',

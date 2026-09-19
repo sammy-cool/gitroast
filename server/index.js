@@ -58,16 +58,49 @@ app.use((req, res, next) => {
 });
 
 // ── Step 3: CORS ──────────────────────────────────────────────
-// WHAT: Allows browser requests from frontend domain only
-// WHY allowedHeaders: without this, preflight OPTIONS request fails
-//     for any request with Authorization or X-Idempotency-Key header
-//     which breaks auth and idempotency silently
+// WHAT: Allows browser requests from authorized frontend domains
+// WHY allowedHeaders: must list all custom headers sent by client,
+//     including X-Captcha-Token and X-Idempotency-Key, to prevent preflight failures
+const ALLOWED_ORIGINS = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "https://gitroast-dev.vercel.app",
+  "https://gitroast.dev",
+  "https://www.gitroast.dev",
+];
+
+function isOriginAllowed(origin) {
+  if (!origin) return true; // allow non-browser requests (curl, server-to-server)
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  if (process.env.CLIENT_URL) {
+    const configured = process.env.CLIENT_URL.split(",").map((s) => s.trim().replace(/\/$/, ""));
+    if (configured.includes(origin)) return true;
+  }
+  // Allow Vercel preview/production deployments for this app
+  if (/^https:\/\/gitroast.*\.vercel\.app$/.test(origin)) return true;
+  return false;
+}
+
 app.use(
   cors({
-    origin: [process.env.CLIENT_URL || "http://localhost:3000"],
+    origin: (origin, callback) => {
+      if (isOriginAllowed(origin)) {
+        callback(null, true);
+      } else {
+        logger.warn("CORS", `Request blocked for origin: ${origin}`);
+        callback(new Error(`CORS blocked for origin: ${origin}`));
+      }
+    },
     credentials: true,
-    // WHY: explicitly list every custom header the frontend sends
-    allowedHeaders: ["Content-Type", "Authorization", "X-Idempotency-Key"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Idempotency-Key",
+      "X-Captcha-Token",
+    ],
+    exposedHeaders: ["X-Idempotency-Key", "Retry-After"],
+    maxAge: 86400, // 24 hours preflight cache
   }),
 );
 
