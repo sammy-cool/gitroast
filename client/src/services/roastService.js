@@ -29,7 +29,7 @@ export async function getRoast(
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;
 
-  const url = `${API_BASE}/api/roast/${username}?intensity=${encodeURIComponent(intensity)}`;
+  const url = `${API_BASE}/api/roast/${encodeURIComponent(username)}?intensity=${encodeURIComponent(intensity)}`;
 
   const res = await fetch(url, {
     method: "GET",
@@ -54,7 +54,7 @@ export async function getRoast(
 
 // ── getRoastHistory ───────────────────────────────────────────
 export async function getRoastHistory(username) {
-  const res = await fetch(`${API_BASE}/api/history/${username}`, {
+  const res = await fetch(`${API_BASE}/api/history/${encodeURIComponent(username)}`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
     signal: AbortSignal.timeout(8000),

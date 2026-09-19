@@ -101,6 +101,9 @@ async function createOrder(planId, userId) {
 //   Regular === leaks info via response time (timing attack)
 //   timingSafeEqual always takes same time → no timing leak
 function verifyPayment({ orderId, paymentId, signature }) {
+  if (!orderId || !paymentId || !signature || !process.env.RAZORPAY_KEY_SECRET) {
+    return false;
+  }
   const body = `${orderId}|${paymentId}`;
   const expected = crypto
     .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
