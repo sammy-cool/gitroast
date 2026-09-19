@@ -1,6 +1,4 @@
-// WHY no 'use client': Footer has no state, no hooks
-//     pure server component — renders faster
-//     BUT if you add <style jsx> so needs 'use client'
+import Link from 'next/link'
 
 export default function Footer() {
   const year = new Date().getFullYear()
@@ -20,12 +18,12 @@ export default function Footer() {
 
         {/* Links */}
         <div className="footer-links">
-          <a href="/leaderboard" className="footer-link">
+          <Link href="/leaderboard" className="footer-link">
             Wall of Shame
-          </a>
-          <a href="/pricing" className="footer-link">
+          </Link>
+          <Link href="/pricing" className="footer-link">
             Pricing
-          </a>
+          </Link>
           {/* WHY mailto: simple contact before we have a contact page */}
           <a
             href="mailto:priyanshu.alt191@gmail.com"

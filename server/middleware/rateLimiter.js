@@ -44,7 +44,7 @@ setInterval(
     }
   },
   5 * 60 * 1000,
-);
+).unref();
 
 // ── Factory function ──────────────────────────────────────────
 // WHAT: Creates a configured rate limiter middleware
@@ -67,16 +67,28 @@ function createRateLimiter({
     //   split(',')[0] = take first IP if multiple proxies in chain
     const ip =
       req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
-      req.socket.remoteAddress ||
+      req.ip ||
+      req.socket?.remoteAddress ||
       "unknown";
 
     const now = Date.now();
 
-    // WHY include req.path in key:
-    //   Different routes have different limits
-    //   Same IP hitting /roast and /auth should track separately
-    //   Without path: one route's limit bleeds into another
-    const key = `${ip}:${req.path}`;
+    // WHY route scope normalization:
+    //   1. /api/roast/:username -> normalized to /api/roast/profile so changing usernames doesn't bypass limit
+    //   2. /api/roast/feed & /api/roast/stats keep dedicated keys so ticker polling doesn't drain roast quota
+    //   3. /api/battle/:user1/vs/:user2 -> normalized to /api/battle so changing challenger names doesn't bypass limit
+    let routeScope = req.baseUrl || req.path;
+    if (req.baseUrl === "/api/roast") {
+      if (req.path === "/feed" || req.path === "/stats") {
+        routeScope = `/api/roast${req.path}`;
+      } else {
+        routeScope = "/api/roast/profile";
+      }
+    } else if (req.baseUrl === "/api/battle") {
+      routeScope = "/api/battle";
+    }
+
+    const key = `${ip}:${routeScope}`;
 
     const existing = requestCounts.get(key);
 

@@ -330,7 +330,7 @@ body.loading {
 }
 
 .gitroast-loader-text-fire {
-  background: "linear-gradient(135deg, #FF4500, #FF6B00, #FFB700)";
+  background: linear-gradient(135deg, #ff4500, #ff6b00, #ffb700);
   background-clip: text;
   -webkit-background-clip: text; /* For Safari */
   -webkit-text-fill-color: transparent;
@@ -348,7 +348,7 @@ body.loading {
 
 .loading-card > p {
   color: var(--text-secondary);
-  font-size: "13px";
+  font-size: 13px;
 }
 
 /* WHY staggered dots: gives life to loading state

@@ -22,3 +22,6 @@ Thumbs.db
 
 # VS Code
 .vscode/
+
+# Local Agent instructions
+AGENTS.md

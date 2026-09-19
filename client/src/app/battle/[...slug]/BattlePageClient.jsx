@@ -93,7 +93,7 @@ export default function BattlePageClient({ user1, user2 }) {
 
         fetchBattle()
         return () => { cancelled = true }
-    }, [user1, user2, router])
+    }, [user1, user2, router, getToken])
 
     const progress = Math.round((visibleSteps / BATTLE_STEPS.length) * 100)
 

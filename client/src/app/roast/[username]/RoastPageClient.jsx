@@ -38,11 +38,12 @@ export default function RoastPageClient({ username }) {
   const router = useRouter()
   const { getToken, isPro } = useAuth()
 
-  const idempotencyKey = useRef(
-    `${username}-${Date.now()}-${Math.random().toString(36).slice(2)}`
-  )
+  const idempotencyKey = useRef('')
 
   useEffect(() => {
+    if (!idempotencyKey.current) {
+      idempotencyKey.current = `${username}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    }
     if (
       !username ||
       username.length > 39 ||
@@ -53,28 +54,29 @@ export default function RoastPageClient({ username }) {
       return
     }
 
-    const cacheKey = `gitroast_roast_${username}`
-    const cachedRoast = sessionStorage.getItem(cacheKey)
-
-    if (cachedRoast) {
-      try {
-        const parsed = JSON.parse(cachedRoast)
-        const cacheAge = Date.now() - parsed.cachedAt
-        if (cacheAge < 10 * 60 * 1000) {
-          setRoastData(parsed.data)
-          setView('result')
-          return
-        } else {
-          sessionStorage.removeItem(cacheKey)
-        }
-      } catch {
-        sessionStorage.removeItem(cacheKey)
-      }
-    }
-
     let cancelled = false
 
     async function fetchRoast() {
+      const cacheKey = `gitroast_roast_${username}`
+      const cachedRoast = sessionStorage.getItem(cacheKey)
+
+      if (cachedRoast) {
+        try {
+          const parsed = JSON.parse(cachedRoast)
+          const cacheAge = Date.now() - parsed.cachedAt
+          if (cacheAge < 10 * 60 * 1000) {
+            if (cancelled) return
+            setRoastData(parsed.data)
+            setView('result')
+            return
+          } else {
+            sessionStorage.removeItem(cacheKey)
+          }
+        } catch {
+          sessionStorage.removeItem(cacheKey)
+        }
+      }
+
       try {
         const token = getToken()
         const intensity = sessionStorage.getItem('gitroast_intensity') || 'savage'
@@ -163,7 +165,7 @@ export default function RoastPageClient({ username }) {
 
     fetchRoast()
     return () => { cancelled = true }
-  }, [username, router])
+  }, [username, router, getToken])
 
   function handleRoastAnother() {
     sessionStorage.removeItem(`gitroast_roast_${username}`)

@@ -1,11 +1,6 @@
 'use client'
 
-// WHY no useRouter here:
-//   Next.js prerenderes /_not-found at build time
-//   useRouter requires router context which doesn't exist
-//   during static prerendering → TypeError: Cannot read
-//   properties of undefined (reading '$$typeof')
-//   Fix: use plain <a href> tags — work in all contexts
+import Link from 'next/link'
 
 export default function NotFound() {
   return (
@@ -29,15 +24,12 @@ export default function NotFound() {
         </p>
 
         <div className="nf-actions">
-          {/* WHY <a href> not router.push:
-              prerender-safe — no router context needed
-              same navigation behaviour in production */}
-          <a href="/" className="btn btn-primary nf-btn">
+          <Link href="/" className="btn btn-primary nf-btn">
             🔥 Roast Someone Instead
-          </a>
-          <a href="/leaderboard" className="btn btn-ghost nf-btn-ghost">
+          </Link>
+          <Link href="/leaderboard" className="btn btn-ghost nf-btn-ghost">
             🏆 Wall of Shame
-          </a>
+          </Link>
         </div>
 
       </div>

@@ -36,7 +36,7 @@ const PLAN_DISPLAY = {
 }
 
 export default function PaymentFlow({ planId, onClose }) {
-    const { getToken, user } = useAuth()
+    const { getToken, user, refreshUser } = useAuth()
     const [status, setStatus] = useState('sdk_loading')
     const [errorMsg, setErrorMsg] = useState('')
     const [planInfo, setPlanInfo] = useState(null) // WHY: store price from server
@@ -193,6 +193,11 @@ export default function PaymentFlow({ planId, onClose }) {
 
             const json = await res.json()
             if (!json.success) throw new Error(json.message)
+
+            // WHY refreshUser: immediately updates isPro in AuthContext so whole UI unlocks Pro
+            if (refreshUser) {
+                await refreshUser()
+            }
 
             setStatus('done')
 

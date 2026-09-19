@@ -17,16 +17,6 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null)
     const [loading, setLoading] = useState(true)
 
-    // ── Restore session on page load ────────────────────────
-    useEffect(() => {
-        const token = localStorage.getItem(TOKEN_KEY)
-        if (token) {
-            fetchMe(token)
-        } else {
-            setLoading(false)
-        }
-    }, [])
-
     // ── Fetch current user profile ──────────────────────────
     // WHY useCallback: stable function reference
     //     safe to use in useEffect dependency arrays
@@ -52,6 +42,25 @@ export function AuthProvider({ children }) {
             setLoading(false)
         }
     }, [])
+
+    // ── Restore session on page load ────────────────────────
+    useEffect(() => {
+        const token = localStorage.getItem(TOKEN_KEY)
+        if (token) {
+            fetchMe(token)
+        } else {
+            setLoading(false)
+        }
+    }, [fetchMe])
+
+    // ── Re-fetch user profile (e.g. after payment or profile change) ───
+    const refreshUser = useCallback(async () => {
+        const token = localStorage.getItem(TOKEN_KEY)
+        if (token) {
+            return await fetchMe(token)
+        }
+        return null
+    }, [fetchMe])
 
     // ── Save token + set user (called from callback page) ───
     const loginWithToken = useCallback((token) => {
@@ -95,6 +104,7 @@ export function AuthProvider({ children }) {
         loginWithToken,
         getToken,
         logout,
+        refreshUser,
     }
 
     return (

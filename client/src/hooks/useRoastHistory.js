@@ -44,14 +44,14 @@ export function useRoastHistory(username) {
         ? history[0].score - history[1].score
         : null
 
-    // Best (lowest) score ever
+    // Best (highest) developer profile score
     const bestScore = history.length > 0
-        ? Math.min(...history.map(r => r.score))
+        ? Math.max(...history.map(r => r.score))
         : null
 
-    // Worst (highest) score ever
+    // Worst (lowest) score (maximum roast)
     const worstScore = history.length > 0
-        ? Math.max(...history.map(r => r.score))
+        ? Math.min(...history.map(r => r.score))
         : null
 
     // Average score

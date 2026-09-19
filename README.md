@@ -9,7 +9,7 @@
 [![Backend](https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge)](https://render.com)
 [![MongoDB](https://img.shields.io/badge/DB-MongoDB_Atlas-47A248?style=for-the-badge&logo=mongodb)](https://mongodb.com)
 
-> AI-powered GitHub profile roast generator — analyzes your repos, commits, and coding habits to deliver a brutally funny roast. Built with a custom scoring engine, 3-tier intensity system, Pro tier monetization, and a viral sharing architecture.
+> AI-powered GitHub profile roast generator — analyzes your repos, commits, and coding habits to deliver a brutally funny roast. Built with a custom scoring engine, 3-tier intensity system, Pro monetization with Razorpay, head-to-head battle mode, shareable certificate of shame, and dynamic OpenGraph card generation.
 
 </div>
 
@@ -26,28 +26,31 @@
 - [Scoring Engine](#-scoring-engine)
 - [Intensity System](#-intensity-system)
 - [Roast Battle](#-roast-battle)
+- [Certificate of Shame](#-certificate-of-shame)
 - [Monetization](#-monetization)
 - [Environment Variables](#-environment-variables)
 - [Local Development](#-local-development)
 - [Deployment](#-deployment)
 - [API Reference](#-api-reference)
 - [Architecture Decisions](#-architecture-decisions)
+- [Author](#-author)
 
 ---
 
 ## 🔥 What Is GitRoast
 
-GitRoast analyzes any public GitHub profile and generates a personalized comedy roast based on real data — commit quality, abandoned repos, language choices, README existence, stars, and more.
+GitRoast analyzes any public GitHub profile and generates a personalized comedy roast based on real developer data — commit quality, abandoned repos, language choices, README existence, stars, and descriptions.
 
 Users can:
 
-- Get roasted for free (rule-based engine)
-- Upgrade to Pro for AI-powered roasts via Google Gemini 2.5 Flash
-- Choose intensity: Mild 🌶 / Savage 🔥 / Nuclear ☢️ (Pro)
-- Battle a friend's GitHub head-to-head
-- Download a shareable PNG roast card
-- View roast history and score trends over time
-- Compete on the public Wall of Shame leaderboard
+- **Get roasted for free** via the rule-based roast engine with tone banks
+- **Upgrade to Pro** for personalized AI roasts via Google Gemini 2.5 Flash
+- **Choose intensity**: Mild 🌶 / Savage 🔥 / Nuclear ☢️ (Pro)
+- **Battle head-to-head** with another developer's GitHub profile
+- **Download cards & certificates**: Shareable PNG roast cards and printable Certificates of GitHub Shame
+- **React to roasts**: Community emoji reactions (😂 Relatable, 💀 Destroyed, 🔥 Savage) with IP-based deduplication
+- **View live ticker & history**: Real-time recent roast marquee and score tracking over time
+- **Compete on the Wall of Shame**: Public global leaderboard of the most roastable profiles
 
 ---
 
@@ -59,49 +62,48 @@ Users can:
 | API Health     | https://gitroast-latest.onrender.com/health |
 | Wall of Shame  | https://gitroast-dev.vercel.app/leaderboard |
 | Battle Mode    | https://gitroast-dev.vercel.app/battle      |
+| Pricing Plans  | https://gitroast-dev.vercel.app/pricing     |
 
 ---
 
 ## ✨ Features
 
-### Core
+### Core Capabilities
+- **GitHub Profile Analysis** — fetches user profile, repositories, commit history, READMEs, and language distributions in parallel.
+- **Custom Scoring Engine** — 1–99 score computed across 4 weighted penalties with letter grades (`A` to `F-`).
+- **Rule-Based Roast Engine** — zero-API-cost comedy generator with intensity tone banks and language-specific stereotype packs (JavaScript, Python, Rust, Go, TypeScript, etc.).
+- **AI Roast Engine (Pro)** — Google Gemini 2.5 Flash tuned with role-specific prompt templates, temperature scaling, and anti-cliché filters.
+- **Roast History & Trends** — per-user score timeline with interactive SVG charts and month-over-month averages.
+- **Wall of Shame Leaderboard** — aggregated MongoDB leaderboard highlighting the most roastable GitHub profiles globally.
 
-- **GitHub Profile Analysis** — fetches repos, commits, languages, README, stars via GitHub API
-- **Custom Scoring Engine** — 0–100 score across 8+ signals, letter grade (A–F)
-- **Rule-Based Roast Engine** — intensity-aware tone banks (no AI cost for free users)
-- **AI Roast Engine** — Google Gemini 2.5 Flash with intensity-tuned prompts (Pro only)
-- **Roast History** — per-user history with SVG score chart and monthly comparison
-- **Public Leaderboard** — Wall of Shame — most roasted profiles ranked globally
+### Viral & Engagement Differentiators
+- **Head-to-Head Roast Battle** — parallel profile analysis of two developers with comparative AI boxing announcer verdict.
+- **Certificate of GitHub Shame** — downloadable vintage parchment-style certificate rendered via HTML5 canvas.
+- **Dynamic OpenGraph Image Generation** — Next.js Edge Runtime handlers (`/api/og` and `/api/og-battle`) generating real-time 1200×630 social preview PNGs for Twitter and LinkedIn.
+- **Community Reactions** — interactive emoji reactions (`😂 Relatable`, `💀 Destroyed`, `🔥 Savage`) with optimistic UI and server-side rate deduplication.
+- **Live Roast Ticker** — automated scrolling marquee of recently generated public roasts.
+- **Rate Limit Countdown Banner** — live countdown timer guiding users when rate limits are active.
+- **Idempotent Requests** — client and server deduplication with `X-Idempotency-Key` headers to prevent double-charging or duplicate entries during React StrictMode.
 
-### Differentiators
-
-- **3-Tier Intensity** — Mild / Savage / Nuclear changes AI temperature + comedian persona
-- **Roast Battle** — head-to-head GitHub comparison with AI battle verdict
-- **PNG Download** — html2canvas card capture; HD watermark-free for Pro
-- **Twitter/X Share** — pre-filled tweet with roast snippet + link
-- **Idempotency** — server-side deduplication via `X-Idempotency-Key` header
-
-### Monetization
-
-- **Razorpay** — INR payments supporting UPI, cards, netbanking, wallets
-- **HMAC SHA256** — webhook signature verification
-- **Pro Tier** — AI roasts, private repos, Nuclear intensity, HD card, unlimited roasts
+### Monetization & Billing
+- **Razorpay Integration** — INR payments supporting UPI, credit/debit cards, NetBanking, and mobile wallets.
+- **HMAC SHA-256 Verification** — secure server-side cryptographic signature validation preventing payment tampering.
+- **Pro Tier Benefits** — unlocks Google Gemini AI roasts, Nuclear intensity, watermark-free HD downloads, private repo analysis via OAuth, and unlimited daily roasts.
 
 ---
 
 ## 🛠 Tech Stack
 
-| Layer         | Technology                                   |
-| ------------- | -------------------------------------------- |
-| Frontend      | Next.js 16 App Router, styled-jsx, next/font |
-| Backend       | Express.js, Node.js                          |
-| Database      | MongoDB Atlas, Mongoose                      |
-| AI            | Google Gemini 2.5 Flash                      |
-| Auth          | GitHub OAuth, JWT                            |
-| Payments      | Razorpay (INR)                               |
-| Image Capture | html2canvas                                  |
-| Deployment    | Vercel (frontend), Render Docker (backend)   |
-| Domain        | Hostinger (registrar only)                   |
+| Layer         | Technology                                                            |
+| ------------- | --------------------------------------------------------------------- |
+| Frontend      | Next.js 16 (App Router), React 19, styled-jsx, `next/font`, `next/og` |
+| Backend       | Node.js 20+, Express.js 5                                             |
+| Database      | MongoDB Atlas, Mongoose 9                                             |
+| AI Engine     | Google Gemini 2.5 Flash (`generateContent` API)                       |
+| Authentication| GitHub OAuth 2.0, JSON Web Tokens (JWT)                               |
+| Payments      | Razorpay Node SDK & Checkout.js (INR)                                 |
+| Image Capture | `html2canvas`, Satori / Edge ImageResponse                            |
+| Deployment    | Vercel (Frontend), Render Docker Container (Backend)                  |
 
 ---
 
@@ -109,91 +111,110 @@ Users can:
 
 ```
 gitroast/
-├── client/                          # Next.js 16 App Router
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── layout.jsx           # Root layout — fonts, auth, hydration, footer
-│   │   │   ├── globals.css          # Design system — CSS variables, animations
-│   │   │   ├── page.jsx             # Landing page — intensity selector, social proof
-│   │   │   ├── not-found.jsx        # Branded 404
-│   │   │   ├── error.jsx            # Global error boundary
-│   │   │   ├── loading.jsx          # Route transition loader
-│   │   │   ├── roast/[username]/
-│   │   │   │   ├── page.jsx         # SSR + generateMetadata
-│   │   │   │   └── RoastPageClient.jsx  # Fetch + analyzing screen + result
-│   │   │   ├── battle/
-│   │   │   │   ├── page.jsx         # Battle entry — two username inputs
-│   │   │   │   └── [...slug]/
-│   │   │   │       ├── page.jsx     # SSR + OG metadata per battle
-│   │   │   │       └── BattlePageClient.jsx  # Battle fetch + animation + result
-│   │   │   ├── history/[username]/
-│   │   │   │   ├── page.jsx
-│   │   │   │   └── HistoryPageClient.jsx
-│   │   │   ├── leaderboard/
-│   │   │   │   └── page.jsx
-│   │   │   ├── pricing/
-│   │   │   │   └── page.jsx
-│   │   │   ├── payment/
-│   │   │   │   └── page.jsx         # Redirects to /pricing (Razorpay uses popup)
-│   │   │   └── auth/callback/
-│   │   │       └── page.jsx         # GitHub OAuth callback handler
-│   │   ├── components/
-│   │   │   ├── HydrationWrapper.jsx # Global hydration loader — covers all pages
-│   │   │   ├── ToastConfig.jsx      # Brand toast colors — global config
-│   │   │   ├── Footer.jsx           # Fixed bottom footer
-│   │   │   ├── GitHubLoginBtn.jsx   # Auth button with pulse placeholder
-│   │   │   ├── UsernameInput.jsx    # Landing page input
-│   │   │   ├── AnalyzingScreen.jsx  # Terminal animation during roast fetch
-│   │   │   ├── RoastCard.jsx        # Main roast result card (captured for PNG)
-│   │   │   ├── ShareButtons.jsx     # Share link, tweet, copy text, download PNG
-│   │   │   ├── BattleCard.jsx       # Head-to-head battle result
-│   │   │   ├── ProModal.jsx         # Upgrade modal — ₹199/₹499/₹999
-│   │   │   ├── PricingCard.jsx      # Pricing page card
-│   │   │   ├── PaymentFlow.jsx      # Razorpay SDK popup handler
-│   │   │   ├── StatsGrid.jsx        # GitHub stats grid on roast card
-│   │   │   ├── CommitShame.jsx      # Worst commit messages display
-│   │   │   ├── HistoryCard.jsx      # Single roast history item
-│   │   │   ├── LeaderboardTable.jsx # Wall of Shame table (native <a> rows)
-│   │   │   ├── ScoreChart.jsx       # Pure SVG score over time chart
-│   │   │   └── MonthlyComparison.jsx
-│   │   ├── context/
-│   │   │   └── AuthContext.jsx      # GitHub OAuth state, isPro, getToken
-│   │   ├── hooks/
-│   │   │   └── useRoastHistory.js
-│   │   └── services/
-│   │       └── roastService.js      # API calls — getRoast, getBattleRoast, trackShare
-│   └── public/
-│       ├── og-default.png           # 1200×630 OG image for social sharing
-│       ├── favicon.ico
-│       ├── apple-touch-icon.png
-│       ├── robots.txt
-│       └── sitemap.xml
+├── AGENTS.md                                # Repository rules & brand UX guidelines
+├── README.md                                # Comprehensive documentation
 │
-└── server/                          # Express.js API
-    ├── index.js                     # App entry — CORS, middleware, route registration
-    ├── Dockerfile                   # node:20-alpine, health check, CMD node index.js
-    ├── .dockerignore
-    ├── routes/
-    │   ├── roast.js                 # GET /stats (above /:username), GET /:username
-    │   ├── battle.js                # GET /:user1/vs/:user2
-    │   ├── auth.js                  # GitHub OAuth — /github, /github/callback
-    │   ├── history.js               # GET /:username, POST /:id/share
-    │   └── payment.js               # POST /create-order, POST /verify
-    ├── services/
-    │   ├── githubService.js         # GitHub REST API — profile, repos, commits
-    │   ├── roastEngine.js           # Rule-based roast — intensity-aware tone banks
-    │   ├── aiService.js             # Gemini 2.5 Flash — intensity-tuned prompts
-    │   ├── battleService.js         # runBattle — parallel fetch + AI verdict
-    │   ├── paymentService.js        # Razorpay order create + HMAC verify
-    │   └── tokenService.js          # JWT sign + verify
+├── client/                                  # Next.js 16 App Router frontend
+│   ├── package.json
+│   ├── next.config.mjs
+│   ├── public/
+│   │   ├── favicon.ico
+│   │   ├── apple-touch-icon.png
+│   │   ├── og-default.png                   # Fallback 1200×630 OG image
+│   │   ├── robots.txt
+│   │   └── sitemap.xml
+│   └── src/
+│       ├── app/
+│       │   ├── layout.jsx                   # Root layout — fonts, AuthProvider, error tracker
+│       │   ├── globals.css                  # Design system tokens, utilities, animations
+│       │   ├── page.jsx                     # Landing page — intensity selector, input, live feed
+│       │   ├── not-found.jsx                # Branded 404 page
+│       │   ├── error.jsx                    # Global React error boundary
+│       │   ├── loading.jsx                  # Route transition loader
+│       │   ├── roast/[username]/
+│       │   │   ├── page.jsx                 # SSR shell + dynamic OG metadata
+│       │   │   └── RoastPageClient.jsx      # Roast fetch, terminal animation, result card
+│       │   ├── battle/
+│       │   │   ├── page.jsx                 # Battle entry — dual username inputs
+│       │   │   └── [...slug]/
+│       │   │       ├── page.jsx             # SSR shell + battle OG metadata
+│       │   │       └── BattlePageClient.jsx # Parallel fetch, arena animation, verdict
+│       │   ├── history/[username]/
+│       │   │   ├── page.jsx                 # User history SSR shell
+│       │   │   └── HistoryPageClient.jsx    # Score chart, timeline, monthly comparison
+│       │   ├── leaderboard/
+│       │   │   └── page.jsx                 # Wall of Shame global table
+│       │   ├── pricing/
+│       │   │   └── page.jsx                 # Pricing tiers, FAQ, Squad waitlist
+│       │   ├── payment/
+│       │   │   └── page.jsx                 # Fallback route (redirects to /pricing)
+│       │   ├── auth/callback/
+│       │   │   └── page.jsx                 # GitHub OAuth callback & token storage
+│       │   └── api/
+│       │       ├── og/route.js              # Edge runtime dynamic OG card for roasts
+│       │       └── og-battle/route.js       # Edge runtime dynamic OG card for battles
+│       ├── components/
+│       │   ├── AnalyzingScreen.jsx          # Terminal animation during profile inspection
+│       │   ├── BattleCard.jsx               # Head-to-head battle score & roast display
+│       │   ├── CommitShame.jsx              # Hall of shame commit message tags
+│       │   ├── Footer.jsx                   # Fixed global footer
+│       │   ├── GitHubLoginBtn.jsx           # OAuth button with profile avatar & loading pulse
+│       │   ├── HistoryCard.jsx              # Individual historical roast item
+│       │   ├── HydrationWrapper.jsx         # Client hydration lifecycle handler
+│       │   ├── LeaderboardTable.jsx         # Ranked Wall of Shame table
+│       │   ├── LiveRoastFeed.jsx            # Scrolling real-time recent roast marquee
+│       │   ├── MonthlyComparison.jsx        # Month-over-month score change component
+│       │   ├── PaymentFlow.jsx              # Razorpay checkout modal logic
+│       │   ├── PaymentModal.jsx             # Fullscreen portal modal for checkout
+│       │   ├── PricingCard.jsx              # Reusable pricing tier card
+│       │   ├── ProBadge.jsx                 # Reusable PRO ⚡ indicator
+│       │   ├── ProModal.jsx                 # Upgrade prompt modal with plan switcher
+│       │   ├── RateLimitBanner.jsx          # Live countdown rate-limit warning banner
+│       │   ├── RoastCard.jsx                # Main roast result card (PNG capture target)
+│       │   ├── RoastCertificate.jsx         # Certificate of GitHub Shame generator
+│       │   ├── RoastReactions.jsx           # Emoji reaction counter & buttons
+│       │   ├── ScoreChart.jsx               # Pure SVG score-over-time trend chart
+│       │   ├── ShareButtons.jsx             # Twitter share, link copy, PNG downloads
+│       │   ├── StatsGrid.jsx                # 4-metric GitHub diagnostic grid
+│       │   ├── ToastConfig.jsx              # Global brand toast color configuration
+│       │   └── UsernameInput.jsx            # Validated GitHub username input form
+│       ├── context/
+│       │   └── AuthContext.jsx              # User session, JWT tokens, Pro status
+│       ├── hooks/
+│       │   └── useRoastHistory.js           # Roast history fetching & derived statistics
+│       ├── services/
+│       │   └── roastService.js              # Centralized backend API client
+│       └── utils/
+│           ├── clientErrorTracker.js        # Universal frontend error tracker
+│           └── toastUtils.js                # Centralized toast helper methods
+│
+└── server/                                  # Express.js backend API
+    ├── index.js                             # Express bootstrapping, security headers, CORS
+    ├── Dockerfile                           # Production container definition (node:20-alpine)
+    ├── package.json
+    ├── middleware/
+    │   ├── auth.js                          # requireAuth, optionalAuth, requirePro
+    │   ├── errorHandler.js                  # Central error mapper & notFoundHandler
+    │   └── rateLimiter.js                   # In-memory rate limiting per endpoint & IP
     ├── models/
-    │   ├── User.js                  # isPro, githubAccessToken, canRoastToday()
-    │   ├── Roast.js                 # score, grade, intensity, roastText, source
-    │   └── Payment.js               # Razorpay order + payment tracking
-    └── middleware/
-        ├── auth.js                  # requireAuth, optionalAuth, requirePro
-        ├── rateLimiter.js           # Per-route rate limiting
-        └── errorHandler.js          # Global error handler
+    │   ├── User.js                          # User accounts, OAuth tokens, daily limit
+    │   ├── Roast.js                         # Roast snapshots, scores, grades, reactions
+    │   └── Payment.js                       # Razorpay order & payment records
+    ├── routes/
+    │   ├── auth.js                          # GitHub OAuth & /me endpoints
+    │   ├── battle.js                        # Head-to-head battle endpoint
+    │   ├── history.js                       # History, leaderboard, shares, reactions
+    │   ├── payment.js                       # Plan list, order creation, signature verify
+    │   └── roast.js                         # Feed, stats, and profile roast endpoints
+    ├── services/
+    │   ├── aiService.js                     # Google Gemini 2.5 Flash integration
+    │   ├── battleService.js                 # Dual profile analysis & battle generator
+    │   ├── githubService.js                 # GitHub REST API client & scoring heuristics
+    │   ├── paymentService.js                # Razorpay order creator & HMAC verifier
+    │   ├── roastEngine.js                   # Rule-based roast generator & language packs
+    │   └── tokenService.js                  # JWT creation & verification utilities
+    └── utils/
+        └── logger.js                        # Structured colored logger & process crash handlers
 ```
 
 ---
@@ -201,161 +222,156 @@ gitroast/
 ## ⚙️ How It Works
 
 ### Free User Flow
-
 ```
-1. User enters GitHub username on landing page
-2. Picks intensity: Mild / Savage (Nuclear blocked)
-3. POST /api/roast/:username?intensity=savage
-4. Server fetches GitHub profile via GitHub REST API
-5. Custom scoring engine calculates 0-100 score
-6. Rule-based roast engine generates comedy roast
-7. Result saved to MongoDB with idempotency key
-8. RoastCard displayed — share link, tweet, copy text, download PNG
+1. User enters GitHub username on homepage
+2. Selects intensity: Mild 🌶 or Savage 🔥 (Nuclear is locked)
+3. Frontend calls GET /api/roast/:username?intensity=savage with X-Idempotency-Key
+4. Server fetches profile, repos, commits, and README via GitHub REST API
+5. Scoring engine calculates 1–99 score and assigns letter grade (A to F-)
+6. Rule-based roast engine picks matching opener, language punchline, and closer
+7. Result is stored in MongoDB with reaction counters
+8. RoastCard displays typing animation, diagnostic stats, and shame commits
+9. User can share to Twitter/X, copy link, react, or download a watermarked PNG
 ```
 
 ### Pro User Flow
-
 ```
-Same as above except:
-  - GitHub private repos accessible via OAuth token
-  - Google Gemini 2.5 Flash generates the roast
-  - Nuclear intensity available (temperature 1.2)
-  - HD PNG download (2x scale, no watermark)
-  - Unlimited roasts per day
+1. User connects GitHub account via OAuth (/api/auth/github)
+2. Selects a Pro plan (Roaster ₹99 or Historian ₹199) via Razorpay popup
+3. Server cryptographically verifies payment HMAC SHA-256 and sets user.isPro = true
+4. Nuclear ☢️ intensity is unlocked (AI temperature 1.2, assassin persona)
+5. Private repositories are analyzed using the user's delegated OAuth token
+6. Google Gemini 2.5 Flash synthesizes a tailored 3-sentence comedy roast
+7. User can download high-definition (2x scale) watermark-free roast cards & certificates
+8. Unlimited roasts allowed daily with priority processing
 ```
 
 ### Battle Flow
-
 ```
-1. User enters two GitHub usernames at /battle
-2. Navigates to /battle/user1/vs/user2
-3. Both profiles fetched in parallel
-4. Each gets a savage rule-based roast
-5. Scores compared — lower score = more roastable = winner of shame
-6. Gemini generates a head-to-head battle verdict
-7. BattleCard shown with both scores, individual roasts, and AI verdict
-8. Shareable URL + pre-filled tweet
+1. User enters two usernames at /battle
+2. Navigates to /battle/:user1/vs/:user2
+3. Both GitHub profiles are fetched and analyzed in parallel
+4. Scores and letter grades are evaluated (lower score = more roastable = winner of shame)
+5. Google Gemini acts as an AI boxing announcer to deliver a comparative verdict
+6. Dual-player BattleCard rendered with individual roasts, winner badge, and share tools
 ```
 
 ---
 
 ## 📊 Scoring Engine
 
-Each GitHub profile is scored 0–100 across 8 signals:
+Each profile starts with a base score of **100**, with penalty points deducted based on real GitHub metrics:
 
-| Signal                         | Weight | Logic                                    |
-| ------------------------------ | ------ | ---------------------------------------- |
-| Repo abandonment rate          | High   | % repos with only 1 commit               |
-| Commit message quality         | High   | NLP patterns — "fix", "pls work", "asdf" |
-| README completeness            | Medium | Missing / empty / has content            |
-| Language diversity             | Medium | Using only one language for 5+ years     |
-| Star count vs repo count ratio | Medium | Many repos, zero stars                   |
-| Account age vs output          | Medium | Years on GitHub, total commits           |
-| Fork ratio                     | Low    | All forks, zero original work            |
-| Profile completeness           | Low    | Bio, avatar, location                    |
+| Signal | Max Penalty | Formula & Logic |
+| ------ | ----------- | --------------- |
+| **Repo Abandonment** | -35 pts | `Math.round(abandonedPct * 0.35)` — repos with no pushes after day 1 |
+| **Commit Quality** | -30 pts | `Math.round((100 - qualityScore) * 0.3)` — based on regex shame patterns (`fix`, `pls work`, `asdf`, `wip`, etc.) |
+| **README Completeness** | -20 pts | -20 if no README in top starred repo; -12 if README is under 200 characters |
+| **Missing Descriptions** | -15 pts | `Math.round((noDescription / totalOwn) * 15)` — repos created without descriptions |
 
-Score → Grade mapping:
+The final score is clamped between **1 and 99**:
+```js
+score = Math.max(1, Math.min(99, score));
+```
+
+### Grade Classification
 
 ```
-90-100 → A   Respectable (hard to roast)
-75-89  → B   Decent
-60-74  → C   Mediocre
-45-59  → D   Rough
-0-44   → F   Catastrophic (maximum roast potential)
+85 – 99  →  A    Respectable (Suspiciously competent)
+70 – 84  →  B    Decent (Maintains a clean record)
+55 – 69  →  C    Mediocre (Technically a developer)
+40 – 54  →  D    Rough (Needs serious improvement)
+25 – 39  →  F    Catastrophic (Certified disaster)
+ 1 – 24  →  F-   Unprecedented Disaster (Maximum roast potential)
 ```
 
 ---
 
 ## 🌶 Intensity System
 
-Three intensity levels change the entire roast experience:
-
-| Intensity  | Who          | AI Temp | Persona           | Example Opener                                                                                          |
-| ---------- | ------------ | ------- | ----------------- | ------------------------------------------------------------------------------------------------------- |
-| 🌶 Mild    | Free         | 0.7     | Witty friend      | "Not every developer ships, and this profile has made peace with that."                                 |
-| 🔥 Savage  | Free         | 1.0     | Stand-up comedian | "If giving up were a language, this GitHub would be running in production."                             |
-| ☢️ Nuclear | **Pro only** | 1.2     | Comedy assassin   | "This GitHub is not a portfolio — it is forensic evidence of a developer who never finished a thought." |
-
-Nuclear is locked behind Pro as a conversion driver — users who see it blocked are more likely to upgrade.
+| Intensity | Access | AI Temp | Comedian Persona | Example Style |
+| --------- | ------ | ------- | ---------------- | ------------- |
+| 🌶 **Mild** | Free / Pro | 0.7 | Witty Observational Friend | Gentle, self-aware; jokes that make you laugh with the audience. |
+| 🔥 **Savage** | Free / Pro | 1.0 | Stand-Up Comedian | Brutal, specific punchlines with comedic timing. The default mode. |
+| ☢️ **Nuclear** | **Pro Only** | 1.2 | Comedy Assassin | Scorched-earth devastation targeting commit history and abandoned repos. |
 
 ---
 
 ## ⚔️ Roast Battle
 
-Two developers. One roast. Zero survivors.
+Head-to-head comparison between two GitHub profiles:
 
-```
-URL: /battle/username1/vs/username2
+- **Endpoint**: `GET /api/battle/:user1/vs/:user2`
+- **Rules**: Lower score indicates greater developer shame and wins the **Shame Crown** 💀.
+- **AI Announcer**: Google Gemini provides a dramatic 2-sentence boxing match verdict comparing both contenders.
 
-Response:
-{
-  user1, user2,
-  score1, score2,
-  grade1, grade2,
-  winner,          // lower score = more roastable = winner of shame
-  roast1, roast2,  // individual savage roasts
-  battleRoast      // AI-generated comparative verdict
-}
-```
+---
 
-Battle verdicts use Gemini as a "boxing announcer comedian" — 2 sentences comparing both developers directly before declaring the winner.
+## 🎓 Certificate of Shame
+
+Users can generate and download a formal, printable **Certificate of GitHub Shame** as a 2x PNG:
+- Custom parchment aesthetic with decorative borders and official seals.
+- Incorporates user handle, final score, letter grade, and official roast extract.
+- Watermarked on free tier, unwatermarked for Pro subscribers.
 
 ---
 
 ## 💰 Monetization
 
-Three plans, all in INR via Razorpay:
+GitRoast offers flexible INR pricing powered by Razorpay:
 
-| Plan         | Price   | Features                                        |
-| ------------ | ------- | ----------------------------------------------- |
-| Free         | ₹0      | 1 roast/day, rule engine, watermarked card      |
-| Pro One-Time | ₹199    | AI roast, Nuclear intensity, HD card, unlimited |
-| Pro Monthly  | ₹499    | All Pro features, monthly billing               |
-| Teams        | ₹999/mo | Everything, team roasting                       |
+| Plan | Price | Billing | Features |
+| ---- | ----- | ------- | -------- |
+| **Free** | ₹0 | Forever | 1 roast/day, rule-based engine, watermarked cards & certificates |
+| **🔥 Roaster** | ₹99 | Monthly | Real Gemini AI roasts, Nuclear ☢️ mode, HD watermark-free cards, private repo analysis, unlimited roasts, Pro badge |
+| **📈 Historian** | ₹199 | Monthly | All Roaster features + monthly email reports, score trend tracking, roast streaks, priority AI generation |
+| **⚔️ Squad** | — | Coming Soon | Organization-wide roasting, team leaderboards, All-vs-All battle tournaments |
 
-Payment flow:
-
-```
-1. User clicks upgrade → Razorpay popup opens
-2. Pays via UPI / card / netbanking / wallet
-3. Razorpay sends payment details to frontend
-4. Frontend POSTs to /api/payment/verify
-5. Server verifies HMAC SHA256 signature
-6. isPro = true saved to MongoDB User
-7. AuthContext refreshes — UI unlocks Pro features
-```
+### Payment Flow
+1. User clicks upgrade on the Pricing page or Pro modal.
+2. Client requests an order via `POST /api/payment/create-order` with `{ planId: "roaster" }`.
+3. Server returns Razorpay order ID and public key.
+4. Razorpay checkout modal handles UPI / card / NetBanking.
+5. Client sends payment credentials to `POST /api/payment/verify`.
+6. Server cryptographically verifies the HMAC SHA-256 signature, logs the transaction in MongoDB, and elevates `user.isPro = true`.
 
 ---
 
 ## 🔐 Environment Variables
 
-### `server/.env`
+### Backend Configuration (`server/.env`)
 
 ```env
 PORT=5000
 NODE_ENV=production
-MONGODB_URI=mongodb+srv://...
-GITHUB_CLIENT_ID=your_client_id
-GITHUB_CLIENT_SECRET=your_client_secret
-GITHUB_CALLBACK_URL=https://your-backend.onrender.com/api/auth/github/callback
-JWT_SECRET=your_strong_random_string
-JWT_EXPIRES_IN=7d
-GEMINI_API_KEY=your_gemini_key
-RAZORPAY_KEY_ID=rzp_live_...
-RAZORPAY_KEY_SECRET=your_secret
-PRO_ONE_TIME_PRICE=19900
-PRO_MONTHLY_PRICE=49900
-TEAMS_MONTHLY_PRICE=99900
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/gitroast?retryWrites=true&w=majority
 CLIENT_URL=https://gitroast-dev.vercel.app
+
+# GitHub OAuth
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+GITHUB_CALLBACK_URL=https://gitroast-latest.onrender.com/api/auth/github/callback
+GITHUB_TOKEN=optional_personal_access_token_for_higher_public_rate_limits
+
+# Authentication
+JWT_SECRET=your_super_strong_jwt_secret_key
+JWT_EXPIRES_IN=7d
+
+# Google Gemini AI
+GEMINI_API_KEY=your_gemini_api_key
+
+# Razorpay Payments
+RAZORPAY_KEY_ID=rzp_live_your_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_secret_key
 ```
 
-### `client/.env.local`
+### Frontend Configuration (`client/.env.local`)
 
 ```env
-NEXT_PUBLIC_API_URL=https://your-backend.onrender.com
-NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_...
-NEXT_PUBLIC_GITHUB_CLIENT_ID=your_client_id
+NEXT_PUBLIC_API_URL=https://gitroast-latest.onrender.com
 NEXT_PUBLIC_SITE_URL=https://gitroast-dev.vercel.app
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_your_key_id
+NEXT_PUBLIC_GITHUB_CLIENT_ID=your_github_client_id
 ```
 
 ---
@@ -363,165 +379,149 @@ NEXT_PUBLIC_SITE_URL=https://gitroast-dev.vercel.app
 ## 💻 Local Development
 
 ### Prerequisites
-
 - Node.js 20+
-- MongoDB Atlas account (or local MongoDB)
-- GitHub OAuth App
+- MongoDB instance (Atlas or local `mongodb://localhost:27017/gitroast`)
+- GitHub OAuth application
 - Google Gemini API key
-- Razorpay account (test keys)
 
-### Backend
-
+### 1. Backend Setup
 ```bash
 cd server
 npm install
-cp .env.example .env   # fill in your values
-npm run dev            # nodemon index.js
+cp .env.example .env   # Configure environment variables
+npm run dev            # Starts nodemon on http://localhost:5000
 ```
 
-Server runs at `http://localhost:5000`
-
-### Frontend
-
+### 2. Frontend Setup
 ```bash
 cd client
 npm install
-cp .env.local.example .env.local   # fill in your values
-npm run dev
+cp .env.local.example .env.local   # Configure frontend environment variables
+npm run dev                        # Starts Next.js on http://localhost:3000
 ```
 
-App runs at `http://localhost:3000`
-
-### GitHub OAuth Setup
-
-1. Go to GitHub → Settings → Developer Settings → OAuth Apps → New OAuth App
-2. Homepage URL: `http://localhost:3000`
-3. Callback URL: `http://localhost:5000/api/auth/github/callback`
-4. Copy Client ID and Client Secret to `server/.env`
+### 3. GitHub OAuth Setup for Localhost
+1. Navigate to **GitHub → Settings → Developer Settings → OAuth Apps → New OAuth App**.
+2. Set **Homepage URL** to `http://localhost:3000`.
+3. Set **Authorization callback URL** to `http://localhost:5000/api/auth/github/callback`.
+4. Copy Client ID and Secret to `server/.env`.
 
 ---
 
 ## 🚀 Deployment
 
-### Frontend → Vercel
+### Frontend (Vercel)
+1. Import repository into Vercel and set the root directory to `client`.
+2. Configure environment variables (`NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_RAZORPAY_KEY_ID`, `NEXT_PUBLIC_GITHUB_CLIENT_ID`).
+3. Deploy.
 
-```bash
-# Push client/ to GitHub
-# Connect repo on vercel.com
-# Set root directory: client/
-# Add all NEXT_PUBLIC_ env variables
-# Deploy
-```
-
-### Backend → Render (Docker)
-
-```bash
-# Connect same GitHub repo on render.com
-# Set root directory: server/
-# Environment: Docker
-# Add all server env variables
-# Deploy
-```
-
-The `server/Dockerfile` uses `node:20-alpine` with a health check at `GET /health`.
-
-### Post-Deployment Checklist
-
-```
-□ Update GITHUB_CALLBACK_URL to Render URL
-□ Update CLIENT_URL to Vercel/custom domain URL
-□ Update NEXT_PUBLIC_API_URL to Render URL
-□ Whitelist 0.0.0.0/0 in MongoDB Atlas Network Access
-□ Switch Razorpay keys from test to live
-□ Verify health endpoint: GET /health
-□ Test full roast flow end to end
-□ Test payment flow with live keys
-```
+### Backend (Render Docker)
+1. Create a new Web Service on Render and link the repository.
+2. Select **Docker** environment with root directory set to `server`.
+3. Set all required environment variables (`MONGODB_URI`, `JWT_SECRET`, `GEMINI_API_KEY`, etc.).
+4. The container exposes port `5000` and validates health via `GET /health`.
 
 ---
 
 ## 📡 API Reference
 
-### Roast
+### Roast Endpoints
+```http
+GET /api/roast/feed
+→ { success: true, feed: [ { username, score, grade, intensity, createdAt } ] }
 
-```
 GET /api/roast/stats
-→ { totalRoasts: number }
+→ { success: true, totalRoasts: number }
 
 GET /api/roast/:username?intensity=savage
-Headers: Authorization: Bearer <jwt> (optional)
-         X-Idempotency-Key: <uuid> (recommended)
-→ { success: true, data: { username, score, grade, roast, roastSource, intensity, stats, ... } }
+Headers:
+  Authorization: Bearer <jwt> (optional)
+  X-Idempotency-Key: <uuid> (recommended)
+→ {
+    success: true,
+    data: {
+      username, score, grade, roast, roastSource, intensity,
+      stats: [...], shameCommits: [...], reactions: { relatable, destroyed, savage }
+    }
+  }
 ```
 
-### Battle
-
-```
+### Battle Endpoints
+```http
 GET /api/battle/:user1/vs/:user2
-→ { success: true, data: { user1, user2, score1, score2, winner, roast1, roast2, battleRoast } }
+→ {
+    success: true,
+    data: {
+      user1, user2, score1, score2, grade1, grade2,
+      winner, loser, roast1, roast2, battleRoast
+    }
+  }
 ```
 
-### Auth
-
-```
-GET /api/auth/github             → redirects to GitHub OAuth
-GET /api/auth/github/callback    → handles OAuth callback, returns JWT
-GET /api/auth/me                 → { user: { username, isPro, avatarUrl } }
-```
-
-### Payment
-
-```
-POST /api/payment/create-order   → { orderId, amount, currency }
-POST /api/payment/verify         → verifies HMAC, sets isPro = true
-GET  /api/payment/history        → user's payment history
+### Auth Endpoints
+```http
+GET  /api/auth/github          → Redirects to GitHub OAuth authorize
+GET  /api/auth/github/callback → OAuth code exchange, returns JWT redirect
+GET  /api/auth/me              → { success: true, user: { id, username, email, avatarUrl, isPro } }
+POST /api/auth/logout          → { success: true, message: "Logged out." }
 ```
 
-### History
+### Payment Endpoints
+```http
+GET  /api/payment/plans
+→ { success: true, plans: [ { id, name, amount, currency } ] }
 
+POST /api/payment/create-order
+Headers: Authorization: Bearer <jwt>
+Body: { "planId": "roaster" | "historian" }
+→ { success: true, orderId, amount, currency, planName, planId, keyId }
+
+POST /api/payment/verify
+Headers: Authorization: Bearer <jwt>
+Body: { "orderId", "paymentId", "signature", "planId" }
+→ { success: true, message: "...", isPro: true }
 ```
-GET  /api/history/:username      → { roasts: [], stats: { total, best, worst, avg } }
-POST /api/history/:id/share      → increments share count
+
+### History & Leaderboard Endpoints
+```http
+GET  /api/history/leaderboard/worst
+→ { success: true, leaderboard: [ { _id: "username", bestScore: number, roastCount: number } ] }
+
+GET  /api/history/:username?limit=10
+→ { success: true, username, count, history: [ ...roastDocuments ] }
+
+POST /api/history/:id/share
+→ { success: true }
+
+POST /api/history/:id/react
+Body: { "type": "relatable" | "destroyed" | "savage" }
+→ { success: true, reactions: { relatable, destroyed, savage } }
+```
+
+### OpenGraph Dynamic Image Generation (Frontend Edge)
+```http
+GET /api/og?username=:username
+→ Returns dynamic 1200×630 PNG card with username, score, grade, and roast snippet
+
+GET /api/og-battle?user1=:u1&user2=:u2
+→ Returns dynamic 1200×630 PNG battle card with both avatars, scores, and winner arrow
 ```
 
 ---
 
 ## 🏗 Architecture Decisions
 
-**Why Next.js App Router over Pages Router**
-SSR per-roast metadata for Twitter/OG cards. `generateMetadata` per `[username]` route means every shared link shows the correct roast preview — impossible with client-only rendering.
-
-**Why Razorpay over PayPal**
-PayPal sandbox doesn't support UPI and rejects Indian test cards. Razorpay supports INR natively, UPI works in sandbox, no currency mismatch issues.
-
-**Why styled-jsx over Tailwind**
-Component-scoped CSS with zero className conflicts, no purging issues, and full CSS power including animations and pseudo-selectors — without a build step dependency.
-
-**Why rule-based engine for free users**
-Zero API cost. Every free roast would otherwise consume Gemini tokens. Rule engine with intensity-aware tone banks produces genuinely funny output while keeping the product economically sustainable.
-
-**Why idempotency keys**
-React StrictMode mounts components twice in development. Without server-side idempotency, every roast would create two MongoDB documents. The `X-Idempotency-Key` header ensures the second identical request returns the cached result.
-
-**Why `cancelled` boolean over `fetchStarted` ref**
-`fetchStarted.current = true` permanently blocks the second StrictMode mount from fetching — causing the analyzing screen to freeze at 100% forever. `cancelled` only prevents `setState` on unmounted components, allowing the second mount to fetch cleanly.
-
-**Why native `<a>` over Next.js `<Link>` in LeaderboardTable**
-styled-jsx scopes CSS by adding a data attribute to native HTML elements directly. React components like `<Link>` receive the scope via `className` prop but the rendered `<a>` tag doesn't inherit the data attribute — breaking styled-jsx CSS selectors.
-
-**Why Docker on Render over native Node**
-Exact Node 20 environment guaranteed across local and production. Health check endpoint lets Render know when the container is ready before routing traffic. Graceful SIGTERM handling via `CMD ["node", "index.js"]` instead of `npm start`.
+- **Edge Runtime Dynamic OpenGraph Cards (`/api/og`, `/api/og-battle`)**: Social sharing cards render dynamically on the edge using Next.js `ImageResponse` (Satori). Shared links on Twitter, WhatsApp, or Discord immediately display the user's score and roast snippet without pre-generating static assets.
+- **Server-Side Deduplication & Idempotency**: React 19 / StrictMode double-mounts components in development, and impatient users re-click triggers. The `X-Idempotency-Key` header prevents duplicate MongoDB insertions.
+- **In-Memory Tone Banks for Free Users**: Generates high-variety comedic content using rule banks and language packs with zero AI token expenditures, protecting project margins.
+- **Razorpay Native INR Flow**: Avoids international currency conversion hurdles and supports India-first payment rails (UPI QR, Google Pay, PhonePe, Paytm).
+- **Single-Source Plan Catalog**: All pricing parameters and plan definitions reside in `server/services/paymentService.js` and sync to the client via `GET /api/payment/plans`, eliminating hardcoded pricing discrepancies.
 
 ---
 
 ## 👨‍💻 Author
 
-Built solo by **Priyanshu**
-
-> "This is not a portfolio. It is a detailed public record of every time enthusiasm lasted one weekend."
-> — GitRoast, probably about this README
-
----
+Built solo with passion and fire by **Priyanshu**.
 
 <div align="center">
 

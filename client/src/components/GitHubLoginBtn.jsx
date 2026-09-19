@@ -1,7 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useSyncExternalStore } from 'react'
 import { useAuth } from '@/context/AuthContext'
+
+const subscribe = () => () => {}
 
 export default function GitHubLoginBtn({ variant = 'full' }) {
     const { user, isPro, loading, loginWithGitHub, logout } = useAuth()
@@ -9,8 +11,7 @@ export default function GitHubLoginBtn({ variant = 'full' }) {
     // WHY mounted: prevents hydration mismatch
     //     server renders nothing → client renders correct state
     //     avoids server HTML vs client HTML conflict
-    const [mounted, setMounted] = useState(false)
-    useEffect(() => { setMounted(true) }, [])
+    const mounted = useSyncExternalStore(subscribe, () => true, () => false)
 
     // WHY placeholder instead of null:
     //   return null = empty space = layout shifts when button appears
@@ -42,6 +43,7 @@ export default function GitHubLoginBtn({ variant = 'full' }) {
         return (
             <div className="user-pill">
                 {user.avatarUrl && (
+                    /* eslint-disable-next-line @next/next/no-img-element */
                     <img
                         src={user.avatarUrl}
                         alt={user.username}

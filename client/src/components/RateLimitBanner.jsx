@@ -37,18 +37,11 @@ export default function RateLimitBanner({ seconds, onExpired }) {
         //   Updates every second — shows live countdown
         //   Gives user clear sense of progress
         const timer = setInterval(() => {
-            setRemaining(prev => {
-                if (prev <= 1) {
-                    clearInterval(timer)
-                    onExpired?.()
-                    return 0
-                }
-                return prev - 1
-            })
+            setRemaining(prev => Math.max(0, prev - 1))
         }, 1000)
 
         return () => clearInterval(timer)
-    }, [])
+    }, [remaining, onExpired])
 
     // WHY percentage: drives the progress bar width
     const percentage = Math.round((remaining / seconds) * 100)

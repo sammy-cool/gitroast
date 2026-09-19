@@ -265,8 +265,8 @@ export default function HistoryPageClient({ username }) {
                     <div className="stats-summary">
                         {[
                             { label: 'Total Roasts', value: roastCount, color: 'var(--fire)' },
-                            { label: 'Best Score', value: bestScore, color: 'var(--bad)' },
-                            { label: 'Worst Score', value: worstScore, color: 'var(--good)' },
+                            { label: 'Best Score', value: bestScore, color: 'var(--good)' },
+                            { label: 'Worst Score', value: worstScore, color: 'var(--bad)' },
                             { label: 'Avg Score', value: avgScore, color: 'var(--warn)' },
                         ].map(stat => (
                             <div key={stat.label} className="summary-box">
