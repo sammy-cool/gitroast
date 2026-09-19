@@ -209,7 +209,23 @@ export default function RoastCertificate({
                                 <p className="cert-sign-name font-mono">GitRoast Authority</p>
                                 <p className="cert-sign-title font-mono">Chief Roast Officer</p>
                             </div>
-                            <div className="cert-seal font-display">🔥</div>
+                            <div className="cert-center-block">
+                                <div className="cert-seal font-display">🔥</div>
+                                <div className="cert-qr-wrap">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=72x72&margin=2&color=2c1810&bgcolor=fdfaf3&data=${encodeURIComponent(
+                                            typeof window !== "undefined"
+                                                ? `${window.location.origin}/history/${username}`
+                                                : `https://gitroast.dev/history/${username}`
+                                        )}`}
+                                        alt={`QR Code verification for @${username}`}
+                                        className="cert-qr"
+                                        crossOrigin="anonymous"
+                                    />
+                                    <span className="cert-qr-label font-mono">SCAN TO VERIFY</span>
+                                </div>
+                            </div>
                             <div className="cert-sign-block">
                                 <div className="cert-sign-line" />
                                 <p className="cert-sign-name font-mono">Date of Issue</p>
@@ -434,6 +450,30 @@ export default function RoastCertificate({
         .cert-seal {
           font-size: 48px;
           line-height: 1;
+        }
+        .cert-center-block {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+        }
+        .cert-qr-wrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 3px;
+        }
+        .cert-qr {
+          width: 58px;
+          height: 58px;
+          border: 1px solid #8b6914;
+          border-radius: 2px;
+          display: block;
+        }
+        .cert-qr-label {
+          font-size: 7.5px;
+          color: #8b6914;
+          letter-spacing: 1.5px;
+          font-weight: 700;
         }
 
         .cert-watermark {

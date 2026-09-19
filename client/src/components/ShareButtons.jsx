@@ -4,6 +4,7 @@ import { createToast } from "customizable-toast-notification";
 import { useState } from "react";
 import { trackShare } from "@/services/roastService";
 import RoastCertificate from "./RoastCertificate";
+import GitHubWrapped from "./GitHubWrapped";
 
 export default function ShareButtons({
     username,
@@ -223,14 +224,20 @@ export default function ShareButtons({
                 </button>
             </div>
 
-            {/* Certificate — WHY here: natural grouping with other downloads */}
-            <RoastCertificate
-                username={username}
-                score={score}
-                grade={grade}
-                roastText={roastText}
-                isPro={isPro}
-            />
+            {/* Certificate & Wrapped — WHY here: natural grouping with other downloads */}
+            <div className="extras-row">
+                <RoastCertificate
+                    username={username}
+                    score={score}
+                    grade={grade}
+                    roastText={roastText}
+                    isPro={isPro}
+                />
+                <GitHubWrapped
+                    username={username}
+                    isPro={isPro}
+                />
+            </div>
 
             {/* Tertiary row */}
             <div className="tertiary-buttons">
@@ -360,6 +367,15 @@ export default function ShareButtons({
           font-size: 11px;
           text-align: center;
           line-height: 1.6;
+        }
+        .extras-row {
+          display: flex;
+          gap: 8px;
+        }
+        @media (max-width: 480px) {
+          .extras-row {
+            flex-direction: column;
+          }
         }
         @media (max-width: 380px) {
           .share-buttons,

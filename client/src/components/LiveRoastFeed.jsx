@@ -25,6 +25,7 @@
 // ============================================================
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -95,9 +96,9 @@ export default function LiveRoastFeed() {
             <div className="feed-ticker">
                 <div className="feed-track">
                     {displayFeed.map((item, i) => (
-                        <a
+                        <Link
                             key={`${item._id}-${i}`}
-                            href={`/roast/${item.username}`}
+                            href={`/history/${item.username}`}
                             className="feed-item font-mono"
                             title={`View @${item.username}'s roast`}
                         >
@@ -114,7 +115,7 @@ export default function LiveRoastFeed() {
                             <span className="feed-grade">Grade {item.grade}</span>
                             <span className="feed-time">{getRelativeTime(item.createdAt)}</span>
                             <span className="feed-sep">·</span>
-                        </a>
+                        </Link>
                     ))}
                 </div>
             </div>

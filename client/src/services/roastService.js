@@ -136,3 +136,26 @@ export async function reactToRoast(roastId, type) {
     return null;
   }
 }
+
+// ── getWrapped ────────────────────────────────────────────────
+// WHAT: Fetches GitHub Wrapped year-in-review roast
+export async function getWrapped(username, year = 2025, token = null) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(
+    `${API_BASE}/api/roast/${encodeURIComponent(username)}/wrapped?year=${year}`,
+    { method: "GET", headers, signal: AbortSignal.timeout(15000) },
+  );
+
+  const json = await res.json();
+  if (!res.ok) {
+    const err = new Error(json.message || "Failed to fetch GitHub Wrapped");
+    err.code = json.error;
+    err.status = res.status;
+    throw err;
+  }
+
+  return json.wrapped;
+}
+

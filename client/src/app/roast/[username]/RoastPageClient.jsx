@@ -147,10 +147,18 @@ export default function RoastPageClient({ username }) {
             type: 'warning',
             message: isOurLimit
               ? `⏱ Too many requests. Try again in ${seconds}.`
-              : `GitHub rate limit hit. Try again in ${seconds}.`,
+              : `GitHub public limit hit! Log in via GitHub to unlock your dedicated quota.`,
             position: 'top-center',
             duration: Math.min(retryAfter * 1000, 8000),
             showCloseButton: true,
+            cta: {
+              label: 'Login via GitHub ↗',
+              onClick: () => {
+                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+                window.location.href = `${apiBase}/api/auth/github`
+              },
+              autoClose: true,
+            },
           })
           router.push('/')
           return

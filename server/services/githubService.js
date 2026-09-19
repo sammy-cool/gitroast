@@ -384,4 +384,274 @@ async function analyzeProfile(username, userToken = null) {
   };
 }
 
-module.exports = { analyzeProfile };
+// ─── 10. Analyze GitHub Wrapped ───────────────────────────
+// WHY: Spotify-Wrapped style year-in-review roast
+//      Analyzes total commits, worst month, streaks, most abandoned repo,
+//      and developer archetype.
+async function analyzeWrapped(username, year = 2025, userToken = null) {
+  const targetYear = parseInt(year, 10) || 2025;
+  const [profile, repos] = await Promise.all([
+    fetchProfile(username, userToken),
+    fetchRepos(username, userToken),
+  ]);
+
+  const ownRepos = (repos || []).filter((r) => !r.fork);
+  const reposCreatedInYear = ownRepos.filter((r) => {
+    return new Date(r.created_at).getFullYear() === targetYear;
+  });
+  const reposPushedInYear = ownRepos.filter((r) => {
+    return new Date(r.pushed_at).getFullYear() === targetYear;
+  });
+
+  // Most abandoned repo created in targetYear (or overall if none in targetYear)
+  let mostAbandonedRepo = null;
+  if (reposCreatedInYear.length > 0) {
+    const sorted = [...reposCreatedInYear].sort((a, b) => {
+      const lifeA = new Date(a.pushed_at) - new Date(a.created_at);
+      const lifeB = new Date(b.pushed_at) - new Date(b.created_at);
+      return lifeA - lifeB;
+    });
+    const candidate = sorted[0];
+    const daysAlive = Math.max(
+      0,
+      Math.round(
+        (new Date(candidate.pushed_at) - new Date(candidate.created_at)) /
+          (1000 * 60 * 60 * 24),
+      ),
+    );
+    mostAbandonedRepo = {
+      name: candidate.name,
+      description:
+        candidate.description || "No description provided (abandoned in stealth)",
+      daysAlive,
+      language: candidate.language || "Unknown",
+      stars: candidate.stargazers_count || 0,
+      note:
+        daysAlive === 0
+          ? "Abandoned on day 1"
+          : `Abandoned after ${daysAlive} day${daysAlive === 1 ? "" : "s"}`,
+    };
+  } else if (ownRepos.length > 0) {
+    const oldestPushed = [...ownRepos].sort(
+      (a, b) => new Date(a.pushed_at) - new Date(b.pushed_at),
+    )[0];
+    mostAbandonedRepo = {
+      name: oldestPushed.name,
+      description:
+        oldestPushed.description || `Zero new repos created in ${targetYear}`,
+      daysAlive: 0,
+      language: oldestPushed.language || "None",
+      stars: oldestPushed.stargazers_count || 0,
+      note: `No new projects launched in ${targetYear}`,
+    };
+  } else {
+    mostAbandonedRepo = {
+      name: "none",
+      description: `Didn't even start a repo in ${targetYear}`,
+      daysAlive: 0,
+      language: "None",
+      stars: 0,
+      note: "Zero repo ambition detected",
+    };
+  }
+
+  // Fetch commits for target year from top active repos
+  const commitDates = [];
+  const commitMessages = [];
+  const reposToInspect = reposPushedInYear.slice(0, 4);
+
+  const commitPromises = reposToInspect.map(async (repo) => {
+    try {
+      const endpoint = `/repos/${username}/${repo.name}/commits?author=${username}&since=${targetYear}-01-01T00:00:00Z&until=${targetYear}-12-31T23:59:59Z&per_page=100`;
+      const res = await githubFetch(endpoint, userToken);
+      if (Array.isArray(res)) {
+        return res
+          .map((c) => ({
+            date: c.commit?.author?.date || c.commit?.committer?.date,
+            message: c.commit?.message?.split("\n")[0]?.trim(),
+          }))
+          .filter((c) => c.date);
+      }
+    } catch {
+      return [];
+    }
+    return [];
+  });
+
+  const commitResults = await Promise.all(commitPromises);
+  commitResults.flat().forEach((c) => {
+    commitDates.push(c.date);
+    if (c.message) commitMessages.push(c.message);
+  });
+
+  // Monthly breakdown
+  const monthNames = [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  ];
+  const monthlyCounts = Array(12).fill(0);
+
+  commitDates.forEach((d) => {
+    const dt = new Date(d);
+    if (dt.getFullYear() === targetYear) {
+      monthlyCounts[dt.getMonth()]++;
+    }
+  });
+
+  const totalCommits = commitDates.length;
+
+  let minMonthIdx = 0;
+  for (let i = 1; i < 12; i++) {
+    if (monthlyCounts[i] < monthlyCounts[minMonthIdx]) minMonthIdx = i;
+  }
+
+  const worstMonthName = monthNames[minMonthIdx];
+  const worstMonthCount = monthlyCounts[minMonthIdx];
+  const worstMonth = {
+    month: worstMonthName,
+    commits: worstMonthCount,
+    comment:
+      worstMonthCount === 0
+        ? `0 commits — touched grass or went into hibernation`
+        : `${worstMonthCount} commit${worstMonthCount === 1 ? "" : "s"} — minimal vital signs detected`,
+  };
+
+  // Best streak
+  const uniqueDays = Array.from(
+    new Set(
+      commitDates
+        .map((d) => new Date(d).toISOString().slice(0, 10))
+        .filter((d) => d.startsWith(`${targetYear}`))
+    )
+  ).sort();
+
+  let bestStreak = 0;
+  let currentStreak = 0;
+  let bestStreakEnd = null;
+
+  if (uniqueDays.length > 0) {
+    currentStreak = 1;
+    bestStreak = 1;
+    bestStreakEnd = uniqueDays[0];
+
+    for (let i = 1; i < uniqueDays.length; i++) {
+      const prev = new Date(uniqueDays[i - 1]);
+      const curr = new Date(uniqueDays[i]);
+      const diffDays = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 1) {
+        currentStreak++;
+        if (currentStreak > bestStreak) {
+          bestStreak = currentStreak;
+          bestStreakEnd = uniqueDays[i];
+        }
+      } else {
+        currentStreak = 1;
+      }
+    }
+  }
+
+  const streakDiedOn = bestStreakEnd
+    ? new Date(bestStreakEnd).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : `Never started in ${targetYear}`;
+
+  // Weekend & Night stats
+  let nightCommits = 0;
+  let weekendCommits = 0;
+  commitDates.forEach((d) => {
+    const dt = new Date(d);
+    const day = dt.getDay();
+    const hour = dt.getHours();
+    if (day === 0 || day === 6) weekendCommits++;
+    if (hour >= 23 || hour < 5) nightCommits++;
+  });
+
+  const commitAnalysis = analyzeCommits(commitMessages);
+  const repoAnalysis = analyzeRepos(repos || []);
+
+  // Archetype determination
+  let archetype = "";
+  let archetypeEmoji = "⚡";
+  let archetypeDesc = "";
+
+  if (totalCommits === 0 && reposCreatedInYear.length === 0) {
+    archetype = "The Ghost";
+    archetypeEmoji = "👻";
+    archetypeDesc =
+      "Registered on GitHub, vanished without a trace. Commits: purely theoretical.";
+  } else if (reposCreatedInYear.length >= 4 && mostAbandonedRepo?.daysAlive <= 3) {
+    archetype = "The Chronic Starter";
+    archetypeEmoji = "🚀";
+    archetypeDesc = `Started ${reposCreatedInYear.length} projects in ${targetYear}. Finished approximately zero. A true visionary of abandoned ideas.`;
+  } else if (nightCommits > 0 && nightCommits / Math.max(1, totalCommits) > 0.4) {
+    archetype = "The Midnight Patcher";
+    archetypeEmoji = "🌙";
+    archetypeDesc =
+      "Only codes when reasonable humans sleep. Powered by caffeine, dark mode, and commit regret.";
+  } else if (weekendCommits > 0 && weekendCommits / Math.max(1, totalCommits) > 0.45) {
+    archetype = "The Weekend Warrior";
+    archetypeEmoji = "🏖️";
+    archetypeDesc =
+      "Zero work-life balance detected. Pushes code on Sundays at 2am because relaxation is terrifying.";
+  } else if (commitAnalysis.qualityScore < 35 && commitMessages.length >= 3) {
+    archetype = "The Single-Word Committer";
+    archetypeEmoji = "📝";
+    archetypeDesc =
+      "'fix', 'test', 'wip', 'done', 'asdf'. The poetry of an unbothered developer.";
+  } else if (ownRepos.length >= 20 && profile.public_repos > 30) {
+    archetype = "The Digital Hoarder";
+    archetypeEmoji = "📦";
+    archetypeDesc =
+      "Forked half of GitHub, starred everything, finished nothing. Storing repos for the apocalypse.";
+  } else if (bestStreak >= 10) {
+    archetype = "The Suspiciously Diligent";
+    archetypeEmoji = "🟢";
+    archetypeDesc = `A streak of ${bestStreak} consecutive days. Either deeply dedicated or running a cron job to keep the squares green.`;
+  } else {
+    archetype = "The Pragmatic Procrastinator";
+    archetypeEmoji = "🎯";
+    archetypeDesc =
+      "Commits strictly when deadlines loom or guilt becomes physically unbearable.";
+  }
+
+  const annualScore = Math.max(
+    10,
+    Math.min(
+      99,
+      calculateRoastScore(repoAnalysis, commitAnalysis, {
+        exists: true,
+        isEmpty: false,
+      }),
+    ),
+  );
+  const annualGrade = getGrade(annualScore);
+
+  const annualRoast = `In ${targetYear}, @${username} logged ${totalCommits} commits, survived a best streak of ${bestStreak} day${bestStreak === 1 ? "" : "s"} before completely giving up on ${streakDiedOn}, and crowned "${mostAbandonedRepo.name}" as their most abandoned project. Verdict: ${archetype}.`;
+
+  return {
+    year: targetYear,
+    username,
+    avatarUrl: profile.avatar_url,
+    totalCommits,
+    worstMonth,
+    bestStreak,
+    streakDiedOn,
+    mostAbandonedRepo,
+    archetype,
+    archetypeEmoji,
+    archetypeDesc,
+    annualScore,
+    annualGrade,
+    monthlyCommits: monthNames.map((name, i) => ({
+      month: name,
+      count: monthlyCounts[i],
+    })),
+    annualRoast,
+  };
+}
+
+module.exports = { analyzeProfile, analyzeWrapped };

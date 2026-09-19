@@ -8,6 +8,7 @@ import ProModal from "@/components/ProModal";
 import GitHubLoginBtn from "@/components/GitHubLoginBtn";
 import RateLimitBanner from "@/components/RateLimitBanner";
 import LiveRoastFeed from "@/components/LiveRoastFeed";
+import { useAuth } from "@/context/AuthContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -39,8 +40,10 @@ const INTENSITIES = [
 ];
 
 export default function HomePage() {
+  const { user, loginWithGitHub } = useAuth();
   const [showProModal, setShowProModal] = useState(false);
   const [totalRoasts, setTotalRoasts] = useState(null);
+  const [broadcastDismissed, setBroadcastDismissed] = useState(false);
   const [intensity, setIntensity] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem("gitroast_intensity");
@@ -69,6 +72,29 @@ export default function HomePage() {
     return null;
   });
   const router = useRouter();
+
+  // WHY broadcast toast: alert unauthenticated visitors to log in for dedicated 5,000 req/hr rate limits
+  useEffect(() => {
+    if (
+      !user &&
+      typeof window !== "undefined" &&
+      !sessionStorage.getItem("gitroast_login_broadcast")
+    ) {
+      createToast({
+        type: "info",
+        message: "⚡ Please log in with GitHub to avoid public API rate limit throttling!",
+        position: "top-center",
+        duration: 8000,
+        showCloseButton: true,
+        cta: {
+          label: "Login ↗",
+          onClick: loginWithGitHub,
+          autoClose: true,
+        },
+      });
+      sessionStorage.setItem("gitroast_login_broadcast", "1");
+    }
+  }, [user, loginWithGitHub]);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/roast/stats`)
@@ -134,6 +160,35 @@ export default function HomePage() {
       <nav className="landing-nav">
         <GitHubLoginBtn variant="compact" />
       </nav>
+
+      {/* ── Broadcast Banner for unauthenticated visitors ── */}
+      {!user && !broadcastDismissed && (
+        <div className="broadcast-banner font-mono">
+          <div className="broadcast-left">
+            <span className="broadcast-pill">NOTICE ⚡</span>
+            <p className="broadcast-text">
+              Public GitHub API is heavily throttled on cloud servers. Please{" "}
+              <strong style={{ color: "#fff" }}>log in with GitHub</strong> for dedicated 5,000 req/hr quota!
+            </p>
+          </div>
+          <div className="broadcast-actions">
+            <button
+              className="btn btn-primary broadcast-login-btn"
+              onClick={loginWithGitHub}
+            >
+              Login via GitHub ↗
+            </button>
+            <button
+              className="broadcast-close-btn"
+              onClick={() => setBroadcastDismissed(true)}
+              aria-label="Dismiss banner"
+              title="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="landing-logo">
         <h1 className="font-display text-fire">GITROAST 🔥</h1>
@@ -248,6 +303,83 @@ export default function HomePage() {
           position: absolute;
           top: 1.25rem;
           right: 1.25rem;
+        }
+
+        /* ── Broadcast Banner ── */
+        .broadcast-banner {
+          width: 100%;
+          max-width: 640px;
+          margin-top: 2.75rem;
+          margin-bottom: 0.25rem;
+          padding: 0.85rem 1rem;
+          background: rgba(255, 69, 0, 0.08);
+          border: 1px solid rgba(255, 107, 0, 0.35);
+          border-radius: var(--radius-md);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          box-shadow: 0 4px 20px rgba(255, 69, 0, 0.12);
+          z-index: 10;
+        }
+        .broadcast-left {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex: 1;
+        }
+        .broadcast-pill {
+          background: linear-gradient(135deg, #ff4500 0%, #ff6b00 100%);
+          color: #fff;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: var(--radius-sm);
+          letter-spacing: 0.5px;
+          flex-shrink: 0;
+        }
+        .broadcast-text {
+          font-size: 12px;
+          color: var(--text-secondary);
+          line-height: 1.4;
+          margin: 0;
+        }
+        .broadcast-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          flex-shrink: 0;
+        }
+        .broadcast-login-btn {
+          padding: 6px 12px;
+          font-size: 12px;
+          height: 32px;
+          white-space: nowrap;
+        }
+        .broadcast-close-btn {
+          background: transparent;
+          border: none;
+          color: var(--text-muted);
+          font-size: 13px;
+          cursor: pointer;
+          padding: 4px;
+          line-height: 1;
+          transition: color 0.15s ease;
+        }
+        .broadcast-close-btn:hover {
+          color: var(--text-primary);
+        }
+
+        @media (max-width: 600px) {
+          .broadcast-banner {
+            flex-direction: column;
+            align-items: flex-start;
+            margin-top: 3.5rem;
+          }
+          .broadcast-actions {
+            width: 100%;
+            justify-content: space-between;
+          }
         }
         .landing-glow {
           position: absolute;

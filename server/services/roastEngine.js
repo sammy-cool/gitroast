@@ -447,11 +447,14 @@ function buildCommitSection(commitAnalysis, intensity) {
 //   Only fires when we have a clear top language
 //   Uses default pack for unknown languages (Dart, Elixir, etc.)
 function buildLanguageSection(lang, intensity) {
-  if (!lang || lang === "unknown" || lang === "") return "";
+  if (!lang || lang === "unknown" || lang === "" || lang === "Nothing") return "";
 
-  // WHY normalize: GitHub API can return "JavaScript" or "javascript"
-  const normalized = lang.charAt(0).toUpperCase() + lang.slice(1);
-  const pack = LANGUAGE_PACKS[normalized] || LANGUAGE_PACKS.default;
+  // WHY case-insensitive match: GitHub API casing can vary (e.g. "javascript", "JavaScript")
+  const matchedKey = Object.keys(LANGUAGE_PACKS).find(
+    (k) => k.toLowerCase() === lang.toLowerCase()
+  );
+  const normalized = matchedKey || (lang.charAt(0).toUpperCase() + lang.slice(1));
+  const pack = matchedKey ? LANGUAGE_PACKS[matchedKey] : LANGUAGE_PACKS.default;
   const bank = pack[intensity] || pack.savage || pack.mild || [];
 
   const line = fill(pick(bank), { lang: normalized });
@@ -505,8 +508,9 @@ function generateRoast(data, intensity = "savage") {
   //   pickN selects up to 2 middles randomly
   //   Language line competes with abandon + commit lines
   //   Prevents roast feeling too crowded with language stereotypes
+  const topLang = _raw?.topLanguage || repoAnalysis?.topLanguage;
   const middles = [
-    buildLanguageSection(_raw?.topLanguage, intensity),
+    buildLanguageSection(topLang, intensity),
     buildAbandonSection(repoAnalysis, intensity),
     buildCommitSection(commitAnalysis, intensity),
   ].filter((s) => s && s.trim().length > 0);
@@ -520,4 +524,4 @@ function generateRoast(data, intensity = "savage") {
   return selected.join(" ");
 }
 
-module.exports = { generateRoast };
+module.exports = { generateRoast, buildLanguageSection };

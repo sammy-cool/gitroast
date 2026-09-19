@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { analyzeProfile } = require("../services/githubService");
+const { analyzeProfile, analyzeWrapped } = require("../services/githubService");
 const { generateRoast } = require("../services/roastEngine");
 const { generateAIRoast } = require("../services/aiService");
 const { optionalAuth, requirePro } = require("../middleware/auth");
@@ -45,6 +45,44 @@ router.get("/stats", async (req, res) => {
     return res.status(200).json({ success: true, totalRoasts: count });
   } catch {
     return res.status(200).json({ success: true, totalRoasts: 0 });
+  }
+});
+
+// ─── GET /api/roast/:username/wrapped ─────────────────────
+// WHY: Feature #4 — Spotify-Wrapped style year in review
+router.get("/:username/wrapped", optionalAuth, async (req, res) => {
+  const { username } = req.params;
+  const year = parseInt(req.query.year, 10) || 2025;
+
+  if (!username || username.length > 39 || !/^[a-zA-Z0-9-]+$/.test(username)) {
+    return res.status(400).json({
+      error: "INVALID_USERNAME",
+      message: "Invalid GitHub username format.",
+    });
+  }
+
+  try {
+    const githubToken = req.user?.githubAccessToken || null;
+    const wrapped = await analyzeWrapped(username, year, githubToken);
+    return res.status(200).json({ success: true, wrapped });
+  } catch (err) {
+    if (err.message === "USER_NOT_FOUND") {
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+        message: `GitHub user "@${username}" does not exist.`,
+      });
+    }
+    if (err.message === "RATE_LIMIT_EXCEEDED") {
+      return res.status(429).json({
+        error: "RATE_LIMIT_EXCEEDED",
+        message: "GitHub rate limit hit. Try again in 60 seconds.",
+      });
+    }
+    logger.error("Wrapped", `Error for ${username}`, { message: err.message });
+    return res.status(500).json({
+      error: "SERVER_ERROR",
+      message: "Failed to generate Wrapped report.",
+    });
   }
 });
 
@@ -97,7 +135,7 @@ router.get("/:username", optionalAuth, async (req, res) => {
   }
 
   try {
-    const githubToken = isPro ? req.user?.githubAccessToken : null;
+    const githubToken = req.user?.githubAccessToken || null;
     const data = await analyzeProfile(username, githubToken);
 
     // ── Generate roast with intensity ────────────────────
