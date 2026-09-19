@@ -23,10 +23,20 @@ const { logger } = require("../utils/logger");
 // ── GET /api/history/leaderboard/worst ───────────────────────
 // WHY above /:username: specific route must come before dynamic
 router.get("/leaderboard/worst", async (req, res) => {
-  res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+  res.setHeader(
+    "Cache-Control",
+    "public, max-age=60, stale-while-revalidate=120",
+  );
   try {
-    const leaderboard = await Roast.getLeaderboard(10);
-    return res.status(200).json({ success: true, leaderboard });
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+
+    const result = await Roast.getLeaderboard({ page, limit });
+    return res.status(200).json({
+      success: true,
+      leaderboard: result.entries,
+      pagination: result.pagination,
+    });
   } catch (err) {
     logger.error("Leaderboard", "Fetch failed", { message: err.message });
     return res.status(500).json({

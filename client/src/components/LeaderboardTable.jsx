@@ -1,17 +1,10 @@
-// WHY no 'use client': no hooks, no browser APIs needed
-// styled-jsx works fine in server components for native elements
+'use client'
 
-// WHY no Link import:
-//   <Link> as a grid container breaks styled-jsx scoping
-//   styled-jsx adds scope attribute to native HTML elements directly
-//   For React components like <Link> it adds to className prop
-//   BUT Next.js Link may not forward the scope data-attribute
-//   so the scoped CSS selector never matches → grid never applies
-//   Fix: use native <a href> instead — same DOM output, styles work
+import Link from 'next/link'
 
-const MEDALS = { 0: '🥇', 1: '🥈', 2: '🥉' }
+const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
-export default function LeaderboardTable({ entries }) {
+export default function LeaderboardTable({ entries, page = 1, limit = 10 }) {
     if (!entries || entries.length === 0) {
         return (
             <div className="lb-empty font-mono">
@@ -31,21 +24,22 @@ export default function LeaderboardTable({ entries }) {
                 <span className="font-mono lb-head-count">Roasts</span>
             </div>
 
-            {/* Rows — native <a> so styled-jsx scoping works correctly */}
+            {/* Rows — Link to /history/:username instead of re-roasting via /roast/:username */}
             {entries.map((entry, i) => {
+                const rank = (page - 1) * limit + i + 1
                 const scoreColor =
                     entry.bestScore < 40 ? 'var(--bad)' :
                         entry.bestScore < 70 ? 'var(--warn)' :
                             'var(--good)'
 
                 return (
-                    <a
+                    <Link
                         key={entry._id}
-                        href={`/roast/${entry._id}`}
+                        href={`/history/${entry._id}`}
                         className="lb-row"
                     >
                         <span className="lb-rank font-display">
-                            {MEDALS[i] || `#${i + 1}`}
+                            {page === 1 && MEDALS[rank] ? MEDALS[rank] : `#${rank}`}
                         </span>
 
                         <span className="lb-username font-mono">
@@ -62,7 +56,7 @@ export default function LeaderboardTable({ entries }) {
                         <span className="lb-count font-mono">
                             {entry.roastCount}×
                         </span>
-                    </a>
+                    </Link>
                 )
             })}
 
