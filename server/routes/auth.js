@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const crypto = require("crypto");
 const User = require("../models/User");
 const {
   createToken,
@@ -13,9 +14,19 @@ const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
 
 // ─── STEP 1: Redirect user to GitHub ─────────────────────
 // WHY: user clicks "Connect GitHub" → hits this route
-//      → we redirect them to GitHub's OAuth page
+//      → we redirect them to GitHub's OAuth page with CSRF state token
 // GET /api/auth/github
 router.get("/github", (req, res) => {
+  const state = crypto.randomBytes(16).toString("hex");
+
+  // WHY httpOnly + sameSite: prevents client-side JS access & cross-site tampering
+  res.cookie("oauth_state", state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 10 * 60 * 1000, // 10 minutes
+  });
+
   const params = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID,
     redirect_uri: process.env.GITHUB_CALLBACK_URL,
@@ -24,6 +35,7 @@ router.get("/github", (req, res) => {
     //   'repo'      = private repos (Pro feature)
     //   we request both upfront so user only approves once
     scope: "read:user user:email repo",
+    state,
   });
 
   const githubAuthUrl = `https://github.com/login/oauth/authorize?${params}`;
@@ -31,11 +43,24 @@ router.get("/github", (req, res) => {
 });
 
 // ─── STEP 2: GitHub redirects back with a code ───────────
-// WHY: after user approves, GitHub calls this URL with ?code=xxx
-//      we exchange that code for an access token
+// WHY: after user approves, GitHub calls this URL with ?code=xxx&state=yyy
+//      we exchange that code for an access token after validating state
 // GET /api/auth/github/callback
 router.get("/github/callback", async (req, res) => {
-  const { code, error } = req.query;
+  const { code, error, state } = req.query;
+  const savedState = req.cookies?.oauth_state;
+
+  // Clear cookie immediately
+  res.clearCookie("oauth_state");
+
+  // WHY state check: prevents Login CSRF attacks per RFC 6749 Section 10.12
+  if (!state || !savedState || state !== savedState) {
+    logger.warn("Auth", "OAuth CSRF state mismatch or missing", {
+      hasQueryState: Boolean(state),
+      hasSavedState: Boolean(savedState),
+    });
+    return res.redirect(`${CLIENT_URL}?auth_error=csrf_detected`);
+  }
 
   // WHY: user denied permission on GitHub
   if (error || !code) {

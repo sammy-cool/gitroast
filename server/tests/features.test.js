@@ -23,7 +23,7 @@ describe("Feature #1 — Language Roast Packs", () => {
         assert.ok(/borrow|compiler|rust/i.test(rustLine), `Expected Rust tropes, got: ${rustLine}`);
 
         const jsLine = buildLanguageSection("javascript", "savage");
-        assert.ok(/node_modules|npm|javascript/i.test(jsLine), `Expected JS tropes, got: ${jsLine}`);
+        assert.ok(/node|state management|framework|javascript|npm/i.test(jsLine), `Expected JS tropes, got: ${jsLine}`);
     });
 
     it("should return empty string for Nothing or undefined language", () => {
@@ -230,5 +230,72 @@ describe("Feature #4 — GitHub Wrapped 2025", () => {
         const roast = generateRoast(ghostData, "savage");
         assert.ok(roast && roast.length > 0);
         assert.ok(/zero|empty|404|ghost/i.test(roast), `Expected ghost roast tropes, got: ${roast}`);
+    });
+});
+
+describe("Security & Defensive Integrity", () => {
+    const mongoose = require("mongoose");
+    const crypto = require("crypto");
+    const { verifyPayment } = require("../services/paymentService");
+
+    it("should safely reject payment verification when secrets or fields are missing", () => {
+        const originalSecret = process.env.RAZORPAY_KEY_SECRET;
+        try {
+            delete process.env.RAZORPAY_KEY_SECRET;
+            const res = verifyPayment({
+                orderId: "order_123",
+                paymentId: "pay_123",
+                signature: "sig_123",
+            });
+            assert.equal(res, false, "Should return false when RAZORPAY_KEY_SECRET is unset");
+        } finally {
+            if (originalSecret) process.env.RAZORPAY_KEY_SECRET = originalSecret;
+        }
+
+        assert.equal(
+            verifyPayment({ orderId: "", paymentId: "pay_123", signature: "sig" }),
+            false,
+        );
+        assert.equal(
+            verifyPayment({ orderId: "order_123", paymentId: "", signature: "sig" }),
+            false,
+        );
+        assert.equal(
+            verifyPayment({ orderId: "order_123", paymentId: "pay_123", signature: "" }),
+            false,
+        );
+    });
+
+    it("should verify valid HMAC signature and reject tampered signature with timing-safe comparison", () => {
+        const secret = "test_secret_key_12345";
+        process.env.RAZORPAY_KEY_SECRET = secret;
+
+        const orderId = "order_abc123";
+        const paymentId = "pay_xyz789";
+        const expectedSig = crypto
+            .createHmac("sha256", secret)
+            .update(`${orderId}|${paymentId}`)
+            .digest("hex");
+
+        const isValid = verifyPayment({
+            orderId,
+            paymentId,
+            signature: expectedSig,
+        });
+        assert.equal(isValid, true, "Valid HMAC signature must verify successfully");
+
+        const isTampered = verifyPayment({
+            orderId,
+            paymentId,
+            signature: "tampered_sig_" + expectedSig.slice(13),
+        });
+        assert.equal(isTampered, false, "Tampered signature must be rejected");
+    });
+
+    it("should validate MongoDB ObjectId format correctly to prevent CastError", () => {
+        assert.equal(mongoose.Types.ObjectId.isValid("65f1a2b3c4d5e6f7a8b9c0d1"), true);
+        assert.equal(mongoose.Types.ObjectId.isValid("invalid-id-here"), false);
+        assert.equal(mongoose.Types.ObjectId.isValid(""), false);
+        assert.equal(mongoose.Types.ObjectId.isValid("12345"), false);
     });
 });

@@ -17,6 +17,7 @@
 
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const Roast = require("../models/Roast");
 const { logger } = require("../utils/logger");
 
@@ -78,8 +79,16 @@ router.get("/:username", async (req, res) => {
 
 // ── POST /api/history/:id/share ───────────────────────────────
 router.post("/:id/share", async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({
+      error: "INVALID_ID",
+      message: "Invalid roast ID.",
+    });
+  }
+
   try {
-    await Roast.incrementShare(req.params.id);
+    await Roast.incrementShare(id);
     return res.status(200).json({ success: true });
   } catch {
     // WHY always 200: share tracking failure must never break UX
@@ -115,6 +124,13 @@ setInterval(() => reactionCache.clear(), 24 * 60 * 60 * 1000);
 router.post("/:id/react", async (req, res) => {
   const { id } = req.params;
   const { type } = req.body;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({
+      error: "INVALID_ID",
+      message: "Invalid roast ID.",
+    });
+  }
 
   // WHY validate type server-side:
   //   Client sends type — must validate before DB write
