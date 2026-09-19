@@ -48,6 +48,7 @@ export default function GitHubLoginBtn({ variant = 'full' }) {
                         src={user.avatarUrl}
                         alt={user.username}
                         className="user-avatar"
+                        loading="eager"
                     />
                 )}
                 <span className="font-mono user-name">@{user.username}</span>

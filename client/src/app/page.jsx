@@ -9,7 +9,7 @@ import GitHubLoginBtn from "@/components/GitHubLoginBtn";
 import RateLimitBanner from "@/components/RateLimitBanner";
 import LiveRoastFeed from "@/components/LiveRoastFeed";
 import { useAuth } from "@/context/AuthContext";
-import { wakeUpServer, getRoastStats } from "@/services/roastService";
+import { wakeUpServer, getRoastStats, checkHealth } from "@/services/roastService";
 
 const INTENSITIES = [
   {
@@ -43,6 +43,7 @@ export default function HomePage() {
   const [showProModal, setShowProModal] = useState(false);
   const [totalRoasts, setTotalRoasts] = useState(null);
   const [broadcastDismissed, setBroadcastDismissed] = useState(false);
+  const [serverStatus, setServerStatus] = useState("checking"); // "checking" | "online" | "offline"
   const [intensity, setIntensity] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = sessionStorage.getItem("gitroast_intensity");
@@ -75,6 +76,19 @@ export default function HomePage() {
   // WHY wakeUpServer: silently pre-warms Render backend if sleeping on free tier
   useEffect(() => {
     wakeUpServer();
+  }, []);
+
+  // WHY health poll: powers the glowing status indicator dot
+  //     Checks immediately on mount, then every 30s
+  //     Aligned with LiveRoastFeed polling interval for efficiency
+  useEffect(() => {
+    async function poll() {
+      const ok = await checkHealth();
+      setServerStatus(ok ? "online" : "offline");
+    }
+    poll();
+    const interval = setInterval(poll, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // WHY broadcast toast: alert unauthenticated visitors to log in for dedicated 5,000 req/hr rate limits
@@ -159,6 +173,19 @@ export default function HomePage() {
       <div className="landing-glow animate-glow" />
 
       <nav className="landing-nav">
+        <div className="landing-nav-left">
+          <div
+            className={`status-dot status-dot--${serverStatus}`}
+            title={`Backend: ${serverStatus}`}
+          />
+          <span className="status-label font-mono">
+            {serverStatus === "online"
+              ? "Systems Online"
+              : serverStatus === "offline"
+                ? "Connecting…"
+                : "Checking…"}
+          </span>
+        </div>
         <GitHubLoginBtn variant="compact" />
       </nav>
 
@@ -200,6 +227,12 @@ export default function HomePage() {
         </p>
       </div>
 
+      {/* Live roast feed — WHY above input:
+          User sees real people getting roasted BEFORE they type
+          Social proof + FOMO → immediate engagement
+          Ticker creates urgency — "everyone's doing it right now" */}
+      <LiveRoastFeed />
+
       {/* Intensity selector */}
       <div className="intensity-wrap">
         <p className="intensity-label font-mono">Choose your intensity:</p>
@@ -238,11 +271,6 @@ export default function HomePage() {
           }}
         />
       )}
-
-      {/* Live roast feed — WHY here: right below input
-          user just tried to roast → sees others getting roasted
-          FOMO kicks in → more engagement */}
-      <LiveRoastFeed />
 
       {/* Social proof count */}
       {totalRoasts && (
@@ -303,7 +331,82 @@ export default function HomePage() {
         .landing-nav {
           position: absolute;
           top: 1.25rem;
+          left: 1.25rem;
           right: 1.25rem;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .landing-nav-left {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        /* ── Health Status Indicator ── */
+        /* WHY glowing dot: instant visual confidence that the backend is alive
+           Fire-orange glow = brand-consistent, hypnotic pulse draws the eye
+           Amber = checking (transitional), Red = offline (urgent) */
+        .status-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 50%;
+          flex-shrink: 0;
+          position: relative;
+        }
+        .status-dot::before {
+          content: "";
+          position: absolute;
+          inset: -3px;
+          border-radius: 50%;
+          opacity: 0.6;
+        }
+        .status-dot--online {
+          background: #FF6B00;
+          box-shadow:
+            0 0 6px 2px rgba(255, 107, 0, 0.6),
+            0 0 16px 4px rgba(255, 69, 0, 0.3);
+          animation: statusPulse 2s ease-in-out infinite;
+        }
+        .status-dot--online::before {
+          background: #FF6B00;
+          animation: statusRing 2s ease-in-out infinite;
+        }
+        .status-dot--offline {
+          background: #FF3D3D;
+          box-shadow:
+            0 0 6px 2px rgba(255, 61, 61, 0.5),
+            0 0 14px 4px rgba(255, 61, 61, 0.2);
+          animation: statusPulse 1.5s ease-in-out infinite;
+        }
+        .status-dot--offline::before {
+          background: #FF3D3D;
+          animation: statusRing 1.5s ease-in-out infinite;
+        }
+        .status-dot--checking {
+          background: #FFB700;
+          box-shadow:
+            0 0 6px 2px rgba(255, 183, 0, 0.5),
+            0 0 14px 4px rgba(255, 183, 0, 0.2);
+          animation: statusPulse 1s ease-in-out infinite;
+        }
+        .status-dot--checking::before {
+          background: #FFB700;
+          animation: statusRing 1s ease-in-out infinite;
+        }
+        .status-label {
+          font-size: 10px;
+          letter-spacing: 1px;
+          color: var(--text-muted);
+          text-transform: uppercase;
+        }
+        @keyframes statusPulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.15); }
+        }
+        @keyframes statusRing {
+          0%, 100% { transform: scale(1); opacity: 0.6; }
+          50% { transform: scale(2.2); opacity: 0; }
         }
 
         /* ── Broadcast Banner ── */
@@ -380,6 +483,9 @@ export default function HomePage() {
           .broadcast-actions {
             width: 100%;
             justify-content: space-between;
+          }
+          .status-label {
+            display: none;
           }
         }
         .landing-glow {

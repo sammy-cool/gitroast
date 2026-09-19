@@ -239,6 +239,7 @@ export default function HistoryPageClient({ username }) {
                             alt={`@${username}`}
                             className="history-avatar-img"
                             crossOrigin="anonymous"
+                            loading="eager"
                             onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                                 if (e.currentTarget.nextSibling) {

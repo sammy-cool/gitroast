@@ -222,6 +222,7 @@ export default function RoastCertificate({
                                         alt={`QR Code verification for @${username}`}
                                         className="cert-qr"
                                         crossOrigin="anonymous"
+                                        loading="eager"
                                     />
                                     <span className="cert-qr-label font-mono">SCAN TO VERIFY</span>
                                 </div>

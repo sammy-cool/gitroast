@@ -72,6 +72,7 @@ export default function BattleCard({ data }) {
                             alt={`@${user1}`}
                             className="player-avatar-img"
                             crossOrigin="anonymous"
+                            loading="eager"
                             onError={(e) => {
                                 e.currentTarget.style.display = 'none'
                                 if (e.currentTarget.nextSibling) {
@@ -117,6 +118,7 @@ export default function BattleCard({ data }) {
                             alt={`@${user2}`}
                             className="player-avatar-img"
                             crossOrigin="anonymous"
+                            loading="eager"
                             onError={(e) => {
                                 e.currentTarget.style.display = 'none'
                                 if (e.currentTarget.nextSibling) {

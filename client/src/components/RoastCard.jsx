@@ -76,6 +76,7 @@ export default function RoastCard({ data, onProClick }) {
                 alt={`@${data.username}`}
                 className="avatar-img"
                 crossOrigin="anonymous"
+                loading="eager"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                   if (e.currentTarget.nextSibling) {
