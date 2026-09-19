@@ -117,7 +117,7 @@ export async function trackShare(roastId) {
 // ── checkHealth ───────────────────────────────────────────────
 export async function checkHealth() {
   try {
-    const res = await fetch(`${API_BASE}/api/health`, {
+    const res = await fetch(`${API_BASE}/health`, {
       signal: AbortSignal.timeout(10000),
     });
     return res.ok;
@@ -128,13 +128,11 @@ export async function checkHealth() {
 
 // ── wakeUpServer ──────────────────────────────────────────────
 // WHAT: Silently pre-warms the Render backend if sleeping on free tier
-// WHY: Render spins down after 15 min of inactivity. Pinging /api/health
+// WHY: Render spins down after 15 min of inactivity. Pinging /health
 //      on page load starts the container before user submits a form.
-// WHY /api/health instead of /health: privacy shields (like Brave) and
-//      adblockers intercept standalone /health pings as telemetry.
 export function wakeUpServer() {
   if (typeof window === "undefined") return;
-  fetch(`${API_BASE}/api/health`, { signal: AbortSignal.timeout(60000) }).catch(() => {});
+  fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(60000) }).catch(() => {});
 }
 
 // ── getBattleRoast ────────────────────────────────────────────

@@ -139,8 +139,8 @@ app.use("/api/battle", battleLimiter, require("./routes/battle"));
 
 // ── Step 8: Health check ──────────────────────────────────────
 // WHAT: Returns server status — used by Docker HEALTHCHECK, Render, and frontend pre-warming
-// WHY ["/health", "/api/health"]: /health for Docker & Render internally;
-//     /api/health for frontend pre-warming so privacy extensions/Brave do not block it as telemetry
+// WHY [\"/health\", \"/api/health\"]: /health is the primary target for Docker, Render, and frontend;
+//     /api/health is a passive alias that bypasses adblocker filters if ever needed
 app.get(["/health", "/api/health"], generalLimiter, (req, res) => {
   res.json({
     status: "🔥 GitRoast server is alive",
