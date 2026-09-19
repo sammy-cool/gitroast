@@ -23,6 +23,7 @@ const { logger } = require("../utils/logger");
 // ── GET /api/history/leaderboard/worst ───────────────────────
 // WHY above /:username: specific route must come before dynamic
 router.get("/leaderboard/worst", async (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
   try {
     const leaderboard = await Roast.getLeaderboard(10);
     return res.status(200).json({ success: true, leaderboard });

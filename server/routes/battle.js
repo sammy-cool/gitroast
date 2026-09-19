@@ -41,6 +41,12 @@ router.get("/:user1/vs/:user2", optionalAuth, async (req, res) => {
 
     return res.status(200).json({ success: true, data: result });
   } catch (err) {
+    if (err.message === "ORGANIZATION_NOT_SUPPORTED" || err.code === "ORGANIZATION_NOT_SUPPORTED") {
+      return res.status(400).json({
+        error: "ORGANIZATION_NOT_SUPPORTED",
+        message: "GitRoast battles are for individual developers, not organizations.",
+      });
+    }
     if (err.message === "USER_NOT_FOUND") {
       return res.status(404).json({
         error: "USER_NOT_FOUND",

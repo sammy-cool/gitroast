@@ -239,6 +239,11 @@ function getJoinYear(profile) {
 // WHY: this is the headline number on the card
 //      combines multiple signals into one score
 function calculateRoastScore(repoAnalysis, commitAnalysis, readme) {
+  // WHY: Ghost account with 0 repos cannot be evaluated as average/decent
+  if (repoAnalysis.totalOwn === 0) {
+    return 15; // Grade F-
+  }
+
   let score = 100;
 
   // Abandoned repos penalty (max -35)
@@ -284,6 +289,13 @@ async function analyzeProfile(username, userToken = null) {
     fetchRepos(username, userToken),
   ]);
 
+  // WHY: GitRoast only roasts individual developers — organizations don't have individual developer patterns
+  if (profile.type === "Organization") {
+    const orgErr = new Error("ORGANIZATION_NOT_SUPPORTED");
+    orgErr.code = "ORGANIZATION_NOT_SUPPORTED";
+    throw orgErr;
+  }
+
   // WHY: these depend on repos so they run after
   const [commits, readme] = await Promise.all([
     fetchRecentCommits(username, repos, userToken),
@@ -294,15 +306,17 @@ async function analyzeProfile(username, userToken = null) {
   const commitAnalysis = analyzeCommits(commits);
   const score = calculateRoastScore(repoAnalysis, commitAnalysis, readme);
   const grade = getGrade(score);
+  const isGhost = repoAnalysis.totalOwn === 0;
 
   // WHY: build stats array in the exact shape our StatsGrid expects
   const stats = [
     {
       label: "Commit Quality",
-      value: `${commitAnalysis.qualityScore}%`,
-      bad: commitAnalysis.qualityScore < 50,
-      note:
-        commitAnalysis.qualityScore < 30
+      value: isGhost ? "0%" : `${commitAnalysis.qualityScore}%`,
+      bad: isGhost || commitAnalysis.qualityScore < 50,
+      note: isGhost
+        ? "No commits recorded"
+        : commitAnalysis.qualityScore < 30
           ? "Below panic threshold"
           : commitAnalysis.qualityScore < 60
             ? "Room for improvement"
@@ -310,26 +324,31 @@ async function analyzeProfile(username, userToken = null) {
     },
     {
       label: "README Score",
-      value: readme.exists ? (readme.isEmpty ? "8%" : "72%") : "0%",
-      bad: !readme.exists || readme.isEmpty,
-      note: !readme.exists
-        ? "Does not exist"
-        : readme.isEmpty
-          ? "Technically exists"
-          : "Actually has content",
+      value: isGhost ? "0%" : readme.exists ? (readme.isEmpty ? "8%" : "72%") : "0%",
+      bad: isGhost || !readme.exists || readme.isEmpty,
+      note: isGhost
+        ? "No repos to document"
+        : !readme.exists
+          ? "Does not exist"
+          : readme.isEmpty
+            ? "Technically exists"
+            : "Actually has content",
     },
     {
       label: "Repo Survival",
-      value: `${100 - repoAnalysis.abandonedPct}%`,
-      bad: repoAnalysis.abandonedPct > 50,
-      note: `${repoAnalysis.abandonedCount} of ${repoAnalysis.totalOwn} abandoned`,
+      value: isGhost ? "0%" : `${100 - repoAnalysis.abandonedPct}%`,
+      bad: isGhost || repoAnalysis.abandonedPct > 50,
+      note: isGhost
+        ? "0 public repos created"
+        : `${repoAnalysis.abandonedCount} of ${repoAnalysis.totalOwn} abandoned`,
     },
     {
       label: "Shame Index",
-      value: `${100 - commitAnalysis.qualityScore}%`,
+      value: isGhost ? "100%" : `${100 - commitAnalysis.qualityScore}%`,
       bad: true,
-      note:
-        repoAnalysis.topLanguage !== "Nothing"
+      note: isGhost
+        ? "Ghost account detected"
+        : repoAnalysis.topLanguage !== "Nothing"
           ? `${repoAnalysis.topLanguage} still in prod`
           : "No code found",
     },

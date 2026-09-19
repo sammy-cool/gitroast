@@ -22,6 +22,7 @@ setInterval(() => {
 // WHY select specific fields: don't expose full roast data publicly
 //     only username, score, grade, intensity, createdAt needed for feed
 router.get("/feed", async (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=15, stale-while-revalidate=30");
   try {
     const feed = await Roast.find({})
       .sort({ createdAt: -1 })
@@ -38,6 +39,7 @@ router.get("/feed", async (req, res) => {
 // ─── GET /api/roast/stats ─────────────────────────────────
 // WHY: MUST be before /:username — specific routes first
 router.get("/stats", async (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
   try {
     const count = await Roast.countDocuments();
     return res.status(200).json({ success: true, totalRoasts: count });
@@ -178,6 +180,12 @@ router.get("/:username", optionalAuth, async (req, res) => {
 
     return res.status(200).json(responseData);
   } catch (err) {
+    if (err.message === "ORGANIZATION_NOT_SUPPORTED" || err.code === "ORGANIZATION_NOT_SUPPORTED") {
+      return res.status(400).json({
+        error: "ORGANIZATION_NOT_SUPPORTED",
+        message: `@${username} is an Organization, not an individual developer. GitRoast only roasts humans (for now)!`,
+      });
+    }
     if (err.message === "USER_NOT_FOUND") {
       return res.status(404).json({
         error: "USER_NOT_FOUND",

@@ -467,9 +467,35 @@ function buildCloser(score, repoAnalysis, _raw, intensity) {
   });
 }
 
+// ── Ghost profile bank (zero public repositories) ─────────────
+const GHOST_BANK = {
+  mild: [
+    "A remarkably pristine GitHub profile untouched by the chaos of actually writing or pushing code. Starting a profile is step one; step two remains on backorder.",
+    "Zero public repositories found. This account has achieved the ultimate goal in software engineering: zero production bugs, because nothing exists.",
+    "Not a single repository to roast. This profile is less of a developer workspace and more of a quiet spectator seat in the GitHub colosseum.",
+  ],
+  savage: [
+    "Zero public repositories. You created a GitHub account, got intimidated by `git push`, and haven't typed a command since.",
+    "This profile is an empty parking lot with your username on it. Even hello-world was too big of a commitment.",
+    "You signed up for GitHub, starred two trending repositories to look busy, and vanished into the digital void. Roasting this profile is like roasting an empty plate.",
+    "404: Code Not Found. Calling you a developer is like calling someone who buys a gym membership an Olympian.",
+  ],
+  nuclear: [
+    "There are zero repositories here. Even ghost towns had buildings once; this is a wasteland where ambition died before `git init` was even conceived.",
+    "This isn't a developer profile — it is forensic evidence of someone who bought the laptop, opened terminal once, panicked, and closed the lid forever.",
+    "Zero repos, zero commits, zero code. You have successfully contributed nothing to open source, closed source, or any source in the known universe.",
+  ],
+};
+
 // ── Main export ────────────────────────────────────────────────
 function generateRoast(data, intensity = "savage") {
   const { score, _raw, repoAnalysis, commitAnalysis } = data;
+
+  // WHY ghost check: accounts with 0 repos need dedicated roasts instead of template errors
+  if (repoAnalysis?.totalOwn === 0) {
+    const bank = GHOST_BANK[intensity] || GHOST_BANK.savage;
+    return pick(bank);
+  }
 
   const opener = buildOpener(score, intensity);
   const closer = buildCloser(score, repoAnalysis, _raw, intensity);

@@ -103,6 +103,18 @@ export default function RoastPageClient({ username }) {
       } catch (err) {
         if (cancelled) return
 
+        if (err.code === 'ORGANIZATION_NOT_SUPPORTED') {
+          createToast({
+            type: 'error',
+            message: err.message || `@${username} is an Organization. GitRoast roasts individual developers!`,
+            position: 'top-center',
+            duration: 5000,
+            showCloseButton: true,
+          })
+          router.push('/')
+          return
+        }
+
         if (err.code === 'USER_NOT_FOUND') {
           createToast({
             type: 'error',

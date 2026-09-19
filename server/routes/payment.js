@@ -22,11 +22,13 @@
 const express = require("express");
 const router = express.Router();
 const Payment = require("../models/Payment");
+const User = require("../models/User");
 const { requireAuth } = require("../middleware/auth");
 const {
   PLANS,
   createOrder,
   verifyPayment,
+  verifyWebhookSignature,
 } = require("../services/paymentService");
 const { logger } = require("../utils/logger");
 
@@ -175,6 +177,79 @@ router.post("/verify", requireAuth, async (req, res) => {
       message:
         "Payment verified but account upgrade failed. Contact support with your payment ID.",
     });
+  }
+// ── POST /api/payment/webhook ────────────────────────────────
+// WHAT: Handles asynchronous payment events directly from Razorpay.
+// WHY: If user closes browser or network drops before frontend /verify completes,
+//      webhook ensures Pro is still unlocked reliably in the background.
+router.post("/webhook", async (req, res) => {
+  const signature = req.headers["x-razorpay-signature"];
+  const secret =
+    process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+
+  if (!signature || !secret) {
+    logger.warn("Payment", "Webhook rejected — missing signature or secret");
+    return res.status(400).json({ error: "MISSING_SIGNATURE_OR_SECRET" });
+  }
+
+  const isValid = verifyWebhookSignature(req.rawBody, signature, secret);
+  if (!isValid) {
+    logger.warn("Payment", "Webhook invalid signature");
+    return res.status(400).json({ error: "INVALID_SIGNATURE" });
+  }
+
+  const event = req.body;
+  const eventType = event?.event;
+  logger.info("Payment", `Webhook received: ${eventType}`);
+
+  try {
+    if (eventType === "payment.captured" || eventType === "order.paid") {
+      const paymentEntity = event?.payload?.payment?.entity;
+      const orderEntity = event?.payload?.order?.entity;
+
+      const paymentId = paymentEntity?.id;
+      const orderId = paymentEntity?.order_id || orderEntity?.id;
+      const notes = paymentEntity?.notes || orderEntity?.notes || {};
+      const planId = notes.planId;
+      const userId = notes.userId;
+      const amount = paymentEntity?.amount || orderEntity?.amount || 0;
+
+      if (paymentId) {
+        let paymentDoc = await Payment.findOne({
+          razorpayPaymentId: paymentId,
+        });
+        if (!paymentDoc) {
+          await Payment.create({
+            userId: userId || null,
+            razorpayOrderId: orderId || "webhook_captured",
+            razorpayPaymentId: paymentId,
+            planId: planId || "roaster",
+            amount,
+            status: "captured",
+          });
+        } else if (paymentDoc.status !== "captured") {
+          paymentDoc.status = "captured";
+          await paymentDoc.save();
+        }
+      }
+
+      if (userId) {
+        const user = await User.findById(userId);
+        if (user && !user.isPro) {
+          user.isPro = true;
+          user.proSince = new Date();
+          await user.save();
+          logger.info("Payment", `Pro unlocked via webhook for user ${userId}`);
+        }
+      }
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (err) {
+    logger.error("Payment", "Webhook processing error", {
+      message: err.message,
+    });
+    return res.status(500).json({ error: "WEBHOOK_PROCESSING_FAILED" });
   }
 });
 

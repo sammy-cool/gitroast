@@ -119,4 +119,24 @@ function verifyPayment({ orderId, paymentId, signature }) {
   }
 }
 
-module.exports = { PLANS, createOrder, verifyPayment };
+// ── Verify Razorpay webhook signature ─────────────────────────
+// WHAT: Verifies webhook signature against raw request body
+function verifyWebhookSignature(rawBody, signature, webhookSecret) {
+  if (!rawBody || !signature || !webhookSecret) return false;
+
+  const expected = crypto
+    .createHmac("sha256", webhookSecret)
+    .update(rawBody)
+    .digest("hex");
+
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(expected),
+      Buffer.from(signature),
+    );
+  } catch {
+    return false;
+  }
+}
+
+module.exports = { PLANS, createOrder, verifyPayment, verifyWebhookSignature };

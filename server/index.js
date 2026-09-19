@@ -71,8 +71,14 @@ app.use(
 );
 
 // ── Step 4: Body parsing + cookies ───────────────────────────
-// WHY limit 10kb: prevents payload attacks (large JSON bodies crashing server)
-app.use(express.json({ limit: "10kb" }));
+app.use(
+  express.json({
+    limit: "10kb",
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
 
