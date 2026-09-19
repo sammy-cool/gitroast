@@ -77,12 +77,14 @@ Users can:
 - **Wall of Shame Leaderboard** — aggregated MongoDB leaderboard highlighting the most roastable GitHub profiles globally.
 
 ### Viral & Engagement Differentiators
+- **GitHub Wrapped 2025** — Spotify-Wrapped style annual retrospective analyzing commit seasonality, longest streaks, developer archetypes, and most abandoned repository.
 - **Head-to-Head Roast Battle** — parallel profile analysis of two developers with comparative AI boxing announcer verdict.
-- **Certificate of GitHub Shame** — downloadable vintage parchment-style certificate rendered via HTML5 canvas.
+- **Certificate of GitHub Shame** — downloadable vintage parchment-style certificate with embedded QR code rendered via HTML5 canvas.
 - **Dynamic OpenGraph Image Generation** — Next.js Edge Runtime handlers (`/api/og` and `/api/og-battle`) generating real-time 1200×630 social preview PNGs for Twitter and LinkedIn.
 - **Community Reactions** — interactive emoji reactions (`😂 Relatable`, `💀 Destroyed`, `🔥 Savage`) with optimistic UI and server-side rate deduplication.
 - **Live Roast Ticker** — automated scrolling marquee of recently generated public roasts.
-- **Rate Limit Countdown Banner** — live countdown timer guiding users when rate limits are active.
+- **Paginated Wall of Shame** — server-side MongoDB `$facet` pagination providing responsive navigation across all roasted profiles.
+- **Rate Limit & Quota Broadcast Banners** — live countdown timers and informative broadcast banners prompting GitHub authentication for dedicated 5,000 req/hr API limits.
 - **Idempotent Requests** — client and server deduplication with `X-Idempotency-Key` headers to prevent double-charging or duplicate entries during React StrictMode.
 
 ### Monetization & Billing
@@ -159,19 +161,22 @@ gitroast/
 │       │   ├── CommitShame.jsx              # Hall of shame commit message tags
 │       │   ├── Footer.jsx                   # Fixed global footer
 │       │   ├── GitHubLoginBtn.jsx           # OAuth button with profile avatar & loading pulse
+│       │   ├── GitHubWrapped.jsx            # 2025 Year-in-Review Spotify-style report modal
 │       │   ├── HistoryCard.jsx              # Individual historical roast item
 │       │   ├── HydrationWrapper.jsx         # Client hydration lifecycle handler
 │       │   ├── LeaderboardTable.jsx         # Ranked Wall of Shame table
 │       │   ├── LiveRoastFeed.jsx            # Scrolling real-time recent roast marquee
 │       │   ├── MonthlyComparison.jsx        # Month-over-month score change component
+│       │   ├── Pagination.jsx               # Accessible, responsive pagination controls
 │       │   ├── PaymentFlow.jsx              # Razorpay checkout modal logic
 │       │   ├── PaymentModal.jsx             # Fullscreen portal modal for checkout
 │       │   ├── PricingCard.jsx              # Reusable pricing tier card
 │       │   ├── ProBadge.jsx                 # Reusable PRO ⚡ indicator
 │       │   ├── ProModal.jsx                 # Upgrade prompt modal with plan switcher
+│       │   ├── QuotaBroadcastBanner.jsx     # Unauthenticated shared quota warning & login prompt
 │       │   ├── RateLimitBanner.jsx          # Live countdown rate-limit warning banner
 │       │   ├── RoastCard.jsx                # Main roast result card (PNG capture target)
-│       │   ├── RoastCertificate.jsx         # Certificate of GitHub Shame generator
+│       │   ├── RoastCertificate.jsx         # Certificate of GitHub Shame generator with QR
 │       │   ├── RoastReactions.jsx           # Emoji reaction counter & buttons
 │       │   ├── ScoreChart.jsx               # Pure SVG score-over-time trend chart
 │       │   ├── ShareButtons.jsx             # Twitter share, link copy, PNG downloads
@@ -444,6 +449,18 @@ Headers:
       stats: [...], shameCommits: [...], reactions: { relatable, destroyed, savage }
     }
   }
+
+GET /api/roast/:username/wrapped?year=2025
+Headers:
+  Authorization: Bearer <jwt> (optional, provides 5,000 req/hr rate limit)
+→ {
+    success: true,
+    wrapped: {
+      username, year, totalCommits, archetype, archetypeEmoji, archetypeDesc,
+      worstMonth: { month, count }, bestStreak, mostAbandonedRepo,
+      monthlyCommits: [ { month, count } ], annualScore, annualRoast
+    }
+  }
 ```
 
 ### Battle Endpoints
@@ -460,8 +477,8 @@ GET /api/battle/:user1/vs/:user2
 
 ### Auth Endpoints
 ```http
-GET  /api/auth/github          → Redirects to GitHub OAuth authorize
-GET  /api/auth/github/callback → OAuth code exchange, returns JWT redirect
+GET  /api/auth/github          → Sets httpOnly oauth_state CSRF cookie and redirects to GitHub
+GET  /api/auth/github/callback → Validates oauth_state, exchanges code for JWT, redirects to frontend
 GET  /api/auth/me              → { success: true, user: { id, username, email, avatarUrl, isPro } }
 POST /api/auth/logout          → { success: true, message: "Logged out." }
 ```
@@ -484,8 +501,12 @@ Body: { "orderId", "paymentId", "signature", "planId" }
 
 ### History & Leaderboard Endpoints
 ```http
-GET  /api/history/leaderboard/worst
-→ { success: true, leaderboard: [ { _id: "username", bestScore: number, roastCount: number } ] }
+GET  /api/history/leaderboard/worst?page=1&limit=10
+→ {
+    success: true,
+    leaderboard: [ { _id: "username", bestScore: number, roastCount: number } ],
+    pagination: { page: 1, limit: 10, total: 42, totalPages: 5, hasNext: true, hasPrev: false }
+  }
 
 GET  /api/history/:username?limit=10
 → { success: true, username, count, history: [ ...roastDocuments ] }
