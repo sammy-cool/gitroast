@@ -1,0 +1,422 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import LeaderboardTable from '@/components/LeaderboardTable';
+import Pagination from '@/components/Pagination';
+import { getLeaderboard } from '@/services/roastService';
+
+export function LeaderboardSkeleton() {
+  return (
+    <div className="lb-skeleton" aria-label="Loading leaderboard">
+      <div className="skel-header-row">
+        <div className="skel skel-col-rank" />
+        <div className="skel skel-col-user" />
+        <div className="skel skel-col-score" />
+        <div className="skel skel-col-count" />
+      </div>
+      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+        <div key={i} className="skel-row">
+          <div className="skel skel-rank" />
+          <div className="skel-user-col">
+            <div className="skel skel-avatar" />
+            <div className="skel skel-username" />
+          </div>
+          <div className="skel skel-score" />
+          <div className="skel skel-count" />
+        </div>
+      ))}
+
+      <style jsx>{`
+        .lb-skeleton {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+        }
+
+        .skel-header-row {
+          display: grid;
+          grid-template-columns: 56px 1fr 88px 68px;
+          gap: 0.75rem;
+          padding: 0.85rem 1.25rem;
+          border-bottom: 1px solid var(--border);
+          background: var(--bg-elevated);
+          align-items: center;
+        }
+
+        .skel-row {
+          display: grid;
+          grid-template-columns: 56px 1fr 88px 68px;
+          gap: 0.75rem;
+          padding: 1rem 1.25rem;
+          border-bottom: 1px solid var(--border);
+          align-items: center;
+        }
+        .skel-row:last-child {
+          border-bottom: none;
+        }
+
+        .skel-user-col {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .skel {
+          background: linear-gradient(
+            90deg,
+            var(--bg-elevated) 25%,
+            var(--border-hover, #2e2e2e) 50%,
+            var(--bg-elevated) 75%
+          );
+          background-size: 200% 100%;
+          animation: skelShimmer 1.5s ease-in-out infinite;
+          border-radius: var(--radius-sm);
+        }
+
+        .skel-col-rank {
+          height: 10px;
+          width: 24px;
+          margin: 0 auto;
+        }
+        .skel-col-user {
+          height: 10px;
+          width: 70px;
+        }
+        .skel-col-score {
+          height: 10px;
+          width: 40px;
+          margin: 0 auto;
+        }
+        .skel-col-count {
+          height: 10px;
+          width: 36px;
+          margin-left: auto;
+        }
+
+        .skel-rank {
+          height: 18px;
+          width: 26px;
+          margin: 0 auto;
+        }
+        .skel-avatar {
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          flex-shrink: 0;
+        }
+        .skel-username {
+          height: 12px;
+          width: 120px;
+        }
+        .skel-score {
+          height: 24px;
+          width: 46px;
+          margin: 0 auto;
+          border-radius: var(--radius-sm);
+        }
+        .skel-count {
+          height: 12px;
+          width: 24px;
+          margin-left: auto;
+        }
+
+        @keyframes skelShimmer {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .skel-header-row,
+          .skel-row {
+            grid-template-columns: 42px 1fr 64px 50px;
+            gap: 0.5rem;
+            padding: 0.75rem 0.85rem;
+          }
+
+          .skel-avatar {
+            width: 24px;
+            height: 24px;
+          }
+          .skel-username {
+            width: 80px;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default function LeaderboardClient() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawPage = parseInt(searchParams.get('page'), 10) || 1;
+  const currentPage = Math.max(1, rawPage);
+
+  const [entries, setEntries] = useState([]);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 1,
+    hasNext: false,
+    hasPrev: false,
+  });
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [pageLoading, setPageLoading] = useState(false);
+  const [error, setError] = useState(false);
+
+  const fetchPage = useCallback(async (targetPage) => {
+    // Only show full skeleton on initial mount; use smooth state for subsequent pages
+    if (entries.length === 0) {
+      setInitialLoading(true);
+    } else {
+      setPageLoading(true);
+    }
+    setError(false);
+
+    try {
+      const data = await getLeaderboard(targetPage, 10);
+      setEntries(data.leaderboard || []);
+      if (data.pagination) {
+        setPagination(data.pagination);
+      } else {
+        setPagination({
+          page: targetPage,
+          limit: 10,
+          total: data.leaderboard?.length || 0,
+          totalPages: 1,
+          hasNext: false,
+          hasPrev: false,
+        });
+      }
+    } catch {
+      setEntries([]);
+      setError(true);
+    } finally {
+      setInitialLoading(false);
+      setPageLoading(false);
+    }
+  }, [entries.length]);
+
+  useEffect(() => {
+    fetchPage(currentPage);
+  }, [currentPage, fetchPage]);
+
+  const handlePageChange = (newPage) => {
+    if (
+      newPage === currentPage ||
+      newPage < 1 ||
+      (pagination.totalPages && newPage > pagination.totalPages)
+    ) {
+      return;
+    }
+    router.push(`/leaderboard?page=${newPage}`, { scroll: false });
+    const cardEl = document.querySelector('.lb-card');
+    if (cardEl) {
+      cardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  return (
+    <main className="lb-page">
+      {/* ── Top Navigation ── */}
+      <nav className="lb-nav" aria-label="Breadcrumb navigation">
+        <Link href="/" className="font-display nav-logo text-fire" title="GitRoast Home">
+          GITROAST 🔥
+        </Link>
+        <Link href="/" className="btn btn-ghost nav-back">
+          ← Home
+        </Link>
+      </nav>
+
+      {/* ── Page Header ── */}
+      <header className="lb-title-block">
+        <h1 className="font-display lb-title text-fire">🏆 Wall of Shame</h1>
+        <p className="font-mono lb-sub">
+          The most brutally roasted GitHub profiles. Globally.
+        </p>
+      </header>
+
+      {/* ── Main Leaderboard Card ── */}
+      <section className="card lb-card" aria-label="Leaderboard rankings">
+        {/* Subtle progress bar during page transitions to prevent layout shifts */}
+        {pageLoading && <div className="lb-progress-bar" aria-hidden="true" />}
+
+        {initialLoading ? (
+          <LeaderboardSkeleton />
+        ) : error ? (
+          <div className="lb-error">
+            <p className="font-mono error-msg">
+              ❌ Could not load leaderboard. The server may be warming up.
+            </p>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => fetchPage(currentPage)}
+            >
+              Try Again ↻
+            </button>
+          </div>
+        ) : (
+          <div className={`lb-content ${pageLoading ? 'lb-content--transitioning' : ''}`}>
+            <LeaderboardTable
+              entries={entries}
+              page={pagination.page}
+              limit={pagination.limit}
+            />
+
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              total={pagination.total}
+              limit={pagination.limit}
+              hasPrev={pagination.hasPrev}
+              hasNext={pagination.hasNext}
+              onPageChange={handlePageChange}
+              loading={pageLoading}
+            />
+          </div>
+        )}
+      </section>
+
+      {/* ── Bottom CTA ── */}
+      <Link href="/" className="btn btn-primary lb-cta">
+        🔥 Add Yourself to the List
+      </Link>
+
+      <style jsx>{`
+        .lb-page {
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 1.5rem 1rem 3.5rem;
+          gap: 1.5rem;
+          max-width: 640px;
+          margin: 0 auto;
+          width: 100%;
+        }
+
+        /* Nav */
+        .lb-nav {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+        }
+        .nav-logo {
+          font-size: 22px;
+          text-decoration: none;
+          letter-spacing: 0.5px;
+        }
+        .nav-back {
+          font-size: 13px;
+        }
+
+        /* Header */
+        .lb-title-block {
+          text-align: center;
+        }
+        .lb-title {
+          font-size: clamp(36px, 9vw, 56px);
+          line-height: 1.05;
+          margin-bottom: 6px;
+        }
+        .lb-sub {
+          color: var(--text-secondary);
+          font-size: 13px;
+          letter-spacing: 0.2px;
+        }
+
+        /* Card */
+        .lb-card {
+          width: 100%;
+          overflow: hidden;
+          position: relative;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .lb-progress-bar {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(90deg, #ff4500, #ffb700, #ff4500);
+          background-size: 200% 100%;
+          animation: progressAnimation 1s linear infinite;
+          z-index: 10;
+        }
+
+        @keyframes progressAnimation {
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
+        }
+
+        .lb-content {
+          transition: opacity 0.2s ease;
+        }
+        .lb-content--transitioning {
+          opacity: 0.65;
+          pointer-events: none;
+        }
+
+        /* Error state */
+        .lb-error {
+          padding: 3.5rem 1.5rem;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+          gap: 1.25rem;
+        }
+        .error-msg {
+          color: var(--bad);
+          font-size: 14px;
+        }
+
+        /* CTA */
+        .lb-cta {
+          padding: 13px 28px;
+          font-size: 15px;
+          text-decoration: none;
+          border-radius: var(--radius-md);
+        }
+
+        @media (max-width: 520px) {
+          .lb-page {
+            padding: 1.25rem 0.75rem 3rem;
+            gap: 1.25rem;
+          }
+
+          .nav-logo {
+            font-size: 20px;
+          }
+
+          .lb-title {
+            font-size: clamp(32px, 8.5vw, 42px);
+          }
+
+          .lb-sub {
+            font-size: 12px;
+          }
+
+          .lb-cta {
+            width: 100%;
+            padding: 14px 20px;
+          }
+        }
+      `}</style>
+    </main>
+  );
+}

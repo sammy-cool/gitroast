@@ -169,3 +169,26 @@ export async function getWrapped(username, year = 2025, token = null) {
   return json.wrapped;
 }
 
+// ── getLeaderboard ────────────────────────────────────────────
+// WHAT: Fetches paginated Wall of Shame leaderboard
+export async function getLeaderboard(page = 1, limit = 10) {
+  const res = await fetch(
+    `${API_BASE}/api/history/leaderboard/worst?page=${page}&limit=${limit}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(15000),
+    },
+  );
+
+  const json = await res.json();
+  if (!res.ok) {
+    const err = new Error(json.message || "Failed to fetch leaderboard");
+    err.code = json.error;
+    err.status = res.status;
+    throw err;
+  }
+
+  return json;
+}
+
