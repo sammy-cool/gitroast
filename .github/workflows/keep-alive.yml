@@ -1,0 +1,30 @@
+name: Render Backend Keep-Alive
+
+# WHAT: Automatically pings the Render backend every 14 minutes
+# WHY: Render free tier spins down after 15 minutes of inactivity.
+#      This workflow provides an external cloud heartbeat from GitHub
+#      to keep the service warm and eliminate 50s cold-start delays.
+
+on:
+  schedule:
+    # Run every 14 minutes (Render spins down at 15 minutes)
+    - cron: "*/14 * * * *"
+  workflow_dispatch: # Allows manual trigger from GitHub Actions dashboard
+
+jobs:
+  keep-alive:
+    name: Ping Render Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping Backend /health
+        run: |
+          echo "Dispatching keep-alive ping to Render backend..."
+          STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 45 https://gitroast-latest.onrender.com/health || true)
+          echo "Health check responded with HTTP status: $STATUS_CODE"
+          if [ "$STATUS_CODE" -ge 200 ] && [ "$STATUS_CODE" -lt 400 ]; then
+            echo "✅ Render backend is active and responsive."
+          else
+            echo "⚠️ Backend warming up or returned non-2xx status ($STATUS_CODE)."
+          fi

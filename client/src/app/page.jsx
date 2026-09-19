@@ -9,6 +9,7 @@ import GitHubLoginBtn from "@/components/GitHubLoginBtn";
 import RateLimitBanner from "@/components/RateLimitBanner";
 import LiveRoastFeed from "@/components/LiveRoastFeed";
 import { useAuth } from "@/context/AuthContext";
+import { wakeUpServer } from "@/services/roastService";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -72,6 +73,11 @@ export default function HomePage() {
     return null;
   });
   const router = useRouter();
+
+  // WHY wakeUpServer: silently pre-warms Render backend if sleeping on free tier
+  useEffect(() => {
+    wakeUpServer();
+  }, []);
 
   // WHY broadcast toast: alert unauthenticated visitors to log in for dedicated 5,000 req/hr rate limits
   useEffect(() => {

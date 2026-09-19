@@ -34,7 +34,8 @@ export async function getRoast(
   const res = await fetch(url, {
     method: "GET",
     headers,
-    signal: AbortSignal.timeout(15000),
+    // WHY 60s timeout: accommodates Render free tier cold start (40-50s)
+    signal: AbortSignal.timeout(60000),
   });
 
   const json = await res.json();
@@ -57,7 +58,7 @@ export async function getRoastHistory(username) {
   const res = await fetch(`${API_BASE}/api/history/${encodeURIComponent(username)}`, {
     method: "GET",
     headers: { "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(30000),
   });
   const json = await res.json();
   if (!res.ok) throw new Error(json.message || "Failed to fetch history");
@@ -71,7 +72,7 @@ export async function trackShare(roastId) {
   try {
     await fetch(`${API_BASE}/api/history/${roastId}/share`, {
       method: "POST",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(10000),
     });
   } catch {
     /* silent */
@@ -82,12 +83,21 @@ export async function trackShare(roastId) {
 export async function checkHealth() {
   try {
     const res = await fetch(`${API_BASE}/health`, {
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(10000),
     });
     return res.ok;
   } catch {
     return false;
   }
+}
+
+// ── wakeUpServer ──────────────────────────────────────────────
+// WHAT: Silently pre-warms the Render backend if sleeping on free tier
+// WHY: Render spins down after 15 min of inactivity. Pinging /health
+//      on page load starts the container before user submits a form.
+export function wakeUpServer() {
+  if (typeof window === "undefined") return;
+  fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(60000) }).catch(() => {});
 }
 
 // ── getBattleRoast ────────────────────────────────────────────
@@ -99,7 +109,7 @@ export async function getBattleRoast(user1, user2, token = null) {
 
   const res = await fetch(
     `${API_BASE}/api/battle/${encodeURIComponent(user1)}/vs/${encodeURIComponent(user2)}`,
-    { method: "GET", headers, signal: AbortSignal.timeout(20000) },
+    { method: "GET", headers, signal: AbortSignal.timeout(60000) },
   );
 
   const json = await res.json();
@@ -127,7 +137,7 @@ export async function reactToRoast(roastId, type) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(10000),
     });
     const json = await res.json();
     return json;
@@ -145,7 +155,7 @@ export async function getWrapped(username, year = 2025, token = null) {
 
   const res = await fetch(
     `${API_BASE}/api/roast/${encodeURIComponent(username)}/wrapped?year=${year}`,
-    { method: "GET", headers, signal: AbortSignal.timeout(15000) },
+    { method: "GET", headers, signal: AbortSignal.timeout(60000) },
   );
 
   const json = await res.json();

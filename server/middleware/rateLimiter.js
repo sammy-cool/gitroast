@@ -56,7 +56,7 @@ setInterval(
 //   generalLimiter: 60/min (broad protection for all /api routes)
 function createRateLimiter({
   windowMs = 60 * 1000,
-  maxRequests = 10,
+  maxRequests = 25,
   message = "Too many requests. Please slow down.",
 } = {}) {
   return function rateLimiter(req, res, next) {
@@ -140,45 +140,36 @@ function createRateLimiter({
 
 // ── Limiter instances ─────────────────────────────────────────
 
-// WHY 5/min for roast:
-//   Each roast = GitHub API call (rate limited by GitHub too)
-//   5 roasts/min per IP is generous for legit users
-//   Blocks scrapers that would exhaust GitHub API quota
+// WHY 20/min for roast (upgraded from 5):
+//   Provides comfortable headroom for legitimate users while blocking scrapers
 const roastLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  maxRequests: 5,
+  maxRequests: 20,
   message:
     "Too many roast requests. Give GitHub a breather — try again in a minute.",
 });
 
-// WHY 10/15min for auth:
-//   Auth = GitHub OAuth — brute force risk is low (OAuth not password)
-//   But 10 attempts in 15 min is still generous for legit users
-//   Stricter window (15min) to slow down any automated attacks
+// WHY 25/15min for auth (upgraded from 10):
+//   Allows seamless re-authentication and OAuth testing
 const authLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  maxRequests: 10,
+  maxRequests: 25,
   message: "Too many auth attempts. Try again in 15 minutes.",
 });
 
-// WHY 3/min for battle:
-//   Battle = 2x GitHub API calls + AI verdict
-//   Most expensive endpoint in the app
-//   3 battles/min is enough for any legit user
-//   Without this: one IP could trigger 120 GitHub API calls/min
+// WHY 18/min for battle (upgraded from 3):
+//   Battle = 2x GitHub API calls + AI verdict — 18 battles/min provides ample headroom
 const battleLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  maxRequests: 3,
+  maxRequests: 18,
   message: "Too many battle requests. Wait a minute before challenging again.",
 });
 
-// WHY 60/min general:
+// WHY 75/min general (upgraded from 60):
 //   Broad protection for all /api routes
-//   Catches anything not covered by specific limiters
-//   60 req/min = 1/sec — generous for normal browsing
 const generalLimiter = createRateLimiter({
   windowMs: 60 * 1000,
-  maxRequests: 60,
+  maxRequests: 75,
   message: "Too many requests. Please slow down.",
 });
 

@@ -298,4 +298,72 @@ describe("Security & Defensive Integrity", () => {
         assert.equal(mongoose.Types.ObjectId.isValid(""), false);
         assert.equal(mongoose.Types.ObjectId.isValid("12345"), false);
     });
+
+    it("should allow upgraded rate limits (+15 allowance) before returning 429", () => {
+        const { createRateLimiter } = require("../middleware/rateLimiter");
+        const limiter = createRateLimiter({
+            windowMs: 60 * 1000,
+            maxRequests: 20, // upgraded roast limit: 5 + 15
+        });
+
+        let nextCallCount = 0;
+        let lastStatus = null;
+        let lastJson = null;
+
+        const fakeRes = {
+            headers: {},
+            setHeader(name, val) {
+                this.headers[name] = val;
+            },
+            status(code) {
+                lastStatus = code;
+                return {
+                    json(data) {
+                        lastJson = data;
+                    },
+                };
+            },
+        };
+
+        const fakeReq = {
+            headers: { "x-forwarded-for": "192.168.1.99" },
+            baseUrl: "/api/roast",
+            path: "/testuser",
+        };
+
+        // 20 requests must pass
+        for (let i = 0; i < 20; i++) {
+            limiter(fakeReq, fakeRes, () => {
+                nextCallCount++;
+            });
+        }
+        assert.equal(nextCallCount, 20, "All 20 upgraded requests should be permitted");
+        assert.equal(lastStatus, null, "Status should not be 429 within quota");
+
+        // 21st request must trigger 429
+        limiter(fakeReq, fakeRes, () => {
+            nextCallCount++;
+        });
+        assert.equal(lastStatus, 429, "21st request should receive 429");
+        assert.equal(lastJson?.error, "RATE_LIMIT_EXCEEDED");
+    });
+
+    it("should resolve correct keep-alive target URL based on environment", () => {
+        const { getHealthUrl } = require("../services/keepAliveService");
+        const originalRender = process.env.RENDER_EXTERNAL_URL;
+        try {
+            process.env.RENDER_EXTERNAL_URL = "https://custom-service.onrender.com";
+            assert.equal(
+                getHealthUrl(),
+                "https://custom-service.onrender.com/health",
+            );
+            delete process.env.RENDER_EXTERNAL_URL;
+            assert.equal(
+                getHealthUrl(),
+                "https://gitroast-latest.onrender.com/health",
+            );
+        } finally {
+            if (originalRender) process.env.RENDER_EXTERNAL_URL = originalRender;
+        }
+    });
 });

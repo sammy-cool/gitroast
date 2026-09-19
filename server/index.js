@@ -28,6 +28,7 @@ const {
   generalLimiter,
 } = require("./middleware/rateLimiter");
 const { logger, logRequest, attachProcessHandlers } = require("./utils/logger");
+const { startKeepAlive } = require("./services/keepAliveService");
 
 // ── Step 1: Attach process-level error handlers ───────────────
 // WHY FIRST: ensures uncaughtException and unhandledRejection are
@@ -138,6 +139,7 @@ mongoose
         env: process.env.NODE_ENV || "development",
         port: PORT,
       });
+      startKeepAlive();
     });
   })
   .catch((err) => {
