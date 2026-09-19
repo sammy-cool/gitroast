@@ -138,10 +138,10 @@ app.use("/api/payment", require("./routes/payment"));
 app.use("/api/battle", battleLimiter, require("./routes/battle"));
 
 // ── Step 8: Health check ──────────────────────────────────────
-// WHAT: Returns server status — used by Docker HEALTHCHECK and Render
-// WHY: Without this, Render doesn't know if the container is ready
-//      and routes traffic to a container that hasn't fully started
-app.get("/health", generalLimiter, (req, res) => {
+// WHAT: Returns server status — used by Docker HEALTHCHECK, Render, and frontend pre-warming
+// WHY ["/health", "/api/health"]: /health for Docker & Render internally;
+//     /api/health for frontend pre-warming so privacy extensions/Brave do not block it as telemetry
+app.get(["/health", "/api/health"], generalLimiter, (req, res) => {
   res.json({
     status: "🔥 GitRoast server is alive",
     time: new Date().toISOString(),
