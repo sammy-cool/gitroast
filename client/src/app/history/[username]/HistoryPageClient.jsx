@@ -80,7 +80,7 @@ export default function HistoryPageClient({ username }) {
             display:        flex;
             flex-direction: column;
             align-items:    center;
-            padding:        1.5rem 1rem 3rem;
+            padding:        1.5rem 1rem 6.5rem;
             gap:            1.25rem;
             max-width:      620px;
             margin:         0 auto;
@@ -231,11 +231,31 @@ export default function HistoryPageClient({ username }) {
 
             {/* ── Profile header ── */}
             <div className="history-header card">
-                <div>
-                    <h1 className="font-display header-title text-fire">
-                        @{username}
-                    </h1>
-                    <p className="font-mono header-sub">Roast History</p>
+                <div className="header-user-info">
+                    <div className="history-avatar-box">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={`https://avatars.githubusercontent.com/${username}?s=96`}
+                            alt={`@${username}`}
+                            className="history-avatar-img"
+                            crossOrigin="anonymous"
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                if (e.currentTarget.nextSibling) {
+                                    e.currentTarget.nextSibling.style.display = 'flex';
+                                }
+                            }}
+                        />
+                        <div className="history-avatar-fallback font-display" style={{ display: 'none' }}>
+                            {username[0]?.toUpperCase() || '?'}
+                        </div>
+                    </div>
+                    <div>
+                        <h1 className="font-display header-title text-fire">
+                            @{username}
+                        </h1>
+                        <p className="font-mono header-sub">Roast History</p>
+                    </div>
                 </div>
                 <button
                     className="btn btn-primary roast-again-btn"
@@ -323,7 +343,7 @@ export default function HistoryPageClient({ username }) {
           display:        flex;
           flex-direction: column;
           align-items:    center;
-          padding:        1.5rem 1rem 3rem;
+          padding:        1.5rem 1rem 6.5rem;
           gap:            1.25rem;
           max-width:      620px;
           margin:         0 auto;
@@ -345,6 +365,39 @@ export default function HistoryPageClient({ username }) {
           align-items:     center;
           gap:             1rem;
           flex-wrap:       wrap;
+        }
+        .header-user-info {
+          display:         flex;
+          align-items:     center;
+          gap:             14px;
+        }
+        .history-avatar-box {
+          width:           52px;
+          height:          52px;
+          border-radius:   50%;
+          background:      #161616;
+          border:          2px solid rgba(255, 69, 0, 0.4);
+          overflow:        hidden;
+          display:         flex;
+          align-items:     center;
+          justify-content: center;
+          flex-shrink:     0;
+          box-shadow:      0 4px 14px rgba(0, 0, 0, 0.4);
+        }
+        .history-avatar-img {
+          width:           100%;
+          height:          100%;
+          object-fit:      cover;
+          border-radius:   50%;
+        }
+        .history-avatar-fallback {
+          width:           100%;
+          height:          100%;
+          display:         flex;
+          align-items:     center;
+          justify-content: center;
+          font-size:       22px;
+          color:           var(--fire);
         }
         .header-title    { font-size: 32px; line-height: 1; }
         .header-sub      { color: var(--text-secondary); font-size: 12px; margin-top: 4px; }

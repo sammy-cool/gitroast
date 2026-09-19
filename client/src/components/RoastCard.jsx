@@ -69,8 +69,23 @@ export default function RoastCard({ data, onProClick }) {
         {/* ── Header ── */}
         <div className="card-header">
           <div className="profile-info">
-            <div className="avatar font-display">
-              {data.username[0].toUpperCase()}
+            <div className="avatar-box">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={data.avatarUrl || `https://avatars.githubusercontent.com/${data.username}?s=96`}
+                alt={`@${data.username}`}
+                className="avatar-img"
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  if (e.currentTarget.nextSibling) {
+                    e.currentTarget.nextSibling.style.display = 'flex';
+                  }
+                }}
+              />
+              <div className="avatar-fallback font-display" style={{ display: 'none' }}>
+                {data.username[0]?.toUpperCase() || '?'}
+              </div>
             </div>
             <div>
               <p className="profile-name">@{data.username}</p>
@@ -169,18 +184,32 @@ export default function RoastCard({ data, onProClick }) {
           gap:         12px;
           min-width:   0;
         }
-        .avatar {
-          width:           44px;
-          height:          44px;
+        .avatar-box {
+          width:           46px;
+          height:          46px;
           border-radius:   50%;
           background:      #161616;
-          border:          2px solid rgba(255, 69, 0, 0.35);
+          border:          2px solid rgba(255, 69, 0, 0.4);
+          overflow:        hidden;
+          display:         flex;
+          align-items:     center;
+          justify-content: center;
+          flex-shrink:     0;
+        }
+        .avatar-img {
+          width:       100%;
+          height:      100%;
+          object-fit:  cover;
+          border-radius: 50%;
+        }
+        .avatar-fallback {
+          width:           100%;
+          height:          100%;
           display:         flex;
           align-items:     center;
           justify-content: center;
           font-size:       18px;
           color:           var(--fire);
-          flex-shrink:     0;
         }
         .profile-name {
           font-weight:   600;

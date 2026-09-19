@@ -26,8 +26,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+import { getRoastFeed } from '@/services/roastService'
 
 // WHY grade colors match RoastCard exactly — brand consistency
 function getScoreColor(score) {
@@ -58,10 +57,9 @@ export default function LiveRoastFeed() {
 
     async function loadFeed() {
         try {
-            const res = await fetch(`${API_BASE}/api/roast/feed`)
-            const json = await res.json()
-            if (json.success && json.feed?.length > 0) {
-                setFeed(json.feed)
+            const data = await getRoastFeed()
+            if (data?.length > 0) {
+                setFeed(data)
             }
         } catch {
             // WHY silent: feed failure must never break homepage
@@ -99,22 +97,37 @@ export default function LiveRoastFeed() {
                         <Link
                             key={`${item._id}-${i}`}
                             href={`/history/${item.username}`}
-                            className="feed-item font-mono"
+                            className="feed-link"
                             title={`View @${item.username}'s roast`}
                         >
-                            <span className="feed-emoji">
-                                {getIntensityEmoji(item.intensity)}
-                            </span>
-                            <span className="feed-username">@{item.username}</span>
-                            <span
-                                className="feed-score"
-                                style={{ color: getScoreColor(item.score) }}
-                            >
-                                {item.score}/100
-                            </span>
-                            <span className="feed-grade">Grade {item.grade}</span>
-                            <span className="feed-time">{getRelativeTime(item.createdAt)}</span>
-                            <span className="feed-sep">·</span>
+                            <div className="feed-item font-mono">
+                                <span className="feed-avatar-box">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={`https://avatars.githubusercontent.com/${item.username}?s=32`}
+                                        alt={item.username}
+                                        className="feed-avatar"
+                                        crossOrigin="anonymous"
+                                        loading="lazy"
+                                        onError={(e) => {
+                                            e.currentTarget.style.display = 'none'
+                                        }}
+                                    />
+                                </span>
+                                <span className="feed-emoji">
+                                    {getIntensityEmoji(item.intensity)}
+                                </span>
+                                <span className="feed-username">@{item.username}</span>
+                                <span
+                                    className="feed-score"
+                                    style={{ color: getScoreColor(item.score) }}
+                                >
+                                    {item.score}/100
+                                </span>
+                                <span className="feed-grade">Grade {item.grade}</span>
+                                <span className="feed-time">{getRelativeTime(item.createdAt)}</span>
+                                <span className="feed-sep">·</span>
+                            </div>
                         </Link>
                     ))}
                 </div>
@@ -177,16 +190,39 @@ export default function LiveRoastFeed() {
           animation-play-state: paused;
         }
 
+        .feed-track :global(.feed-link) {
+          text-decoration: none;
+          display:         inline-flex;
+          color:           inherit;
+        }
+
         .feed-item {
           display:         flex;
           align-items:     center;
           gap:             6px;
-          padding:         0 16px;
-          text-decoration: none;
+          padding:         0 14px;
           white-space:     nowrap;
           transition:      opacity 0.15s;
         }
         .feed-item:hover { opacity: 0.7; }
+
+        .feed-avatar-box {
+          width:           16px;
+          height:          16px;
+          border-radius:   50%;
+          overflow:        hidden;
+          display:         inline-flex;
+          align-items:     center;
+          justify-content: center;
+          background:      #1a1a1a;
+          flex-shrink:     0;
+        }
+        .feed-avatar {
+          width:       100%;
+          height:      100%;
+          object-fit:  cover;
+          border-radius: 50%;
+        }
 
         .feed-emoji    { font-size: 12px; }
         .feed-username { font-size: 12px; color: var(--text-primary); }

@@ -85,8 +85,8 @@ export default function NotFound() {
           width:          100%;
           margin-top:     0.5rem;
         }
-        .nf-btn       { width: 100%; padding: 13px; font-size: 15px; text-align: center; }
-        .nf-btn-ghost { width: 100%; text-align: center; }
+        .nf-actions :global(.nf-btn)       { width: 100%; padding: 13px; font-size: 15px; text-align: center; text-decoration: none; }
+        .nf-actions :global(.nf-btn-ghost) { width: 100%; text-align: center; text-decoration: none; }
       `}</style>
     </main>
   )

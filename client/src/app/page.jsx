@@ -9,9 +9,7 @@ import GitHubLoginBtn from "@/components/GitHubLoginBtn";
 import RateLimitBanner from "@/components/RateLimitBanner";
 import LiveRoastFeed from "@/components/LiveRoastFeed";
 import { useAuth } from "@/context/AuthContext";
-import { wakeUpServer } from "@/services/roastService";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import { wakeUpServer, getRoastStats } from "@/services/roastService";
 
 const INTENSITIES = [
   {
@@ -103,12 +101,9 @@ export default function HomePage() {
   }, [user, loginWithGitHub]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/roast/stats`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.totalRoasts > 0) setTotalRoasts(d.totalRoasts);
-      })
-      .catch(() => {});
+    getRoastStats().then((total) => {
+      if (total > 0) setTotalRoasts(total);
+    });
   }, []);
 
   function handleIntensitySelect(key) {

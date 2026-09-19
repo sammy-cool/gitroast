@@ -65,11 +65,26 @@ export default function BattleCard({ data }) {
                 {/* Player 1 */}
                 <div className={`player-block ${isUser1Winner ? 'player-block--loser' : ''}`}>
                     {isUser1Winner && <div className="shame-crown font-mono">💀 MOST ROASTABLE</div>}
-                    <div className="player-avatar font-display" style={{ borderColor: score1Color }}>
-                        {user1[0].toUpperCase()}
+                    <div className="player-avatar-box" style={{ borderColor: score1Color }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={`https://avatars.githubusercontent.com/${user1}?s=120`}
+                            alt={`@${user1}`}
+                            className="player-avatar-img"
+                            crossOrigin="anonymous"
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                                if (e.currentTarget.nextSibling) {
+                                    e.currentTarget.nextSibling.style.display = 'flex'
+                                }
+                            }}
+                        />
+                        <div className="player-avatar-fallback font-display" style={{ display: 'none' }}>
+                            {user1[0]?.toUpperCase() || '?'}
+                        </div>
                     </div>
-                    <Link href={`/history/${user1}`} className="player-name font-mono" title={`View @${user1}'s history`}>
-                        @{user1}
+                    <Link href={`/history/${user1}`} className="player-link font-mono" title={`View @${user1}'s history`}>
+                        <span className="player-name">@{user1}</span>
                     </Link>
                     <div className="player-score font-display" style={{ color: score1Color }}>
                         {score1}
@@ -95,11 +110,26 @@ export default function BattleCard({ data }) {
                 {/* Player 2 */}
                 <div className={`player-block ${!isUser1Winner ? 'player-block--loser' : ''}`}>
                     {!isUser1Winner && winner && <div className="shame-crown font-mono">💀 MOST ROASTABLE</div>}
-                    <div className="player-avatar font-display" style={{ borderColor: score2Color }}>
-                        {user2[0].toUpperCase()}
+                    <div className="player-avatar-box" style={{ borderColor: score2Color }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={`https://avatars.githubusercontent.com/${user2}?s=120`}
+                            alt={`@${user2}`}
+                            className="player-avatar-img"
+                            crossOrigin="anonymous"
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                                if (e.currentTarget.nextSibling) {
+                                    e.currentTarget.nextSibling.style.display = 'flex'
+                                }
+                            }}
+                        />
+                        <div className="player-avatar-fallback font-display" style={{ display: 'none' }}>
+                            {user2[0]?.toUpperCase() || '?'}
+                        </div>
                     </div>
-                    <Link href={`/history/${user2}`} className="player-name font-mono" title={`View @${user2}'s history`}>
-                        @{user2}
+                    <Link href={`/history/${user2}`} className="player-link font-mono" title={`View @${user2}'s history`}>
+                        <span className="player-name">@{user2}</span>
                     </Link>
                     <div className="player-score font-display" style={{ color: score2Color }}>
                         {score2}
@@ -189,19 +219,41 @@ export default function BattleCard({ data }) {
           white-space:   nowrap;
           letter-spacing:1px;
         }
-        .player-avatar {
-          width:           52px;
-          height:          52px;
+        .player-block :global(.player-link) {
+          text-decoration: none;
+          display:         inline-flex;
+        }
+        .player-avatar-box {
+          width:           56px;
+          height:          56px;
           border-radius:   50%;
           background:      #161616;
           border:          2px solid;
+          overflow:        hidden;
           display:         flex;
           align-items:     center;
           justify-content: center;
-          font-size:       22px;
           margin-top:      1rem;
+          flex-shrink:     0;
+          box-shadow:      0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .player-avatar-img {
+          width:       100%;
+          height:      100%;
+          object-fit:  cover;
+          border-radius: 50%;
+        }
+        .player-avatar-fallback {
+          width:           100%;
+          height:          100%;
+          display:         flex;
+          align-items:     center;
+          justify-content: center;
+          font-size:       24px;
+          color:           var(--text-primary);
         }
         .player-name        { font-size: 13px; color: var(--text-primary); text-decoration: none; transition: color 0.15s; }
+        .player-block :global(.player-link:hover) .player-name,
         .player-name:hover  { color: var(--fire); }
         .player-score       { font-size: 44px; line-height: 1; }
         .player-score-label { font-size: 10px; color: var(--text-muted); }

@@ -451,7 +451,9 @@ body.loading {
 
 .footer-links {
   display: flex;
+  align-items: center;
   gap: 1.25rem;
+  flex-wrap: wrap;
 }
 
 .footer-link {
@@ -471,10 +473,19 @@ body.loading {
 }
 
 @media (max-width: 540px) {
+  .site-footer {
+    padding: 8px 1rem;
+  }
+
   .footer-inner {
     flex-direction: column;
     align-items: center;
     gap: 6px;
+  }
+
+  .footer-links {
+    justify-content: center;
+    gap: 12px;
   }
 
   .footer-tagline {

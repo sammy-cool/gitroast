@@ -237,3 +237,32 @@ export async function getLeaderboard(page = 1, limit = 10) {
   return json;
 }
 
+// ── getRoastFeed ──────────────────────────────────────────────
+// WHAT: Fetches last 10 public roasts for live feed on homepage
+export async function getRoastFeed() {
+  try {
+    const res = await fetch(`${API_BASE}/api/roast/feed`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.success && Array.isArray(json.feed) ? json.feed : [];
+  } catch {
+    return [];
+  }
+}
+
+// ── getRoastStats ─────────────────────────────────────────────
+// WHAT: Fetches total number of roasts generated
+export async function getRoastStats() {
+  try {
+    const res = await fetch(`${API_BASE}/api/roast/stats`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return 0;
+    const json = await res.json();
+    return json.success && typeof json.totalRoasts === "number" ? json.totalRoasts : 0;
+  } catch {
+    return 0;
+  }
+}

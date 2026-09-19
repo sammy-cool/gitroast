@@ -296,7 +296,7 @@ export default function LeaderboardClient() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 1.5rem 1rem 3.5rem;
+          padding: 1.5rem 1rem 6.5rem;
           gap: 1.5rem;
           max-width: 640px;
           margin: 0 auto;
@@ -310,11 +310,13 @@ export default function LeaderboardClient() {
           align-items: center;
           width: 100%;
         }
+        .lb-nav :global(.nav-logo),
         .nav-logo {
           font-size: 22px;
           text-decoration: none;
           letter-spacing: 0.5px;
         }
+        .lb-nav :global(.nav-back),
         .nav-back {
           font-size: 13px;
         }
@@ -386,6 +388,7 @@ export default function LeaderboardClient() {
         }
 
         /* CTA */
+        .lb-page :global(.lb-cta),
         .lb-cta {
           padding: 13px 28px;
           font-size: 15px;
@@ -395,10 +398,11 @@ export default function LeaderboardClient() {
 
         @media (max-width: 520px) {
           .lb-page {
-            padding: 1.25rem 0.75rem 3rem;
+            padding: 1.25rem 0.75rem 6rem;
             gap: 1.25rem;
           }
 
+          .lb-nav :global(.nav-logo),
           .nav-logo {
             font-size: 20px;
           }
@@ -411,9 +415,11 @@ export default function LeaderboardClient() {
             font-size: 12px;
           }
 
+          .lb-page :global(.lb-cta),
           .lb-cta {
             width: 100%;
             padding: 14px 20px;
+            text-align: center;
           }
         }
       `}</style>

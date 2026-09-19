@@ -21,16 +21,18 @@ export default function Footer() {
           <Link href="/leaderboard" className="footer-link">
             Wall of Shame
           </Link>
+          <Link href="/battle" className="footer-link">
+            Battle
+          </Link>
           <Link href="/pricing" className="footer-link">
             Pricing
           </Link>
-          {/* WHY mailto: simple contact before we have a contact page */}
-          <a
-            href="mailto:priyanshu.alt191@gmail.com"
-            className="footer-link"
-          >
+          <Link href="/about" className="footer-link">
+            About
+          </Link>
+          <Link href="/contact" className="footer-link">
             Contact
-          </a>
+          </Link>
         </div>
 
         {/* Copyright */}
