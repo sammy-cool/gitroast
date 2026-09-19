@@ -13,6 +13,35 @@
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+// ── getCaptchaToken ───────────────────────────────────────────
+// WHAT: Obtains Google reCAPTCHA v3 token for bot defense
+// WHY: Only executes for unauthenticated users when site key is present
+//      Fails open gracefully if blocked by adblockers or network issues
+async function getCaptchaToken(action = "roast") {
+  if (typeof window === "undefined") return null;
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+  if (!siteKey || !window.grecaptcha) return null;
+
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), 3000);
+    try {
+      window.grecaptcha.ready(async () => {
+        try {
+          const token = await window.grecaptcha.execute(siteKey, { action });
+          clearTimeout(timer);
+          resolve(token);
+        } catch {
+          clearTimeout(timer);
+          resolve(null);
+        }
+      });
+    } catch {
+      clearTimeout(timer);
+      resolve(null);
+    }
+  });
+}
+
 // ── getRoast ──────────────────────────────────────────────────
 // WHAT: Fetches a roast for a GitHub username
 // WHY attach retryAfter to error:
@@ -26,7 +55,13 @@ export async function getRoast(
 ) {
   const headers = { "Content-Type": "application/json" };
 
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    const captchaToken = await getCaptchaToken("roast");
+    if (captchaToken) headers["X-Captcha-Token"] = captchaToken;
+  }
+
   if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;
 
   const url = `${API_BASE}/api/roast/${encodeURIComponent(username)}?intensity=${encodeURIComponent(intensity)}`;
@@ -105,7 +140,12 @@ export function wakeUpServer() {
 //   Battle route also has rate limiting — same pattern
 export async function getBattleRoast(user1, user2, token = null) {
   const headers = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    const captchaToken = await getCaptchaToken("battle");
+    if (captchaToken) headers["X-Captcha-Token"] = captchaToken;
+  }
 
   const res = await fetch(
     `${API_BASE}/api/battle/${encodeURIComponent(user1)}/vs/${encodeURIComponent(user2)}`,
@@ -151,7 +191,12 @@ export async function reactToRoast(roastId, type) {
 // WHAT: Fetches GitHub Wrapped year-in-review roast
 export async function getWrapped(username, year = 2025, token = null) {
   const headers = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    const captchaToken = await getCaptchaToken("wrapped");
+    if (captchaToken) headers["X-Captcha-Token"] = captchaToken;
+  }
 
   const res = await fetch(
     `${API_BASE}/api/roast/${encodeURIComponent(username)}/wrapped?year=${year}`,

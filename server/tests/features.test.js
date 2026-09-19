@@ -366,4 +366,113 @@ describe("Security & Defensive Integrity", () => {
             if (originalRender) process.env.RENDER_EXTERNAL_URL = originalRender;
         }
     });
+
+    it("should handle reCAPTCHA v3 verification scenarios properly", async () => {
+        const { verifyCaptcha } = require("../middleware/captcha");
+
+        function createMockRes() {
+            let statusCode = 200;
+            let responseJson = null;
+            return {
+                status(code) {
+                    statusCode = code;
+                    return this;
+                },
+                json(data) {
+                    responseJson = data;
+                    return this;
+                },
+                getStatusCode: () => statusCode,
+                getJson: () => responseJson,
+            };
+        }
+
+        // 1. Authenticated user bypasses CAPTCHA
+        let nextCalled = false;
+        await verifyCaptcha(
+            { user: { id: "test-user-123" }, headers: {} },
+            createMockRes(),
+            () => { nextCalled = true; },
+        );
+        assert.equal(nextCalled, true, "Authenticated user should bypass CAPTCHA");
+
+        // 2. Unconfigured secret key bypasses CAPTCHA
+        const savedSecret = process.env.RECAPTCHA_SECRET_KEY;
+        try {
+            delete process.env.RECAPTCHA_SECRET_KEY;
+            nextCalled = false;
+            await verifyCaptcha(
+                { headers: {} },
+                createMockRes(),
+                () => { nextCalled = true; },
+            );
+            assert.equal(nextCalled, true, "Missing secret should bypass gracefully");
+
+            // 3. Secret configured but missing token -> 403 CAPTCHA_REQUIRED
+            process.env.RECAPTCHA_SECRET_KEY = "test_secret_key";
+            const resNoToken = createMockRes();
+            nextCalled = false;
+            await verifyCaptcha(
+                { headers: {} },
+                resNoToken,
+                () => { nextCalled = true; },
+            );
+            assert.equal(nextCalled, false);
+            assert.equal(resNoToken.getStatusCode(), 403);
+            assert.equal(resNoToken.getJson()?.error, "CAPTCHA_REQUIRED");
+
+            // 4. Secret configured, low score -> 403 CAPTCHA_FAILED
+            const originalFetch = global.fetch;
+            try {
+                global.fetch = async () => ({
+                    json: async () => ({ success: true, score: 0.2 }),
+                });
+                const resLowScore = createMockRes();
+                nextCalled = false;
+                await verifyCaptcha(
+                    { headers: { "x-captcha-token": "bot-token" } },
+                    resLowScore,
+                    () => { nextCalled = true; },
+                );
+                assert.equal(nextCalled, false);
+                assert.equal(resLowScore.getStatusCode(), 403);
+                assert.equal(resLowScore.getJson()?.error, "CAPTCHA_FAILED");
+
+                // 5. Secret configured, valid score -> next()
+                global.fetch = async () => ({
+                    json: async () => ({ success: true, score: 0.9 }),
+                });
+                const resValid = createMockRes();
+                nextCalled = false;
+                await verifyCaptcha(
+                    { headers: { "x-captcha-token": "human-token" } },
+                    resValid,
+                    () => { nextCalled = true; },
+                );
+                assert.equal(nextCalled, true, "Human score should pass verification");
+
+                // 6. Network error / timeout -> fails open gracefully
+                global.fetch = async () => {
+                    throw new Error("Network timeout");
+                };
+                const resError = createMockRes();
+                nextCalled = false;
+                await verifyCaptcha(
+                    { headers: { "x-captcha-token": "any-token" } },
+                    resError,
+                    () => { nextCalled = true; },
+                );
+                assert.equal(nextCalled, true, "Should fail open on network error");
+            } finally {
+                global.fetch = originalFetch;
+            }
+        } finally {
+            if (savedSecret) {
+                process.env.RECAPTCHA_SECRET_KEY = savedSecret;
+            } else {
+                delete process.env.RECAPTCHA_SECRET_KEY;
+            }
+        }
+    });
 });
+

@@ -147,6 +147,14 @@ export default function RootLayout({ children }) {
                 never part of the loading state */}
         <Footer />
 
+        {/* Google reCAPTCHA v3 (Invisible) */}
+        {process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY && (
+          <Script
+            src={`https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`}
+            strategy="lazyOnload"
+          />
+        )}
+
         {/* Google Analytics */}
         <Script
           src={`https://www.googletagmanager.com/gtag/js?id=G-3CT533X7R2`}

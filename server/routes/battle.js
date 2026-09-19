@@ -4,11 +4,12 @@ const express = require("express");
 const router = express.Router();
 const { runBattle } = require("../services/battleService");
 const { optionalAuth } = require("../middleware/auth");
+const { verifyCaptcha } = require("../middleware/captcha");
 const { logger } = require("../utils/logger");
 
 // ─── GET /api/battle/:user1/vs/:user2 ────────────────────
 // WHY: GET not POST — results are cacheable + shareable URLs work
-router.get("/:user1/vs/:user2", optionalAuth, async (req, res) => {
+router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) => {
   const { user1, user2 } = req.params;
 
   // ── Validate both usernames ───────────────────────────

@@ -4,6 +4,7 @@ const { analyzeProfile, analyzeWrapped } = require("../services/githubService");
 const { generateRoast } = require("../services/roastEngine");
 const { generateAIRoast } = require("../services/aiService");
 const { optionalAuth, requirePro } = require("../middleware/auth");
+const { verifyCaptcha } = require("../middleware/captcha");
 const Roast = require("../models/Roast");
 const { logger } = require("../utils/logger");
 
@@ -50,7 +51,7 @@ router.get("/stats", async (req, res) => {
 
 // ─── GET /api/roast/:username/wrapped ─────────────────────
 // WHY: Feature #4 — Spotify-Wrapped style year in review
-router.get("/:username/wrapped", optionalAuth, async (req, res) => {
+router.get("/:username/wrapped", optionalAuth, verifyCaptcha, async (req, res) => {
   const { username } = req.params;
   const year = parseInt(req.query.year, 10) || 2025;
 
@@ -95,7 +96,7 @@ router.get("/:username/wrapped", optionalAuth, async (req, res) => {
 });
 
 // ─── GET /api/roast/:username ─────────────────────────────
-router.get("/:username", optionalAuth, async (req, res) => {
+router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
   const { username } = req.params;
   const isPro = req.user?.isPro || false;
   const idempotencyKey = req.headers["x-idempotency-key"];
