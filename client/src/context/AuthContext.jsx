@@ -103,6 +103,7 @@ export function AuthProvider({ children }) {
         loginWithGitHub,
         loginWithToken,
         getToken,
+        token: typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null,
         logout,
         refreshUser,
     }

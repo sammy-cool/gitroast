@@ -134,4 +134,101 @@ describe("Feature #4 — GitHub Wrapped 2025", () => {
             global.fetch = originalFetch;
         }
     });
+
+    it("should reject organizations with ORGANIZATION_NOT_SUPPORTED", async () => {
+        const { analyzeProfile } = require("../services/githubService");
+        const originalFetch = global.fetch;
+
+        global.fetch = async (url) => {
+            if (url.includes("/users/google")) {
+                return {
+                    ok: true,
+                    status: 200,
+                    headers: new Headers(),
+                    json: async () => ({
+                        login: "google",
+                        type: "Organization",
+                    }),
+                };
+            }
+            return {
+                ok: true,
+                status: 200,
+                headers: new Headers(),
+                json: async () => ([]),
+            };
+        };
+
+        try {
+            await assert.rejects(
+                async () => {
+                    await analyzeProfile("google");
+                },
+                { message: "ORGANIZATION_NOT_SUPPORTED" },
+            );
+        } finally {
+            global.fetch = originalFetch;
+        }
+    });
+
+    it("should query /users/:username/repos when roasting another developer even if userToken is present", async () => {
+        const { analyzeProfile } = require("../services/githubService");
+        const originalFetch = global.fetch;
+        let queriedEndpoint = null;
+
+        global.fetch = async (url) => {
+            if (url.includes("/repos")) {
+                queriedEndpoint = url;
+                return {
+                    ok: true,
+                    status: 200,
+                    headers: new Headers(),
+                    json: async () => [],
+                };
+            }
+            if (url.includes("/users/otherdev")) {
+                return {
+                    ok: true,
+                    status: 200,
+                    headers: new Headers(),
+                    json: async () => ({
+                        login: "otherdev",
+                        type: "User",
+                        public_repos: 0,
+                        created_at: "2023-01-01T00:00:00Z",
+                    }),
+                };
+            }
+            return {
+                ok: true,
+                status: 200,
+                headers: new Headers(),
+                json: async () => ({}),
+            };
+        };
+
+        try {
+            // Logged in as "callerdev", but roasting "otherdev"
+            await analyzeProfile("otherdev", "caller_token_123", "callerdev", false);
+            assert.ok(
+                queriedEndpoint && queriedEndpoint.includes("/users/otherdev/repos"),
+                `Expected /users/otherdev/repos to be called, got: ${queriedEndpoint}`,
+            );
+        } finally {
+            global.fetch = originalFetch;
+        }
+    });
+
+    it("should provide dedicated ghost roast for accounts with zero repositories", () => {
+        const ghostData = {
+            username: "ghostie",
+            score: 15,
+            grade: "F-",
+            repoAnalysis: { totalOwn: 0 },
+            commitAnalysis: { qualityScore: 0, shameList: [] },
+        };
+        const roast = generateRoast(ghostData, "savage");
+        assert.ok(roast && roast.length > 0);
+        assert.ok(/zero|empty|404|ghost/i.test(roast), `Expected ghost roast tropes, got: ${roast}`);
+    });
 });

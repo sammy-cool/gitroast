@@ -74,7 +74,7 @@ async function runBattle(username1, username2, token1 = null) {
   // WHY: fetch both profiles in parallel — faster
   const [data1, data2] = await Promise.all([
     analyzeProfile(username1, token1),
-    analyzeProfile(username2, null),
+    analyzeProfile(username2, token1),
   ]);
 
   // WHY savage intensity for battles — battles should be brutal

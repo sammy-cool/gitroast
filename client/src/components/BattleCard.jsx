@@ -3,6 +3,7 @@
 // WHERE: client/src/components/BattleCard.jsx
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { createToast } from 'customizable-toast-notification'
 
 export default function BattleCard({ data }) {
@@ -67,7 +68,9 @@ export default function BattleCard({ data }) {
                     <div className="player-avatar font-display" style={{ borderColor: score1Color }}>
                         {user1[0].toUpperCase()}
                     </div>
-                    <p className="player-name font-mono">@{user1}</p>
+                    <Link href={`/history/${user1}`} className="player-name font-mono" title={`View @${user1}'s history`}>
+                        @{user1}
+                    </Link>
                     <div className="player-score font-display" style={{ color: score1Color }}>
                         {score1}
                     </div>
@@ -95,7 +98,9 @@ export default function BattleCard({ data }) {
                     <div className="player-avatar font-display" style={{ borderColor: score2Color }}>
                         {user2[0].toUpperCase()}
                     </div>
-                    <p className="player-name font-mono">@{user2}</p>
+                    <Link href={`/history/${user2}`} className="player-name font-mono" title={`View @${user2}'s history`}>
+                        @{user2}
+                    </Link>
                     <div className="player-score font-display" style={{ color: score2Color }}>
                         {score2}
                     </div>
@@ -196,7 +201,8 @@ export default function BattleCard({ data }) {
           font-size:       22px;
           margin-top:      1rem;
         }
-        .player-name        { font-size: 13px; color: var(--text-primary); }
+        .player-name        { font-size: 13px; color: var(--text-primary); text-decoration: none; transition: color 0.15s; }
+        .player-name:hover  { color: var(--fire); }
         .player-score       { font-size: 44px; line-height: 1; }
         .player-score-label { font-size: 10px; color: var(--text-muted); }
         .player-grade {

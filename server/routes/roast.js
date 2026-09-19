@@ -63,7 +63,15 @@ router.get("/:username/wrapped", optionalAuth, async (req, res) => {
 
   try {
     const githubToken = req.user?.githubAccessToken || null;
-    const wrapped = await analyzeWrapped(username, year, githubToken);
+    const authUsername = req.user?.username || null;
+    const isPro = req.user?.isPro || false;
+    const wrapped = await analyzeWrapped(
+      username,
+      year,
+      githubToken,
+      authUsername,
+      isPro,
+    );
     return res.status(200).json({ success: true, wrapped });
   } catch (err) {
     if (err.message === "USER_NOT_FOUND") {
@@ -136,7 +144,8 @@ router.get("/:username", optionalAuth, async (req, res) => {
 
   try {
     const githubToken = req.user?.githubAccessToken || null;
-    const data = await analyzeProfile(username, githubToken);
+    const authUsername = req.user?.username || null;
+    const data = await analyzeProfile(username, githubToken, authUsername, isPro);
 
     // ── Generate roast with intensity ────────────────────
     let roast = null;

@@ -178,6 +178,8 @@ router.post("/verify", requireAuth, async (req, res) => {
         "Payment verified but account upgrade failed. Contact support with your payment ID.",
     });
   }
+});
+
 // ── POST /api/payment/webhook ────────────────────────────────
 // WHAT: Handles asynchronous payment events directly from Razorpay.
 // WHY: If user closes browser or network drops before frontend /verify completes,

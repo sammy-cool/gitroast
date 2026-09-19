@@ -61,11 +61,12 @@ async function fetchProfile(username, userToken) {
 // ─── 2. Fetch repositories ───────────────────────────────
 // WHY sort=pushed: most recently active repos first
 //     per_page=100: get as many as possible in one call
-async function fetchRepos(username, userToken) {
-  // WHY: Pro users get private repos with 'affiliation' param
-  const endpoint = userToken
+// WHY isOwnProfileAndPro: ONLY call /user/repos when roasting the authenticated Pro user themselves
+//     otherwise, roasting another user while logged in would return the caller's repos instead of target's!
+async function fetchRepos(username, userToken = null, isOwnProfileAndPro = false) {
+  const endpoint = isOwnProfileAndPro
     ? `/user/repos?sort=pushed&per_page=100&visibility=all`
-    : `/users/${username}/repos?sort=pushed&per_page=100&type=public`;
+    : `/users/${encodeURIComponent(username)}/repos?sort=pushed&per_page=100&type=public`;
   return githubFetch(endpoint, userToken);
 }
 
@@ -281,12 +282,23 @@ function getGrade(score) {
 // ─── MAIN EXPORT: Full profile analysis ──────────────────
 // WHY: one function call → everything about a user
 //      called by the route, returns clean structured data
-async function analyzeProfile(username, userToken = null) {
+async function analyzeProfile(
+  username,
+  userToken = null,
+  authUsername = null,
+  isPro = false,
+) {
+  const isOwnProfileAndPro = Boolean(
+    isPro &&
+      authUsername &&
+      username.toLowerCase() === authUsername.toLowerCase(),
+  );
+
   // WHY Promise.all: fetch profile + repos at the SAME TIME
   //     instead of waiting for each one. Saves ~500ms.
   const [profile, repos] = await Promise.all([
     fetchProfile(username, userToken),
-    fetchRepos(username, userToken),
+    fetchRepos(username, userToken, isOwnProfileAndPro),
   ]);
 
   // WHY: GitRoast only roasts individual developers — organizations don't have individual developer patterns
@@ -388,11 +400,23 @@ async function analyzeProfile(username, userToken = null) {
 // WHY: Spotify-Wrapped style year-in-review roast
 //      Analyzes total commits, worst month, streaks, most abandoned repo,
 //      and developer archetype.
-async function analyzeWrapped(username, year = 2025, userToken = null) {
+async function analyzeWrapped(
+  username,
+  year = 2025,
+  userToken = null,
+  authUsername = null,
+  isPro = false,
+) {
   const targetYear = parseInt(year, 10) || 2025;
+  const isOwnProfileAndPro = Boolean(
+    isPro &&
+      authUsername &&
+      username.toLowerCase() === authUsername.toLowerCase(),
+  );
+
   const [profile, repos] = await Promise.all([
     fetchProfile(username, userToken),
-    fetchRepos(username, userToken),
+    fetchRepos(username, userToken, isOwnProfileAndPro),
   ]);
 
   const ownRepos = (repos || []).filter((r) => !r.fork);

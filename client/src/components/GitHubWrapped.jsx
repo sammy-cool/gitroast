@@ -19,7 +19,7 @@ import { getWrapped } from "@/services/roastService";
 import { useAuth } from "@/context/AuthContext";
 
 export default function GitHubWrapped({ username, isPro }) {
-    const { token } = useAuth();
+    const { getToken } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [wrappedData, setWrappedData] = useState(null);
@@ -32,6 +32,7 @@ export default function GitHubWrapped({ username, isPro }) {
 
         setLoading(true);
         try {
+            const token = getToken ? getToken() : null;
             const data = await getWrapped(username, 2025, token);
             setWrappedData(data);
         } catch (err) {
