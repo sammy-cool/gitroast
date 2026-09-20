@@ -238,9 +238,9 @@ export default function RoastCard({ data, onProClick }) {
             Downloaded PNG shows how many people reacted
             Social proof visible in every shared image
             Adds credibility + curiosity for viewers */}
-        {typingDone && data.roastId && (
+        {typingDone && (data.roastId || data._id) && (
           <RoastReactions
-            roastId={data.roastId}
+            roastId={data.roastId || data._id}
             initialReactions={data.reactions || {}}
           />
         )}
@@ -256,7 +256,7 @@ export default function RoastCard({ data, onProClick }) {
       {typingDone && (
         <ShareButtons
           username={data.username}
-          roastId={data.roastId}
+          roastId={data.roastId || data._id}
           roastText={data.roast}
           isPro={data.isPro}
           onProClick={onProClick}

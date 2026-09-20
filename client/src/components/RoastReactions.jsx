@@ -1,34 +1,26 @@
 'use client'
 
 // ============================================================
-// GITROAST — RoastReactions Component
+// GITROAST — Enhanced RoastReactions Component
 // ============================================================
-// WHAT: Three emoji reaction buttons on every roast card.
+// WHAT: Three interactive emoji reaction buttons on every roast card:
 //       😂 Relatable  💀 Destroyed  🔥 Savage
 //
-// WHY reactions matter:
-//   Social proof — "412 people found this savage"
-//   Reason to revisit — users check how others reacted
-//   Viral signal — high count = more shareable
-//   Zero friction — no login required
-//
-// HOW it works:
-//   Initial counts come from roast data (server)
-//   User clicks → optimistic UI update immediately
-//   API call fires in background
-//   If duplicate → server returns duplicate:true → revert count
-//   If error → silently revert → UX never breaks
-//
-// WHY optimistic update:
-//   Feels instant — no waiting for server
-//   Industry standard (Twitter, Reddit, YouTube likes)
-//   Revert only if server says duplicate or error
-//
-// WHERE: Inside RoastCard, INSIDE #roast-card-capture
-//        So reactions appear in downloaded PNG too
+// WHY & FLOW:
+//   - "Be the first to react" callout with fire amber styling when total == 0
+//   - Immediate tactile feedback (+1 float burst, mobile haptic micro-vibrate)
+//   - LocalStorage persistence across page reloads/sessions so users immediately
+//     see their locked-in reaction (✓) without duplicate server requests
+//   - Dynamic social proof:
+//       - 0 reactions: "🔥 Be the first to react to this burn! 👇"
+//       - User reacted 1st: "🎉 You were the first to react! · 1 reaction"
+//       - User reacted with others: "✓ You reacted · N total reactions"
+//       - User hasn't reacted: "N reactions · How brutal was this? Tap to react 👇"
+//   - Included inside #roast-card-capture so downloaded PNG cards capture
+//     live reactions and social proof!
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createToast } from 'customizable-toast-notification'
 import { reactToRoast } from '@/services/roastService'
 
@@ -39,47 +31,90 @@ const REACTION_CONFIG = [
 ]
 
 export default function RoastReactions({ roastId, initialReactions = {} }) {
-    // WHY local state copy:
-    //   Optimistic updates — update immediately, revert if needed
-    //   Don't mutate parent data — component owns its display state
-    const safeInit = initialReactions || {}
-    const [counts, setCounts] = useState({
-        relatable: safeInit.relatable || 0,
-        destroyed: safeInit.destroyed || 0,
-        savage: safeInit.savage || 0,
+    const [counts, setCounts] = useState(() => ({
+        relatable: initialReactions?.relatable || 0,
+        destroyed: initialReactions?.destroyed || 0,
+        savage: initialReactions?.savage || 0,
+    }))
+
+    // Initialize clicked reactions directly from localStorage on mount (zero cascading renders)
+    const [clicked, setClicked] = useState(() => {
+        if (!roastId || typeof window === 'undefined') return new Set()
+        try {
+            const stored = localStorage.getItem(`gitroast_reacted_${roastId}`)
+            if (stored) {
+                const parsed = JSON.parse(stored)
+                if (Array.isArray(parsed)) {
+                    return new Set(parsed)
+                }
+            }
+        } catch {
+            // LocalStorage inaccessible (Safari strict mode or private browsing)
+        }
+        return new Set()
     })
 
-    // WHY Set for clicked:
-    //   Track which types this session user already clicked
-    //   Prevents double-click visual confusion
-    //   Server also deduplicates by IP — this is just UI state
-    const [clicked, setClicked] = useState(new Set())
     const [loading, setLoading] = useState(null)
+    const [justReactedType, setJustReactedType] = useState(null)
 
     async function handleReact(type) {
-        // WHY: prevent clicking same reaction twice in same session
+        // Prevent double reacting to same emoji type
         if (clicked.has(type) || loading) return
 
-        setLoading(type)
+        if (!roastId) {
+            createToast({
+                type: 'warning',
+                message: 'Roast is still saving, please wait a moment!',
+                position: 'top-center',
+                duration: 2500,
+            })
+            return
+        }
 
-        // WHY optimistic update first:
-        //   Feels instant — no waiting for network
-        //   Revert only if server returns error or duplicate
-        const prev = counts[type]
-        setCounts(c => ({ ...c, [type]: c[type] + 1 }))
-        setClicked(s => new Set([...s, type]))
+        // Haptic feedback for mobile devices
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            navigator.vibrate(20)
+        }
+
+        setLoading(type)
+        setJustReactedType(type)
+        setTimeout(() => setJustReactedType(null), 1000)
+
+        // Optimistic UI update
+        const prev = counts[type] || 0
+        setCounts(c => ({ ...c, [type]: prev + 1 }))
+
+        const nextClicked = new Set([...clicked, type])
+        setClicked(nextClicked)
+
+        // Persist to localStorage
+        try {
+            localStorage.setItem(`gitroast_reacted_${roastId}`, JSON.stringify([...nextClicked]))
+        } catch {
+            // Ignored
+        }
 
         const result = await reactToRoast(roastId, type)
-
         setLoading(null)
 
         if (!result) {
-            // WHY revert on null: API call failed silently
+            // Revert on network failure
             setCounts(c => ({ ...c, [type]: prev }))
-            setClicked(s => { const n = new Set(s); n.delete(type); return n })
+            setClicked(s => {
+                const n = new Set(s)
+                n.delete(type)
+                return n
+            })
+            try {
+                const reverted = new Set(nextClicked)
+                reverted.delete(type)
+                localStorage.setItem(`gitroast_reacted_${roastId}`, JSON.stringify([...reverted]))
+            } catch {
+                // Ignored
+            }
             createToast({
                 type: 'error',
-                message: 'Failed to record reaction. Please try again.',
+                message: 'Failed to record reaction. Check connection.',
                 position: 'top-center',
                 duration: 3000,
             })
@@ -87,8 +122,7 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
         }
 
         if (result.duplicate) {
-            // WHY revert on duplicate: server already counted this IP
-            //     Don't show inflated count
+            // Server already recorded this IP — revert count but keep UI disabled
             setCounts(c => ({ ...c, [type]: prev }))
             createToast({
                 type: 'info',
@@ -99,9 +133,7 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
             return
         }
 
-        // WHY use server counts on success:
-        //   Server is source of truth — sync with real count
-        //   Handles concurrent reactions from other users
+        // Synchronize with server counts (handles concurrent reactions)
         if (result.reactions) {
             setCounts({
                 relatable: result.reactions.relatable || 0,
@@ -113,54 +145,93 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
         const config = REACTION_CONFIG.find(r => r.type === type)
         createToast({
             type: 'success',
-            message: `${config ? config.emoji + ' ' + config.label : 'Reaction'} recorded!`,
+            message: `${config ? config.emoji + ' ' + config.label : 'Reaction'} locked in!`,
             position: 'top-center',
             duration: 2500,
         })
     }
 
-    // WHY format count:
-    //   1247 → 1.2k (cleaner display)
-    //   Matches Twitter/YouTube convention
     function formatCount(n) {
+        if (!n) return '0'
         if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
         return n.toString()
     }
 
     const total = counts.relatable + counts.destroyed + counts.savage
+    const hasUserReacted = clicked.size > 0
+    const isFirstReaction = total === 1 && hasUserReacted && clicked.size === 1
 
     return (
         <div className="reactions-wrap">
 
-            {/* WHY total count above buttons:
-          First thing user sees — social proof up front
-          If 0 → shows "Be the first to react" → curiosity hook */}
-            <p className="reactions-total font-mono">
-                {total > 0
-                    ? `${total.toLocaleString()} reaction${total === 1 ? '' : 's'}`
-                    : 'Be the first to react'}
-            </p>
+            {/* ── Social Proof & First React Callout ── */}
+            <div className="reactions-header">
+                {total === 0 ? (
+                    <div className="prompt-badge-wrap animate-pulseGlow">
+                        <span className="first-react-fire">🔥</span>
+                        <span className="first-react-text font-mono">
+                            Be the first to react to this burn!
+                        </span>
+                        <span className="first-react-arrow">👇</span>
+                    </div>
+                ) : isFirstReaction ? (
+                    <div className="prompt-badge-wrap prompt-badge--first">
+                        <span className="first-react-fire">🎉</span>
+                        <span className="first-react-text font-mono">
+                            You were the first to react!
+                        </span>
+                        <span className="reactions-tag font-mono">1 reaction</span>
+                    </div>
+                ) : hasUserReacted ? (
+                    <div className="prompt-badge-wrap prompt-badge--reacted">
+                        <span className="first-react-fire">✓</span>
+                        <span className="first-react-text font-mono">
+                            You reacted · {total.toLocaleString()} total reaction{total === 1 ? '' : 's'}
+                        </span>
+                    </div>
+                ) : (
+                    <div className="prompt-badge-wrap prompt-badge--count">
+                        <span className="reactions-total-count font-mono">
+                            {total.toLocaleString()} reaction{total === 1 ? '' : 's'}
+                        </span>
+                        <span className="reactions-dot">•</span>
+                        <span className="reactions-sub-cta font-mono">
+                            How brutal was this? Tap to react 👇
+                        </span>
+                    </div>
+                )}
+            </div>
 
+            {/* ── Emoji Action Buttons ── */}
             <div className="reactions-row">
                 {REACTION_CONFIG.map(({ type, emoji, label }) => {
                     const isClicked = clicked.has(type)
                     const isLoading = loading === type
-                    const count = counts[type]
+                    const isJustReacted = justReactedType === type
+                    const count = counts[type] || 0
 
                     return (
                         <button
                             key={type}
+                            type="button"
                             className={`reaction-btn font-mono ${isClicked ? 'reaction-btn--active' : ''}`}
                             onClick={() => handleReact(type)}
                             disabled={isClicked || !!loading}
-                            title={isClicked ? `You reacted ${emoji}` : label}
+                            title={isClicked ? `You reacted ${emoji} ${label} (Saved)` : `React with ${label}`}
+                            aria-label={`${label} reaction: ${count} reactions`}
                         >
-                            {/* WHY scale animation on click: tactile feedback */}
+                            {isJustReacted && (
+                                <span className="burst-plus-one font-mono">+1</span>
+                            )}
                             <span
                                 className="reaction-emoji"
                                 style={{
-                                    transform: isLoading ? 'scale(1.3)' : 'scale(1)',
-                                    transition: 'transform 0.15s ease',
+                                    transform: isLoading
+                                        ? 'scale(1.3)'
+                                        : isJustReacted
+                                            ? 'scale(1.25) rotate(-6deg)'
+                                            : 'scale(1)',
+                                    transition: 'transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1)',
                                 }}
                             >
                                 {emoji}
@@ -168,6 +239,9 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
                             <span className="reaction-count">
                                 {formatCount(count)}
                             </span>
+                            {isClicked && (
+                                <span className="reaction-check font-mono" title="Reacted">✓</span>
+                            )}
                         </button>
                     )
                 })}
@@ -175,62 +249,163 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
 
             <style jsx>{`
         .reactions-wrap {
-          padding:        0.875rem 1.5rem;
+          padding:        0.875rem 1.25rem;
           display:        flex;
           flex-direction: column;
-          gap:            8px;
+          align-items:    center;
+          gap:            10px;
           border-top:     1px solid var(--border);
           background:     var(--bg-card);
         }
-        .reactions-total {
-          font-size:  10px;
-          color:      var(--text-muted);
-          text-align: center;
-          letter-spacing: 0.5px;
+
+        .reactions-header {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          min-height: 26px;
         }
+
+        .prompt-badge-wrap {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 12px;
+          border-radius: 20px;
+          background: rgba(255, 107, 0, 0.08);
+          border: 1px solid rgba(255, 107, 0, 0.25);
+          font-size: 11px;
+          color: var(--fire-warm, #ffb700);
+          letter-spacing: 0.3px;
+          transition: all 0.2s ease;
+        }
+
+        .animate-pulseGlow {
+          animation: pulseGlow 2.4s ease-in-out infinite;
+        }
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 0.9; transform: scale(1); }
+          50%      { opacity: 1; transform: scale(1.025); box-shadow: 0 0 10px rgba(255, 107, 0, 0.2); }
+        }
+
+        .prompt-badge--first {
+          background: rgba(255, 69, 0, 0.12);
+          border-color: rgba(255, 69, 0, 0.4);
+          color: #ff6b00;
+        }
+
+        .prompt-badge--reacted {
+          background: rgba(0, 230, 118, 0.08);
+          border-color: rgba(0, 230, 118, 0.28);
+          color: #00e676;
+        }
+
+        .prompt-badge--count {
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          font-size: 11px;
+          padding: 0;
+        }
+
+        .reactions-tag {
+          font-size: 10px;
+          background: rgba(255, 255, 255, 0.08);
+          padding: 2px 6px;
+          border-radius: 4px;
+          color: var(--text-primary);
+        }
+
+        .reactions-dot {
+          color: var(--text-muted);
+          margin: 0 2px;
+        }
+
         .reactions-row {
           display:         flex;
           justify-content: center;
           gap:             10px;
+          width:           100%;
         }
+
         .reaction-btn {
           display:        flex;
           flex-direction: column;
           align-items:    center;
           gap:            4px;
-          padding:        10px 20px;
+          padding:        10px 18px;
           background:     var(--bg-elevated);
           border:         1px solid var(--border);
           border-radius:  var(--radius-md);
           cursor:         pointer;
           transition:     all 0.18s ease;
           min-width:      72px;
+          position:       relative;
+          user-select:    none;
         }
+
         .reaction-btn:hover:not(:disabled) {
           border-color: var(--fire);
-          background:   rgba(255, 69, 0, 0.06);
+          background:   rgba(255, 69, 0, 0.07);
           transform:    translateY(-2px);
         }
-        /* WHY fire border on active: shows user their reaction is locked in */
+
         .reaction-btn--active {
           border-color: var(--fire);
-          background:   rgba(255, 69, 0, 0.08);
+          background:   rgba(255, 69, 0, 0.1);
+          box-shadow:   0 0 12px rgba(255, 69, 0, 0.2);
           cursor:       default;
         }
-        .reaction-btn:disabled { cursor: not-allowed; }
-        .reaction-emoji { font-size: 22px; line-height: 1; }
+
+        .reaction-check {
+          position: absolute;
+          top: 3px;
+          right: 5px;
+          font-size: 9px;
+          color: var(--fire);
+          font-weight: 700;
+        }
+
+        .burst-plus-one {
+          position: absolute;
+          top: -10px;
+          color: var(--fire);
+          font-size: 11px;
+          font-weight: 700;
+          animation: burstFade 0.8s ease-out forwards;
+          pointer-events: none;
+        }
+
+        @keyframes burstFade {
+          0%   { opacity: 1; transform: translateY(0) scale(1); }
+          100% { opacity: 0; transform: translateY(-16px) scale(1.25); }
+        }
+
+        .reaction-btn:disabled {
+          cursor: default;
+        }
+
+        .reaction-emoji {
+          font-size: 22px;
+          line-height: 1;
+        }
+
         .reaction-count {
           font-size:  12px;
           color:      var(--text-secondary);
           min-width:  24px;
           text-align: center;
         }
-        /* WHY fire color on active count: reinforces the selected state */
-        .reaction-btn--active .reaction-count { color: var(--fire); }
+
+        .reaction-btn--active .reaction-count {
+          color: var(--fire);
+          font-weight: 600;
+        }
 
         @media (max-width: 380px) {
-          .reaction-btn { padding: 8px 14px; min-width: 60px; }
+          .reaction-btn { padding: 8px 12px; min-width: 58px; }
           .reaction-emoji { font-size: 18px; }
+          .prompt-badge-wrap { font-size: 10px; }
         }
       `}</style>
         </div>
