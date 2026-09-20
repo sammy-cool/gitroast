@@ -52,9 +52,9 @@ export default function UsernameInput({ onSubmit }) {
                         required: 'GitHub username or repository is required',
                         minLength: { value: 1, message: 'Too short' },
                         maxLength: { value: 120, message: 'Max 120 chars' },
-                        // WHY pattern: GitHub username or owner/repo rules
+                        // WHY pattern: GitHub username or owner/repo rules, with optional https?:// or github.com/ prefix
                         pattern: {
-                            value: /^(https?:\/\/github\.com\/)?[a-zA-Z0-9-._]+(?:\/[a-zA-Z0-9-._]+)?\/?$/,
+                            value: /^(?:https?:\/\/)?(?:github\.com\/)?[a-zA-Z0-9-._]+(?:\/[a-zA-Z0-9-._]+)?\/?$/,
                             message: 'Enter a username or owner/repo (e.g. torvalds/linux)',
                         },
                     })}

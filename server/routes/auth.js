@@ -10,7 +10,8 @@ const {
 const { requireAuth } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
 
-const CLIENT_URL = process.env.CLIENT_URL || "http://localhost:3000";
+const rawClientUrl = process.env.CLIENT_URL || "http://localhost:3000";
+const CLIENT_URL = rawClientUrl.split(",")[0].trim().replace(/\/$/, "");
 
 // ─── STEP 1: Redirect user to GitHub ─────────────────────
 // WHY: user clicks "Connect GitHub" → hits this route
@@ -59,12 +60,12 @@ router.get("/github/callback", async (req, res) => {
       hasQueryState: Boolean(state),
       hasSavedState: Boolean(savedState),
     });
-    return res.redirect(`${CLIENT_URL}?auth_error=csrf_detected`);
+    return res.redirect(`${CLIENT_URL}/auth/callback?auth_error=csrf_detected`);
   }
 
   // WHY: user denied permission on GitHub
   if (error || !code) {
-    return res.redirect(`${CLIENT_URL}?auth_error=access_denied`);
+    return res.redirect(`${CLIENT_URL}/auth/callback?auth_error=access_denied`);
   }
 
   try {
@@ -91,7 +92,7 @@ router.get("/github/callback", async (req, res) => {
 
     if (tokenData.error || !tokenData.access_token) {
       logger.error("Auth", "Token exchange failed", { data: tokenData });
-      return res.redirect(`${CLIENT_URL}?auth_error=token_failed`);
+      return res.redirect(`${CLIENT_URL}/auth/callback?auth_error=token_failed`);
     }
 
     const accessToken = tokenData.access_token;
@@ -174,7 +175,7 @@ router.get("/github/callback", async (req, res) => {
     res.redirect(`${CLIENT_URL}/auth/callback?token=${jwt}`);
   } catch (err) {
     logger.error("Auth", "Callback error", { message: err.message });
-    res.redirect(`${CLIENT_URL}?auth_error=server_error`);
+    res.redirect(`${CLIENT_URL}/auth/callback?auth_error=server_error`);
   }
 });
 

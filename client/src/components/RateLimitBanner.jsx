@@ -43,8 +43,9 @@ export default function RateLimitBanner({ seconds, onExpired }) {
         return () => clearInterval(timer)
     }, [remaining, onExpired])
 
-    // WHY percentage: drives the progress bar width
-    const percentage = Math.round((remaining / seconds) * 100)
+    // WHY percentage: drives the progress bar width (safeguard against division by zero)
+    const totalSecs = seconds > 0 ? seconds : 1
+    const percentage = Math.min(100, Math.max(0, Math.round((remaining / totalSecs) * 100)))
 
     return (
         <div className="rl-banner">

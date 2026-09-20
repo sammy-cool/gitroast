@@ -51,9 +51,12 @@ export async function GET(request) {
     try {
       const apiBase =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const res = await fetch(`${apiBase}/api/history/${username}`, {
-        next: { revalidate: 3600 },
-      });
+      const res = await fetch(
+        `${apiBase}/api/history/${encodeURIComponent(username)}`,
+        {
+          next: { revalidate: 3600 },
+        },
+      );
       if (res.ok) {
         const json = await res.json();
 

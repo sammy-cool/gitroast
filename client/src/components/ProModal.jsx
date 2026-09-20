@@ -18,12 +18,14 @@
 //   Prevents background page scroll when modal is open
 // ============================================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import PaymentModal from './PaymentModal'
 import { useAuth } from '@/context/AuthContext'
 import { createToast } from 'customizable-toast-notification'
+
+const subscribe = () => () => {}
 
 const MODAL_PLANS = [
     {
@@ -63,6 +65,7 @@ const MODAL_PLANS = [
 ]
 
 export default function ProModal({ onClose }) {
+    const isClient = useSyncExternalStore(subscribe, () => true, () => false)
     const [selectedPlan, setSelectedPlan] = useState(null)
     const { user, loginWithGitHub } = useAuth()
     const router = useRouter()
@@ -92,6 +95,8 @@ export default function ProModal({ onClose }) {
         }
         setSelectedPlan(planId)
     }
+
+    if (!isClient || typeof document === 'undefined') return null
 
     return (
         <>

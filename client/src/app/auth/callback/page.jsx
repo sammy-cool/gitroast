@@ -17,6 +17,7 @@ export default function AuthCallbackPage() {
         // WHY: handle OAuth error from server
         if (authError || !token) {
             const messages = {
+                csrf_detected: 'Security verification failed (CSRF mismatch). Please try again.',
                 access_denied: 'GitHub login was cancelled.',
                 token_failed: 'Login failed. Please try again.',
                 server_error: 'Something went wrong. Please try again.',

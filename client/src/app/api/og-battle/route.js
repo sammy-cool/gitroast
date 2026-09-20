@@ -53,10 +53,10 @@ export async function GET(request) {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
     const [res1, res2] = await Promise.all([
-      fetch(`${apiBase}/api/history/${user1}?limit=1`, {
+      fetch(`${apiBase}/api/history/${encodeURIComponent(user1)}?limit=1`, {
         next: { revalidate: 3600 },
       }),
-      fetch(`${apiBase}/api/history/${user2}?limit=1`, {
+      fetch(`${apiBase}/api/history/${encodeURIComponent(user2)}?limit=1`, {
         next: { revalidate: 3600 },
       }),
     ]);

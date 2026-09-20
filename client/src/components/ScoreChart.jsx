@@ -32,7 +32,25 @@ export default function ScoreChart({ history }) {
     const chartH = H - PAD_T - PAD_B
 
     // WHY reverse: history[0] = newest, we want oldest → newest left → right
-    const sorted = [...history].reverse()
+    // WHY filter: ensure only valid numeric scores are plotted to prevent SVG NaN points
+    const sorted = [...history].reverse().filter(r => typeof r?.score === 'number' && !isNaN(r.score))
+    if (sorted.length < 2) {
+        return (
+            <div className="chart-empty">
+                <p className="font-mono">
+                    Roast at least twice to see your trend 📈
+                </p>
+                <style jsx>{`
+          .chart-empty {
+            padding:    2rem;
+            text-align: center;
+            color:      var(--text-muted);
+            font-size:  13px;
+          }
+        `}</style>
+            </div>
+        )
+    }
     const scores = sorted.map(r => r.score)
     const minScore = Math.max(0, Math.min(...scores) - 10)
     const maxScore = Math.min(100, Math.max(...scores) + 10)

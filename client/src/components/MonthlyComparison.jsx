@@ -24,10 +24,10 @@ export default function MonthlyComparison({ history }) {
     }
 
     const thisAvg = Math.round(
-        thisMonthRoasts.reduce((s, r) => s + r.score, 0) / thisMonthRoasts.length
+        thisMonthRoasts.reduce((s, r) => s + (Number(r.score) || 0), 0) / thisMonthRoasts.length
     )
     const lastAvg = Math.round(
-        lastMonthRoasts.reduce((s, r) => s + r.score, 0) / lastMonthRoasts.length
+        lastMonthRoasts.reduce((s, r) => s + (Number(r.score) || 0), 0) / lastMonthRoasts.length
     )
 
     const diff = thisAvg - lastAvg

@@ -30,11 +30,14 @@
 // WHERE: Used by ProModal.jsx, pricing/page.jsx
 // ============================================================
 
-import { useEffect } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import PaymentFlow from './PaymentFlow'
 
+const subscribe = () => () => {}
+
 export default function PaymentModal({ planId, onClose }) {
+    const isClient = useSyncExternalStore(subscribe, () => true, () => false)
 
     // WHY scroll lock on mount/unmount:
     //   Prevents page behind modal from scrolling
@@ -47,6 +50,8 @@ export default function PaymentModal({ planId, onClose }) {
             document.body.style.overflow = prev
         }
     }, [])
+
+    if (!isClient || typeof document === 'undefined') return null
 
     return createPortal(
         <div
