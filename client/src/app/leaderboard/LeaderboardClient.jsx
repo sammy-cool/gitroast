@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { createToast } from 'customizable-toast-notification';
 import LeaderboardTable from '@/components/LeaderboardTable';
 import Pagination from '@/components/Pagination';
 import { getLeaderboard } from '@/services/roastService';
@@ -198,6 +199,12 @@ export default function LeaderboardClient() {
     } catch {
       setEntries([]);
       setError(true);
+      createToast({
+        type: 'error',
+        message: 'Could not load leaderboard. The server may be warming up. Please try again.',
+        position: 'top-center',
+        duration: 4000,
+      });
     } finally {
       setInitialLoading(false);
       setPageLoading(false);

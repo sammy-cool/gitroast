@@ -451,7 +451,46 @@ describe("Security & Defensive Integrity", () => {
                 );
                 assert.equal(nextCalled, true, "Human score should pass verification");
 
-                // 6. Network error / timeout -> fails open gracefully
+                // 6. Enterprise mode configured, valid assessment -> next()
+                process.env.RECAPTCHA_PROJECT_ID = "gitroast-cloud";
+                process.env.RECAPTCHA_API_KEY = "test-api-key";
+                global.fetch = async () => ({
+                    json: async () => ({
+                        tokenProperties: { valid: true, action: "roast" },
+                        riskAnalysis: { score: 0.85 },
+                    }),
+                });
+                const resEnterpriseValid = createMockRes();
+                nextCalled = false;
+                await verifyCaptcha(
+                    { headers: { "x-captcha-token": "valid-enterprise-token" } },
+                    resEnterpriseValid,
+                    () => { nextCalled = true; },
+                );
+                assert.equal(nextCalled, true, "Valid Enterprise assessment should pass");
+
+                // 7. Enterprise mode configured, bot assessment -> 403
+                global.fetch = async () => ({
+                    json: async () => ({
+                        tokenProperties: { valid: false, invalidReason: "EXPIRED" },
+                        riskAnalysis: { score: 0.1 },
+                    }),
+                });
+                const resEnterpriseBot = createMockRes();
+                nextCalled = false;
+                await verifyCaptcha(
+                    { headers: { "x-captcha-token": "bot-enterprise-token" } },
+                    resEnterpriseBot,
+                    () => { nextCalled = true; },
+                );
+                assert.equal(nextCalled, false);
+                assert.equal(resEnterpriseBot.getStatusCode(), 403);
+                assert.equal(resEnterpriseBot.getJson()?.error, "CAPTCHA_FAILED");
+
+                delete process.env.RECAPTCHA_PROJECT_ID;
+                delete process.env.RECAPTCHA_API_KEY;
+
+                // 8. Network error / timeout -> fails open gracefully
                 global.fetch = async () => {
                     throw new Error("Network timeout");
                 };

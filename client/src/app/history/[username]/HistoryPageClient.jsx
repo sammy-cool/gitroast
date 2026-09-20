@@ -1,6 +1,8 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createToast } from 'customizable-toast-notification'
 import { useRoastHistory } from '@/hooks/useRoastHistory'
 import HistoryCard from '@/components/HistoryCard'
 import ScoreChart from '@/components/ScoreChart'
@@ -13,6 +15,17 @@ export default function HistoryPageClient({ username }) {
         scoreTrend, bestScore, worstScore,
         avgScore, roastCount, hasHistory,
     } = useRoastHistory(username)
+
+    useEffect(() => {
+        if (error) {
+            createToast({
+                type: 'error',
+                message: error || 'Failed to load roast history',
+                position: 'top-center',
+                duration: 5000,
+            })
+        }
+    }, [error])
 
     // ── Loading state — Skeleton ─────────────────────────────
     // WHY skeleton instead of text + cursor:

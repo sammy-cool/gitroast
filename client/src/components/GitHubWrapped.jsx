@@ -126,6 +126,12 @@ export default function GitHubWrapped({ username, isPro }) {
             "_blank",
             "noopener,noreferrer",
         );
+        createToast({
+            type: "success",
+            message: "🐦 Twitter opened! Share your 2025 Wrapped.",
+            position: "top-center",
+            duration: 3000,
+        });
     }
 
     const maxMonthly = wrappedData

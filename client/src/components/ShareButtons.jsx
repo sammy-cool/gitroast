@@ -20,7 +20,7 @@ export default function ShareButtons({
     const [downloading, setDownloading] = useState(false);
 
     function handleShare() {
-        const url = `${window.location.origin}/roast/${username}`;
+        const url = `${window.location.origin}/history/${username}`;
         navigator.clipboard
             .writeText(url)
             .then(() => {
@@ -74,11 +74,11 @@ export default function ShareButtons({
     }
 
     function handleTwitterShare() {
-        const url = `${window.location.origin}/roast/${username}`;
+        const url = `${window.location.origin}/history/${username}`;
         const snippet = roastText
             ? `"${roastText.slice(0, 120)}${roastText.length > 120 ? "..." : ""}"`
             : `I just got my GitHub brutally roasted 🔥`;
-        const tweet = `${snippet}\n\nGet roasted at ${url} 🔥 #GitRoast #GitHub`;
+        const tweet = `${snippet}\n\nCheck my roast at ${url} 🔥 #GitRoast #GitHub`;
         window.open(
             `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`,
             "_blank",

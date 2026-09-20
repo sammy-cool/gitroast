@@ -29,6 +29,7 @@
 // ============================================================
 
 import { useState } from 'react'
+import { createToast } from 'customizable-toast-notification'
 import { reactToRoast } from '@/services/roastService'
 
 const REACTION_CONFIG = [
@@ -75,6 +76,12 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
             // WHY revert on null: API call failed silently
             setCounts(c => ({ ...c, [type]: prev }))
             setClicked(s => { const n = new Set(s); n.delete(type); return n })
+            createToast({
+                type: 'error',
+                message: 'Failed to record reaction. Please try again.',
+                position: 'top-center',
+                duration: 3000,
+            })
             return
         }
 
@@ -82,6 +89,12 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
             // WHY revert on duplicate: server already counted this IP
             //     Don't show inflated count
             setCounts(c => ({ ...c, [type]: prev }))
+            createToast({
+                type: 'info',
+                message: "You've already reacted to this roast! 🔥",
+                position: 'top-center',
+                duration: 3000,
+            })
             return
         }
 
@@ -95,6 +108,14 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
                 savage: result.reactions.savage || 0,
             })
         }
+
+        const config = REACTION_CONFIG.find(r => r.type === type)
+        createToast({
+            type: 'success',
+            message: `${config ? config.emoji + ' ' + config.label : 'Reaction'} recorded!`,
+            position: 'top-center',
+            duration: 2500,
+        })
     }
 
     // WHY format count:

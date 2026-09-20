@@ -1,6 +1,7 @@
 'use client'
 
 import { useSyncExternalStore } from 'react'
+import { createToast } from 'customizable-toast-notification'
 import { useAuth } from '@/context/AuthContext'
 
 const subscribe = () => () => {}
@@ -55,7 +56,18 @@ export default function GitHubLoginBtn({ variant = 'full' }) {
                 {isPro && (
                     <span className="pro-badge font-mono">PRO ⚡</span>
                 )}
-                <button className="btn btn-ghost logout-btn" onClick={logout}>
+                <button
+                    className="btn btn-ghost logout-btn"
+                    onClick={() => {
+                        logout()
+                        createToast({
+                            type: 'info',
+                            message: 'Logged out successfully.',
+                            position: 'top-center',
+                            duration: 3000,
+                        })
+                    }}
+                >
                     Logout
                 </button>
 
