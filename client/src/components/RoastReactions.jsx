@@ -42,10 +42,11 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
     // WHY local state copy:
     //   Optimistic updates — update immediately, revert if needed
     //   Don't mutate parent data — component owns its display state
+    const safeInit = initialReactions || {}
     const [counts, setCounts] = useState({
-        relatable: initialReactions.relatable || 0,
-        destroyed: initialReactions.destroyed || 0,
-        savage: initialReactions.savage || 0,
+        relatable: safeInit.relatable || 0,
+        destroyed: safeInit.destroyed || 0,
+        savage: safeInit.savage || 0,
     })
 
     // WHY Set for clicked:

@@ -61,6 +61,10 @@ export default function CompanyLeaderboardTable({ companies = [] }) {
                     alt={company.name}
                     className="company-avatar"
                     loading="lazy"
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                    }}
                   />
                   <div>
                     <h3 className="company-name">{company.name}</h3>

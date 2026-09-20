@@ -55,7 +55,7 @@ async function githubFetch(endpoint, userToken = null) {
 // ─── 1. Fetch user profile ────────────────────────────────
 // WHY: gives us name, bio, followers, public_repos, created_at
 async function fetchProfile(username, userToken) {
-  return githubFetch(`/users/${username}`, userToken);
+  return githubFetch(`/users/${encodeURIComponent(username)}`, userToken);
 }
 
 // ─── 2. Fetch repositories ───────────────────────────────
@@ -84,7 +84,7 @@ async function fetchRecentCommits(username, repos, userToken) {
 
   try {
     const commits = await githubFetch(
-      `/repos/${username}/${mostActive.name}/commits?per_page=15`,
+      `/repos/${encodeURIComponent(username)}/${encodeURIComponent(mostActive.name)}/commits?per_page=15`,
       userToken,
     );
     // WHY: extract just the message, trim whitespace
@@ -110,7 +110,7 @@ async function checkReadmeQuality(username, repos, userToken) {
 
   try {
     const readme = await githubFetch(
-      `/repos/${username}/${topRepo.name}/readme`,
+      `/repos/${encodeURIComponent(username)}/${encodeURIComponent(topRepo.name)}/readme`,
       userToken,
     );
     // WHY: readme content is base64 encoded by GitHub
@@ -548,7 +548,7 @@ async function analyzeWrapped(
 
   const commitPromises = reposToInspect.map(async (repo) => {
     try {
-      const endpoint = `/repos/${username}/${repo.name}/commits?author=${username}&since=${targetYear}-01-01T00:00:00Z&until=${targetYear}-12-31T23:59:59Z&per_page=100`;
+      const endpoint = `/repos/${encodeURIComponent(username)}/${encodeURIComponent(repo.name)}/commits?author=${encodeURIComponent(username)}&since=${targetYear}-01-01T00:00:00Z&until=${targetYear}-12-31T23:59:59Z&per_page=100`;
       const res = await githubFetch(endpoint, userToken);
       if (Array.isArray(res)) {
         return res

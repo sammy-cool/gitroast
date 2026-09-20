@@ -49,8 +49,9 @@ export default async function sitemap() {
             next: { revalidate: 3600 },
         })
         if (res.ok) {
-            const items = await res.json()
-            if (Array.isArray(items)) {
+            const data = await res.json()
+            const items = Array.isArray(data) ? data : (Array.isArray(data?.feed) ? data.feed : [])
+            if (items.length > 0) {
                 dynamicRoutes = items.flatMap(item => [
                     {
                         url: `${SITE_URL}/history/${encodeURIComponent(item.username)}`,
