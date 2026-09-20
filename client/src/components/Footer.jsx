@@ -44,10 +44,33 @@ export default function Footer() {
           </a>
         </div>
 
-        {/* Copyright */}
-        <p className="footer-copy">
-          © {year} GitRoast · All your repos are belong to us
-        </p>
+        {/* Copyright & reCAPTCHA */}
+        <div className="footer-meta">
+          <p className="footer-copy">
+            © {year} GitRoast · All your repos are belong to us
+          </p>
+          <span className="footer-recaptcha font-mono">
+            Protected by reCAPTCHA (
+            <a
+              href="https://policies.google.com/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-legal-link"
+            >
+              Privacy
+            </a>
+            {" · "}
+            <a
+              href="https://policies.google.com/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-legal-link"
+            >
+              Terms
+            </a>
+            )
+          </span>
+        </div>
 
       </div>
 

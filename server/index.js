@@ -136,6 +136,7 @@ app.use("/api/auth", authLimiter, require("./routes/auth"));
 app.use("/api/history", require("./routes/history"));
 app.use("/api/payment", require("./routes/payment"));
 app.use("/api/battle", battleLimiter, require("./routes/battle"));
+app.use("/api/contact", require("./routes/contact"));
 
 // ── Step 8: Health check ──────────────────────────────────────
 // WHAT: Returns server status — used by Docker HEALTHCHECK, Render, and frontend pre-warming

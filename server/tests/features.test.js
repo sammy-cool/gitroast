@@ -591,3 +591,118 @@ describe("Pillar 2 & 3 — New Growth & Value Features", () => {
     });
 });
 
+describe("Feature #5 — Contact Dispatch & Ticket Generation", () => {
+    const contactRoute = require("../routes/contact");
+
+    it("should reject empty or whitespace message with INVALID_MESSAGE", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = { body: { message: "   " } };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const postHandler = contactRoute.stack.find(
+            (layer) => layer.route && layer.route.methods.post,
+        ).route.stack[0].handle;
+        await postHandler(req, res);
+
+        assert.equal(statusCode, 400);
+        assert.equal(responseData.code, "INVALID_MESSAGE");
+    });
+
+    it("should reject message shorter than 5 chars with MESSAGE_TOO_SHORT", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = { body: { message: "hi" } };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const postHandler = contactRoute.stack.find(
+            (layer) => layer.route && layer.route.methods.post,
+        ).route.stack[0].handle;
+        await postHandler(req, res);
+
+        assert.equal(statusCode, 400);
+        assert.equal(responseData.code, "MESSAGE_TOO_SHORT");
+    });
+
+    it("should reject invalid email format with INVALID_EMAIL", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = { body: { message: "Valid test message", email: "notanemail" } };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const postHandler = contactRoute.stack.find(
+            (layer) => layer.route && layer.route.methods.post,
+        ).route.stack[0].handle;
+        await postHandler(req, res);
+
+        assert.equal(statusCode, 400);
+        assert.equal(responseData.code, "INVALID_EMAIL");
+    });
+
+    it("should successfully dispatch valid message and generate a GR- ticket", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = {
+            headers: { "x-forwarded-for": "127.0.0.1", "user-agent": "TestRunner" },
+            socket: { remoteAddress: "127.0.0.1" },
+            body: {
+                category: "feedback",
+                name: "Linus",
+                email: "linus@kernel.org",
+                message: "Love the roasts, keep roasting my C code!",
+            },
+        };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const postHandler = contactRoute.stack.find(
+            (layer) => layer.route && layer.route.methods.post,
+        ).route.stack[0].handle;
+        await postHandler(req, res);
+
+        assert.equal(statusCode, 201);
+        assert.equal(responseData.success, true);
+        assert.ok(
+            /^GR-\d{6}$/.test(responseData.ticketId),
+            `Expected ticketId to match GR-XXXXXX, got ${responseData.ticketId}`,
+        );
+        assert.equal(responseData.category, "feedback");
+    });
+});
+
+

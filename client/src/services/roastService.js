@@ -331,3 +331,30 @@ export async function getRepoRoast(
   }
   return json.data;
 }
+
+// ── dispatchContactMessage ────────────────────────────────────
+// WHAT: Dispatches a user contact inquiry or bug report to the server
+export async function dispatchContactMessage({
+  category,
+  name,
+  email,
+  message,
+}) {
+  const res = await fetch(`${API_BASE}/api/contact`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ category, name, email, message }),
+    signal: AbortSignal.timeout(15000),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    const err = new Error(json.error || "Failed to dispatch message");
+    err.code = json.code;
+    err.status = res.status;
+    throw err;
+  }
+
+  return json;
+}
+

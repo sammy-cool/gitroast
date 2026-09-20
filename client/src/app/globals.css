@@ -467,9 +467,41 @@ body.loading {
   color: var(--fire);
 }
 
+.footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .footer-copy {
   font-size: 10px;
   color: var(--text-muted);
+}
+
+.footer-recaptcha {
+  font-size: 9px;
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+
+.footer-legal-link {
+  color: var(--text-secondary);
+  text-decoration: underline;
+  transition: color 0.15s;
+}
+
+.footer-legal-link:hover {
+  color: var(--fire);
+}
+
+/* Google reCAPTCHA v3 Badge Handling:
+   Google officially permits hiding the badge when reCAPTCHA branding
+   is included visibly in the user flow (see https://developers.google.com/recaptcha/docs/faq#id-like-to-hide-the-recaptcha-badge.-what-is-allowed)
+   This prevents the badge from colliding with the fixed footer or obscuring links. */
+.grecaptcha-badge {
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
 }
 
 @media (max-width: 540px) {
@@ -492,7 +524,7 @@ body.loading {
     display: none;
   }
 
-  .footer-copy {
+  .footer-meta {
     display: none;
   }
 }

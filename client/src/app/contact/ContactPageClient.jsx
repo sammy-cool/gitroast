@@ -17,6 +17,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { createToast } from 'customizable-toast-notification';
 import { useAuth } from '@/context/AuthContext';
+import { dispatchContactMessage } from '@/services/roastService';
 
 const SUPPORT_EMAIL = 'priyanshu.alt191@gmail.com';
 
@@ -57,7 +58,7 @@ export default function ContactPageClient() {
     }
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
 
     if (!message.trim()) {
@@ -71,21 +72,39 @@ export default function ContactPageClient() {
 
     setSending(true);
 
-    // Simulate reliable dispatch with reference ticket creation
-    setTimeout(() => {
-      const ref = `GR-${Math.floor(100000 + Math.random() * 900000)}`;
+    try {
+      const res = await dispatchContactMessage({
+        category,
+        name: name.trim() || undefined,
+        email: email.trim() || undefined,
+        message: message.trim(),
+      });
+
+      const ref = res.ticketId || `GR-${Math.floor(100000 + Math.random() * 900000)}`;
       setTicketId(ref);
       setSubmitted(true);
-      setSending(false);
 
       createToast({
         type: 'success',
-        message: `🔥 Message sent! Your reference is #${ref}`,
+        message: `🔥 Message dispatched! Reference #${ref}`,
         position: 'top-center',
         duration: 5000,
         showProgressBar: true,
       });
-    }, 600);
+    } catch (err) {
+      createToast({
+        type: 'error',
+        message: err.message || 'Dispatch failed. You can also email us directly!',
+        position: 'top-center',
+        duration: 6000,
+        cta: {
+          label: 'Copy Email',
+          onClick: handleCopyEmail,
+        },
+      });
+    } finally {
+      setSending(false);
+    }
   }
 
   function handleReset() {
@@ -151,6 +170,33 @@ export default function ContactPageClient() {
             ✉️ Open Mail App
           </a>
         </div>
+
+        <div className="channel-card card resume-card">
+          <div className="channel-icon">📄</div>
+          <div className="channel-info">
+            <span className="channel-label font-mono">CREATOR RESUME</span>
+            <span className="channel-val font-mono">Priyanshu Patel · Full Stack</span>
+          </div>
+          <div className="resume-btn-group">
+            <a
+              href="/resume/Priyanshu_Resume.pdf"
+              download="Priyanshu_Resume.pdf"
+              className="btn btn-primary channel-btn"
+              title="Download Priyanshu's Resume PDF"
+            >
+              📥 Download PDF
+            </a>
+            <a
+              href="/resume/Priyanshu_Resume.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-ghost channel-btn"
+              title="View Resume in new tab"
+            >
+              👁️ View
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* ── Form Card ── */}
@@ -172,6 +218,23 @@ export default function ContactPageClient() {
                 onClick={handleReset}
               >
                 Send Another Message
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(ticketId);
+                    createToast({
+                      type: 'success',
+                      message: `📋 Copied Ticket #${ticketId} to clipboard!`,
+                      position: 'top-center',
+                      duration: 3000,
+                    });
+                  }
+                }}
+              >
+                📋 Copy Ticket ID
               </button>
               <Link href="/" className="btn btn-ghost">
                 ← Back to Home
@@ -352,7 +415,7 @@ export default function ContactPageClient() {
         .channels-grid {
           width: 100%;
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
           gap: 12px;
           position: relative;
           z-index: 1;
@@ -363,6 +426,12 @@ export default function ContactPageClient() {
           align-items: center;
           gap: 12px;
           justify-content: space-between;
+        }
+        .resume-btn-group {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          flex-shrink: 0;
         }
         .channel-icon {
           font-size: 22px;
@@ -539,6 +608,15 @@ export default function ContactPageClient() {
         @media (max-width: 580px) {
           .channels-grid {
             grid-template-columns: 1fr;
+          }
+          .resume-btn-group {
+            width: 100%;
+            margin-top: 4px;
+          }
+          .resume-btn-group :global(.channel-btn),
+          .resume-btn-group .channel-btn {
+            flex: 1;
+            text-align: center;
           }
           .form-row {
             flex-direction: column;
