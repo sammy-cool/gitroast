@@ -9,15 +9,60 @@
 
 import Link from "next/link";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://gitroast.dev";
+
 export const metadata = {
   title: "About GitRoast 🔥 — The Brutal GitHub Code Roast Machine",
   description:
     "Learn how GitRoast analyzes your GitHub profile, commit habits, repo graveyards, and stack choices to generate savagely accurate developer roasts.",
+  keywords: [
+    "about gitroast",
+    "how gitroast works",
+    "github audit tool",
+    "github profile analysis",
+    "code roasting engine",
+  ],
+  alternates: {
+    canonical: `${SITE_URL}/about`,
+  },
   openGraph: {
     title: "About GitRoast 🔥 — How It Works & Scoring Guide",
     description:
       "Deep dive into the GitRoast forensic analysis engine, AI prompts, and scoring tiers.",
+    url: `${SITE_URL}/about`,
+    siteName: "GitRoast",
     type: "website",
+    images: [
+      {
+        url: "/og-default.png",
+        width: 1200,
+        height: 630,
+        alt: "About GitRoast Philosophy and Architecture",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About GitRoast 🔥 — How It Works",
+    description: "Deep dive into the GitRoast forensic analysis engine.",
+    images: ["/og-default.png"],
+    creator: "@gitroast",
+  },
+};
+
+const aboutJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "AboutPage",
+  name: "About GitRoast",
+  url: `${SITE_URL}/about`,
+  description:
+    "Mission, forensics engine, scoring tiers, and philosophy behind GitRoast.",
+  mainEntity: {
+    "@type": "Organization",
+    name: "GitRoast",
+    url: SITE_URL,
+    logo: `${SITE_URL}/apple-touch-icon.png`,
+    description: "Developer comedy and code forensics platform.",
   },
 };
 
@@ -70,7 +115,12 @@ const FAQS = [
 
 export default function AboutPage() {
   return (
-    <main className="about-page">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutJsonLd) }}
+      />
+      <main className="about-page">
       <div className="about-glow" />
 
       {/* ── Top Navigation ── */}
@@ -517,5 +567,6 @@ export default function AboutPage() {
         }
       `}</style>
     </main>
+    </>
   );
 }

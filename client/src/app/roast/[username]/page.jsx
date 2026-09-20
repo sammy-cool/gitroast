@@ -23,36 +23,29 @@
 import { Suspense } from 'react'
 import RoastPageClient from './RoastPageClient'
 
-// WHY generateMetadata (not static metadata export):
-//   Static metadata is the same for every page.
-//   generateMetadata runs per-request with access to params
-//   so /roast/torvalds and /roast/sam get different titles + OG images.
 export async function generateMetadata({ params }) {
     const { username } = await params
-
-    // WHY NEXT_PUBLIC_SITE_URL:
-    //   OG image URL must be absolute — Twitter/LinkedIn need full URL
-    //   In development: http://localhost:3000
-    //   In production:  https://gitroast-dev.vercel.app
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-
-    // WHY dynamic OG image URL:
-    //   Each username gets their own preview card
-    //   /api/og?username=torvalds → Edge function renders score + roast
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev'
     const ogImageUrl = `${siteUrl}/api/og?username=${encodeURIComponent(username)}`
 
     return {
-        // WHY template format: "Get @torvalds Roasted — GitRoast 🔥"
-        //   Username first = most scannable in browser tab + search results
         title: `Get @${username} Roasted — GitRoast 🔥`,
-        description: `See @${username}'s GitHub brutally roasted. Score, grade, and a savage roast. Can you do worse?`,
-
+        description: `See @${username}'s GitHub brutally roasted. Score, grade, commit sins, and a savage AI roast. Can you do worse?`,
+        keywords: [
+            `roast ${username}`,
+            `${username} github roast`,
+            `${username} github profile`,
+            'github roast',
+            'code sins',
+        ],
+        alternates: {
+            canonical: `${siteUrl}/roast/${username}`,
+        },
         openGraph: {
             title: `@${username}'s GitHub got roasted 🔥`,
             description: `See the score, grade, and roast. Then get roasted yourself.`,
             type: 'website',
             url: `${siteUrl}/roast/${username}`,
-            // WHY dynamic image: each roast shows different score/grade preview
             images: [{
                 url: ogImageUrl,
                 width: 1200,
@@ -60,26 +53,59 @@ export async function generateMetadata({ params }) {
                 alt: `@${username}'s GitRoast score card`,
             }],
         },
-
         twitter: {
             card: 'summary_large_image',
-            // WHY: Large image card on Twitter = more visual real estate
-            //      More attention = higher click-through rate
             title: `@${username}'s GitHub got roasted 🔥`,
             description: `See the damage. Then get roasted yourself.`,
             images: [ogImageUrl],
+            creator: '@gitroast',
         },
     }
 }
 
-// WHAT: Passes parsed username down to client component
-// WHY async: params is a Promise in Next.js 15+ — must await
 export default async function RoastPage({ params }) {
     const { username } = await params
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev'
+
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'ProfilePage',
+        name: `@${username}'s GitRoast`,
+        url: `${siteUrl}/roast/${username}`,
+        mainEntity: {
+            '@type': 'Person',
+            name: username,
+            url: `https://github.com/${username}`,
+            sameAs: [`https://github.com/${username}`],
+        },
+        breadcrumb: {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+                {
+                    '@type': 'ListItem',
+                    position: 1,
+                    name: 'Home',
+                    item: siteUrl,
+                },
+                {
+                    '@type': 'ListItem',
+                    position: 2,
+                    name: `@${username}'s Roast`,
+                    item: `${siteUrl}/roast/${username}`,
+                },
+            ],
+        },
+    }
 
     return (
-        <Suspense fallback={null}>
-            <RoastPageClient username={username} />
-        </Suspense>
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <Suspense fallback={null}>
+                <RoastPageClient username={username} />
+            </Suspense>
+        </>
     )
 }

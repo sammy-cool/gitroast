@@ -3,11 +3,6 @@
 // ============================================================
 // WHAT: Server component that generates per-battle metadata
 //       with dynamic OG image, then hands off to BattlePageClient.
-//
-// WHY dynamic OG image for battles:
-//   When shared on Twitter: shows both usernames + scores
-//   Much more compelling than generic GitRoast image
-//   "⚔️ torvalds vs gaearon — who codes worse?" = clickbait
 // ============================================================
 
 import { Suspense } from 'react'
@@ -19,17 +14,25 @@ export async function generateMetadata({ params }) {
     const joined = slug.join('/')
     const [user1 = 'unknown', user2 = 'unknown'] = joined.split('/vs/')
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-    // WHY /api/og-battle not /api/og:
-    //   Battle has VS layout with two players — different design
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev'
     const ogImageUrl = `${siteUrl}/api/og-battle?user1=${encodeURIComponent(user1)}&user2=${encodeURIComponent(user2)}`
 
     return {
-        title: `⚔️ @${user1} vs @${user2} — GitRoast Battle`,
-        description: `Who codes worse? @${user1} or @${user2}? See the roast battle results.`,
+        title: `⚔️ @${user1} vs @${user2} — GitRoast Battle | Head-to-Head Code Roast`,
+        description: `Who codes worse? @${user1} or @${user2}? See the full GitHub roast battle breakdown, commit sins, and winner determination.`,
+        keywords: [
+            `${user1} vs ${user2}`,
+            `${user1} github battle`,
+            `${user2} github battle`,
+            'github roast battle',
+            'developer face off',
+        ],
+        alternates: {
+            canonical: `${siteUrl}/battle/${user1}/vs/${user2}`,
+        },
         openGraph: {
             title: `⚔️ @${user1} vs @${user2} — GitRoast Battle`,
-            description: `Who codes worse? Find out — then get roasted yourself.`,
+            description: `Who codes worse? Find out — then start your own battle.`,
             type: 'website',
             url: `${siteUrl}/battle/${user1}/vs/${user2}`,
             images: [{
@@ -44,6 +47,7 @@ export async function generateMetadata({ params }) {
             title: `⚔️ @${user1} vs @${user2} — GitRoast Battle`,
             description: `Who codes worse? See the results.`,
             images: [ogImageUrl],
+            creator: '@gitroast',
         },
     }
 }
@@ -53,6 +57,8 @@ export default async function BattleSlugPage({ params }) {
     const slug = Array.isArray(resolvedParams?.slug) ? resolvedParams.slug : []
     const joined = slug.join('/')
     const [user1 = '', user2 = ''] = joined.split('/vs/')
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev'
 
     if (!user1 || !user2) {
         return (
@@ -64,9 +70,46 @@ export default async function BattleSlugPage({ params }) {
         )
     }
 
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: `Roast Battle: @${user1} vs @${user2}`,
+        url: `${siteUrl}/battle/${user1}/vs/${user2}`,
+        description: `Face-off between @${user1} and @${user2} on GitRoast.`,
+        breadcrumb: {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+                {
+                    '@type': 'ListItem',
+                    position: 1,
+                    name: 'Home',
+                    item: siteUrl,
+                },
+                {
+                    '@type': 'ListItem',
+                    position: 2,
+                    name: 'Battle Arena',
+                    item: `${siteUrl}/battle`,
+                },
+                {
+                    '@type': 'ListItem',
+                    position: 3,
+                    name: `@${user1} vs @${user2}`,
+                    item: `${siteUrl}/battle/${user1}/vs/${user2}`,
+                },
+            ],
+        },
+    }
+
     return (
-        <Suspense fallback={null}>
-            <BattlePageClient user1={user1} user2={user2} />
-        </Suspense>
+        <>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
+            <Suspense fallback={null}>
+                <BattlePageClient user1={user1} user2={user2} />
+            </Suspense>
+        </>
     )
 }

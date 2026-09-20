@@ -121,6 +121,14 @@ export default function RootLayout({ children }) {
         ${plusJakartaSans.variable}
       `}
     >
+      <head>
+        <link
+          rel="preconnect"
+          href="https://avatars.githubusercontent.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://avatars.githubusercontent.com" />
+      </head>
       <body>
         {/* WHAT: Initializes brand toast colors globally — runs once on mount
             WHY first in body: ensures brand colors set before any page renders */}
