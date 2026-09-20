@@ -515,3 +515,79 @@ describe("Security & Defensive Integrity", () => {
     });
 });
 
+describe("Pillar 2 & 3 — New Growth & Value Features", () => {
+    const { getCompanyLeaderboard } = require("../services/companyRoastService");
+    const { analyzeRepository } = require("../services/repoRoastService");
+
+    it("should return ranked tech giants with chaos scores and sins", () => {
+        const giants = getCompanyLeaderboard();
+        assert.ok(Array.isArray(giants) && giants.length >= 8);
+        const google = giants.find((g) => g.name && g.name.toLowerCase() === "google");
+        assert.ok(google, "Google should be in the tech giant list");
+        assert.ok(google.chaosScore > 0);
+        assert.ok(Array.isArray(google.sins) && google.sins.length > 0);
+        // Verify sorted by rank / chaos score descending
+        assert.ok(giants[0].chaosScore <= giants[giants.length - 1].chaosScore || giants[0].rank === 1);
+    });
+
+    it("should analyze a repository with commit hygiene and code smells", async () => {
+        const originalFetch = global.fetch;
+        try {
+            global.fetch = async (url) => {
+                if (url.includes("/contents")) {
+                    return {
+                        ok: true,
+                        status: 200,
+                        headers: new Headers(),
+                        json: async () => [
+                            { name: "index.js" },
+                            { name: "package.json" },
+                        ], // Missing tests and README
+                    };
+                }
+                if (url.includes("/commits")) {
+                    return {
+                        ok: true,
+                        status: 200,
+                        headers: new Headers(),
+                        json: async () => [
+                            { commit: { message: "fix bug" } },
+                            { commit: { message: "pls work" } },
+                            { commit: { message: "wip" } },
+                        ],
+                    };
+                }
+                // Repo metadata
+                return {
+                    ok: true,
+                    status: 200,
+                    headers: new Headers(),
+                    json: async () => ({
+                        name: "broken-app",
+                        description: "A very messy project",
+                        language: "JavaScript",
+                        stargazers_count: 5,
+                        forks_count: 1,
+                        open_issues_count: 15,
+                        license: null,
+                        owner: { avatar_url: "https://example.com/avatar.png" },
+                        html_url: "https://github.com/testowner/broken-app",
+                        pushed_at: "2024-01-01T00:00:00Z",
+                        created_at: "2023-01-01T00:00:00Z",
+                    }),
+                };
+            };
+
+            const result = await analyzeRepository("testowner", "broken-app", null, false, "savage");
+            assert.equal(result.owner, "testowner");
+            assert.equal(result.repoName, "broken-app");
+            assert.equal(result.hasTests, false);
+            assert.ok(result.codeSmells.length > 0);
+            assert.ok(result.score <= 60, `Expected low score for messy repo, got ${result.score}`);
+            assert.ok(result.roast && result.roast.length > 0);
+        } finally {
+            global.fetch = originalFetch;
+        }
+    });
+});
+

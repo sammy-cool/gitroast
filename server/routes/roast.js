@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { analyzeProfile, analyzeWrapped } = require("../services/githubService");
+const { analyzeRepository } = require("../services/repoRoastService");
 const { generateRoast } = require("../services/roastEngine");
 const { generateAIRoast } = require("../services/aiService");
 const { optionalAuth, requirePro } = require("../middleware/auth");
@@ -91,6 +92,56 @@ router.get("/:username/wrapped", optionalAuth, verifyCaptcha, async (req, res) =
     return res.status(500).json({
       error: "SERVER_ERROR",
       message: "Failed to generate Wrapped report.",
+    });
+  }
+});
+
+// ─── GET /api/roast/repo/:owner/:repo ─────────────────────
+// WHY: Pillar 3 — Repo-level deep roast (torvalds/linux or facebook/react)
+//      Specific route MUST precede dynamic /:username route
+router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) => {
+  const { owner, repo } = req.params;
+  const isPro = req.user?.isPro || false;
+  const rawIntensity = req.query.intensity || "savage";
+  const intensity = ["mild", "savage", "nuclear"].includes(rawIntensity)
+    ? rawIntensity
+    : "savage";
+
+  if (intensity === "nuclear" && !isPro) {
+    return res.status(403).json({
+      error: "PRO_REQUIRED",
+      message: "Nuclear intensity is exclusively for GitRoast Pro members. Upgrade to unlock maximum destruction.",
+    });
+  }
+
+  if (!owner || !repo || owner.length > 39 || repo.length > 100) {
+    return res.status(400).json({
+      error: "INVALID_REPO",
+      message: "Invalid repository owner or name.",
+    });
+  }
+
+  try {
+    const userToken = req.user?.githubAccessToken || null;
+    const repoAnalysis = await analyzeRepository(owner, repo, userToken, isPro, intensity);
+    return res.status(200).json({ success: true, data: repoAnalysis });
+  } catch (err) {
+    if (err.message === "REPO_NOT_FOUND" || err.code === "REPO_NOT_FOUND") {
+      return res.status(404).json({
+        error: "REPO_NOT_FOUND",
+        message: `Repository "${owner}/${repo}" was not found or is private.`,
+      });
+    }
+    if (err.message === "RATE_LIMIT_EXCEEDED" || err.code === "RATE_LIMIT_EXCEEDED") {
+      return res.status(429).json({
+        error: "RATE_LIMIT_EXCEEDED",
+        message: "GitHub rate limit hit. Try again in 60 seconds.",
+      });
+    }
+    logger.error("RepoRoast", `Failed for ${owner}/${repo}`, { message: err.message });
+    return res.status(500).json({
+      error: "SERVER_ERROR",
+      message: "Failed to analyze repository.",
     });
   }
 });
@@ -195,6 +246,7 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
         },
         stats: data.stats,
         shameCommits: data.shameCommits,
+        bioContrast: data.bioContrast || {},
         isPro,
       });
       data.roastId = savedRoast._id;

@@ -15,8 +15,9 @@ export default function UsernameInput({ onSubmit }) {
     } = useForm()
 
     function onValid(data) {
-        // WHY: only called when validation passes
-        onSubmit(data.username)
+        let val = (data.username || '').trim()
+        val = val.replace(/^https?:\/\/github\.com\//i, '').replace(/^github\.com\//i, '').replace(/^\/+|\/+$/g, '')
+        onSubmit(val)
     }
 
     return (
@@ -41,21 +42,20 @@ export default function UsernameInput({ onSubmit }) {
 
                 <input
                     type="text"
-                    placeholder="your-username"
+                    placeholder="username or owner/repo"
                     autoComplete="off"
                     autoCapitalize="off"
                     className="username-input font-mono"
                     onFocus={() => setFocused(true)}
                     onBlur={() => setFocused(false)}
                     {...register('username', {
-                        required: 'GitHub username is required',
+                        required: 'GitHub username or repository is required',
                         minLength: { value: 1, message: 'Too short' },
-                        maxLength: { value: 39, message: 'GitHub usernames max 39 chars' },
-                        // WHY pattern: GitHub username rules
-                        //     only letters, numbers, hyphens allowed
+                        maxLength: { value: 120, message: 'Max 120 chars' },
+                        // WHY pattern: GitHub username or owner/repo rules
                         pattern: {
-                            value: /^[a-zA-Z0-9-]+$/,
-                            message: 'Only letters, numbers, hyphens allowed',
+                            value: /^(https?:\/\/github\.com\/)?[a-zA-Z0-9-._]+(?:\/[a-zA-Z0-9-._]+)?\/?$/,
+                            message: 'Enter a username or owner/repo (e.g. torvalds/linux)',
                         },
                     })}
                 />
@@ -70,7 +70,7 @@ export default function UsernameInput({ onSubmit }) {
 
             {/* ── Submit button ── */}
             <button type="submit" className="btn btn-primary roast-btn">
-                🔥 Roast My GitHub
+                🔥 Roast GitHub / Repo
             </button>
 
             <style jsx>{`

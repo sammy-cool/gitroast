@@ -20,6 +20,7 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const Roast = require("../models/Roast");
 const { logger } = require("../utils/logger");
+const { getCompanyLeaderboard } = require("../services/companyRoastService");
 
 // ── GET /api/history/leaderboard/worst ───────────────────────
 // WHY above /:username: specific route must come before dynamic
@@ -43,6 +44,84 @@ router.get("/leaderboard/worst", async (req, res) => {
     return res.status(500).json({
       error: "SERVER_ERROR",
       message: "Could not fetch leaderboard.",
+    });
+  }
+});
+
+// ── GET /api/history/leaderboard/companies ───────────────────
+// WHAT: Returns curated tech giant roast rankings and developer sins
+router.get("/leaderboard/companies", (req, res) => {
+  res.setHeader(
+    "Cache-Control",
+    "public, max-age=3600, stale-while-revalidate=7200",
+  );
+  try {
+    const companies = getCompanyLeaderboard();
+    return res.status(200).json({
+      success: true,
+      companies,
+    });
+  } catch (err) {
+    logger.error("CompaniesLeaderboard", "Failed to fetch companies", { message: err.message });
+    return res.status(500).json({
+      error: "SERVER_ERROR",
+      message: "Could not fetch company leaderboard.",
+    });
+  }
+});
+
+// ── GET /api/history/daily-burn ──────────────────────────────
+// WHAT: Returns the highest-reacted "Roast of the Day"
+router.get("/daily-burn", async (req, res) => {
+  res.setHeader(
+    "Cache-Control",
+    "public, max-age=300, stale-while-revalidate=600",
+  );
+  try {
+    const topRoast = await Roast.findOne({
+      roastText: { $exists: true, $ne: "" },
+    })
+      .sort({ "reactions.savage": -1, "reactions.destroyed": -1, createdAt: -1 })
+      .lean();
+
+    if (topRoast) {
+      return res.status(200).json({
+        success: true,
+        roast: {
+          username: topRoast.username,
+          score: topRoast.score,
+          grade: topRoast.grade,
+          roastText: topRoast.roastText,
+          reactions: topRoast.reactions || { relatable: 0, destroyed: 0, savage: 0 },
+          avatarUrl: topRoast.avatarUrl || `https://avatars.githubusercontent.com/${topRoast.username}?s=96`,
+        },
+      });
+    }
+
+    // Default curated fallback if DB empty
+    return res.status(200).json({
+      success: true,
+      roast: {
+        username: "torvalds",
+        score: 18,
+        grade: "F",
+        roastText: "Your git log reads like an anger management transcript. 30 years of C code and still not a single unit test in sight.",
+        reactions: { relatable: 142, destroyed: 420, savage: 690 },
+        avatarUrl: "https://avatars.githubusercontent.com/torvalds?s=96",
+      },
+    });
+  } catch (err) {
+    logger.warn("DailyBurn", "Fallback triggered", { message: err.message });
+    return res.status(200).json({
+      success: true,
+      roast: {
+        username: "torvalds",
+        score: 18,
+        grade: "F",
+        roastText: "Your git log reads like an anger management transcript. 30 years of C code and still not a single unit test in sight.",
+        reactions: { relatable: 142, destroyed: 420, savage: 690 },
+        avatarUrl: "https://avatars.githubusercontent.com/torvalds?s=96",
+      },
     });
   }
 });

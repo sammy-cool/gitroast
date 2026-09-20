@@ -209,29 +209,51 @@ export async function GET(request) {
             marginBottom: "24px",
           }}
         >
-          {/* Left: username + label */}
+          {/* Left: avatar + username + label */}
           <div
-            style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              alignItems: "center",
+              gap: "18px",
+            }}
           >
+            {username && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`https://avatars.githubusercontent.com/${username}?s=120`}
+                width="64"
+                height="64"
+                style={{
+                  borderRadius: "50%",
+                  border: "2px solid #FF4500",
+                }}
+                alt={username}
+              />
+            )}
             <div
-              style={{
-                display: "flex",
-                fontSize: "54px",
-                fontWeight: "700",
-                color: "#F5F5F5",
-                lineHeight: "1",
-              }}
+              style={{ display: "flex", flexDirection: "column", gap: "6px" }}
             >
-              @{username || "your-username"}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                fontSize: "18px",
-                color: "#555555",
-              }}
-            >
-              GitHub Roast Report
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: "44px",
+                  fontWeight: "700",
+                  color: "#F5F5F5",
+                  lineHeight: "1",
+                }}
+              >
+                @{username || "your-username"}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: "16px",
+                  color: "#555555",
+                }}
+              >
+                GitHub Roast Report
+              </div>
             </div>
           </div>
 

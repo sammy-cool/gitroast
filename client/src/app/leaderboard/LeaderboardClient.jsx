@@ -5,8 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createToast } from 'customizable-toast-notification';
 import LeaderboardTable from '@/components/LeaderboardTable';
+import CompanyLeaderboardTable from '@/components/CompanyLeaderboardTable';
 import Pagination from '@/components/Pagination';
-import { getLeaderboard } from '@/services/roastService';
+import { getLeaderboard, getCompanyLeaderboard } from '@/services/roastService';
 
 export function LeaderboardSkeleton() {
   return (
@@ -160,6 +161,9 @@ export default function LeaderboardClient() {
   const currentPage = Math.max(1, rawPage);
 
   const [entries, setEntries] = useState([]);
+  const [tab, setTab] = useState('developers');
+  const [companies, setCompanies] = useState([]);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -171,6 +175,22 @@ export default function LeaderboardClient() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [pageLoading, setPageLoading] = useState(false);
   const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (tab === 'companies' && companies.length === 0) {
+      setCompaniesLoading(true);
+      getCompanyLeaderboard()
+        .then((data) => setCompanies(data))
+        .catch(() => {
+          createToast({
+            type: 'error',
+            message: 'Could not load tech giants leaderboard.',
+            position: 'top-center',
+          });
+        })
+        .finally(() => setCompaniesLoading(false));
+    }
+  }, [tab, companies.length]);
 
   const fetchPage = useCallback(async (targetPage) => {
     // Only show full skeleton on initial mount; use smooth state for subsequent pages
@@ -246,8 +266,28 @@ export default function LeaderboardClient() {
       <header className="lb-title-block">
         <h1 className="font-display lb-title text-fire">🏆 Wall of Shame</h1>
         <p className="font-mono lb-sub">
-          The most brutally roasted GitHub profiles. Globally.
+          {tab === 'developers'
+            ? 'The most brutally roasted GitHub profiles. Globally.'
+            : 'Who has the messiest commit habits among tech giants? Ranked.'}
         </p>
+
+        {/* ── Tabs ── */}
+        <div className="lb-tabs font-mono">
+          <button
+            type="button"
+            className={`lb-tab-btn ${tab === 'developers' ? 'lb-tab-btn--active' : ''}`}
+            onClick={() => setTab('developers')}
+          >
+            👤 Developers
+          </button>
+          <button
+            type="button"
+            className={`lb-tab-btn ${tab === 'companies' ? 'lb-tab-btn--active' : ''}`}
+            onClick={() => setTab('companies')}
+          >
+            🏢 Tech Giants
+          </button>
+        </div>
       </header>
 
       {/* ── Main Leaderboard Card ── */}
@@ -255,7 +295,13 @@ export default function LeaderboardClient() {
         {/* Subtle progress bar during page transitions to prevent layout shifts */}
         {pageLoading && <div className="lb-progress-bar" aria-hidden="true" />}
 
-        {initialLoading ? (
+        {tab === 'companies' ? (
+          companiesLoading ? (
+            <LeaderboardSkeleton />
+          ) : (
+            <CompanyLeaderboardTable companies={companies} />
+          )
+        ) : initialLoading ? (
           <LeaderboardSkeleton />
         ) : error ? (
           <div className="lb-error">
@@ -341,6 +387,34 @@ export default function LeaderboardClient() {
           color: var(--text-secondary);
           font-size: 13px;
           letter-spacing: 0.2px;
+          margin-bottom: 1rem;
+        }
+        .lb-tabs {
+          display: inline-flex;
+          gap: 6px;
+          padding: 4px;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+        }
+        .lb-tab-btn {
+          padding: 6px 14px;
+          font-size: 12px;
+          border-radius: var(--radius-sm);
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .lb-tab-btn:hover {
+          color: var(--text-primary);
+        }
+        .lb-tab-btn--active {
+          background: var(--fire-grad);
+          color: #fff;
+          font-weight: 600;
+          box-shadow: 0 2px 10px rgba(255, 69, 0, 0.25);
         }
 
         /* Card */

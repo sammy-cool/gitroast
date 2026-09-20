@@ -17,6 +17,8 @@ export default function ShareButtons({
 }) {
     const [copied, setCopied] = useState(false);
     const [copiedText, setCopiedText] = useState(false);
+    const [copiedBadge, setCopiedBadge] = useState(false);
+    const [showBadgePreview, setShowBadgePreview] = useState(false);
     const [downloading, setDownloading] = useState(false);
 
     function handleShare() {
@@ -91,6 +93,33 @@ export default function ShareButtons({
             position: "top-center",
             duration: 3000,
         });
+    }
+
+    function handleCopyBadge() {
+        const origin = typeof window !== "undefined" ? window.location.origin : "https://gitroast.dev";
+        const badgeMarkdown = `[![GitRoast Score](${origin}/api/badge/${username})](${origin}/history/${username})`;
+        navigator.clipboard
+            .writeText(badgeMarkdown)
+            .then(() => {
+                setCopiedBadge(true);
+                trackShare(roastId);
+                createToast({
+                    type: "success",
+                    message: "🛡️ README Badge Markdown copied! Paste in your GitHub profile README.",
+                    position: "top-center",
+                    showProgressBar: true,
+                    duration: 4000,
+                });
+                setTimeout(() => setCopiedBadge(false), 2500);
+            })
+            .catch(() => {
+                createToast({
+                    type: "error",
+                    message: "Could not copy badge code. Try manually.",
+                    position: "top-center",
+                    duration: 4000,
+                });
+            });
     }
 
     async function handleDownload() {
@@ -239,6 +268,44 @@ export default function ShareButtons({
                 />
             </div>
 
+            {/* Badge & Embed row */}
+            <div className="badge-row">
+                <button
+                    type="button"
+                    className="btn btn-badge"
+                    onClick={handleCopyBadge}
+                    title="Copy Markdown code to embed your live roast badge in your GitHub README"
+                >
+                    {copiedBadge ? "✓ Badge Markdown Copied!" : "🛡️ Copy GitHub README Badge"}
+                </button>
+                <button
+                    type="button"
+                    className="btn btn-badge-toggle"
+                    onClick={() => setShowBadgePreview(!showBadgePreview)}
+                    title="Toggle live badge preview"
+                >
+                    {showBadgePreview ? "▲ Hide" : "▼ Preview"}
+                </button>
+            </div>
+
+            {showBadgePreview && (
+                <div className="badge-preview-box">
+                    <p className="font-mono badge-preview-title">LIVE README BADGE PREVIEW:</p>
+                    <div className="badge-img-wrap">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                            src={`/api/badge/${username}`}
+                            alt={`@${username} GitRoast Badge`}
+                            className="badge-preview-img"
+                            loading="eager"
+                        />
+                    </div>
+                    <code className="font-mono badge-code-snippet">
+                        {`[![GitRoast Score](${typeof window !== "undefined" ? window.location.origin : "https://gitroast.dev"}/api/badge/${username})](${typeof window !== "undefined" ? window.location.origin : "https://gitroast.dev"}/history/${username})`}
+                    </code>
+                </div>
+            )}
+
             {/* Tertiary row */}
             <div className="tertiary-buttons">
                 <button
@@ -368,11 +435,85 @@ export default function ShareButtons({
           text-align: center;
           line-height: 1.6;
         }
+        .badge-row {
+          display: flex;
+          gap: 8px;
+        }
+        .btn-badge {
+          flex: 1;
+          padding: 10px 14px;
+          background: rgba(255, 69, 0, 0.08);
+          border: 1px dashed rgba(255, 69, 0, 0.4);
+          color: var(--fire);
+          font-size: 13px;
+          font-weight: 600;
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          transition: var(--ease);
+          text-align: center;
+        }
+        .btn-badge:hover {
+          background: rgba(255, 69, 0, 0.16);
+          border-color: var(--fire);
+          transform: translateY(-1px);
+        }
+        .btn-badge-toggle {
+          padding: 10px 14px;
+          background: var(--bg-elevated);
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
+          font-size: 12px;
+          border-radius: var(--radius-md);
+          cursor: pointer;
+          transition: var(--ease);
+        }
+        .btn-badge-toggle:hover {
+          color: var(--text-primary);
+          border-color: var(--border-hover);
+        }
+        .badge-preview-box {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 12px;
+          background: #0D0D0D;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+        }
+        .badge-preview-title {
+          font-size: 10px;
+          color: var(--text-muted);
+          letter-spacing: 1px;
+        }
+        .badge-img-wrap {
+          display: flex;
+          justify-content: center;
+          padding: 6px 0;
+        }
+        .badge-preview-img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 8px;
+        }
+        .badge-code-snippet {
+          font-size: 10px;
+          color: var(--text-muted);
+          background: #050505;
+          padding: 6px 10px;
+          border-radius: 4px;
+          border: 1px solid #1A1A1A;
+          overflow-x: auto;
+          white-space: nowrap;
+        }
+
         .extras-row {
           display: flex;
           gap: 8px;
         }
         @media (max-width: 480px) {
+          .badge-row {
+            flex-direction: column;
+          }
           .extras-row {
             flex-direction: column;
           }

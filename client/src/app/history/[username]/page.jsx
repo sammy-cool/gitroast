@@ -4,6 +4,7 @@ import HistoryPageClient from './HistoryPageClient'
 export async function generateMetadata({ params }) {
     const { username } = await params
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev'
+    const ogImageUrl = `${siteUrl}/api/og?username=${encodeURIComponent(username)}`
 
     return {
         title: `@${username}'s Roast History & Shame Log 📈 — GitRoast`,
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }) {
             type: 'website',
             images: [
                 {
-                    url: '/og-default.png',
+                    url: ogImageUrl,
                     width: 1200,
                     height: 630,
                     alt: `@${username}'s Roast History on GitRoast`,
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }) {
             card: 'summary_large_image',
             title: `@${username}'s Roast History | GitRoast`,
             description: `How badly has @${username}'s GitHub been roasted over time?`,
-            images: ['/og-default.png'],
+            images: [ogImageUrl],
             creator: '@gitroast',
         },
     }

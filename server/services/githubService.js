@@ -279,6 +279,65 @@ function getGrade(score) {
   return "F-";
 }
 
+// ─── 9.5 Generate Bio vs Reality (Roast to Resume Contrast) ─────
+// WHAT: Compares user's LinkedIn/GitHub bio claims against hard Git reality
+// WHY: Hilarious contrast highlighting discrepancy between bio buzzwords & actual code
+function generateBioContrast(profile, repoAnalysis, commitAnalysis) {
+  const bio = (profile.bio || "").trim();
+  const lowerBio = bio.toLowerCase();
+
+  let claimed = bio;
+  let reality = "";
+  let verdict = "";
+
+  if (!bio) {
+    claimed = "Stealth Mode Stealth Engineer";
+    reality = `Zero bio provided. Profile holds ${repoAnalysis.totalOwn} repositories with ${repoAnalysis.totalStars} total stars.`;
+    verdict = "LinkedIn: Visionary Builder | GitHub: Zero trace of code evidence";
+  } else if (lowerBio.includes("full stack") || lowerBio.includes("fullstack")) {
+    claimed = "Full-Stack Software Wizard";
+    reality = `${repoAnalysis.topLanguage} heavy (${repoAnalysis.totalOwn} repos), with ${repoAnalysis.abandonedPct}% project abandonment rate.`;
+    verdict = "Resume: End-to-end full stack developer | GitHub: Mostly frontend CSS debugging and forgotten repos";
+  } else if (lowerBio.includes("senior") || lowerBio.includes("lead") || lowerBio.includes("architect")) {
+    claimed = bio.length > 50 ? bio.slice(0, 47) + "..." : bio;
+    const worstCommit = commitAnalysis.shameList[0] || "fix";
+    reality = `Code hygiene rated at ${commitAnalysis.qualityScore}%. Top architectural commit: "${worstCommit}".`;
+    verdict = "LinkedIn: Principal System Architect | GitHub: Pushing untested hotfixes straight to master";
+  } else if (lowerBio.includes("ai") || lowerBio.includes("ml") || lowerBio.includes("machine learning") || lowerBio.includes("data")) {
+    claimed = "AI / ML Pioneer";
+    reality = "Imports numpy and scikit-learn once, followed by 12 commits of 'adjust hyperparameters pls'.";
+    verdict = "Resume: Deep Learning Researcher | GitHub: Wrapper around OpenAI API keys";
+  } else if (lowerBio.includes("open source") || lowerBio.includes("contributor") || lowerBio.includes("oss")) {
+    claimed = "Open Source Evangelist";
+    reality = `${repoAnalysis.totalForks} forks collected, but only ${repoAnalysis.totalStars} stars earned in return.`;
+    verdict = "Resume: Active Open Source Core Contributor | GitHub: Typo fixes in README files";
+  } else if (lowerBio.includes("student") || lowerBio.includes("learner") || lowerBio.includes("enthusiast")) {
+    claimed = bio.length > 50 ? bio.slice(0, 47) + "..." : bio;
+    reality = `${repoAnalysis.abandonedCount} tutorial repositories abandoned the moment the YouTube video ended.`;
+    verdict = "Resume: Passionate Lifelong Learner | GitHub: Cemetery of incomplete clone tutorials";
+  } else {
+    claimed = bio.length > 50 ? bio.slice(0, 47) + "..." : bio;
+    if (repoAnalysis.abandonedPct > 50) {
+      reality = `${repoAnalysis.abandonedPct}% of projects abandoned within 24 hours of repo creation.`;
+      verdict = "Resume: Results-Oriented Delivery Machine | GitHub: Repository Graveyard Caretaker";
+    } else if (commitAnalysis.qualityScore < 45) {
+      const worst = commitAnalysis.shameList[0] || "wip";
+      reality = `Commit quality is ${commitAnalysis.qualityScore}%. Documented commit history includes "${worst}".`;
+      verdict = "Resume: Clean Code & Best Practices | GitHub: 'git push --force' into production";
+    } else {
+      reality = `${repoAnalysis.totalStars} stars across ${repoAnalysis.totalOwn} repositories with ${repoAnalysis.topLanguage} stack.`;
+      verdict = "Resume: Industry Impact Leader | GitHub: Well-hidden behind private organization repos";
+    }
+  }
+
+  return {
+    bio: bio || "No bio provided.",
+    claimed,
+    reality,
+    verdict,
+  };
+}
+
 // ─── MAIN EXPORT: Full profile analysis ──────────────────
 // WHY: one function call → everything about a user
 //      called by the route, returns clean structured data
@@ -366,6 +425,8 @@ async function analyzeProfile(
     },
   ];
 
+  const bioContrast = generateBioContrast(profile, repoAnalysis, commitAnalysis);
+
   // WHY: return clean shape — matches exactly what RoastCard expects
   return {
     username,
@@ -383,6 +444,7 @@ async function analyzeProfile(
     repoAnalysis,
     commitAnalysis,
     readme,
+    bioContrast,
     // WHY: raw data passed to roast engine in Phase 4
     _raw: {
       topLanguage: repoAnalysis.topLanguage,

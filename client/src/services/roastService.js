@@ -266,3 +266,68 @@ export async function getRoastStats() {
     return 0;
   }
 }
+
+// ── getCompanyLeaderboard ─────────────────────────────────────
+// WHAT: Fetches curated tech giant rankings and chaos scores
+export async function getCompanyLeaderboard() {
+  try {
+    const res = await fetch(`${API_BASE}/api/history/leaderboard/companies`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.success && Array.isArray(json.companies) ? json.companies : [];
+  } catch {
+    return [];
+  }
+}
+
+// ── getRoastOfTheDay ──────────────────────────────────────────
+// WHAT: Fetches top-reacted burn for homepage feature
+export async function getRoastOfTheDay() {
+  try {
+    const res = await fetch(`${API_BASE}/api/history/daily-burn`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.success && json.roast ? json.roast : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── getRepoRoast ──────────────────────────────────────────────
+// WHAT: Fetches repository-level deep roast (Pillar 3)
+export async function getRepoRoast(
+  owner,
+  repo,
+  token = null,
+  intensity = "savage",
+) {
+  const headers = { "Content-Type": "application/json" };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    const captchaToken = await getCaptchaToken("roast");
+    if (captchaToken) headers["X-Captcha-Token"] = captchaToken;
+  }
+
+  const url = `${API_BASE}/api/roast/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}?intensity=${encodeURIComponent(intensity)}`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers,
+    signal: AbortSignal.timeout(60000),
+  });
+
+  const json = await res.json();
+  if (!res.ok) {
+    const err = new Error(json.message || "Failed to fetch repository roast");
+    err.code = json.error;
+    err.status = res.status;
+    throw err;
+  }
+  return json.data;
+}

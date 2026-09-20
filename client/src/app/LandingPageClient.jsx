@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createToast } from "customizable-toast-notification";
 import UsernameInput from "@/components/UsernameInput";
 import ProModal from "@/components/ProModal";
@@ -9,7 +10,12 @@ import GitHubLoginBtn from "@/components/GitHubLoginBtn";
 import RateLimitBanner from "@/components/RateLimitBanner";
 import LiveRoastFeed from "@/components/LiveRoastFeed";
 import { useAuth } from "@/context/AuthContext";
-import { wakeUpServer, getRoastStats, checkHealth } from "@/services/roastService";
+import {
+  wakeUpServer,
+  getRoastStats,
+  checkHealth,
+  getRoastOfTheDay,
+} from "@/services/roastService";
 
 const INTENSITIES = [
   {
@@ -42,6 +48,7 @@ export default function LandingPageClient() {
   const { user, loginWithGitHub } = useAuth();
   const [showProModal, setShowProModal] = useState(false);
   const [totalRoasts, setTotalRoasts] = useState(null);
+  const [dailyRoast, setDailyRoast] = useState(null);
   const [broadcastDismissed, setBroadcastDismissed] = useState(false);
   const [serverStatus, setServerStatus] = useState("checking"); // "checking" | "online" | "offline"
   const [intensity, setIntensity] = useState(() => {
@@ -118,6 +125,9 @@ export default function LandingPageClient() {
     getRoastStats().then((total) => {
       if (total > 0) setTotalRoasts(total);
     });
+    getRoastOfTheDay().then((roast) => {
+      if (roast) setDailyRoast(roast);
+    });
   }, []);
 
   function handleIntensitySelect(key) {
@@ -142,7 +152,7 @@ export default function LandingPageClient() {
     sessionStorage.setItem("gitroast_intensity", key);
   }
 
-  function handleRoast(username) {
+  function handleRoast(target) {
     if (rateLimitSecs && rateLimitSecs > 0) {
       createToast({
         type: "warning",
@@ -152,10 +162,11 @@ export default function LandingPageClient() {
       return;
     }
 
-    if (!username.trim()) {
+    const cleanTarget = (target || "").trim().toLowerCase();
+    if (!cleanTarget) {
       createToast({
         type: "warning",
-        message: "Enter a GitHub username first!",
+        message: "Enter a GitHub username or repo first!",
         position: "top-center",
         showProgressBar: true,
       });
@@ -163,7 +174,11 @@ export default function LandingPageClient() {
     }
 
     sessionStorage.setItem("gitroast_intensity", intensity);
-    router.push(`/roast/${username.trim().toLowerCase()}`);
+    if (cleanTarget.includes("/")) {
+      router.push(`/repo/${cleanTarget}`);
+    } else {
+      router.push(`/roast/${cleanTarget}`);
+    }
   }
 
   const selectedIntensity = INTENSITIES.find((i) => i.key === intensity);
@@ -305,11 +320,41 @@ export default function LandingPageClient() {
         ⚔️ Roast Battle
       </button>
 
+      {/* ── Community Roast of the Day ── */}
       <div className="sample-roast card">
-        <p className="sample-roast-label font-mono">SAMPLE ROAST</p>
+        <div className="daily-header">
+          <p className="sample-roast-label font-mono">🔥 ROAST OF THE DAY</p>
+          {dailyRoast && (
+            <span className="daily-badge font-mono">
+              🔥 {(dailyRoast.reactions?.savage || 0) + (dailyRoast.reactions?.destroyed || 0)} BURNS
+            </span>
+          )}
+        </div>
+        {dailyRoast && (
+          <div className="daily-author-row">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={dailyRoast.avatarUrl || `https://avatars.githubusercontent.com/${dailyRoast.username}?s=96`}
+              alt={`@${dailyRoast.username}`}
+              className="daily-avatar"
+              loading="lazy"
+            />
+            <div className="daily-author-info">
+              <Link
+                href={`/history/${dailyRoast.username}`}
+                className="daily-username font-mono"
+                title={`View @${dailyRoast.username}'s roast history`}
+              >
+                @{dailyRoast.username}
+              </Link>
+              <span className="daily-stats font-mono">
+                Score: {dailyRoast.score}/100 · Grade {dailyRoast.grade}
+              </span>
+            </div>
+          </div>
+        )}
         <p className="sample-roast-text">
-          &ldquo;This is not a developer portfolio. It is a detailed public
-          record of every time enthusiasm lasted one weekend.&rdquo;
+          &ldquo;{dailyRoast?.roastText || "This is not a developer portfolio. It is a detailed public record of every time enthusiasm lasted one weekend."}&rdquo;
         </p>
       </div>
 
@@ -581,23 +626,70 @@ export default function LandingPageClient() {
         }
         .sample-roast {
           width: 100%;
-          max-width: 460px;
+          max-width: 480px;
           padding: 1.1rem 1.25rem;
           border-left: 3px solid var(--fire);
           border-radius: var(--radius-md);
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          background: linear-gradient(135deg, #110900 0%, #0D0D0D 100%);
+        }
+        .daily-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         }
         .sample-roast-label {
-          color: var(--text-muted);
+          color: var(--fire);
           font-size: 9px;
           text-transform: uppercase;
           letter-spacing: 2px;
-          margin-bottom: 8px;
+          margin: 0;
+        }
+        .daily-badge {
+          font-size: 10px;
+          padding: 2px 6px;
+          border-radius: 4px;
+          background: rgba(255, 69, 0, 0.12);
+          border: 1px solid rgba(255, 69, 0, 0.3);
+          color: var(--fire);
+        }
+        .daily-author-row {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .daily-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: 1px solid var(--fire);
+        }
+        .daily-author-info {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .daily-username {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-primary);
+          text-decoration: none;
+        }
+        .daily-username:hover {
+          color: var(--fire);
+        }
+        .daily-stats {
+          font-size: 11px;
+          color: var(--text-muted);
         }
         .sample-roast-text {
-          color: var(--text-muted);
+          color: var(--text-secondary);
           font-size: 13px;
           font-style: italic;
-          line-height: 1.7;
+          line-height: 1.6;
+          margin: 0;
         }
 
         @media (max-width: 600px) {

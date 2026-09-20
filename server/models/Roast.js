@@ -68,6 +68,13 @@ const roastSchema = new mongoose.Schema(
 
     shameCommits: [String],
 
+    bioContrast: {
+      bio: { type: String, default: "" },
+      claimed: { type: String, default: "" },
+      reality: { type: String, default: "" },
+      verdict: { type: String, default: "" },
+    },
+
     isPro: {
       type: Boolean,
       default: false,
