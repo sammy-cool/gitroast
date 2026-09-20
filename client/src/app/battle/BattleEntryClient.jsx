@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createToast } from 'customizable-toast-notification'
 import { useAuth } from '@/context/AuthContext'
+import Breadcrumb from '@/components/Breadcrumb'
 
 const FEATURED_RIVALRIES = [
     {
@@ -144,6 +145,10 @@ export default function BattleEntryClient() {
                     )}
                 </div>
             </nav>
+
+            <div className="battle-breadcrumb-wrap">
+                <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Battle Arena' }]} />
+            </div>
 
             {/* Header */}
             <header className="battle-header">
@@ -331,6 +336,11 @@ export default function BattleEntryClient() {
           width:           100%;
           max-width:       800px;
           z-index:         10;
+        }
+        .battle-breadcrumb-wrap {
+          width:     100%;
+          max-width: 800px;
+          margin-top: -0.25rem;
         }
         .battle-nav-actions {
           display:     flex;

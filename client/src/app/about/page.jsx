@@ -8,6 +8,7 @@
 // ============================================================
 
 import Link from "next/link";
+import Breadcrumb from "@/components/Breadcrumb";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://gitroast.dev";
 
@@ -141,6 +142,11 @@ export default function AboutPage() {
           </Link>
         </div>
       </nav>
+
+      {/* ── Breadcrumb ── */}
+      <div className="breadcrumb-wrap">
+        <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "About" }]} />
+      </div>
 
       {/* ── Hero ── */}
       <header className="about-hero">
@@ -363,6 +369,12 @@ export default function AboutPage() {
         .nav-btn {
           font-size: 13px;
           text-decoration: none;
+        }
+        .breadcrumb-wrap {
+          width: 100%;
+          position: relative;
+          z-index: 1;
+          margin-top: -0.5rem;
         }
 
         .about-hero {

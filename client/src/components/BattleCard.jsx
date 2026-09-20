@@ -5,15 +5,20 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { createToast } from 'customizable-toast-notification'
+import { useAuth } from '@/context/AuthContext'
 
 export default function BattleCard({ data }) {
+    const { user } = useAuth()
+    const isPro = Boolean(user?.isPro)
     const [copied, setCopied] = useState(false)
+    const [downloading, setDownloading] = useState(false)
 
     const {
         user1, user2, winner, loser,
         score1, score2, grade1, grade2,
         battleRoast,
         roast1, roast2,
+        stats1, stats2,
     } = data
 
     // WHY: higher score = better dev = loses the roast battle
@@ -48,6 +53,70 @@ export default function BattleCard({ data }) {
             })
     }
 
+    async function handleDownload() {
+        setDownloading(true)
+        try {
+            const html2canvas = (await import('html2canvas')).default
+            const element = document.getElementById('battle-card-capture')
+            if (!element) throw new Error('Battle card element not found')
+
+            const scale = isPro ? 2 : 1
+            const canvas = await html2canvas(element, {
+                scale,
+                useCORS: true,
+                backgroundColor: '#0F0F0F',
+                logging: false,
+                windowWidth: element.scrollWidth,
+                windowHeight: element.scrollHeight,
+            })
+
+            if (!isPro) {
+                const ctx = canvas.getContext('2d')
+                ctx.save()
+                ctx.globalAlpha = 0.16
+                ctx.fillStyle = '#FF6B00'
+                ctx.font = 'bold 36px "Courier New", monospace'
+                ctx.textAlign = 'center'
+                const angle = -Math.PI / 6
+                const stepX = 260
+                const stepY = 180
+                const text = 'ROASTED BY GITROAST'
+                for (let y = -100; y < canvas.height + 100; y += stepY) {
+                    for (let x = -100; x < canvas.width + 100; x += stepX) {
+                        ctx.save()
+                        ctx.translate(x, y)
+                        ctx.rotate(angle)
+                        ctx.fillText(text, 0, 0)
+                        ctx.restore()
+                    }
+                }
+                ctx.restore()
+            }
+
+            const link = document.createElement('a')
+            link.download = `battle-${user1}-vs-${user2}.png`
+            link.href = canvas.toDataURL('image/png')
+            link.click()
+
+            createToast({
+                type: 'success',
+                message: isPro ? '📥 High-res battle card saved!' : '📥 Battle card saved (Free Watermarked)!',
+                position: 'top-center',
+                duration: 3000,
+            })
+        } catch (err) {
+            console.error('Battle download error:', err)
+            createToast({
+                type: 'error',
+                message: 'Failed to export battle card image. Please try again.',
+                position: 'top-center',
+                duration: 4000,
+            })
+        } finally {
+            setDownloading(false)
+        }
+    }
+
     return (
         <div className="battle-card card" id="battle-card-capture">
 
@@ -56,7 +125,7 @@ export default function BattleCard({ data }) {
                 <p className="battle-card-title font-display text-fire">
                     ⚔️ ROAST BATTLE
                 </p>
-                <p className="battle-card-sub font-mono">gitroast</p>
+                <p className="battle-card-sub font-mono">gitroast.dev</p>
             </div>
 
             {/* Two players */}
@@ -96,6 +165,9 @@ export default function BattleCard({ data }) {
                     <p className="player-roast font-mono">
                         &ldquo;{roast1?.slice(0, 100)}{roast1?.length > 100 ? '...' : ''}&rdquo;
                     </p>
+                    <Link href={`/history/${user1}`} className="player-action-btn font-mono" title={`View full roast for @${user1}`}>
+                        🔥 Full Roast →
+                    </Link>
                 </div>
 
                 {/* VS divider */}
@@ -109,7 +181,7 @@ export default function BattleCard({ data }) {
                 </div>
 
                 {/* Player 2 */}
-                <div className={`player-block ${!isUser1Winner ? 'player-block--loser' : ''}`}>
+                <div className={`player-block ${!isUser1Winner && winner ? 'player-block--loser' : ''}`}>
                     {!isUser1Winner && winner && <div className="shame-crown font-mono">💀 MOST ROASTABLE</div>}
                     <div className="player-avatar-box" style={{ borderColor: score2Color }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -141,9 +213,57 @@ export default function BattleCard({ data }) {
                     <p className="player-roast font-mono">
                         &ldquo;{roast2?.slice(0, 100)}{roast2?.length > 100 ? '...' : ''}&rdquo;
                     </p>
+                    <Link href={`/history/${user2}`} className="player-action-btn font-mono" title={`View full roast for @${user2}`}>
+                        🔥 Full Roast →
+                    </Link>
                 </div>
 
             </div>
+
+            {/* Tale of the Tape — Stats Comparison */}
+            {(stats1 || stats2) && (
+                <div className="tape-section">
+                    <div className="tape-header font-mono">
+                        <span>📊 TALE OF THE TAPE</span>
+                    </div>
+                    <div className="tape-rows font-mono">
+                        <div className="tape-row">
+                            <span className="tape-val left">{stats1?.totalRepos ?? '—'}</span>
+                            <span className="tape-label">Total Repos</span>
+                            <span className="tape-val right">{stats2?.totalRepos ?? '—'}</span>
+                        </div>
+                        <div className="tape-row">
+                            <span className="tape-val left" style={{ color: (stats1?.abandonedRepos || 0) > 0 ? 'var(--bad)' : 'var(--text-secondary)' }}>
+                                {stats1?.abandonedRepos ?? '—'}
+                            </span>
+                            <span className="tape-label">💀 Abandoned Repos</span>
+                            <span className="tape-val right" style={{ color: (stats2?.abandonedRepos || 0) > 0 ? 'var(--bad)' : 'var(--text-secondary)' }}>
+                                {stats2?.abandonedRepos ?? '—'}
+                            </span>
+                        </div>
+                        <div className="tape-row">
+                            <span className="tape-val left">{stats1?.totalStars ?? '—'}</span>
+                            <span className="tape-label">⭐ Total Stars</span>
+                            <span className="tape-val right">{stats2?.totalStars ?? '—'}</span>
+                        </div>
+                        <div className="tape-row">
+                            <span className="tape-val left truncate" title={stats1?.topLanguage}>{stats1?.topLanguage ?? '—'}</span>
+                            <span className="tape-label">💻 Top Language</span>
+                            <span className="tape-val right truncate" title={stats2?.topLanguage}>{stats2?.topLanguage ?? '—'}</span>
+                        </div>
+                        <div className="tape-row">
+                            <span className="tape-val left">{stats1?.commitQuality ?? '—'}</span>
+                            <span className="tape-label">🎯 Commit Quality</span>
+                            <span className="tape-val right">{stats2?.commitQuality ?? '—'}</span>
+                        </div>
+                        <div className="tape-row">
+                            <span className="tape-val left">{stats1?.joinYear ?? '—'}</span>
+                            <span className="tape-label">🗓️ Member Since</span>
+                            <span className="tape-val right">{stats2?.joinYear ?? '—'}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Battle roast — AI verdict */}
             {battleRoast && (
@@ -162,14 +282,28 @@ export default function BattleCard({ data }) {
                 </p>
             </div>
 
-            {/* Share buttons */}
+            {/* Share & Download Buttons */}
             <div className="battle-share">
                 <button className="btn btn-primary share-btn" onClick={handleShare}>
                     𝕏 Tweet Battle
                 </button>
+                <button className="btn btn-outline share-btn" onClick={handleDownload} disabled={downloading}>
+                    {downloading ? '⏳ Rendering...' : '📥 Save Card'}
+                </button>
                 <button className="btn btn-ghost share-btn" onClick={handleCopyLink}>
                     {copied ? '✓ Copied!' : '🔗 Copy Link'}
                 </button>
+            </div>
+
+            {/* Rematch & Navigation Links */}
+            <div className="battle-nav-footer font-mono">
+                <Link href={`/battle/${user2}/vs/${user1}`} className="nav-action-link">
+                    🔄 Swap Positions & Rematch
+                </Link>
+                <span className="nav-action-sep">•</span>
+                <Link href="/battle" className="nav-action-link">
+                    ⚔️ New Battle
+                </Link>
             </div>
 
             <style jsx>{`
@@ -275,6 +409,21 @@ export default function BattleCard({ data }) {
           line-height: 1.5;
           padding:     0 4px;
         }
+        .player-block :global(.player-action-btn) {
+          font-size: 10px;
+          color: var(--fire);
+          text-decoration: none;
+          margin-top: 4px;
+          padding: 3px 8px;
+          border-radius: var(--radius-sm);
+          border: 1px solid rgba(255, 107, 0, 0.25);
+          background: rgba(255, 107, 0, 0.05);
+          transition: all 0.15s ease;
+        }
+        .player-block :global(.player-action-btn:hover) {
+          background: rgba(255, 107, 0, 0.15);
+          border-color: var(--fire);
+        }
 
         /* VS divider */
         .vs-col {
@@ -287,6 +436,59 @@ export default function BattleCard({ data }) {
         }
         .vs-text       { font-size: 28px; }
         .winner-arrow  { font-size: 24px; color: var(--bad); }
+
+        /* Tale of the Tape */
+        .tape-section {
+          padding: 1rem 1.25rem;
+          border-bottom: 1px solid var(--border);
+          background: rgba(0, 0, 0, 0.3);
+        }
+        .tape-header {
+          font-size: 10px;
+          letter-spacing: 1.5px;
+          color: var(--text-muted);
+          text-align: center;
+          margin-bottom: 10px;
+        }
+        .tape-rows {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .tape-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 4px 8px;
+          border-radius: var(--radius-sm);
+          background: rgba(255, 255, 255, 0.02);
+          font-size: 11px;
+        }
+        .tape-row:hover {
+          background: rgba(255, 255, 255, 0.04);
+        }
+        .tape-val {
+          flex: 1;
+          color: var(--text-primary);
+        }
+        .tape-val.left {
+          text-align: left;
+        }
+        .tape-val.right {
+          text-align: right;
+        }
+        .tape-label {
+          flex: 2;
+          text-align: center;
+          color: var(--text-muted);
+          font-size: 10px;
+        }
+        .truncate {
+          max-width: 90px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
 
         /* Verdict */
         .battle-verdict {
@@ -324,12 +526,36 @@ export default function BattleCard({ data }) {
           display:  flex;
           gap:      10px;
         }
-        .share-btn { flex: 1; padding: 12px; font-size: 14px; }
+        .share-btn { flex: 1; padding: 12px; font-size: 13px; }
+
+        /* Navigation footer */
+        .battle-nav-footer {
+          padding: 0.75rem 1.5rem 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          font-size: 11px;
+          border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .battle-nav-footer :global(.nav-action-link) {
+          color: var(--text-muted);
+          text-decoration: none;
+          transition: color 0.15s ease;
+        }
+        .battle-nav-footer :global(.nav-action-link:hover) {
+          color: var(--fire);
+        }
+        .nav-action-sep {
+          color: var(--text-muted);
+          opacity: 0.4;
+        }
 
         @media (max-width: 480px) {
           .players-row   { flex-direction: column; }
           .vs-col        { flex-direction: row; padding: 0.5rem; }
           .winner-arrow  { display: none; }
+          .battle-share  { flex-direction: column; }
         }
       `}</style>
         </div>

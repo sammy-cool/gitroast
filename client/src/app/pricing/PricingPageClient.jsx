@@ -26,6 +26,7 @@ import { createToast } from 'customizable-toast-notification'
 import PaymentModal from '@/components/PaymentModal'
 import PricingCard from '@/components/PricingCard'
 import GitHubLoginBtn from '@/components/GitHubLoginBtn'
+import Breadcrumb from '@/components/Breadcrumb'
 import { useAuth } from '@/context/AuthContext'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
@@ -231,6 +232,11 @@ export default function PricingPageClient() {
                 <GitHubLoginBtn variant="compact" />
             </nav>
 
+            {/* Breadcrumb */}
+            <div className="pricing-breadcrumb-wrap">
+                <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Pricing' }]} />
+            </div>
+
             {/* Header */}
             <div className="pricing-header">
                 <h1 className="font-display pricing-title text-fire">
@@ -337,6 +343,11 @@ export default function PricingPageClient() {
           align-items:     center;
           width:           100%;
           max-width:       960px;
+        }
+        .pricing-breadcrumb-wrap {
+          width:     100%;
+          max-width: 960px;
+          margin-top: -1rem;
         }
         .pricing-header {
           text-align:     center;

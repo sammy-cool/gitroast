@@ -13,6 +13,7 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const ContactMessage = require("../models/ContactMessage");
+const { sendContactNotification } = require("../services/emailService");
 const { logger } = require("../utils/logger");
 
 const VALID_CATEGORIES = ["feedback", "bug", "pro", "dispute", "general"];
@@ -103,6 +104,21 @@ router.post("/", async (req, res) => {
         ticketId,
       });
     }
+
+    // 5. Asynchronously notify owner without blocking client response
+    sendContactNotification({
+      ticketId,
+      category: safeCategory,
+      name: safeName,
+      email: safeEmail,
+      message: safeMessage,
+      ip,
+    }).catch((emailErr) => {
+      logger.error("Contact", "Email notification background task failed", {
+        ticketId,
+        error: emailErr.message,
+      });
+    });
 
     return res.status(201).json({
       success: true,

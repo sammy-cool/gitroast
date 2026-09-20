@@ -7,6 +7,7 @@ import { createToast } from 'customizable-toast-notification';
 import LeaderboardTable from '@/components/LeaderboardTable';
 import CompanyLeaderboardTable from '@/components/CompanyLeaderboardTable';
 import Pagination from '@/components/Pagination';
+import Breadcrumb from '@/components/Breadcrumb';
 import { getLeaderboard, getCompanyLeaderboard } from '@/services/roastService';
 
 export function LeaderboardSkeleton() {
@@ -262,6 +263,11 @@ export default function LeaderboardClient() {
         </Link>
       </nav>
 
+      {/* ── Breadcrumb ── */}
+      <div className="breadcrumb-wrap">
+        <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Wall of Shame' }]} />
+      </div>
+
       {/* ── Page Header ── */}
       <header className="lb-title-block">
         <h1 className="font-display lb-title text-fire">🏆 Wall of Shame</h1>
@@ -362,6 +368,10 @@ export default function LeaderboardClient() {
           justify-content: space-between;
           align-items: center;
           width: 100%;
+        }
+        .breadcrumb-wrap {
+          width: 100%;
+          margin-top: -0.5rem;
         }
         .lb-nav :global(.nav-logo),
         .nav-logo {

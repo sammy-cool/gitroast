@@ -18,6 +18,7 @@ import Link from 'next/link';
 import { createToast } from 'customizable-toast-notification';
 import { useAuth } from '@/context/AuthContext';
 import { dispatchContactMessage } from '@/services/roastService';
+import Breadcrumb from '@/components/Breadcrumb';
 
 const SUPPORT_EMAIL = 'priyanshu.alt191@gmail.com';
 
@@ -130,6 +131,11 @@ export default function ContactPageClient() {
           </Link>
         </div>
       </nav>
+
+      {/* ── Breadcrumb ── */}
+      <div className="breadcrumb-wrap">
+        <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Contact' }]} />
+      </div>
 
       {/* ── Header ── */}
       <header className="contact-header">
@@ -367,6 +373,12 @@ export default function ContactPageClient() {
           width: 100%;
           position: relative;
           z-index: 1;
+        }
+        .breadcrumb-wrap {
+          width: 100%;
+          position: relative;
+          z-index: 1;
+          margin-top: -0.5rem;
         }
         .nav-logo {
           font-size: 22px;

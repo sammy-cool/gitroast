@@ -7,6 +7,7 @@ import { useRoastHistory } from '@/hooks/useRoastHistory'
 import HistoryCard from '@/components/HistoryCard'
 import ScoreChart from '@/components/ScoreChart'
 import MonthlyComparison from '@/components/MonthlyComparison'
+import Breadcrumb from '@/components/Breadcrumb'
 
 export default function HistoryPageClient({ username }) {
     const router = useRouter()
@@ -43,6 +44,16 @@ export default function HistoryPageClient({ username }) {
                     <button className="btn btn-ghost" onClick={() => router.push('/')}>
                         ← Home
                     </button>
+                </div>
+
+                <div className="breadcrumb-wrap">
+                    <Breadcrumb
+                        items={[
+                            { label: 'Home', href: '/' },
+                            { label: 'Wall of Shame', href: '/leaderboard' },
+                            { label: `@${username}` },
+                        ]}
+                    />
                 </div>
 
                 {/* Header skeleton — matches real header card */}
@@ -103,6 +114,10 @@ export default function HistoryPageClient({ username }) {
             justify-content: space-between;
             align-items:     center;
             width:           100%;
+          }
+          .breadcrumb-wrap {
+            width:      100%;
+            margin-top: -0.5rem;
           }
           .nav-logo { font-size: 22px; }
 
@@ -242,6 +257,16 @@ export default function HistoryPageClient({ username }) {
                 </button>
             </div>
 
+            <div className="breadcrumb-wrap">
+                <Breadcrumb
+                    items={[
+                        { label: 'Home', href: '/' },
+                        { label: 'Wall of Shame', href: '/leaderboard' },
+                        { label: `@${username}` },
+                    ]}
+                />
+            </div>
+
             {/* ── Profile header ── */}
             <div className="history-header card">
                 <div className="header-user-info">
@@ -368,6 +393,10 @@ export default function HistoryPageClient({ username }) {
           justify-content: space-between;
           align-items:     center;
           width:           100%;
+        }
+        .breadcrumb-wrap {
+          width:      100%;
+          margin-top: -0.5rem;
         }
         .nav-logo { font-size: 22px; }
         /* Header */

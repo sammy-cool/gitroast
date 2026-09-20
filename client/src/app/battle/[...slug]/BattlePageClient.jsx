@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createToast } from 'customizable-toast-notification'
 import BattleCard from '@/components/BattleCard'
+import Breadcrumb from '@/components/Breadcrumb'
 import { getBattleRoast } from '@/services/roastService'
 import { useAuth } from '@/context/AuthContext'
 
@@ -223,6 +224,15 @@ export default function BattlePageClient({ user1, user2 }) {
                             </button>
                         </div>
                     </div>
+                    <div className="breadcrumb-container">
+                        <Breadcrumb
+                            items={[
+                                { label: 'Home', href: '/' },
+                                { label: 'Battle Arena', href: '/battle' },
+                                { label: `@${user1} vs @${user2}` },
+                            ]}
+                        />
+                    </div>
                     <BattleCard data={battleData} />
                 </main>
 
@@ -236,6 +246,11 @@ export default function BattlePageClient({ user1, user2 }) {
             width: 100%; max-width: 680px;
           }
           .nav-logo { font-size: 22px; }
+          .breadcrumb-container {
+            width: 100%;
+            max-width: 680px;
+            margin-bottom: -0.25rem;
+          }
         `}</style>
             </>
         )

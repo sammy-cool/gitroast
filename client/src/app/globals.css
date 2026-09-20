@@ -467,6 +467,13 @@ body.loading {
   color: var(--fire);
 }
 
+.footer-link--active {
+  color: var(--fire) !important;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(255, 69, 0, 0.4);
+  position: relative;
+}
+
 .footer-meta {
   display: flex;
   align-items: center;

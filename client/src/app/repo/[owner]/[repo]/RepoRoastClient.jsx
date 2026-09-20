@@ -15,6 +15,7 @@ import { createToast } from 'customizable-toast-notification'
 import AnalyzingScreen from '@/components/AnalyzingScreen'
 import RepoRoastCard from '@/components/RepoRoastCard'
 import ProModal from '@/components/ProModal'
+import Breadcrumb from '@/components/Breadcrumb'
 import { getRepoRoast } from '@/services/roastService'
 import { useAuth } from '@/context/AuthContext'
 
@@ -112,6 +113,13 @@ export default function RepoRoastClient({ owner, repo }) {
               ← Back to GitRoast
             </Link>
           </div>
+          <Breadcrumb
+            items={[
+              { label: 'Home', href: '/' },
+              { label: `@${owner}`, href: `/history/${owner}` },
+              { label: `${repo}` },
+            ]}
+          />
           <RepoRoastCard
             data={roastData}
             onProClick={() => setShowProModal(true)}

@@ -703,6 +703,37 @@ describe("Feature #5 — Contact Dispatch & Ticket Generation", () => {
         );
         assert.equal(responseData.category, "feedback");
     });
+
+    it("should build valid HTML email template with ticket, category, and message", () => {
+        const { buildContactEmailHtml, OWNER_EMAIL } = require("../services/emailService");
+        const html = buildContactEmailHtml({
+            ticketId: "GR-999888",
+            category: "bug",
+            name: "Tester",
+            email: "tester@example.com",
+            message: "Something broke on page 2",
+        });
+
+        assert.ok(html.includes("GR-999888"), "HTML must include ticket ID");
+        assert.ok(html.includes("Bug Report"), "HTML must include readable category");
+        assert.ok(html.includes("Something broke on page 2"), "HTML must include message");
+        assert.ok(html.includes(OWNER_EMAIL), "HTML must mention owner email");
+    });
+
+    it("should safely notify via audit fallback or Resend API", async () => {
+        const { sendContactNotification } = require("../services/emailService");
+        const res = await sendContactNotification({
+            ticketId: "GR-123456",
+            category: "general",
+            name: "Developer",
+            email: "dev@example.com",
+            message: "Hello GitRoast!",
+            ip: "127.0.0.1",
+        });
+
+        assert.equal(res.success, true);
+        assert.ok(["audit", "resend"].includes(res.provider));
+    });
 });
 
 

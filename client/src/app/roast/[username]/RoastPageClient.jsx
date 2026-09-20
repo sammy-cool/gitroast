@@ -26,6 +26,7 @@ import { createToast } from 'customizable-toast-notification'
 import AnalyzingScreen from '@/components/AnalyzingScreen'
 import RoastCard from '@/components/RoastCard'
 import ProModal from '@/components/ProModal'
+import Breadcrumb from '@/components/Breadcrumb'
 import { getRoast } from '@/services/roastService'
 import { useAuth } from '@/context/AuthContext'
 
@@ -235,6 +236,16 @@ export default function RoastPageClient({ username }) {
             </div>
           </div>
 
+          <div className="breadcrumb-wrap">
+            <Breadcrumb
+              items={[
+                { label: 'Home', href: '/' },
+                { label: 'Roast', href: '/' },
+                { label: `@${roastData.username}` },
+              ]}
+            />
+          </div>
+
           <RoastCard
             data={{ ...roastData, isPro }}
             onProClick={() => setShowProModal(true)}
@@ -274,6 +285,11 @@ export default function RoastPageClient({ username }) {
             align-items:     center;
             width:           100%;
             max-width:       580px;
+          }
+          .breadcrumb-wrap {
+            width:      100%;
+            max-width:  580px;
+            margin-top: -0.5rem;
           }
           .nav-logo      { font-size: 22px; }
           .upsell-card {

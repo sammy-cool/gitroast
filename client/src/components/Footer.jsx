@@ -1,7 +1,16 @@
+'use client'
+
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export default function Footer() {
   const year = new Date().getFullYear()
+  const pathname = usePathname() || ''
+
+  function isActive(href) {
+    if (href === '/') return pathname === '/'
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
 
   return (
     <footer className="site-footer font-mono">
@@ -18,19 +27,34 @@ export default function Footer() {
 
         {/* Links */}
         <div className="footer-links">
-          <Link href="/leaderboard" className="footer-link">
+          <Link
+            href="/leaderboard"
+            className={`footer-link ${isActive('/leaderboard') ? 'footer-link--active' : ''}`}
+          >
             Wall of Shame
           </Link>
-          <Link href="/battle" className="footer-link">
+          <Link
+            href="/battle"
+            className={`footer-link ${isActive('/battle') ? 'footer-link--active' : ''}`}
+          >
             Battle
           </Link>
-          <Link href="/pricing" className="footer-link">
+          <Link
+            href="/pricing"
+            className={`footer-link ${isActive('/pricing') ? 'footer-link--active' : ''}`}
+          >
             Pricing
           </Link>
-          <Link href="/about" className="footer-link">
+          <Link
+            href="/about"
+            className={`footer-link ${isActive('/about') ? 'footer-link--active' : ''}`}
+          >
             About
           </Link>
-          <Link href="/contact" className="footer-link">
+          <Link
+            href="/contact"
+            className={`footer-link ${isActive('/contact') ? 'footer-link--active' : ''}`}
+          >
             Contact
           </Link>
           <a
@@ -38,7 +62,7 @@ export default function Footer() {
             className="footer-link"
             target="_blank"
             rel="noopener noreferrer"
-            title="XML Sitemap"
+            title="Dynamic XML Sitemap"
           >
             Sitemap
           </a>

@@ -132,7 +132,7 @@ export default function LandingPageClient() {
 
   function handleIntensitySelect(key) {
     const selected = INTENSITIES.find((i) => i.key === key);
-    if (selected.isPro) {
+    if (selected.isPro && !user?.isPro) {
       createToast({
         type: "info",
         message: "☢️ Nuclear mode is a Pro feature.",
@@ -261,7 +261,11 @@ export default function LandingPageClient() {
             >
               <span className="intensity-emoji">{opt.emoji}</span>
               <span className="intensity-name">{opt.label}</span>
-              {opt.isPro && <span className="intensity-pro-tag">PRO</span>}
+              {opt.isPro && (
+                <span className={`intensity-pro-tag ${user?.isPro ? "intensity-pro-tag--unlocked" : ""}`}>
+                  {user?.isPro ? "PRO ✓" : "PRO"}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -614,6 +618,10 @@ export default function LandingPageClient() {
           color: #fff;
           border-radius: var(--radius-sm);
           letter-spacing: 1px;
+        }
+        .intensity-pro-tag--unlocked {
+          background: #27c93f;
+          box-shadow: 0 0 8px rgba(39, 201, 63, 0.4);
         }
         .intensity-desc {
           font-size: 12px;
