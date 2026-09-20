@@ -108,6 +108,10 @@ const FAQS = [
     a: "GitRoast operates on a zero-crash, defensive programming philosophy. If the Gemini AI API experiences high load or rate limits, our deterministic rule-based roast engine immediately takes over without failing the request.",
   },
   {
+    q: "How can I add the GitRoast badge to my GitHub profile README?",
+    a: "Every roast page and history page features a 1-click '🛡️ Copy GitHub README Badge' button! You can choose between a fiery dark card style (320×78px) or a sleek shield/pill style. Paste the Markdown snippet into your GitHub profile README.md and it will dynamically update with your score!",
+  },
+  {
     q: "How do I remove or re-roast my profile?",
     a: "Roast snapshots are refreshed whenever you re-roast. If you want a specific roast removed or have feedback, reach out through our Contact page.",
   },
@@ -255,6 +259,33 @@ export default function AboutPage() {
             </p>
           </div>
         </div>
+      </section>
+
+      {/* ── Badges Section ── */}
+      <section className="card content-card">
+        <h2 className="font-display section-title text-fire">🛡️ GITHUB README PROFILE BADGES</h2>
+        <p className="section-text">
+          Wear your roast like a badge of honor! GitRoast generates live, auto-updating SVG badges you can embed directly into your GitHub profile or repository <code className="code-inline">README.md</code>.
+        </p>
+        <div className="badge-guide-grid">
+          <div className="badge-guide-card">
+            <h3 className="font-display badge-guide-title">🔥 CARD STYLE (RECOMMENDED)</h3>
+            <p className="font-mono badge-guide-sub">Eye-catching 320×78px fiery dark card with avatar, score &amp; grade.</p>
+            <code className="code-block font-mono">
+              [![GitRoast Score](https://gitroast.dev/api/badge/your-username)](https://gitroast.dev/history/your-username)
+            </code>
+          </div>
+          <div className="badge-guide-card">
+            <h3 className="font-display badge-guide-title">🛡️ SHIELD STYLE</h3>
+            <p className="font-mono badge-guide-sub">Clean, compact shields.io pill badge matching popular open-source badges.</p>
+            <code className="code-block font-mono">
+              [![GitRoast Score](https://gitroast.dev/api/badge/your-username?style=shield)](https://gitroast.dev/history/your-username)
+            </code>
+          </div>
+        </div>
+        <p className="section-text-sub font-mono">
+          💡 Tip: You can also copy your personalized badge with 1 click directly from your roast result card or profile history page!
+        </p>
       </section>
 
       {/* ── FAQ ── */}
@@ -492,6 +523,47 @@ export default function AboutPage() {
           font-size: 11px;
           color: var(--text-muted);
           line-height: 1.5;
+        }
+
+        .badge-guide-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 14px;
+          margin-top: 1rem;
+        }
+        .badge-guide-card {
+          background: #0d0d0d;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          padding: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .badge-guide-title {
+          font-size: 18px;
+          color: #ffaa55;
+          letter-spacing: 0.5px;
+        }
+        .badge-guide-sub {
+          font-size: 11px;
+          color: var(--text-muted);
+          line-height: 1.4;
+        }
+        .code-block {
+          background: #050505;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 8px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          color: #f0f0f0;
+          word-break: break-all;
+          margin-top: 4px;
+        }
+        .section-text-sub {
+          font-size: 12px;
+          color: #ffb700;
+          margin-top: 1rem;
         }
 
         .faqs-list {

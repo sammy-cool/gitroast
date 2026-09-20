@@ -19,6 +19,7 @@ export default function ShareButtons({
     const [copiedText, setCopiedText] = useState(false);
     const [copiedBadge, setCopiedBadge] = useState(false);
     const [showBadgePreview, setShowBadgePreview] = useState(false);
+    const [badgeStyle, setBadgeStyle] = useState("card");
     const [downloading, setDownloading] = useState(false);
 
     function handleShare() {
@@ -95,9 +96,10 @@ export default function ShareButtons({
         });
     }
 
-    function handleCopyBadge() {
+    function handleCopyBadge(styleToCopy = badgeStyle) {
         const origin = typeof window !== "undefined" ? window.location.origin : "https://gitroast.dev";
-        const badgeMarkdown = `[![GitRoast Score](${origin}/api/badge/${username})](${origin}/history/${username})`;
+        const query = styleToCopy === "shield" ? "?style=shield" : "";
+        const badgeMarkdown = `[![GitRoast Score](${origin}/api/badge/${username}${query})](${origin}/history/${username})`;
         navigator.clipboard
             .writeText(badgeMarkdown)
             .then(() => {
@@ -105,7 +107,7 @@ export default function ShareButtons({
                 trackShare(roastId);
                 createToast({
                     type: "success",
-                    message: "🛡️ README Badge Markdown copied! Paste in your GitHub profile README.",
+                    message: "🛡️ Badge Markdown copied! Paste in your GitHub profile README.md.",
                     position: "top-center",
                     showProgressBar: true,
                     duration: 4000,
@@ -290,19 +292,40 @@ export default function ShareButtons({
 
             {showBadgePreview && (
                 <div className="badge-preview-box">
-                    <p className="font-mono badge-preview-title">LIVE README BADGE PREVIEW:</p>
+                    <div className="badge-preview-header">
+                        <span className="font-mono badge-preview-title">README BADGE PREVIEW</span>
+                        <div className="badge-style-tabs font-mono">
+                            <button
+                                type="button"
+                                className={`badge-tab-btn ${badgeStyle === "card" ? "active" : ""}`}
+                                onClick={() => setBadgeStyle("card")}
+                            >
+                                🔥 Card
+                            </button>
+                            <button
+                                type="button"
+                                className={`badge-tab-btn ${badgeStyle === "shield" ? "active" : ""}`}
+                                onClick={() => setBadgeStyle("shield")}
+                            >
+                                🛡️ Shield
+                            </button>
+                        </div>
+                    </div>
                     <div className="badge-img-wrap">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                            src={`/api/badge/${username}`}
+                            src={badgeStyle === "shield" ? `/api/badge/${username}?style=shield` : `/api/badge/${username}`}
                             alt={`@${username} GitRoast Badge`}
                             className="badge-preview-img"
                             loading="eager"
                         />
                     </div>
                     <code className="font-mono badge-code-snippet">
-                        {`[![GitRoast Score](${typeof window !== "undefined" ? window.location.origin : "https://gitroast.dev"}/api/badge/${username})](${typeof window !== "undefined" ? window.location.origin : "https://gitroast.dev"}/history/${username})`}
+                        {`[![GitRoast Score](${typeof window !== "undefined" ? window.location.origin : "https://gitroast.dev"}/api/badge/${username}${badgeStyle === "shield" ? "?style=shield" : ""})](${typeof window !== "undefined" ? window.location.origin : "https://gitroast.dev"}/history/${username})`}
                     </code>
+                    <p className="badge-guide-text font-mono">
+                        💡 <strong>How to use:</strong> Open your GitHub profile README (or any repo README.md) and paste this Markdown snippet. It updates automatically!
+                    </p>
                 </div>
             )}
 
@@ -485,6 +508,36 @@ export default function ShareButtons({
           color: var(--text-muted);
           letter-spacing: 1px;
         }
+        .badge-preview-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 8px;
+        }
+        .badge-style-tabs {
+          display: flex;
+          gap: 4px;
+        }
+        .badge-tab-btn {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
+          font-size: 10px;
+          padding: 3px 8px;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .badge-tab-btn:hover {
+          color: var(--text-primary);
+          border-color: var(--border-hover);
+        }
+        .badge-tab-btn.active {
+          background: rgba(255, 69, 0, 0.15);
+          border-color: var(--fire);
+          color: var(--fire);
+          font-weight: 600;
+        }
         .badge-img-wrap {
           display: flex;
           justify-content: center;
@@ -504,6 +557,15 @@ export default function ShareButtons({
           border: 1px solid #1A1A1A;
           overflow-x: auto;
           white-space: nowrap;
+        }
+        .badge-guide-text {
+          font-size: 10px;
+          color: #a0a0a0;
+          line-height: 1.4;
+          background: rgba(255, 255, 255, 0.02);
+          padding: 6px 8px;
+          border-radius: 4px;
+          border-left: 2px solid var(--fire);
         }
 
         .extras-row {

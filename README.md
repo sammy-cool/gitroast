@@ -19,6 +19,7 @@
 
 - [What Is GitRoast](#-what-is-gitroast)
 - [Live Demo](#-live-demo)
+- [GitHub Profile Badges](#️-embed-your-gitroast-badge-in-your-github-readme)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
@@ -63,6 +64,28 @@ Users can:
 | Wall of Shame  | https://gitroast-dev.vercel.app/leaderboard |
 | Battle Mode    | https://gitroast-dev.vercel.app/battle      |
 | Pricing Plans  | https://gitroast-dev.vercel.app/pricing     |
+
+---
+
+## 🛡️ Embed Your GitRoast Badge in Your GitHub README
+
+Developers can proudly display their fiery GitRoast score badge directly in their GitHub profile or repository `README.md`. The badge is dynamic, auto-updates with each roast, and links safely to your roast history!
+
+### Style 1: 🔥 Fiery Card Style (Recommended)
+An eye-catching 320×78px dark fiery card showing your GitHub avatar, roast score, and letter grade:
+
+```markdown
+[![GitRoast Score](https://gitroast.dev/api/badge/YOUR_USERNAME)](https://gitroast.dev/history/YOUR_USERNAME)
+```
+
+### Style 2: 🛡️ Shield / Pill Style
+A clean, compact shields.io-compatible pill badge for minimalist READMEs:
+
+```markdown
+[![GitRoast Score](https://gitroast.dev/api/badge/YOUR_USERNAME?style=shield)](https://gitroast.dev/history/YOUR_USERNAME)
+```
+
+> **⚡ 1-Click Copy on Website**: Whenever you view your roast on GitRoast, click **"🛡️ Copy GitHub README Badge"** under your roast card to choose your style and copy the ready-to-paste snippet instantly!
 
 ---
 
