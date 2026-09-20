@@ -128,6 +128,12 @@ export default function RootLayout({ children }) {
           crossOrigin="anonymous"
         />
         <link rel="dns-prefetch" href="https://avatars.githubusercontent.com" />
+        <link
+          rel="sitemap"
+          type="application/xml"
+          title="Sitemap"
+          href="/sitemap.xml"
+        />
       </head>
       <body>
         {/* WHAT: Initializes brand toast colors globally — runs once on mount

@@ -33,6 +33,15 @@ export default function Footer() {
           <Link href="/contact" className="footer-link">
             Contact
           </Link>
+          <a
+            href="/sitemap.xml"
+            className="footer-link"
+            target="_blank"
+            rel="noopener noreferrer"
+            title="XML Sitemap"
+          >
+            Sitemap
+          </a>
         </div>
 
         {/* Copyright */}
