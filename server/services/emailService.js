@@ -32,7 +32,8 @@ function buildContactEmailHtml({ ticketId, category, name, email, message, ip, c
   // Properly URI-encode subject and body so # and brackets do not truncate query strings in mail clients
   const replySubject = encodeURIComponent(`Re: [GitRoast #${ticketId}] Your Inquiry`);
   const replyBody = encodeURIComponent(`Hi ${name || "Developer"},\n\nThanks for reaching out to GitRoast regarding ticket #${ticketId}!\n\n`);
-  const replyMailto = email ? `mailto:${encodeURIComponent(email)}?subject=${replySubject}&body=${replyBody}` : "";
+  const cleanEmail = (email || "").trim();
+  const replyMailto = cleanEmail ? `mailto:${cleanEmail}?subject=${replySubject}&body=${replyBody}` : "";
 
   return `
 <!DOCTYPE html>
