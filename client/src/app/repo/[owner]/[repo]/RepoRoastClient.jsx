@@ -113,13 +113,15 @@ export default function RepoRoastClient({ owner, repo }) {
               ← Back to GitRoast
             </Link>
           </div>
-          <Breadcrumb
-            items={[
-              { label: 'Home', href: '/' },
-              { label: `@${owner}`, href: `/history/${owner}` },
-              { label: `${repo}` },
-            ]}
-          />
+          <div className="breadcrumb-wrap">
+            <Breadcrumb
+              items={[
+                { label: 'Home', href: '/' },
+                { label: `@${owner}`, href: `/history/${owner}` },
+                { label: `${repo}` },
+              ]}
+            />
+          </div>
           <RepoRoastCard
             data={roastData}
             onProClick={() => setShowProModal(true)}
@@ -178,6 +180,10 @@ export default function RepoRoastClient({ owner, repo }) {
           flex-direction: column;
           gap: 1.5rem;
           z-index: 1;
+        }
+        .breadcrumb-wrap {
+          width: 100%;
+          margin-top: -0.5rem;
         }
         .back-nav {
           display: flex;

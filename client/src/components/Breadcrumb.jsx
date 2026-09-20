@@ -11,7 +11,8 @@ import Link from 'next/link';
 //   - UX: Orient users immediately on deep pages (/battle/user1/vs/user2,
 //     /history/torvalds, /repo/owner/repo).
 //   - SEO: Emits valid JSON-LD / Microdata for Google rich snippet breadcrumbs.
-//   - Consistency: Responsive, fire-themed separators, mobile scrollable.
+//   - Consistency: Responsive, accessible colors, mobile scrollable with hidden scrollbar.
+//   - Fluid width: Takes 100% of parent wrapper width to align with page grid.
 // ============================================================
 
 export default function Breadcrumb({ items = [] }) {
@@ -19,22 +20,45 @@ export default function Breadcrumb({ items = [] }) {
 
   return (
     <nav aria-label="Breadcrumb" className="breadcrumb-nav font-mono">
-      <ol className="breadcrumb-list">
+      <ol
+        className="breadcrumb-list"
+        itemScope
+        itemType="https://schema.org/BreadcrumbList"
+      >
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
 
           return (
-            <li key={index} className="breadcrumb-item">
-              {index > 0 && <span className="breadcrumb-separator" aria-hidden="true">/</span>}
+            <li
+              key={index}
+              className="breadcrumb-item"
+              itemProp="itemListElement"
+              itemScope
+              itemType="https://schema.org/ListItem"
+            >
+              {index > 0 && (
+                <span className="breadcrumb-separator" aria-hidden="true">
+                  /
+                </span>
+              )}
               {isLast || !item.href ? (
-                <span className="breadcrumb-current" aria-current="page">
+                <span
+                  className="breadcrumb-current"
+                  aria-current="page"
+                  itemProp="name"
+                >
                   {item.label}
                 </span>
               ) : (
-                <Link href={item.href} className="breadcrumb-link">
-                  {item.label}
+                <Link
+                  href={item.href}
+                  className="breadcrumb-link"
+                  itemProp="item"
+                >
+                  <span itemProp="name">{item.label}</span>
                 </Link>
               )}
+              <meta itemProp="position" content={String(index + 1)} />
             </li>
           );
         })}
@@ -43,17 +67,19 @@ export default function Breadcrumb({ items = [] }) {
       <style jsx>{`
         .breadcrumb-nav {
           width: 100%;
-          max-width: 680px;
-          margin: 0 auto;
-          padding: 6px 0;
+          padding: 4px 0;
           overflow-x: auto;
           white-space: nowrap;
           -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .breadcrumb-nav::-webkit-scrollbar {
+          display: none;
         }
         .breadcrumb-list {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           list-style: none;
           margin: 0;
           padding: 0;
@@ -62,24 +88,24 @@ export default function Breadcrumb({ items = [] }) {
         .breadcrumb-item {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
         }
         .breadcrumb-separator {
-          color: var(--text-muted);
-          opacity: 0.6;
+          color: rgba(255, 255, 255, 0.25);
+          font-weight: 300;
           user-select: none;
         }
         .breadcrumb-link {
-          color: var(--text-secondary);
+          color: #8e8e8e;
           text-decoration: none;
-          transition: color 0.15s;
+          transition: color 0.15s ease;
         }
         .breadcrumb-link:hover {
-          color: var(--fire);
+          color: var(--fire, #ff4500);
         }
         .breadcrumb-current {
-          color: var(--text-primary);
-          font-weight: 500;
+          color: var(--text-primary, #f5f5f5);
+          font-weight: 600;
         }
       `}</style>
     </nav>

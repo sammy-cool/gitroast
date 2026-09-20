@@ -718,6 +718,8 @@ describe("Feature #5 — Contact Dispatch & Ticket Generation", () => {
         assert.ok(html.includes("Bug Report"), "HTML must include readable category");
         assert.ok(html.includes("Something broke on page 2"), "HTML must include message");
         assert.ok(html.includes(OWNER_EMAIL), "HTML must mention owner email");
+        assert.ok(html.includes("%23GR-999888"), "Reply mailto must have URI-encoded # to prevent query truncation");
+        assert.ok(html.includes("mailto:tester%40example.com"), "Reply mailto must have valid recipient");
     });
 
     it("should safely notify via audit fallback or Resend API", async () => {

@@ -29,6 +29,11 @@ function buildContactEmailHtml({ ticketId, category, name, email, message, ip, c
 
   const categoryTitle = categoryLabels[category] || category.toUpperCase();
 
+  // Properly URI-encode subject and body so # and brackets do not truncate query strings in mail clients
+  const replySubject = encodeURIComponent(`Re: [GitRoast #${ticketId}] Your Inquiry`);
+  const replyBody = encodeURIComponent(`Hi ${name || "Developer"},\n\nThanks for reaching out to GitRoast regarding ticket #${ticketId}!\n\n`);
+  const replyMailto = email ? `mailto:${encodeURIComponent(email)}?subject=${replySubject}&body=${replyBody}` : "";
+
   return `
 <!DOCTYPE html>
 <html>
@@ -91,7 +96,7 @@ function buildContactEmailHtml({ ticketId, category, name, email, message, ip, c
           <!-- Action Footer -->
           <tr>
             <td style="padding:16px 24px;background:#0d0d0d;border-top:1px solid #222;font-size:12px;color:#888;text-align:center;">
-              ${email ? `<a href="mailto:${email}?subject=Re:%20[GitRoast%20#${ticketId}]%20Your%20Inquiry" style="display:inline-block;background:#FF4500;color:#fff;padding:8px 16px;border-radius:4px;text-decoration:none;font-weight:600;font-size:12px;">✉️ Reply Directly to Sender</a>` : '<span style="color:#666;">No return email provided by sender.</span>'}
+              ${email ? `<a href="${replyMailto}" style="display:inline-block;background:#FF4500;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;letter-spacing:0.3px;">✉️ Reply Directly to Sender</a>` : '<span style="color:#666;">No return email provided by sender.</span>'}
               <p style="margin:12px 0 0 0;font-size:11px;color:#555;">GitRoast Dispatch Notification · Sent to ${OWNER_EMAIL}</p>
             </td>
           </tr>
