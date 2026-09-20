@@ -229,9 +229,6 @@ export default function LandingPageClient() {
         </p>
       </div>
 
-      {/* Live roast feed — positioned above intensity & username input for FOMO/social proof */}
-      <LiveRoastFeed />
-
       {/* Intensity selector */}
       <div className="intensity-wrap">
         <p className="intensity-label font-mono">Choose your intensity:</p>
@@ -257,6 +254,9 @@ export default function LandingPageClient() {
           {selectedIntensity.emoji} {selectedIntensity.description}
         </p>
       </div>
+
+      {/* Live roast feed — placed right above the username input */}
+      <LiveRoastFeed />
 
       <UsernameInput onSubmit={handleRoast} />
 
