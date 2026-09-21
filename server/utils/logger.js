@@ -100,11 +100,30 @@ const logger = {
 };
 
 // ── HTTP Request Logger (Express middleware) ──────────────────
+const SUPPRESSED_PATHS = new Set(['/health', '/api/health']);
+const healthPingTracker = { count: 0, since: Date.now() };
+
+// WHY .unref(): Prevents this background timer from keeping the Node.js event
+//     loop alive — critical for `node --test` exit and graceful SIGTERM shutdown.
+//     Without .unref(), the 5-minute interval blocks process termination.
+setInterval(() => {
+  if (healthPingTracker.count > 0) {
+    logger.info("Health", `🏥 Health check summary: ${healthPingTracker.count} pings received (all OK) in last 5m`);
+    healthPingTracker.count = 0;
+  }
+  healthPingTracker.since = Date.now();
+}, 5 * 60 * 1000).unref();
+
 // WHAT: Logs every incoming HTTP request with method, path, status, and duration
 // WHY:  Makes it trivial to see what the server is doing in Render logs
 //       Without this — silent 500s are invisible until a user reports them
 // WHERE: app.use(logRequest) in index.js BEFORE all routes
 function logRequest(req, res, next) {
+  if (SUPPRESSED_PATHS.has(req.path)) {
+    healthPingTracker.count++;
+    return next();
+  }
+
   const start = Date.now();
 
   // WHY: intercept res.json to capture status AFTER route finishes

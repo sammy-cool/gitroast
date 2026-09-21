@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createToast } from 'customizable-toast-notification';
@@ -8,7 +8,7 @@ import LeaderboardTable from '@/components/LeaderboardTable';
 import CompanyLeaderboardTable from '@/components/CompanyLeaderboardTable';
 import Pagination from '@/components/Pagination';
 import Breadcrumb from '@/components/Breadcrumb';
-import { getLeaderboard, getCompanyLeaderboard } from '@/services/roastService';
+import { getLeaderboard, getCompanyLeaderboard, searchLeaderboard } from '@/services/roastService';
 
 export function LeaderboardSkeleton() {
   return (
@@ -177,6 +177,37 @@ export default function LeaderboardClient() {
   const [pageLoading, setPageLoading] = useState(false);
   const [error, setError] = useState(false);
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const debounceRef = useRef(null);
+
+  const handleSearch = useCallback((value) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!value.trim() || value.trim().length < 2) {
+      setSearchResults(null);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await searchLeaderboard(value.trim());
+        setSearchResults(data.results || []);
+      } catch {
+        createToast({ type: 'error', message: 'Search failed. Please try again.', position: 'top-center' });
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 350);
+  }, []);
+
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
+
   useEffect(() => {
     if (tab === 'companies' && companies.length === 0) {
       setCompaniesLoading(true);
@@ -296,6 +327,44 @@ export default function LeaderboardClient() {
         </div>
       </header>
 
+      {tab === 'developers' && (
+        <div className="lb-search-wrap">
+          <div className="lb-search-bar">
+            <span className="lb-search-icon" aria-hidden="true">🔍</span>
+            <input
+              type="text"
+              className="lb-search-input font-mono"
+              placeholder="Search developers..."
+              value={searchQuery}
+              onChange={(e) => handleSearch(e.target.value)}
+              aria-label="Search the Wall of Shame"
+              maxLength={39}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="lb-search-clear"
+                onClick={() => { handleSearch(''); }}
+                title="Clear search"
+                aria-label="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          {searchLoading && (
+            <div className="lb-search-status font-mono">Searching...</div>
+          )}
+          {searchResults !== null && !searchLoading && (
+            <div className="lb-search-status font-mono">
+              {searchResults.length > 0 ? `${searchResults.length} developer${searchResults.length !== 1 ? 's' : ''} found` : `No developers found for "${searchQuery}"`}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── Main Leaderboard Card ── */}
       <section className="card lb-card" aria-label="Leaderboard rankings">
         {/* Subtle progress bar during page transitions to prevent layout shifts */}
@@ -321,6 +390,14 @@ export default function LeaderboardClient() {
             >
               Try Again ↻
             </button>
+          </div>
+        ) : searchResults !== null ? (
+          <div className="lb-content">
+            <LeaderboardTable
+              entries={searchResults}
+              page={1}
+              limit={searchResults.length || 10}
+            />
           </div>
         ) : (
           <div className={`lb-content ${pageLoading ? 'lb-content--transitioning' : ''}`}>
@@ -487,10 +564,78 @@ export default function LeaderboardClient() {
           border-radius: var(--radius-md);
         }
 
+        /* ── Search ── */
+        .lb-search-wrap {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .lb-search-bar {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          padding: 10px 14px;
+          transition: border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+        .lb-search-bar:focus-within {
+          border-color: var(--fire);
+          box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.15);
+        }
+        .lb-search-icon {
+          font-size: 14px;
+          flex-shrink: 0;
+          opacity: 0.6;
+        }
+        .lb-search-input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          outline: none;
+          color: var(--text-primary);
+          font-size: 13px;
+          letter-spacing: 0.3px;
+          min-width: 0;
+        }
+        .lb-search-input::placeholder {
+          color: var(--text-muted);
+        }
+        .lb-search-clear {
+          background: transparent;
+          border: none;
+          color: var(--text-secondary);
+          cursor: pointer;
+          font-size: 14px;
+          padding: 2px 4px;
+          border-radius: 4px;
+          transition: color 0.15s ease, background 0.15s ease;
+          line-height: 1;
+        }
+        .lb-search-clear:hover {
+          color: var(--fire);
+          background: rgba(255, 69, 0, 0.08);
+        }
+        .lb-search-status {
+          font-size: 11px;
+          color: var(--text-secondary);
+          text-align: center;
+          letter-spacing: 0.3px;
+        }
+
         @media (max-width: 520px) {
           .lb-page {
             padding: 1.25rem 0.75rem 6rem;
             gap: 1.25rem;
+          }
+
+          .lb-search-bar {
+            padding: 8px 12px;
+          }
+          .lb-search-input {
+            font-size: 12px;
           }
 
           .lb-nav :global(.nav-logo),

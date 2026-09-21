@@ -237,6 +237,26 @@ export async function getLeaderboard(page = 1, limit = 10) {
   return json;
 }
 
+// ── searchLeaderboard ──────────────────────────────────────────
+// WHAT: Searches the Wall of Shame by username prefix/substring
+export async function searchLeaderboard(query, page = 1, limit = 10) {
+  const res = await fetch(
+    `${API_BASE}/api/history/leaderboard/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`,
+    {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(10000),
+    },
+  );
+  const json = await res.json();
+  if (!res.ok) {
+    const err = new Error(json.message || "Search failed");
+    err.code = json.error;
+    throw err;
+  }
+  return json;
+}
+
 // ── getRoastFeed ──────────────────────────────────────────────
 // WHAT: Fetches last 10 public roasts for live feed on homepage
 export async function getRoastFeed() {

@@ -70,6 +70,51 @@ router.get("/leaderboard/companies", (req, res) => {
   }
 });
 
+// ── GET /api/history/leaderboard/search ──────────────────────
+// WHAT: Searches the Wall of Shame by username prefix/substring
+router.get("/leaderboard/search", async (req, res) => {
+  res.setHeader(
+    "Cache-Control",
+    "public, max-age=30, stale-while-revalidate=60"
+  );
+  try {
+    // 1. Extract and validate query
+    const q = (req.query.q || "").trim();
+    if (!q || q.length < 2) {
+      return res.status(200).json({ success: true, results: [], pagination: { total: 0, page: 1, totalPages: 0 } });
+    }
+    // Sanitize for regex safety
+    const safeQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const skip = (page - 1) * limit;
+
+    // 2. Aggregate: match by username regex, group like leaderboard, paginate
+    const result = await Roast.aggregate([
+      { $match: { username: { $regex: safeQ, $options: "i" } } },
+      { $group: { _id: "$username", bestScore: { $min: "$score" }, roastCount: { $sum: 1 } } },
+      { $facet: {
+          metadata: [{ $count: "total" }],
+          data: [{ $sort: { bestScore: 1 } }, { $skip: skip }, { $limit: limit }],
+      }},
+    ]);
+
+    const total = result[0]?.metadata?.[0]?.total || 0;
+    const entries = result[0]?.data || [];
+    return res.status(200).json({
+      success: true,
+      results: entries,
+      pagination: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)), hasNext: page < Math.ceil(total / limit), hasPrev: page > 1 },
+    });
+  } catch (err) {
+    logger.error("Leaderboard Search", "Search failed", { message: err.message });
+    return res.status(500).json({
+      error: "SERVER_ERROR",
+      message: "Could not search leaderboard.",
+    });
+  }
+});
+
 // ── GET /api/history/daily-burn ──────────────────────────────
 // WHAT: Returns the highest-reacted "Roast of the Day"
 router.get("/daily-burn", async (req, res) => {
