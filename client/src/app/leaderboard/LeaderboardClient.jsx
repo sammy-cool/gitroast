@@ -181,6 +181,7 @@ export default function LeaderboardClient() {
   const [searchResults, setSearchResults] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const hasLoadedRef = useRef(false);
+  const debounceRef = useRef(null);
 
   const fetchPage = useCallback(async (targetPage) => {
     // Only show full skeleton on initial mount; use smooth state for subsequent pages
@@ -240,6 +241,35 @@ export default function LeaderboardClient() {
       cardEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+
+  // WHY debounce: prevents firing a search API call on every keystroke
+  //     350ms delay waits for the user to pause typing before querying
+  const handleSearch = useCallback((value) => {
+    setSearchQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!value.trim() || value.trim().length < 2) {
+      setSearchResults(null);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await searchLeaderboard(value.trim());
+        setSearchResults(data.results || []);
+      } catch {
+        createToast({ type: 'error', message: 'Search failed. Please try again.', position: 'top-center' });
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 350);
+  }, []);
+
+  // WHY cleanup: cancel any pending debounce timer on component unmount
+  useEffect(() => {
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, []);
 
   return (
     <main className="lb-page">

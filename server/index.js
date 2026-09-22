@@ -67,20 +67,6 @@ app.use((req, res, next) => {
 //      by 60-80%, dramatically reducing bandwidth and improving TTFB
 app.use(compression());
 
-// ── Step 2c: Health check (mounted early to skip body parsing) ─
-// WHY early: Health pings arrive every 5s from keep-alive, Docker, Render.
-//     Mounting before express.json/cookieParser/logRequest avoids
-//     unnecessary middleware overhead on these high-frequency pings.
-app.get(["/health", "/api/health"], (req, res) => {
-  res.json({
-    status: "🔥 GitRoast server is alive",
-    time: new Date().toISOString(),
-    mongoDb:
-      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-    env: process.env.NODE_ENV || "development",
-  });
-});
-
 // ── Step 3: CORS ──────────────────────────────────────────────
 // WHAT: Allows browser requests from authorized frontend domains
 // WHY allowedHeaders: must list all custom headers sent by client,
@@ -127,6 +113,21 @@ app.use(
     maxAge: 86400, // 24 hours preflight cache
   }),
 );
+
+// ── Step 3b: Health check (after CORS, before body parsing) ───
+// WHY here: Must be AFTER CORS so browser cross-origin requests from
+//     Vercel (checkHealth/wakeUpServer) receive Access-Control-Allow-Origin.
+//     Must be BEFORE express.json/cookieParser/logRequest to skip unnecessary
+//     middleware overhead on high-frequency keep-alive pings (every 5s).
+app.get(["/health", "/api/health"], (req, res) => {
+  res.json({
+    status: "🔥 GitRoast server is alive",
+    time: new Date().toISOString(),
+    mongoDb:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    env: process.env.NODE_ENV || "development",
+  });
+});
 
 // ── Step 4: Body parsing + cookies ───────────────────────────
 app.use(
