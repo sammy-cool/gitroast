@@ -92,6 +92,9 @@ router.get("/leaderboard/search", async (req, res) => {
     // 2. Aggregate: match by username regex, group like leaderboard, paginate
     const result = await Roast.aggregate([
       { $match: { username: { $regex: safeQ, $options: "i" } } },
+      // WHY $project first: reduces RAM passed to $group — only username
+      //     and score are needed for leaderboard calculation
+      { $project: { username: 1, score: 1 } },
       { $group: { _id: "$username", bestScore: { $min: "$score" }, roastCount: { $sum: 1 } } },
       { $facet: {
           metadata: [{ $count: "total" }],

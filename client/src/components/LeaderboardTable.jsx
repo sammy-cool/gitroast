@@ -5,11 +5,16 @@ import { memo } from 'react';
 
 const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
-function LeaderboardTable({ entries, page = 1, limit = 10 }) {
+function LeaderboardTable({
+  entries,
+  page = 1,
+  limit = 10,
+  emptyMessage = 'No roasts yet. Be the first to get destroyed.',
+}) {
   if (!entries || entries.length === 0) {
     return (
       <div className="lb-empty font-mono">
-        No roasts yet. Be the first to get destroyed.
+        {emptyMessage}
       </div>
     );
   }

@@ -386,6 +386,7 @@ export default function LeaderboardClient() {
               entries={searchResults}
               page={1}
               limit={searchResults.length || 10}
+              emptyMessage={searchQuery ? `No developers found matching "${searchQuery}".` : 'No developers found.'}
             />
           </div>
         ) : (
