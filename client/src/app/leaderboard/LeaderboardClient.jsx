@@ -266,6 +266,22 @@ export default function LeaderboardClient() {
     }, 350);
   }, []);
 
+  useEffect(() => {
+    if (tab === 'companies' && companies.length === 0) {
+      setCompaniesLoading(true);
+      getCompanyLeaderboard()
+        .then((data) => setCompanies(data))
+        .catch(() => {
+          createToast({
+            type: 'error',
+            message: 'Could not load tech giants leaderboard.',
+            position: 'top-center',
+          });
+        })
+        .finally(() => setCompaniesLoading(false));
+    }
+  }, [tab, companies.length]);
+
   // WHY cleanup: cancel any pending debounce timer on component unmount
   useEffect(() => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
