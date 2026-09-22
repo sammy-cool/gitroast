@@ -49,12 +49,12 @@ No quotes. No intro.`;
         body: JSON.stringify({
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: {
-            // maxOutputTokens: 300,
+            maxOutputTokens: 150,
             temperature: 1.1,
             topP: 0.95,
           },
         }),
-        signal: AbortSignal.timeout(50000),
+        signal: AbortSignal.timeout(10000), // WHY 10s: avoids 50s hangs on Gemini outages — rule verdict is instant fallback
       },
     );
 

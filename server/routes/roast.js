@@ -16,7 +16,7 @@ setInterval(() => {
   for (const [key, val] of processedKeys.entries()) {
     if (now - val.time > 60000) processedKeys.delete(key);
   }
-}, 60000);
+}, 60000).unref();
 
 // WHY /feed above /stats and /:username: specific route must come before dynamic
 // WHAT: Returns last 10 public roasts for live feed on homepage
@@ -43,7 +43,7 @@ router.get("/feed", async (req, res) => {
 router.get("/stats", async (req, res) => {
   res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
   try {
-    const count = await Roast.countDocuments();
+    const count = await Roast.estimatedDocumentCount();
     return res.status(200).json({ success: true, totalRoasts: count });
   } catch {
     return res.status(200).json({ success: true, totalRoasts: 0 });
@@ -272,6 +272,12 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
     const responseData = { success: true, data };
 
     if (idempotencyKey) {
+      // WHY cap: prevents unbounded memory growth from rapid unique requests
+      if (processedKeys.size >= 1000) {
+        // Evict oldest entries when capacity reached
+        const firstKey = processedKeys.keys().next().value;
+        processedKeys.delete(firstKey);
+      }
       processedKeys.set(idempotencyKey, {
         response: responseData,
         time: Date.now(),

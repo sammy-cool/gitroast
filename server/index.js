@@ -17,6 +17,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const compression = require("compression");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
@@ -36,6 +37,10 @@ const { startKeepAlive } = require("./services/keepAliveService");
 attachProcessHandlers();
 
 const app = express();
+// WHY trust proxy: Render runs behind a reverse proxy — without this,
+//     req.ip is inaccurate, rate limiters can be bypassed via spoofed
+//     X-Forwarded-For headers, and Express proxy optimizations are disabled.
+app.set("trust proxy", 1);
 const PORT = process.env.PORT || 5000;
 
 // ── Step 2: Security headers ──────────────────────────────────
@@ -55,6 +60,25 @@ app.use((req, res, next) => {
   }
 
   next();
+});
+
+// ── Step 2b: Response compression ─────────────────────────────
+// WHY: Gzip/Brotli compresses JSON payloads (leaderboard, wrapped, history)
+//      by 60-80%, dramatically reducing bandwidth and improving TTFB
+app.use(compression());
+
+// ── Step 2c: Health check (mounted early to skip body parsing) ─
+// WHY early: Health pings arrive every 5s from keep-alive, Docker, Render.
+//     Mounting before express.json/cookieParser/logRequest avoids
+//     unnecessary middleware overhead on these high-frequency pings.
+app.get(["/health", "/api/health"], (req, res) => {
+  res.json({
+    status: "🔥 GitRoast server is alive",
+    time: new Date().toISOString(),
+    mongoDb:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    env: process.env.NODE_ENV || "development",
+  });
 });
 
 // ── Step 3: CORS ──────────────────────────────────────────────
@@ -137,20 +161,6 @@ app.use("/api/history", require("./routes/history"));
 app.use("/api/payment", require("./routes/payment"));
 app.use("/api/battle", battleLimiter, require("./routes/battle"));
 app.use("/api/contact", require("./routes/contact"));
-
-// ── Step 8: Health check ──────────────────────────────────────
-// WHAT: Returns server status — used by Docker HEALTHCHECK, Render, and frontend pre-warming
-// WHY [\"/health\", \"/api/health\"]: /health is the primary target for Docker, Render, and frontend;
-//     /api/health is a passive alias that bypasses adblocker filters if ever needed
-app.get(["/health", "/api/health"], generalLimiter, (req, res) => {
-  res.json({
-    status: "🔥 GitRoast server is alive",
-    time: new Date().toISOString(),
-    mongoDb:
-      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
-    env: process.env.NODE_ENV || "development",
-  });
-});
 
 // ── Step 9: 404 + global error handlers ──────────────────────
 // WHY LAST: Express reads middleware top to bottom

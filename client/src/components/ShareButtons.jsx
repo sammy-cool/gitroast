@@ -3,8 +3,9 @@
 import { createToast } from "customizable-toast-notification";
 import { useState } from "react";
 import { trackShare } from "@/services/roastService";
-import RoastCertificate from "./RoastCertificate";
-import GitHubWrapped from "./GitHubWrapped";
+import dynamic from 'next/dynamic';
+const RoastCertificate = dynamic(() => import('./RoastCertificate'), { ssr: false });
+const GitHubWrapped = dynamic(() => import('./GitHubWrapped'), { ssr: false });
 
 export default function ShareButtons({
     username,

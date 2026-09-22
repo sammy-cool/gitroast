@@ -57,6 +57,10 @@ const ERROR_MAP = {
 // WHAT: Express recognises this as an error handler because it has 4 args (err, req, res, next)
 // WHY 4 params: Express convention — error handlers MUST have exactly 4 params
 function errorHandler(err, req, res, next) {
+  // WHY: prevents ERR_HTTP_HEADERS_SENT crash if error occurs after partial response
+  if (res.headersSent) {
+    return next(err);
+  }
   // WHY: always log server-side — even if we return a clean response
   //      the log is how we discover bugs in production
   logger.error("ErrorHandler", `${req.method} ${req.path}`, {

@@ -24,8 +24,9 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createToast } from 'customizable-toast-notification'
 import AnalyzingScreen from '@/components/AnalyzingScreen'
-import RoastCard from '@/components/RoastCard'
-import ProModal from '@/components/ProModal'
+import dynamic from 'next/dynamic';
+const RoastCard = dynamic(() => import('@/components/RoastCard'));
+const ProModal = dynamic(() => import('@/components/ProModal'), { ssr: false });
 import Breadcrumb from '@/components/Breadcrumb'
 import { getRoast } from '@/services/roastService'
 import { useAuth } from '@/context/AuthContext'

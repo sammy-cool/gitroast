@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createToast } from "customizable-toast-notification";
 import UsernameInput from "@/components/UsernameInput";
-import ProModal from "@/components/ProModal";
+import dynamic from 'next/dynamic';
+const ProModal = dynamic(() => import('@/components/ProModal'), { ssr: false });
 import GitHubLoginBtn from "@/components/GitHubLoginBtn";
 import RateLimitBanner from "@/components/RateLimitBanner";
 import LiveRoastFeed from "@/components/LiveRoastFeed";
 import { useAuth } from "@/context/AuthContext";
 import {
-  wakeUpServer,
   getRoastStats,
   checkHealth,
   getRoastOfTheDay,
@@ -80,21 +80,16 @@ export default function LandingPageClient() {
   });
   const router = useRouter();
 
-  // WHY wakeUpServer: silently pre-warms Render backend if sleeping on free tier
-  useEffect(() => {
-    wakeUpServer();
-  }, []);
-
   // WHY health poll: powers the glowing status indicator dot
   //     Checks immediately on mount, then every 30s
   //     Aligned with LiveRoastFeed polling interval for efficiency
   useEffect(() => {
-    async function poll() {
+    async function initHealth() {
       const ok = await checkHealth();
-      setServerStatus(ok ? "online" : "offline");
+      setServerStatus(ok ? 'online' : 'offline');
     }
-    poll();
-    const interval = setInterval(poll, 30000);
+    initHealth();
+    const interval = setInterval(initHealth, 30000);
     return () => clearInterval(interval);
   }, []);
 

@@ -6,7 +6,6 @@ const roastSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      index: true,
     },
 
     roastedBy: {
@@ -110,8 +109,16 @@ const roastSchema = new mongoose.Schema(
 roastSchema.index({ username: 1, createdAt: -1 });
 roastSchema.index({ score: 1, createdAt: -1 });
 
+// WHY: /api/roast/feed sorts by { createdAt: -1 } with no $match — without
+//      this index, MongoDB performs a full collection scan on every 30s poll
+roastSchema.index({ createdAt: -1 });
+
+// WHY: /api/history/daily-burn sorts by reactions — without a compound index,
+//      MongoDB in-memory sorts the entire collection (32MB limit risk)
+roastSchema.index({ "reactions.savage": -1, "reactions.destroyed": -1, createdAt: -1 });
+
 roastSchema.statics.getHistory = function (username, limit = 10) {
-  return this.find({ username }).sort({ createdAt: -1 }).limit(limit);
+  return this.find({ username }).sort({ createdAt: -1 }).limit(limit).lean();
 };
 
 roastSchema.statics.getLeaderboard = async function (options = {}) {
@@ -130,6 +137,9 @@ roastSchema.statics.getLeaderboard = async function (options = {}) {
   const skip = (page - 1) * limit;
 
   const result = await this.aggregate([
+    // WHY $project first: reduces data passed to $group — only username
+    //     and score are needed, not roastText, stats, shameCommits, etc.
+    { $project: { username: 1, score: 1 } },
     {
       $group: {
         _id: "$username",

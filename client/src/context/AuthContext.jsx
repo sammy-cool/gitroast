@@ -6,6 +6,7 @@ import {
     useState,
     useEffect,
     useCallback,
+    useMemo,
 } from 'react'
 
 const AuthContext = createContext(null)
@@ -95,18 +96,17 @@ export function AuthProvider({ children }) {
         window.location.href = `${API_BASE}/api/auth/github`
     }, [])
 
-    const value = {
-        user,          // null = logged out, object = logged in
-        loading,       // true while checking existing session
+    const value = useMemo(() => ({
+        user,
+        loading,
         isLoggedIn: !!user,
         isPro: user?.isPro || false,
         loginWithGitHub,
         loginWithToken,
         getToken,
-        token: typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : null,
         logout,
         refreshUser,
-    }
+    }), [user, loading, loginWithGitHub, loginWithToken, getToken, logout, refreshUser]);
 
     return (
         <AuthContext.Provider value={value}>

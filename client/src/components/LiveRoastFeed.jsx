@@ -73,7 +73,9 @@ export default function LiveRoastFeed() {
 
         // WHY 30s interval: lightweight polling
         //     balances freshness vs server load
-        const interval = setInterval(loadFeed, 30000)
+        const interval = setInterval(() => {
+          if (!document.hidden) loadFeed();
+        }, 30000)
         return () => clearInterval(interval)
     }, [])
 

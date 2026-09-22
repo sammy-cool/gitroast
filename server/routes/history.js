@@ -127,6 +127,7 @@ router.get("/daily-burn", async (req, res) => {
       roastText: { $exists: true, $ne: "" },
     })
       .sort({ "reactions.savage": -1, "reactions.destroyed": -1, createdAt: -1 })
+      .select("username score grade roastText reactions avatarUrl")
       .lean();
 
     if (topRoast) {
@@ -243,7 +244,9 @@ const reactionCache = new Map();
 // WHY cleanup every 24h:
 //   Prevents Map growing unbounded
 //   24h window = fair deduplication period
-setInterval(() => reactionCache.clear(), 24 * 60 * 60 * 1000);
+// WHY .unref(): prevents this timer from blocking process exit during tests/shutdown
+// WHY cap check: prevents unbounded memory growth from IP-based keys
+setInterval(() => reactionCache.clear(), 24 * 60 * 60 * 1000).unref();
 
 router.post("/:id/react", async (req, res) => {
   const { id } = req.params;
@@ -297,6 +300,8 @@ router.post("/:id/react", async (req, res) => {
       });
     }
 
+    // WHY cap: prevents unbounded Map growth from spoofed IPs or bot traffic
+    if (reactionCache.size >= 50000) reactionCache.clear();
     // WHY mark after successful DB write:
     //   If DB fails — don't cache — user can try again
     //   Only mark seen when we're sure it worked

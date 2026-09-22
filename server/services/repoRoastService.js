@@ -52,10 +52,9 @@ async function githubFetch(endpoint, token = null) {
 
 async function analyzeRepository(owner, repoName, userToken = null, isPro = false, intensity = "savage") {
   // 1. Fetch repo metadata
-  const repo = await githubFetch(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}`, userToken);
-
   // 2. Fetch recent commits & root directory contents in parallel
-  const [commitsData, contentsData] = await Promise.all([
+  const [repo, commitsData, contentsData] = await Promise.all([
+    githubFetch(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}`, userToken),
     githubFetch(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}/commits?per_page=30`, userToken).catch(() => []),
     githubFetch(`/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repoName)}/contents`, userToken).catch(() => []),
   ]);

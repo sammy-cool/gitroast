@@ -62,48 +62,33 @@ export default async function sitemap() {
         lastModified,
         changeFrequency: 'weekly',
         priority,
-      },
-      {
-        url: `${SITE_URL}/roast/${encodeURIComponent(username)}`,
-        lastModified,
-        changeFrequency: 'weekly',
-        priority: Math.max(0.5, priority - 0.05),
       }
     );
   }
 
-  // 1. Fetch live feed items
   try {
-    const feedRes = await fetch(`${API_BASE}/api/roast/feed`, {
-      signal: AbortSignal.timeout(4000),
-      next: { revalidate: 60 },
-    });
-    if (feedRes.ok) {
-      const data = await feedRes.json();
+    const [feedResult, lbResult] = await Promise.allSettled([
+      fetch(`${API_BASE}/api/roast/feed`, { signal: AbortSignal.timeout(6000), next: { revalidate: 60 } }),
+      fetch(`${API_BASE}/api/history/leaderboard/worst?page=1&limit=50`, { signal: AbortSignal.timeout(6000), next: { revalidate: 60 } }),
+    ]);
+
+    if (feedResult.status === 'fulfilled' && feedResult.value.ok) {
+      const data = await feedResult.value.json();
       const items = Array.isArray(data) ? data : (Array.isArray(data?.feed) ? data.feed : []);
       items.forEach((item) => {
         addProfile(item.username, item.createdAt, 0.75);
       });
     }
-  } catch {
-    // Graceful fallback if backend is warming up
-  }
 
-  // 2. Fetch Wall of Shame top developers
-  try {
-    const lbRes = await fetch(`${API_BASE}/api/history/leaderboard/worst?page=1&limit=50`, {
-      signal: AbortSignal.timeout(4000),
-      next: { revalidate: 60 },
-    });
-    if (lbRes.ok) {
-      const lbData = await lbRes.json();
+    if (lbResult.status === 'fulfilled' && lbResult.value.ok) {
+      const lbData = await lbResult.value.json();
       const rows = Array.isArray(lbData?.data) ? lbData.data : (Array.isArray(lbData) ? lbData : []);
       rows.forEach((row) => {
         addProfile(row.username, row.updatedAt || row.createdAt, 0.8);
       });
     }
   } catch {
-    // Graceful fallback
+    // Graceful fallback if backend is warming up
   }
 
   return [...staticRoutes, ...dynamicRoutes];

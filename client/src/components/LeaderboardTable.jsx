@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { memo } from 'react';
 
 const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
-export default function LeaderboardTable({ entries, page = 1, limit = 10 }) {
+function LeaderboardTable({ entries, page = 1, limit = 10 }) {
   if (!entries || entries.length === 0) {
     return (
       <div className="lb-empty font-mono">
@@ -55,6 +56,8 @@ export default function LeaderboardTable({ entries, page = 1, limit = 10 }) {
                     className="lb-avatar"
                     loading="lazy"
                     crossOrigin="anonymous"
+                    width={30}
+                    height={30}
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                     }}
@@ -252,3 +255,5 @@ export default function LeaderboardTable({ entries, page = 1, limit = 10 }) {
     </div>
   );
 }
+
+export default memo(LeaderboardTable);

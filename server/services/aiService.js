@@ -154,13 +154,13 @@ async function generateAIRoast(data, intensity = "savage") {
         body: JSON.stringify({
           contents: [{ parts: [{ text: buildRoastPrompt(data, intensity) }] }],
           generationConfig: {
-            // maxOutputTokens: 250,
+            maxOutputTokens: 250,
             temperature: config.temperature,
             topP: 0.95,
             topK: 40,
           },
         }),
-        signal: AbortSignal.timeout(50000),
+        signal: AbortSignal.timeout(10000), // WHY 10s: if Gemini doesn't respond in 10s, fall back to rule engine instantly
       },
     );
 

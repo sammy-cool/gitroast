@@ -180,53 +180,11 @@ export default function LeaderboardClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
-  const debounceRef = useRef(null);
-
-  const handleSearch = useCallback((value) => {
-    setSearchQuery(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!value.trim() || value.trim().length < 2) {
-      setSearchResults(null);
-      setSearchLoading(false);
-      return;
-    }
-    setSearchLoading(true);
-    debounceRef.current = setTimeout(async () => {
-      try {
-        const data = await searchLeaderboard(value.trim());
-        setSearchResults(data.results || []);
-      } catch {
-        createToast({ type: 'error', message: 'Search failed. Please try again.', position: 'top-center' });
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
-    }, 350);
-  }, []);
-
-  useEffect(() => {
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, []);
-
-  useEffect(() => {
-    if (tab === 'companies' && companies.length === 0) {
-      setCompaniesLoading(true);
-      getCompanyLeaderboard()
-        .then((data) => setCompanies(data))
-        .catch(() => {
-          createToast({
-            type: 'error',
-            message: 'Could not load tech giants leaderboard.',
-            position: 'top-center',
-          });
-        })
-        .finally(() => setCompaniesLoading(false));
-    }
-  }, [tab, companies.length]);
+  const hasLoadedRef = useRef(false);
 
   const fetchPage = useCallback(async (targetPage) => {
     // Only show full skeleton on initial mount; use smooth state for subsequent pages
-    if (entries.length === 0) {
+    if (!hasLoadedRef.current) {
       setInitialLoading(true);
     } else {
       setPageLoading(true);
@@ -258,10 +216,11 @@ export default function LeaderboardClient() {
         duration: 4000,
       });
     } finally {
+      hasLoadedRef.current = true;
       setInitialLoading(false);
       setPageLoading(false);
     }
-  }, [entries.length]);
+  }, []);
 
   useEffect(() => {
     fetchPage(currentPage);
