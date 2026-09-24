@@ -134,8 +134,24 @@ export default function GitHubWrapped({ username, isPro }) {
         });
     }
 
-    const maxMonthly = wrappedData
-        ? Math.max(1, ...wrappedData.monthlyCommits.map((m) => m.count))
+    // ── Safe Monthly Commits Calculation ─────────────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Computes the maximum monthly commit count across the target calendar year.
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // Optional chaining prevents unhandled TypeErrors if monthlyCommits is missing
+    // or undefined during transient payload deserialization.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // Normalizing bar chart heights in data visualization components.
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Dynamically scaling SVG or CSS flex bars relative to peak month.
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not use if monthlyCommits is guaranteed to be a non-empty typed Float64Array.
+    const maxMonthly = wrappedData?.monthlyCommits?.length
+        ? Math.max(1, ...wrappedData.monthlyCommits.map((m) => m.count || 0))
         : 1;
 
     return (

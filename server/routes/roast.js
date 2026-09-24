@@ -172,6 +172,68 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
     });
   }
 
+  // ── Pre-Stream Validation & Quota Enforcement ──────────────
+  // ── WHAT: ────────────────────────────────────────────────────
+  // 1. Enforces Free user daily quota before initiating SSE connection.
+  // 2. Pre-fetches and analyzes GitHub profile before sending HTTP 200 SSE headers.
+  // 3. Updates authenticated user roastCount and lastRoastDate upon successful burn.
+  //
+  // ── WHY: ─────────────────────────────────────────────────────
+  // • Calling analyzeProfile before setting text/event-stream headers allows the server
+  //   to cleanly return standard HTTP status codes (400, 404, 429) rather than flushing
+  //   an SSE stream that immediately reports an error event.
+  // • Without canRoastToday() check, authenticated free users could bypass daily limits
+  //   by targeting the /stream endpoint directly.
+  // • Tracking roastCount maintains audit parity with standard /:username endpoint.
+  //
+  // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+  // In all streaming or chunked Express endpoints that consume external API quotas or LLMs.
+  //
+  // ── USE CASES: ───────────────────────────────────────────────
+  // Real-time typewriter roast generation with reliable status codes and rate limiting.
+  //
+  // ── WHEN NOT TO USE: ─────────────────────────────────────────
+  // Do not use for long-running batch jobs or bidirectional WebSocket pipelines.
+  if (req.user && !isPro) {
+    const canRoast = req.user.canRoastToday();
+    if (!canRoast) {
+      return res.status(429).json({
+        error: "DAILY_LIMIT_REACHED",
+        message: "Free users get 1 roast per day. Go Pro for unlimited! ⚡",
+      });
+    }
+  }
+
+  let data;
+  try {
+    const githubToken = req.user?.githubAccessToken || null;
+    const authUsername = req.user?.username || null;
+    data = await analyzeProfile(username, githubToken, authUsername, isPro);
+  } catch (err) {
+    if (err.message === "ORGANIZATION_NOT_SUPPORTED" || err.code === "ORGANIZATION_NOT_SUPPORTED") {
+      return res.status(400).json({
+        error: "ORGANIZATION_NOT_SUPPORTED",
+        message: "GitRoast only roasts individual developers, not organizations.",
+      });
+    }
+    if (err.message === "USER_NOT_FOUND" || err.code === "USER_NOT_FOUND") {
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+        message: "GitHub user not found. Check the username and try again.",
+      });
+    }
+    if (err.message === "RATE_LIMIT_EXCEEDED" || err.code === "RATE_LIMIT_EXCEEDED") {
+      return res.status(429).json({
+        error: "RATE_LIMIT_EXCEEDED",
+        message: "GitHub API rate limit exceeded. Log in with GitHub for a dedicated quota!",
+      });
+    }
+    return res.status(500).json({
+      error: "SERVER_ERROR",
+      message: err.message || "Failed to analyze profile.",
+    });
+  }
+
   // Set SSE Streaming Headers
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
@@ -180,10 +242,6 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
   res.flushHeaders?.();
 
   try {
-    const githubToken = req.user?.githubAccessToken || null;
-    const authUsername = req.user?.username || null;
-    const data = await analyzeProfile(username, githubToken, authUsername, isPro);
-
     // 1. Emit metadata event
     res.write(
       `event: metadata\ndata: ${JSON.stringify({
@@ -231,6 +289,16 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
       bioContrast: data.bioContrast,
       avatarUrl: data.avatarUrl,
     });
+
+    if (req.user) {
+      req.user.roastCount += 1;
+      req.user.lastRoastDate = new Date();
+      await req.user
+        .save()
+        .catch((e) =>
+          logger.error("RoastStream", "User save failed", { message: e.message }),
+        );
+    }
 
     // 3. Emit done event
     res.write(

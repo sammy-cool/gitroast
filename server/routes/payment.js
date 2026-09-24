@@ -20,6 +20,7 @@
 // ============================================================
 
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const Payment = require("../models/Payment");
 const User = require("../models/User");
@@ -216,26 +217,69 @@ router.post("/webhook", async (req, res) => {
       const userId = notes.userId;
       const amount = paymentEntity?.amount || orderEntity?.amount || 0;
 
+      // ── Webhook Payment Document Creation & User Upgrade ──────────
+      // ── WHAT: ────────────────────────────────────────────────────
+      // Validates userId ObjectId format before attempting Payment.create or User lookup.
+      // If payment was initiated externally without notes.userId, safely checks if an
+      // existing Payment document was pre-created via orderId or logs an operational warning.
+      //
+      // ── WHY: ─────────────────────────────────────────────────────
+      // Payment.schema enforces { userId: { required: true, type: ObjectId } }.
+      // If Razorpay webhook notes omit userId or send non-ObjectId strings,
+      // Payment.create throws a Mongoose ValidationError causing the webhook to return
+      // HTTP 500. This triggers Razorpay retry storms and prevents idempotency.
+      //
+      // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+      // In webhook and event ingestion controllers where payload payloads can
+      // originate from external actors with partial or unvalidated metadata.
+      //
+      // ── USE CASES: ───────────────────────────────────────────────
+      // Handling asynchronous payment notifications safely without unhandled rejections.
+      //
+      // ── WHEN NOT TO USE: ─────────────────────────────────────────
+      // Do not use when processing trusted internal DB transactions where schemas are strictly typed.
+      const isValidUserId = userId && mongoose.Types.ObjectId.isValid(userId);
+
       if (paymentId) {
         let paymentDoc = await Payment.findOne({
           razorpayPaymentId: paymentId,
         });
+
         if (!paymentDoc) {
-          await Payment.create({
-            userId: userId || null,
-            razorpayOrderId: orderId || "webhook_captured",
-            razorpayPaymentId: paymentId,
-            planId: planId || "roaster",
-            amount,
-            status: "captured",
-          });
+          if (isValidUserId) {
+            await Payment.create({
+              userId,
+              razorpayOrderId: orderId || "webhook_captured",
+              razorpayPaymentId: paymentId,
+              planId: planId || "roaster",
+              amount,
+              status: "captured",
+            });
+          } else {
+            // Check if orderId matches a pre-existing order document
+            const existingOrderByOrder = orderId
+              ? await Payment.findOne({ razorpayOrderId: orderId })
+              : null;
+
+            if (existingOrderByOrder) {
+              existingOrderByOrder.razorpayPaymentId = paymentId;
+              existingOrderByOrder.status = "captured";
+              await existingOrderByOrder.save();
+            } else {
+              logger.warn("Payment", "Webhook payment received without valid userId or pre-existing order", {
+                paymentId,
+                orderId,
+                userId,
+              });
+            }
+          }
         } else if (paymentDoc.status !== "captured") {
           paymentDoc.status = "captured";
           await paymentDoc.save();
         }
       }
 
-      if (userId) {
+      if (isValidUserId) {
         const user = await User.findById(userId);
         if (user && !user.isPro) {
           user.isPro = true;

@@ -327,8 +327,24 @@ export default function LandingPageClient() {
         <div className="daily-header">
           <p className="sample-roast-label font-mono">🔥 ROAST OF THE DAY</p>
           {dailyRoast && (
+            // ── Comprehensive Burn Counter ───────────────────────────
+            // ── WHAT: ────────────────────────────────────────────────
+            // Aggregates total community engagements across all three supported
+            // reaction types: savage (🔥), destroyed (💀), and relatable (😂).
+            //
+            // ── WHY: ─────────────────────────────────────────────────
+            // Previously omitted 'relatable', artificially deflating community interaction metrics.
+            //
+            // ── WHERE & WHEN TO USE: ─────────────────────────────────
+            // High-visibility social proof badges and highlight cards.
+            //
+            // ── USE CASES: ───────────────────────────────────────────
+            // Hero section "Roast of the Day" burn tally badge.
+            //
+            // ── WHEN NOT TO USE: ─────────────────────────────────────
+            // Do not use when filtering exclusively for destructive/negative sentiment.
             <span className="daily-badge font-mono">
-              🔥 {(dailyRoast.reactions?.savage || 0) + (dailyRoast.reactions?.destroyed || 0)} BURNS
+              🔥 {(dailyRoast.reactions?.savage || 0) + (dailyRoast.reactions?.destroyed || 0) + (dailyRoast.reactions?.relatable || 0)} BURNS
             </span>
           )}
         </div>

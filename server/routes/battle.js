@@ -52,22 +52,57 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
     const norm1 = user1.toLowerCase();
     const norm2 = user2.toLowerCase();
 
+    // ── Symmetrical Battle Pairing Lookup & Persist ─────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Queries MongoDB for an existing match between two developers regardless of
+    // who was typed in the left versus right URL segment (/user1/vs/user2 or /user2/vs/user1).
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // A battle between Alice and Bob represents the same rivalry whether accessed via
+    // /battle/alice/vs/bob or /battle/bob/vs/alice. A strict { user1, user2 } query
+    // created fractured duplicate documents, splitting view counts, reaction tallies,
+    // and rematch statistics.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // In any bidirectional matchup, rivalry, or peer comparison system where participant
+    // order in the URI is arbitrary.
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Developer vs developer battles, code diff face-offs, chess match tracking.
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not use for directed relationships where role order matters (e.g. mentor vs mentee, parent vs child).
     try {
-      let battleDoc = await Battle.findOne({ user1: norm1, user2: norm2 });
+      let battleDoc = await Battle.findOne({
+        $or: [
+          { user1: norm1, user2: norm2 },
+          { user1: norm2, user2: norm1 },
+        ],
+      });
       if (battleDoc) {
-        battleDoc.score1 = result.score1;
-        battleDoc.score2 = result.score2;
-        battleDoc.grade1 = result.grade1;
-        battleDoc.grade2 = result.grade2;
+        const isReversed = battleDoc.user1 === norm2 && battleDoc.user2 === norm1;
+        if (isReversed) {
+          battleDoc.score1 = result.score2;
+          battleDoc.score2 = result.score1;
+          battleDoc.grade1 = result.grade2;
+          battleDoc.grade2 = result.grade1;
+          battleDoc.roast1 = result.roast2;
+          battleDoc.roast2 = result.roast1;
+          battleDoc.stats1 = result.stats2;
+          battleDoc.stats2 = result.stats1;
+        } else {
+          battleDoc.score1 = result.score1;
+          battleDoc.score2 = result.score2;
+          battleDoc.grade1 = result.grade1;
+          battleDoc.grade2 = result.grade2;
+          battleDoc.roast1 = result.roast1;
+          battleDoc.roast2 = result.roast2;
+          battleDoc.stats1 = result.stats1;
+          battleDoc.stats2 = result.stats2;
+        }
         battleDoc.winner = result.winner;
         battleDoc.loser = result.loser;
-        battleDoc.roast1 = result.roast1;
-        battleDoc.roast2 = result.roast2;
         battleDoc.battleRoast = result.battleRoast;
-        battleDoc.stats1 = result.stats1;
-        battleDoc.stats2 = result.stats2;
-        battleDoc.avatarUrl1 = `https://avatars.githubusercontent.com/${norm1}?s=120`;
-        battleDoc.avatarUrl2 = `https://avatars.githubusercontent.com/${norm2}?s=120`;
         battleDoc.rematchCount = (battleDoc.rematchCount || 0) + 1;
         await battleDoc.save();
       } else {

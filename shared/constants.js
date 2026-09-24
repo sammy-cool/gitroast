@@ -40,12 +40,32 @@ const USERNAME_REGEX = /^[a-zA-Z0-9-._]+$/;
 const INTENSITY_LEVELS = ["mild", "savage", "nuclear"];
 const DEFAULT_INTENSITY = "savage";
 
-/**
- * Standardized reaction types supported across Roasts and Battles
- */
-const ROAST_REACTION_TYPES = ["savage", "destroyed"];
-const BATTLE_REACTION_TYPES = ["fire", "skull", "clown"];
-const ALL_REACTION_TYPES = [...ROAST_REACTION_TYPES, ...BATTLE_REACTION_TYPES];
+// ── Reaction Constants Synchronization ─────────────────────────
+// ── WHAT: ────────────────────────────────────────────────────
+// Standardized array of allowed emoji reaction classifications:
+// • relatable (😂): Empathetic amusement
+// • destroyed (💀): Severe ego damage
+// • savage (🔥): Maximum brutality endorsement
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// Fixes domain model drift where constants omitted 'relatable' or
+// specified divergent battle types ('fire', 'skull', 'clown') that
+// did not match the Mongoose schema keys (reactions.relatable,
+// reactions.destroyed, reactions.savage).
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// • In server route controllers (/api/history/:id/react, /api/battle/:id/react)
+// • In Mongoose schema validation arrays
+// • In client reaction button state management
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// • Whitelisting client payload properties before performing $inc operations.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// • Do not use as arbitrary user text tags; these are strict enums.
+const ROAST_REACTION_TYPES = ["relatable", "destroyed", "savage"];
+const BATTLE_REACTION_TYPES = ["relatable", "destroyed", "savage"];
+const ALL_REACTION_TYPES = [...new Set([...ROAST_REACTION_TYPES, ...BATTLE_REACTION_TYPES])];
 
 /**
  * Academic roast grades calculated from score (1-100)

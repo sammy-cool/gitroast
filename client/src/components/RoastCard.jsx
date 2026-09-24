@@ -18,8 +18,8 @@ export default function RoastCard({ data, onProClick }) {
   const intervalRef = useRef(null)
   const cursorTimerRef = useRef(null)
 
-  const roastText = data.roast || ''
-  const roastTargetId = data.roastId || data._id
+  const roastText = data?.roast || ''
+  const roastTargetId = data?.roastId || data?._id
 
   // Track view for database social proof
   useEffect(() => {
@@ -114,6 +114,24 @@ export default function RoastCard({ data, onProClick }) {
       clearInterval(cursorTimerRef.current)
     }
   }, [roastText])
+ 
+  // ── Defensive Data Guard ────────────────────────────────────
+  // ── WHAT: ──────────────────────────────────────────────────
+  // Safeguards the component from rendering when roast data is not yet available or null.
+  //
+  // ── WHY: ───────────────────────────────────────────────────
+  // Prevents TypeError: Cannot read properties of undefined/null (reading 'score')
+  // while strictly preserving React hook call order across renders.
+  //
+  // ── WHERE & WHEN TO USE: ───────────────────────────────────
+  // Directly after all React hooks (useState, useRef, useEffect) have been invoked.
+  //
+  // ── USE CASES: ─────────────────────────────────────────────
+  // Handling asynchronous state transitions or empty cache responses.
+  //
+  // ── WHEN NOT TO USE: ───────────────────────────────────────
+  // Never place before React hook declarations (violates Rules of Hooks).
+  if (!data) return null;
 
   const scoreColor =
     data.score < 40 ? 'var(--bad)' :
