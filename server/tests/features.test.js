@@ -1024,4 +1024,22 @@ describe("AI Engine — Model Parity & Dynamic Configuration", () => {
         assert.equal(typeof generateAIRoast, "function");
         assert.equal(typeof generateAIRoastStream, "function");
     });
+
+    it("should correctly normalize model aliases via resolveGeminiModel", () => {
+        const { resolveGeminiModel } = require("../services/aiService");
+        assert.equal(typeof resolveGeminiModel, "function");
+        // Test Gemini 3.1 Pro alias mapping to official v1beta preview endpoint
+        assert.equal(resolveGeminiModel("gemini-3.1-pro"), "gemini-3.1-pro-preview");
+        assert.equal(resolveGeminiModel("gemini-3.1-pro-preview"), "gemini-3.1-pro-preview");
+        // Test Gemini 3.1 Flash alias
+        assert.equal(resolveGeminiModel("gemini-3.1-flash"), "gemini-3.1-flash-lite-preview");
+        // Test standard models
+        assert.equal(resolveGeminiModel("gemini-2.5-flash"), "gemini-2.5-flash");
+        assert.equal(resolveGeminiModel("gemini-2.5-pro"), "gemini-2.5-pro");
+        // Test defaults
+        assert.equal(resolveGeminiModel(""), "gemini-2.5-flash");
+        assert.equal(resolveGeminiModel(null), "gemini-2.5-flash");
+        assert.equal(resolveGeminiModel(undefined), "gemini-2.5-flash");
+    });
 });
+

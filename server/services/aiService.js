@@ -1,25 +1,34 @@
 const { logger } = require("../utils/logger");
 
-// ── Gemini Model Selection & Configuration ─────────────────────
+// ── Gemini Model Normalization & Selection ─────────────────────
 // ── WHAT: ────────────────────────────────────────────────────
-// Configurable Google Gemini model identifier defaulting to gemini-2.5-flash.
+// Normalizes and validates Google Gemini model strings, mapping user-friendly aliases
+// like 'gemini-3.1-pro' to official Google Generative Language v1beta endpoints ('gemini-3.1-pro-preview').
 //
 // ── WHY: ─────────────────────────────────────────────────────
-// 1. Decouples the application code from hardcoded model identifiers, enabling
-//    zero-downtime upgrades to newer models (e.g. gemini-2.5-pro) via Render environment variables.
-// 2. Ensures strict model alignment across REST generation, SSE live streaming, and battle announcer.
-// 3. gemini-2.5-flash offers optimal low latency, high throughput, and cost efficiency for streaming
-//    comedy roasts, while gemini-2.5-pro can be toggled on demand for complex reasoning.
+// 1. Google AI Studio v1beta API exposes Gemini 3.1 Pro as 'gemini-3.1-pro-preview'.
+// 2. Normalizing ensures user settings in Render Dashboard (e.g. GEMINI_MODEL=gemini-3.1-pro)
+//    work seamlessly without 404 endpoint errors.
+// 3. Defaults safely to 'gemini-2.5-flash' when unset, maintaining zero-breakage backward compatibility.
 //
 // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// Used whenever constructing Gemini API REST or streaming SSE endpoints.
+// Used when constructing Gemini API REST and SSE streaming endpoints across the server.
 //
 // ── USE CASES: ───────────────────────────────────────────────
-// Production environment overrides, testing preview models, and custom pro tier configurations.
+// Running Gemini 3.1 Pro previews, Gemini 2.5 Flash, or custom enterprise model strings.
 //
 // ── WHEN NOT TO USE: ─────────────────────────────────────────
-// Do not hardcode deprecated legacy models (e.g. gemini-1.5-flash) or invalid model strings.
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+// Do not use for deterministic local rule engine fallback.
+function resolveGeminiModel(rawModel) {
+  const model = (rawModel || "").trim();
+  if (!model) return "gemini-2.5-flash";
+  if (model === "gemini-3.1-pro") return "gemini-3.1-pro-preview";
+  if (model === "gemini-3.1-flash") return "gemini-3.1-flash-lite-preview";
+  return model;
+}
+
+const RAW_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const GEMINI_MODEL = resolveGeminiModel(RAW_GEMINI_MODEL);
 
 const GEMINI_API_URL =
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -186,7 +195,40 @@ async function generateAIRoast(data, intensity = "savage") {
     );
 
     if (!response.ok) {
-      logger.error("AI", "Gemini API error", { status: response.status });
+      logger.error("AI", "Gemini API error", { status: response.status, model: GEMINI_MODEL });
+      // ── Resilient Model Fallback ───────────────────────────────
+      // If a specialized or preview model (e.g. gemini-3.1-pro-preview) returns 404
+      // because it's not yet enabled on the project's tier, seamlessly retry with gemini-2.5-flash
+      if (response.status === 404 && GEMINI_MODEL !== "gemini-2.5-flash") {
+        logger.warn("AI", `Model ${GEMINI_MODEL} returned 404, falling back to gemini-2.5-flash`);
+        try {
+          const fallbackRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: buildRoastPrompt(data, intensity) }] }],
+                generationConfig: {
+                  temperature: config.temperature,
+                  topP: 0.95,
+                  topK: 40,
+                },
+              }),
+              signal: AbortSignal.timeout(50000),
+            },
+          );
+          if (fallbackRes.ok) {
+            const fbJson = await fallbackRes.json();
+            const fbRoast = fbJson?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            if (fbRoast && fbRoast.length >= 20) {
+              return fbRoast.replace(/^["']|["']$/g, "").trim();
+            }
+          }
+        } catch (fbErr) {
+          logger.error("AI", "Gemini fallback request failed", { message: fbErr.message });
+        }
+      }
       return null;
     }
 
@@ -233,7 +275,62 @@ async function* generateAIRoastStream(data, intensity = "savage") {
     });
 
     if (!response.ok) {
-      logger.error("AI", "Gemini streaming error", { status: response.status });
+      logger.error("AI", "Gemini streaming error", { status: response.status, model: GEMINI_MODEL });
+      // ── Resilient Streaming Model Fallback ─────────────────────
+      if (response.status === 404 && GEMINI_MODEL !== "gemini-2.5-flash") {
+        logger.warn("AI", `Streaming model ${GEMINI_MODEL} returned 404, falling back to gemini-2.5-flash`);
+        const fallbackStreamUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${process.env.GEMINI_API_KEY}`;
+        try {
+          const fallbackRes = await fetch(fallbackStreamUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: buildRoastPrompt(data, intensity) }] }],
+              generationConfig: {
+                temperature: config.temperature,
+                topP: 0.95,
+                topK: 40,
+              },
+            }),
+            signal: AbortSignal.timeout(50000),
+          });
+          if (fallbackRes.ok) {
+            const fallbackReader = fallbackRes.body.getReader();
+            const fallbackDecoder = new TextDecoder();
+            let fbBuffer = "";
+            try {
+              while (true) {
+                const { done, value } = await fallbackReader.read();
+                if (done) break;
+                fbBuffer += fallbackDecoder.decode(value, { stream: true });
+                const lines = fbBuffer.split("\n");
+                fbBuffer = lines.pop();
+                for (const line of lines) {
+                  if (line.startsWith("data: ")) {
+                    try {
+                      const parsed = JSON.parse(line.slice(6));
+                      const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                      if (text) yield text;
+                    } catch {}
+                  }
+                }
+              }
+              if (fbBuffer && fbBuffer.startsWith("data: ")) {
+                try {
+                  const parsed = JSON.parse(fbBuffer.slice(6));
+                  const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (text) yield text;
+                } catch {}
+              }
+            } finally {
+              fallbackReader.releaseLock();
+            }
+            return;
+          }
+        } catch (fbErr) {
+          logger.error("AI", "Gemini stream fallback failed", { message: fbErr.message });
+        }
+      }
       return;
     }
 
@@ -300,4 +397,4 @@ async function* generateAIRoastStream(data, intensity = "savage") {
   }
 }
 
-module.exports = { generateAIRoast, generateAIRoastStream, GEMINI_MODEL };
+module.exports = { generateAIRoast, generateAIRoastStream, GEMINI_MODEL, resolveGeminiModel };

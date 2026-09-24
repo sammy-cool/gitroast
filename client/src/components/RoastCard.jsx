@@ -293,12 +293,12 @@ export default function RoastCard({ data, onProClick }) {
           </div>
           <div className="nuclear-teaser-body">
             <p className="nuclear-quote font-mono">
-              &ldquo;Gemini 2.5 Flash deep architectural analysis: your repository looks like a prototype that accidentally slipped into production...&rdquo;
+              &ldquo;Google Gemini AI deep architectural analysis: your repository looks like a prototype that accidentally slipped into production...&rdquo;
             </p>
             <div className="nuclear-glass-overlay">
               <div className="nuclear-lock-info font-mono">
                 <span className="nuclear-lock-icon">🔒</span>
-                <span className="nuclear-lock-text">Gemini 2.5 Flash Nuclear roast & private repos locked</span>
+                <span className="nuclear-lock-text">Gemini AI Nuclear roast & private repos locked</span>
               </div>
               <button
                 type="button"

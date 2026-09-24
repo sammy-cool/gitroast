@@ -74,7 +74,39 @@ No quotes. No intro.`;
       },
     );
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      logger.error("AI", "Gemini battle API error", { status: res.status, model: GEMINI_MODEL });
+      if (res.status === 404 && GEMINI_MODEL !== "gemini-2.5-flash") {
+        logger.warn("AI", `Battle model ${GEMINI_MODEL} returned 404, falling back to gemini-2.5-flash`);
+        try {
+          const fallbackRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  temperature: 1.1,
+                  topP: 0.95,
+                },
+              }),
+              signal: AbortSignal.timeout(50000),
+            },
+          );
+          if (fallbackRes.ok) {
+            const fbJson = await fallbackRes.json();
+            const fbRoast = fbJson?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            if (fbRoast && fbRoast.length > 20) {
+              return fbRoast.replace(/^["']|["']$/g, "").trim();
+            }
+          }
+        } catch (fbErr) {
+          logger.error("Battle", "AI verdict fallback failed", { message: fbErr.message });
+        }
+      }
+      return null;
+    }
 
     const json = await res.json();
     const roast = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();

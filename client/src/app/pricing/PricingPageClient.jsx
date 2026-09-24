@@ -97,7 +97,7 @@ const PLANS_DISPLAY = {
 const FAQ = [
     {
         q: 'What counts as a "real AI roast"?',
-        a: 'Free tier uses a rule-based engine — templates + your stats. Pro uses Google Gemini 2.5 Flash with your actual GitHub data, writing a unique comedy roast every time. Not a template. Not a script.',
+        a: 'Free tier uses a rule-based engine — templates + your stats. Pro uses Google Gemini AI (Gemini 3.1 Pro & 2.5 Flash) with your actual GitHub data, writing a unique comedy roast every time. Not a template. Not a script.',
     },
     {
         q: 'Can I cancel anytime?',
