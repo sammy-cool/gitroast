@@ -3,7 +3,7 @@ const router = express.Router();
 const { analyzeProfile, analyzeWrapped } = require("../services/githubService");
 const { analyzeRepository } = require("../services/repoRoastService");
 const { generateRoast } = require("../services/roastEngine");
-const { generateAIRoast, generateAIRoastStream } = require("../services/aiService");
+const { generateAIRoast, generateAIRoastStream, GEMINI_MODEL } = require("../services/aiService");
 const { optionalAuth, requirePro } = require("../middleware/auth");
 const { verifyCaptcha } = require("../middleware/captcha");
 const Roast = require("../models/Roast");
@@ -304,7 +304,7 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
       roastSource,
       avatarUrl: data.avatarUrl || `https://avatars.githubusercontent.com/${data.username}?s=120`,
       topLanguage: data._raw?.topLanguage || data.topLanguage || "",
-      aiModel: roastSource === "ai" ? "gemini-2.5-flash" : "rules-engine",
+      aiModel: roastSource === "ai" ? GEMINI_MODEL : "rules-engine",
       githubSnapshot: {
         totalRepos: data.totalRepos,
         joinYear: data.joinYear,
@@ -437,7 +437,7 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
         intensity, // WHY: track which intensity was used
         avatarUrl: data.avatarUrl || `https://avatars.githubusercontent.com/${username}?s=120`,
         topLanguage: data._raw?.topLanguage || data.topLanguage || "",
-        aiModel: roastSource === "ai" ? "gemini-2.5-flash" : "rules-engine",
+        aiModel: roastSource === "ai" ? GEMINI_MODEL : "rules-engine",
         githubSnapshot: {
           totalRepos: data.totalRepos,
           joinYear: data.joinYear,

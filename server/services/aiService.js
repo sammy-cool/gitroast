@@ -1,7 +1,28 @@
 const { logger } = require("../utils/logger");
 
+// ── Gemini Model Selection & Configuration ─────────────────────
+// ── WHAT: ────────────────────────────────────────────────────
+// Configurable Google Gemini model identifier defaulting to gemini-2.5-flash.
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// 1. Decouples the application code from hardcoded model identifiers, enabling
+//    zero-downtime upgrades to newer models (e.g. gemini-2.5-pro) via Render environment variables.
+// 2. Ensures strict model alignment across REST generation, SSE live streaming, and battle announcer.
+// 3. gemini-2.5-flash offers optimal low latency, high throughput, and cost efficiency for streaming
+//    comedy roasts, while gemini-2.5-pro can be toggled on demand for complex reasoning.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// Used whenever constructing Gemini API REST or streaming SSE endpoints.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// Production environment overrides, testing preview models, and custom pro tier configurations.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// Do not hardcode deprecated legacy models (e.g. gemini-1.5-flash) or invalid model strings.
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+
 const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 // ─── Intensity config ─────────────────────────────────────
 // WHY: each intensity changes 3 things:
@@ -194,7 +215,7 @@ async function* generateAIRoastStream(data, intensity = "savage") {
   }
 
   const config = INTENSITY_CONFIG[intensity] || INTENSITY_CONFIG.savage;
-  const STREAM_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${process.env.GEMINI_API_KEY}`;
+  const STREAM_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:streamGenerateContent?alt=sse&key=${process.env.GEMINI_API_KEY}`;
 
   try {
     const response = await fetch(STREAM_URL, {
@@ -279,4 +300,4 @@ async function* generateAIRoastStream(data, intensity = "savage") {
   }
 }
 
-module.exports = { generateAIRoast, generateAIRoastStream };
+module.exports = { generateAIRoast, generateAIRoastStream, GEMINI_MODEL };

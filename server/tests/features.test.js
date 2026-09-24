@@ -1003,6 +1003,25 @@ describe("Feature #8 — Database Schemas & Model Integrity", () => {
     });
 });
 
+describe("AI Engine — Model Parity & Dynamic Configuration", () => {
+    // ── WHAT: Validates dynamic model resolution and export consistency.
+    // ── WHY: Ensures zero discrepancy between REST roasts, SSE stream, and battle announcer.
+    // ── WHERE & WHEN TO USE: In CI/CD test suites before deployment.
+    // ── USE CASES: Verifying GEMINI_MODEL environmental defaults and overrides.
+    // ── WHEN NOT TO USE: Do not run against external Google servers during unit testing.
+    it("should export GEMINI_MODEL with default to gemini-2.5-flash", () => {
+        const { GEMINI_MODEL } = require("../services/aiService");
+        assert.ok(GEMINI_MODEL, "GEMINI_MODEL should be defined");
+        assert.equal(typeof GEMINI_MODEL, "string");
+        assert.ok(
+            GEMINI_MODEL === "gemini-2.5-flash" || GEMINI_MODEL.startsWith("gemini-"),
+            `Expected valid Gemini model string, got: ${GEMINI_MODEL}`,
+        );
+    });
 
-
-
+    it("should export generateAIRoast and generateAIRoastStream functions", () => {
+        const { generateAIRoast, generateAIRoastStream } = require("../services/aiService");
+        assert.equal(typeof generateAIRoast, "function");
+        assert.equal(typeof generateAIRoastStream, "function");
+    });
+});

@@ -2,11 +2,27 @@
 
 const { analyzeProfile } = require("./githubService");
 const { generateRoast } = require("./roastEngine");
-const { generateAIRoast } = require("./aiService");
+const { generateAIRoast, GEMINI_MODEL } = require("./aiService");
 const { logger } = require("../utils/logger");
 
+// ── Gemini Battle Model Configuration ─────────────────────────
+// ── WHAT: ────────────────────────────────────────────────────
+// Dynamically configured Gemini model endpoint for the boxing announcer verdict.
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// 1. Ensures the battle announcer AI model stays 100% consistent with the profile roast model.
+// 2. Honors user model overrides via the GEMINI_MODEL environment variable without code changes.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// Invoked when synthesizing comparative boxing verdicts in /api/battle/:user1/vs/:user2.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// Comparative roast generation between two rival GitHub accounts.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// Do not use if either profile fails validation or when running in offline/unkeyed environments.
 const GEMINI_API_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 // ─── generateBattleRoast ──────────────────────────────────
 // WHY: AI generates a battle verdict comparing BOTH profiles
