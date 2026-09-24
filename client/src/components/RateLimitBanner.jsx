@@ -25,23 +25,39 @@
 import { useState, useEffect } from 'react'
 
 export default function RateLimitBanner({ seconds, onExpired }) {
+    const [prevSeconds, setPrevSeconds] = useState(seconds)
     const [remaining, setRemaining] = useState(seconds)
 
+    // ── React 19 Render-Time State Adjustment Pattern ──────────
+    // WHAT: Synchronizes remaining state with changing seconds prop directly during render.
+    // WHY: Eliminates setState in useEffect, preventing cascading renders and ESLint react-hooks/set-state-in-effect violations.
+    // WHERE & WHEN TO USE: Whenever child component state must mirror dynamic parent props.
+    // USE CASES: Countdown resets when a new 429 response or updated rate limit window is received.
+    // WHEN NOT TO USE: When state changes independently from prop changes without reset requirements.
+    if (seconds !== prevSeconds) {
+        setPrevSeconds(seconds)
+        setRemaining(seconds)
+    }
+
     useEffect(() => {
-        if (remaining <= 0) {
+        if (seconds <= 0) {
             onExpired?.()
             return
         }
 
-        // WHY setInterval 1000ms:
-        //   Updates every second — shows live countdown
-        //   Gives user clear sense of progress
         const timer = setInterval(() => {
-            setRemaining(prev => Math.max(0, prev - 1))
+            setRemaining(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer)
+                    onExpired?.()
+                    return 0
+                }
+                return prev - 1
+            })
         }, 1000)
 
         return () => clearInterval(timer)
-    }, [remaining, onExpired])
+    }, [seconds, onExpired])
 
     // WHY percentage: drives the progress bar width (safeguard against division by zero)
     const totalSecs = seconds > 0 ? seconds : 1

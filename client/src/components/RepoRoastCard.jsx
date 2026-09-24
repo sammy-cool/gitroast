@@ -27,6 +27,16 @@ export default function RepoRoastCard({ data, onProClick }) {
 
   const roastText = data?.roast || ''
 
+  // Cancel speech on unmount
+  // WHY: Prevents audio from continuing to play globally if user closes or navigates away
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
+
   // Typewriter effect
   useEffect(() => {
     if (!roastText) return

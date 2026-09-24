@@ -165,7 +165,8 @@ export default function BattlePageClient({ user1, user2 }) {
           .battle-analyzing {
             min-height: 100vh; display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            padding: 2rem 1rem; gap: 1.25rem; position: relative;
+            /* WHY 6.5rem bottom padding: prevents fixed site footer from overlapping analyzing terminal on mobile */
+            padding: 2rem 1rem 6.5rem; gap: 1.25rem; position: relative;
           }
           .battle-glow {
             position: absolute; inset: 0;

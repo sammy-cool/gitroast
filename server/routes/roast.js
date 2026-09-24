@@ -119,6 +119,22 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
     });
   }
 
+  // ── Quota Enforcement for Free Authenticated Users ───────────
+  // WHAT: Enforces daily 1-roast limit for free authenticated accounts on repository roasts.
+  // WHY: Prevents free users from bypassing daily limits by targeting /repo/:owner/:repo directly.
+  // WHERE & WHEN TO USE: In all compute/AI-intensive roast generation endpoints.
+  // USE CASES: Preventing automated quota bypass on repository inspections.
+  // WHEN NOT TO USE: Do not apply to Pro users (isPro === true) who have unlimited burns.
+  if (req.user && !isPro) {
+    const canRoast = req.user.canRoastToday();
+    if (!canRoast) {
+      return res.status(429).json({
+        error: "DAILY_LIMIT_REACHED",
+        message: "Free users get 1 roast per day. Go Pro for unlimited! ⚡",
+      });
+    }
+  }
+
   if (!owner || !repo || owner.length > 39 || repo.length > 100) {
     return res.status(400).json({
       error: "INVALID_REPO",
@@ -129,6 +145,17 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
   try {
     const userToken = req.user?.githubAccessToken || null;
     const repoAnalysis = await analyzeRepository(owner, repo, userToken, isPro, intensity);
+
+    if (req.user) {
+      req.user.roastCount += 1;
+      req.user.lastRoastDate = new Date();
+      await req.user
+        .save()
+        .catch((e) =>
+          logger.error("RepoRoast", "User save failed", { message: e.message })
+        );
+    }
+
     return res.status(200).json({ success: true, data: repoAnalysis });
   } catch (err) {
     if (err.message === "REPO_NOT_FOUND" || err.code === "REPO_NOT_FOUND") {

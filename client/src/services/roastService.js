@@ -439,9 +439,13 @@ export async function dispatchContactMessage({
   email,
   message,
 }) {
+  const headers = { "Content-Type": "application/json" };
+  const captchaToken = await getCaptchaToken("contact");
+  if (captchaToken) headers["X-Captcha-Token"] = captchaToken;
+
   const res = await fetch(`${API_BASE}/api/contact`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ category, name, email, message }),
     signal: AbortSignal.timeout(15000),
   });

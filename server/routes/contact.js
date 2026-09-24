@@ -15,12 +15,14 @@ const mongoose = require("mongoose");
 const ContactMessage = require("../models/ContactMessage");
 const { sendContactNotification } = require("../services/emailService");
 const { enqueue } = require("../services/queueService");
+const { verifyCaptcha } = require("../middleware/captcha");
 const { logger } = require("../utils/logger");
 
 const VALID_CATEGORIES = ["feedback", "bug", "pro", "dispute", "general"];
 
 // POST /api/contact — Dispatch a new message
-router.post("/", async (req, res) => {
+// WHY verifyCaptcha: Protects dispatch from bot spammers, ticket flooding, and email quota drain
+router.post("/", verifyCaptcha, async (req, res) => {
   try {
     const { category, name, email, message } = req.body || {};
 

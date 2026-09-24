@@ -188,7 +188,8 @@ router.get("/:username", async (req, res) => {
   }
 
   try {
-    const limit = parseInt(req.query.limit) || 10;
+    // WHY clamp: prevents negative limits, NaN cast errors, or excessive memory spikes
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 10));
     const history = await Roast.getHistory(username, limit);
 
     return res.status(200).json({

@@ -24,9 +24,13 @@ export default function HistoryPageClient({ username }) {
                 message: error || 'Failed to load roast history',
                 position: 'top-center',
                 duration: 5000,
+                cta: {
+                    label: 'Retry',
+                    onClick: refetch,
+                },
             })
         }
-    }, [error])
+    }, [error, refetch])
 
     // ── Loading state — Skeleton ─────────────────────────────
     // WHY skeleton instead of text + cursor:

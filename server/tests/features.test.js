@@ -614,9 +614,10 @@ describe("Feature #5 — Contact Dispatch & Ticket Generation", () => {
             },
         };
 
-        const postHandler = contactRoute.stack.find(
+        const postLayers = contactRoute.stack.find(
             (layer) => layer.route && layer.route.methods.post,
-        ).route.stack[0].handle;
+        ).route.stack;
+        const postHandler = postLayers[postLayers.length - 1].handle;
         await postHandler(req, res);
 
         assert.equal(statusCode, 400);
@@ -638,9 +639,10 @@ describe("Feature #5 — Contact Dispatch & Ticket Generation", () => {
             },
         };
 
-        const postHandler = contactRoute.stack.find(
+        const postLayers = contactRoute.stack.find(
             (layer) => layer.route && layer.route.methods.post,
-        ).route.stack[0].handle;
+        ).route.stack;
+        const postHandler = postLayers[postLayers.length - 1].handle;
         await postHandler(req, res);
 
         assert.equal(statusCode, 400);
@@ -662,10 +664,11 @@ describe("Feature #5 — Contact Dispatch & Ticket Generation", () => {
             },
         };
 
-        const postHandler = contactRoute.stack.find(
+        const postLayers2 = contactRoute.stack.find(
             (layer) => layer.route && layer.route.methods.post,
-        ).route.stack[0].handle;
-        await postHandler(req, res);
+        ).route.stack;
+        const postHandler2 = postLayers2[postLayers2.length - 1].handle;
+        await postHandler2(req, res);
 
         assert.equal(statusCode, 400);
         assert.equal(responseData.code, "INVALID_EMAIL");
@@ -695,10 +698,11 @@ describe("Feature #5 — Contact Dispatch & Ticket Generation", () => {
             },
         };
 
-        const postHandler = contactRoute.stack.find(
+        const postLayers3 = contactRoute.stack.find(
             (layer) => layer.route && layer.route.methods.post,
-        ).route.stack[0].handle;
-        await postHandler(req, res);
+        ).route.stack;
+        const postHandler3 = postLayers3[postLayers3.length - 1].handle;
+        await postHandler3(req, res);
 
         assert.equal(statusCode, 201);
         assert.equal(responseData.success, true);
