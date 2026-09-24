@@ -70,21 +70,24 @@ export default function BattlePageClient({ user1, user2 }) {
                 // WHY differentiate rate limit vs other errors:
                 //   Same fix as RoastPageClient — shows exact retryAfter seconds
                 //   err.retryAfter set by getBattleRoast in roastService.js
+                const isLoggedIn = !!getToken();
                 if (err.code === 'CAPTCHA_REQUIRED' || err.code === 'CAPTCHA_FAILED') {
                     createToast({
                         type: 'warning',
-                        message: err.message || 'Bot verification blocked by browser shield. Please log in with GitHub to battle!',
+                        message: err.message || (isLoggedIn ? 'Bot verification check could not be completed. Please try again.' : 'Bot verification blocked by browser shield. Please log in with GitHub to battle!'),
                         position: 'top-center',
                         duration: 8000,
                         showCloseButton: true,
-                        cta: {
-                            label: 'Login via GitHub ↗',
-                            onClick: () => {
-                                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
-                                window.location.href = `${apiBase}/api/auth/github`
+                        ...(!isLoggedIn && {
+                            cta: {
+                                label: 'Login via GitHub ↗',
+                                onClick: () => {
+                                    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+                                    window.location.href = `${apiBase}/api/auth/github`
+                                },
+                                autoClose: true,
                             },
-                            autoClose: true,
-                        },
+                        }),
                     })
                 } else if (err.code === 'RATE_LIMIT_EXCEEDED') {
                     const seconds = err.retryAfter ? `${err.retryAfter} seconds` : 'a minute'

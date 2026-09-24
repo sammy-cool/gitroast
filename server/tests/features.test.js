@@ -30,6 +30,11 @@ describe("Feature #1 — Language Roast Packs", () => {
         assert.equal(buildLanguageSection("Nothing", "savage"), "");
         assert.equal(buildLanguageSection(undefined, "savage"), "");
     });
+
+    it("should load the enhanced 110-rule ruleset cleanly without duplicates", () => {
+        const { getRoastRulesCount } = require("../services/roastEngine");
+        assert.equal(getRoastRulesCount(), 110);
+    });
 });
 
 describe("Feature #4 — GitHub Wrapped 2025", () => {

@@ -195,7 +195,7 @@ roastSchema.statics.addReaction = function (id, type) {
   return this.findByIdAndUpdate(
     id,
     { $inc: { [`reactions.${type}`]: 1 } },
-    { new: true, select: "reactions" },
+    { returnDocument: "after", select: "reactions" },
   );
 };
 

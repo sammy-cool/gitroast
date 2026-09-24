@@ -45,7 +45,7 @@ const INTENSITIES = [
 ];
 
 export default function LandingPageClient() {
-  const { user, loginWithGitHub } = useAuth();
+  const { user, loginWithGitHub, loading: authLoading } = useAuth();
   const [showProModal, setShowProModal] = useState(false);
   const [totalRoasts, setTotalRoasts] = useState(null);
   const [dailyRoast, setDailyRoast] = useState(null);
@@ -94,7 +94,10 @@ export default function LandingPageClient() {
   }, []);
 
   // WHY broadcast toast: alert unauthenticated visitors to log in for dedicated 5,000 req/hr rate limits
+  // WHY !authLoading guard: AuthContext initializes user=null while checking token.
+  //     Without checking !authLoading, logged-in users falsely receive the login prompt on initial mount.
   useEffect(() => {
+    if (authLoading) return;
     if (
       !user &&
       typeof window !== "undefined" &&
@@ -114,7 +117,7 @@ export default function LandingPageClient() {
       });
       sessionStorage.setItem("gitroast_login_broadcast", "1");
     }
-  }, [user, loginWithGitHub]);
+  }, [authLoading, user, loginWithGitHub]);
 
   useEffect(() => {
     getRoastStats().then((total) => {
@@ -201,7 +204,7 @@ export default function LandingPageClient() {
       </nav>
 
       {/* ── Broadcast Notice: sleek, non-intrusive alert pill ── */}
-      {!user && !broadcastDismissed && (
+      {!authLoading && !user && !broadcastDismissed && (
         <div className="broadcast-banner font-mono" role="status">
           <div className="broadcast-left">
             <span className="broadcast-pill">NOTICE ⚡</span>

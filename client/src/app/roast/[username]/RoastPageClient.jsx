@@ -145,42 +145,50 @@ export default function RoastPageClient({ username }) {
             }))
           }
 
+          const isLoggedIn = !!getToken();
           createToast({
             type: 'warning',
             message: isOurLimit
               ? `⏱ Too many requests. Try again in ${seconds}.`
+              : isLoggedIn
+              ? `⚡ GitHub rate limit reached. Please wait a moment before roasting again.`
               : `GitHub public limit hit! Log in via GitHub to unlock your dedicated quota.`,
             position: 'top-center',
             duration: Math.min(retryAfter * 1000, 8000),
             showCloseButton: true,
-            cta: {
-              label: 'Login via GitHub ↗',
-              onClick: () => {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
-                window.location.href = `${apiBase}/api/auth/github`
+            ...(!isLoggedIn && {
+              cta: {
+                label: 'Login via GitHub ↗',
+                onClick: () => {
+                  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+                  window.location.href = `${apiBase}/api/auth/github`
+                },
+                autoClose: true,
               },
-              autoClose: true,
-            },
+            }),
           })
           router.push('/')
           return
         }
 
         if (err.code === 'CAPTCHA_REQUIRED' || err.code === 'CAPTCHA_FAILED') {
+          const isLoggedIn = !!getToken();
           createToast({
             type: 'warning',
-            message: err.message || 'Bot verification blocked by browser shield. Please log in with GitHub to roast!',
+            message: err.message || (isLoggedIn ? 'Bot verification check could not be completed. Please try again.' : 'Bot verification blocked by browser shield. Please log in with GitHub to roast!'),
             position: 'top-center',
             duration: 8000,
             showCloseButton: true,
-            cta: {
-              label: 'Login via GitHub ↗',
-              onClick: () => {
-                const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
-                window.location.href = `${apiBase}/api/auth/github`
+            ...(!isLoggedIn && {
+              cta: {
+                label: 'Login via GitHub ↗',
+                onClick: () => {
+                  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+                  window.location.href = `${apiBase}/api/auth/github`
+                },
+                autoClose: true,
               },
-              autoClose: true,
-            },
+            }),
           })
           router.push('/')
           return

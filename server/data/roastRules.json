@@ -1,0 +1,737 @@
+{
+  "version": "2.0.0",
+  "description": "GitRoast Comedy Engine Ruleset — 110 Curated Developer Roast Rules",
+  "totalRules": 110,
+  "rules": [
+    {
+      "id": "rule_001",
+      "category": "opener",
+      "intensity": "mild",
+      "tier": "catastrophic",
+      "text": "There is something endearing about a GitHub this chaotic — it tells a very honest story."
+    },
+    {
+      "id": "rule_002",
+      "category": "opener",
+      "intensity": "mild",
+      "tier": "catastrophic",
+      "text": "Not every developer ships, and this profile has made peace with that early on."
+    },
+    {
+      "id": "rule_003",
+      "category": "opener",
+      "intensity": "mild",
+      "tier": "rough",
+      "text": "The repos here suggest someone who loves the spark of project setup vastly more than the grind of completion."
+    },
+    {
+      "id": "rule_004",
+      "category": "opener",
+      "intensity": "mild",
+      "tier": "rough",
+      "text": "This GitHub is a work in progress under the most optimistic dictionary definition of those words."
+    },
+    {
+      "id": "rule_005",
+      "category": "opener",
+      "intensity": "mild",
+      "tier": "mediocre",
+      "text": "Not the worst GitHub seen today. That is a sentence worthy of framing on a business card."
+    },
+    {
+      "id": "rule_006",
+      "category": "opener",
+      "intensity": "mild",
+      "tier": "mediocre",
+      "text": "This profile exists, commits occasionally, and remains emotionally committed to the concept of trying."
+    },
+    {
+      "id": "rule_007",
+      "category": "opener",
+      "intensity": "mild",
+      "tier": "decent",
+      "text": "A better-than-average GitHub, which in modern software engineering is a low bar cleared with room to spare."
+    },
+    {
+      "id": "rule_008",
+      "category": "opener",
+      "intensity": "mild",
+      "tier": "decent",
+      "text": "Genuinely respectable output — which means we had to look harder for the dirt, but the material was definitely there."
+    },
+    {
+      "id": "rule_009",
+      "category": "opener",
+      "intensity": "mild",
+      "tier": "respectable",
+      "text": "A legitimately solid GitHub profile, which ironically makes roasting it much more rewarding."
+    },
+    {
+      "id": "rule_010",
+      "category": "opener",
+      "intensity": "mild",
+      "tier": "respectable",
+      "text": "One of the cleaner profiles we've inspected today. The 2021 commit logs explain why we are still holding court."
+    },
+    {
+      "id": "rule_011",
+      "category": "opener",
+      "intensity": "savage",
+      "tier": "catastrophic",
+      "text": "If giving up were an official programming language, this GitHub would be running multi-region production clusters."
+    },
+    {
+      "id": "rule_012",
+      "category": "opener",
+      "intensity": "savage",
+      "tier": "catastrophic",
+      "text": "This is less of a developer portfolio and more of a digital support group for concepts that never survived past the README."
+    },
+    {
+      "id": "rule_013",
+      "category": "opener",
+      "intensity": "savage",
+      "tier": "catastrophic",
+      "text": "Somewhere between watching a YouTube tutorial at 2x speed and typing git init lives the tragic comedy of this profile."
+    },
+    {
+      "id": "rule_014",
+      "category": "opener",
+      "intensity": "savage",
+      "tier": "rough",
+      "text": "This profile radiates the distinct energy of someone who buys an expensive guitar, learns one chord, and lists 'musician' on LinkedIn."
+    },
+    {
+      "id": "rule_015",
+      "category": "opener",
+      "intensity": "savage",
+      "tier": "rough",
+      "text": "Started with burning enthusiasm, committed once, vanished for four months — the undefeated signature loop of this profile."
+    },
+    {
+      "id": "rule_016",
+      "category": "opener",
+      "intensity": "savage",
+      "tier": "rough",
+      "text": "A masterclass in one solitary skill: typing 'Initial commit' with unshakable arrogance and never returning."
+    },
+    {
+      "id": "rule_017",
+      "category": "opener",
+      "intensity": "savage",
+      "tier": "mediocre",
+      "text": "This GitHub is the living software manifestation of 'I work best under pressure' — except the pressure has clearly never arrived."
+    },
+    {
+      "id": "rule_018",
+      "category": "opener",
+      "intensity": "savage",
+      "tier": "mediocre",
+      "text": "Technically a developer. The repos are technically applications. Everything here is technically something, barely."
+    },
+    {
+      "id": "rule_019",
+      "category": "opener",
+      "intensity": "savage",
+      "tier": "decent",
+      "text": "A surprisingly capable GitHub, which means we had to audit the commit logs to find the skeletons."
+    },
+    {
+      "id": "rule_020",
+      "category": "opener",
+      "intensity": "savage",
+      "tier": "respectable",
+      "text": "This developer actually maintains their repositories. Highly suspicious. We ran forensic scans immediately."
+    },
+    {
+      "id": "rule_021",
+      "category": "opener",
+      "intensity": "nuclear",
+      "tier": "catastrophic",
+      "text": "This GitHub is not a portfolio — it is forensic crime-scene evidence of a developer who has never completed a single thought."
+    },
+    {
+      "id": "rule_022",
+      "category": "opener",
+      "intensity": "nuclear",
+      "tier": "catastrophic",
+      "text": "Looking at this profile is like touring a cemetery where all headstones say 'initial commit' and the timestamp is 3:00 AM on Sunday."
+    },
+    {
+      "id": "rule_023",
+      "category": "opener",
+      "intensity": "nuclear",
+      "tier": "catastrophic",
+      "text": "Whoever owns this profile has elevated project abandonment from a personal flaw into a full-time architectural pattern."
+    },
+    {
+      "id": "rule_024",
+      "category": "opener",
+      "intensity": "nuclear",
+      "tier": "rough",
+      "text": "This developer's relationship with finishing tasks makes a fruit fly look like an elite long-term strategist."
+    },
+    {
+      "id": "rule_025",
+      "category": "opener",
+      "intensity": "nuclear",
+      "tier": "rough",
+      "text": "The repositories here aren't projects; they are chalk outlines where motivation suffered a violent and sudden death."
+    },
+    {
+      "id": "rule_026",
+      "category": "opener",
+      "intensity": "nuclear",
+      "tier": "rough",
+      "text": "Calling this a work in progress is an act of charitable fraud toward someone who stopped working several fiscal quarters ago."
+    },
+    {
+      "id": "rule_027",
+      "category": "opener",
+      "intensity": "nuclear",
+      "tier": "mediocre",
+      "text": "This profile achieves something extraordinary: being so aggressively, defiantly mediocre that it qualifies as an endurance sport."
+    },
+    {
+      "id": "rule_028",
+      "category": "opener",
+      "intensity": "nuclear",
+      "tier": "mediocre",
+      "text": "Not disastrous enough to be memorable, not good enough to be hired. Just floating in the purgatory of forgotten code."
+    },
+    {
+      "id": "rule_029",
+      "category": "opener",
+      "intensity": "nuclear",
+      "tier": "decent",
+      "text": "Clean output on the surface, but your old repositories are screaming from the basement and they want answers."
+    },
+    {
+      "id": "rule_030",
+      "category": "opener",
+      "intensity": "nuclear",
+      "tier": "respectable",
+      "text": "Impressive stats. Solid green wall. Yet there sits that one cringe repo from university making direct eye contact with the jury."
+    },
+    {
+      "id": "rule_031",
+      "category": "abandonment",
+      "intensity": "mild",
+      "text": "{count} repos never quite made it to version 1.0, which is secretly the industry standard anyway."
+    },
+    {
+      "id": "rule_032",
+      "category": "abandonment",
+      "intensity": "mild",
+      "text": "{pct}% of the projects here are simply taking a prolonged sabbatical — hope springs eternal."
+    },
+    {
+      "id": "rule_033",
+      "category": "abandonment",
+      "intensity": "mild",
+      "text": "You start projects with the optimism of a startup founder and maintain them with the dedication of a ghost."
+    },
+    {
+      "id": "rule_034",
+      "category": "abandonment",
+      "intensity": "mild",
+      "text": "A repo count of {count} where most folders contain nothing more than a generated .gitignore and grand hopes."
+    },
+    {
+      "id": "rule_035",
+      "category": "abandonment",
+      "intensity": "mild",
+      "text": "Having {count} unfinished repositories just means you have plenty of backlog for retirement."
+    },
+    {
+      "id": "rule_036",
+      "category": "abandonment",
+      "intensity": "mild",
+      "text": "{pct}% of your code exists in an eternal state of 'I will definitely rewrite this in Rust next weekend.'"
+    },
+    {
+      "id": "rule_037",
+      "category": "abandonment",
+      "intensity": "savage",
+      "text": "There are {count} repos here with a solitary commit saying 'initial setup' — which is less of a setup and more of a surrender."
+    },
+    {
+      "id": "rule_038",
+      "category": "abandonment",
+      "intensity": "savage",
+      "text": "{count} projects started, {count} projects preserved as public monuments to the exact minute your attention span dissolved."
+    },
+    {
+      "id": "rule_039",
+      "category": "abandonment",
+      "intensity": "savage",
+      "text": "An abandonment rate of {pct}% proves that your git workflow is 10% coding, 90% creative ghosting."
+    },
+    {
+      "id": "rule_040",
+      "category": "abandonment",
+      "intensity": "savage",
+      "text": "You create GitHub repos like browser tabs: opened in excitement, never inspected again, hogging memory until the end of time."
+    },
+    {
+      "id": "rule_041",
+      "category": "abandonment",
+      "intensity": "savage",
+      "text": "With {count} ghost projects, your GitHub profile looks less like a tech stack and more like a municipal landfill of side hustles."
+    },
+    {
+      "id": "rule_042",
+      "category": "abandonment",
+      "intensity": "savage",
+      "text": "{pct}% of these repos were abandoned before the dependencies even finished downloading in node_modules."
+    },
+    {
+      "id": "rule_043",
+      "category": "abandonment",
+      "intensity": "savage",
+      "text": "Every single one of those {count} dead repos had 'Next big SaaS' written in its mental pitch deck for about twenty minutes."
+    },
+    {
+      "id": "rule_044",
+      "category": "abandonment",
+      "intensity": "savage",
+      "text": "You have {count} repositories where the most active contributor is Dependabot silently crying into the void."
+    },
+    {
+      "id": "rule_045",
+      "category": "abandonment",
+      "intensity": "nuclear",
+      "text": "{count} repos created, {count} repos abandoned on day one, and {count} square miles of cloud storage permanently wasted."
+    },
+    {
+      "id": "rule_046",
+      "category": "abandonment",
+      "intensity": "nuclear",
+      "text": "Your {pct}% abandonment rate isn't a statistic; it's a chronic behavioral disorder masquerading as version control."
+    },
+    {
+      "id": "rule_047",
+      "category": "abandonment",
+      "intensity": "nuclear",
+      "text": "Every one of those {count} lonely commits is a digital gravestone reading: 'Here lies an idea killed by minor CSS positioning.'"
+    },
+    {
+      "id": "rule_048",
+      "category": "abandonment",
+      "intensity": "nuclear",
+      "text": "If GitHub charged rent for dead code, your unpaid balance on these {count} ghost repos would require a venture capital round."
+    },
+    {
+      "id": "rule_049",
+      "category": "abandonment",
+      "intensity": "nuclear",
+      "text": "You have abandoned {count} repositories with such ruthless velocity that Git's garbage collection is filing for worker's compensation."
+    },
+    {
+      "id": "rule_050",
+      "category": "abandonment",
+      "intensity": "nuclear",
+      "text": "{pct}% of your repositories were abandoned the exact moment you realized writing an authentication flow takes actual effort."
+    },
+    {
+      "id": "rule_051",
+      "category": "commit",
+      "intensity": "mild",
+      "text": "The commit log could use a touch more description — '{sample}' leaves quite a lot to the imagination."
+    },
+    {
+      "id": "rule_052",
+      "category": "commit",
+      "intensity": "mild",
+      "text": "Commit messages like '{sample}' suggest a developer who treats git logs like a cryptic personal diary."
+    },
+    {
+      "id": "rule_053",
+      "category": "commit",
+      "intensity": "mild",
+      "text": "We noticed '{sample}' in the history. It's short, punchy, and communicates absolutely zero technical value."
+    },
+    {
+      "id": "rule_054",
+      "category": "commit",
+      "intensity": "mild",
+      "text": "Your commit habits reflect a strong belief that future you will remember what '{sample}' actually modified."
+    },
+    {
+      "id": "rule_055",
+      "category": "commit",
+      "intensity": "mild",
+      "text": "Pushed '{sample}' with pure confidence. Not conventional commits, but certainly unconventional bravery."
+    },
+    {
+      "id": "rule_056",
+      "category": "commit",
+      "intensity": "mild",
+      "text": "Git log audit shows '{sample}'. It's poetic in a minimalist way, like abstract art nobody asked for."
+    },
+    {
+      "id": "rule_057",
+      "category": "commit",
+      "intensity": "savage",
+      "text": "Your commit messages read like someone typing with one hand while experiencing an existential panic: '{sample}'."
+    },
+    {
+      "id": "rule_058",
+      "category": "commit",
+      "intensity": "savage",
+      "text": "Someone pushed '{sample}' to a public repository that potential employers could inspect, and apparently felt peaceful."
+    },
+    {
+      "id": "rule_059",
+      "category": "commit",
+      "intensity": "savage",
+      "text": "The phrase '{sample}' appears in your git log — less of a changelog and more of an open cry for emotional rescue."
+    },
+    {
+      "id": "rule_060",
+      "category": "commit",
+      "intensity": "savage",
+      "text": "Conventional Commits? Never heard of her. We have 14 variations of 'fix', 8 of 'test', and the crowning jewel: '{sample}'."
+    },
+    {
+      "id": "rule_061",
+      "category": "commit",
+      "intensity": "savage",
+      "text": "A commit history consisting of 'wip', 'done', 'final', 'final_v2', and '{sample}'. Version control by pure delirium."
+    },
+    {
+      "id": "rule_062",
+      "category": "commit",
+      "intensity": "savage",
+      "text": "Writing '{sample}' as a commit message is proof that you treat Git as Dropbox with extra keystrokes."
+    },
+    {
+      "id": "rule_063",
+      "category": "commit",
+      "intensity": "savage",
+      "text": "Your commit history is a timeline of declining mental health, culminating neatly at '{sample}'."
+    },
+    {
+      "id": "rule_064",
+      "category": "commit",
+      "intensity": "nuclear",
+      "text": "'{sample}' is an actual commit in your history. You typed that, stared at it, executed git push, and went to sleep."
+    },
+    {
+      "id": "rule_065",
+      "category": "commit",
+      "intensity": "nuclear",
+      "text": "Any engineer inheriting your branch and reading '{sample}' in git blame will instantly resign and change careers."
+    },
+    {
+      "id": "rule_066",
+      "category": "commit",
+      "intensity": "nuclear",
+      "text": "Future digital historians will excavate '{sample}' from GitHub's servers as definitive proof that our software era was doomed."
+    },
+    {
+      "id": "rule_067",
+      "category": "commit",
+      "intensity": "nuclear",
+      "text": "You committed '{sample}' directly to main branch. The CI/CD pipeline didn't fail you; you failed the CI/CD pipeline."
+    },
+    {
+      "id": "rule_068",
+      "category": "commit",
+      "intensity": "nuclear",
+      "text": "A commit message like '{sample}' violates the Geneva Convention on software documentation."
+    },
+    {
+      "id": "rule_069",
+      "category": "commit",
+      "intensity": "nuclear",
+      "text": "If Linus Torvalds saw '{sample}' in your repository history, he would revoke Git's open-source license out of sheer disgust."
+    },
+    {
+      "id": "rule_070",
+      "category": "commit",
+      "intensity": "nuclear",
+      "text": "'{sample}' proves that your branch strategy is a high-speed collision between desperation and typing speed."
+    },
+    {
+      "id": "rule_071",
+      "category": "language",
+      "language": "JavaScript",
+      "intensity": "savage",
+      "text": "JavaScript — the language that lets you make every architectural mistake imaginable and declare it an innovative design pattern."
+    },
+    {
+      "id": "rule_072",
+      "category": "language",
+      "language": "JavaScript",
+      "intensity": "nuclear",
+      "text": "The package-lock.json in these repos is heavier than the operating system, powered entirely by 8,000 npm dependencies you've never heard of."
+    },
+    {
+      "id": "rule_073",
+      "category": "language",
+      "language": "TypeScript",
+      "intensity": "savage",
+      "text": "TypeScript selected for rock-solid type safety, yet half the codebase is held together by desperate 'as any' casts."
+    },
+    {
+      "id": "rule_074",
+      "category": "language",
+      "language": "TypeScript",
+      "intensity": "nuclear",
+      "text": "Running TypeScript with 'strict: false' and 400 'any' declarations — the software equivalent of wearing a seatbelt over your jacket without clicking it."
+    },
+    {
+      "id": "rule_075",
+      "category": "language",
+      "language": "Python",
+      "intensity": "savage",
+      "text": "Python developer — which means six abandoned virtual environments committed to git and requirements.txt untouched since pandemic lockdowns."
+    },
+    {
+      "id": "rule_076",
+      "category": "language",
+      "language": "Python",
+      "intensity": "nuclear",
+      "text": "Python chosen for AI, resulting in five Jupyter notebooks that imported pandas, made one matplotlib bar chart, and called it a machine learning breakthrough."
+    },
+    {
+      "id": "rule_077",
+      "category": "language",
+      "language": "Java",
+      "intensity": "savage",
+      "text": "Java developer — 40 design patterns for a command-line calculator, and an AbstractSingletonProxyFactoryBean nobody can explain."
+    },
+    {
+      "id": "rule_078",
+      "category": "language",
+      "language": "Java",
+      "intensity": "nuclear",
+      "text": "Enterprise Java: where three lines of business logic are buried beneath forty-seven factories, three interfaces, and an identity crisis."
+    },
+    {
+      "id": "rule_079",
+      "category": "language",
+      "language": "C++",
+      "intensity": "savage",
+      "text": "C++ detected — manual memory management on the rocks, segmentation faults handled by divine intervention, and pointers pointing nowhere."
+    },
+    {
+      "id": "rule_080",
+      "category": "language",
+      "language": "C++",
+      "intensity": "nuclear",
+      "text": "In this C++ codebase, undefined behaviour isn't a runtime error — it's an architectural lifestyle choice made at 3:00 AM."
+    },
+    {
+      "id": "rule_081",
+      "category": "language",
+      "language": "C#",
+      "intensity": "savage",
+      "text": "C# developer — an ancient .NET Framework project running in the corner that 'still works fine' and will never, ever be modernized."
+    },
+    {
+      "id": "rule_082",
+      "category": "language",
+      "language": "C#",
+      "intensity": "nuclear",
+      "text": "Dependency injection so deep that finding where the HTTP request actually gets handled requires a submarine and sonar equipment."
+    },
+    {
+      "id": "rule_083",
+      "category": "language",
+      "language": "Go",
+      "intensity": "savage",
+      "text": "Go developer — handling errors by copying 'if err != nil' 450 times per repository, which is either peak gopher discipline or Stockholm syndrome."
+    },
+    {
+      "id": "rule_084",
+      "category": "language",
+      "language": "Go",
+      "intensity": "nuclear",
+      "text": "Chosen for legendary concurrency, yet the unbuffered channels here are locked tighter than Fort Knox at midnight."
+    },
+    {
+      "id": "rule_085",
+      "category": "language",
+      "language": "Rust",
+      "intensity": "savage",
+      "text": "Rust developer — spent six weeks wrestling the borrow checker over string manipulation while the original Python script is still powering production."
+    },
+    {
+      "id": "rule_086",
+      "category": "language",
+      "language": "Rust",
+      "intensity": "nuclear",
+      "text": "Zero-cost abstractions where the real cost was your mental health, your relationships, and your compiler's CPU cycle quota."
+    },
+    {
+      "id": "rule_087",
+      "category": "language",
+      "language": "PHP",
+      "intensity": "savage",
+      "text": "PHP — declared dead every single year since 2004, yet still surviving in these repos via global variables and raw mysqli calls."
+    },
+    {
+      "id": "rule_088",
+      "category": "language",
+      "language": "PHP",
+      "intensity": "nuclear",
+      "text": "A PHP repo where error reporting is disabled with @ in production because what the server doesn't see can't hurt it."
+    },
+    {
+      "id": "rule_089",
+      "category": "language",
+      "language": "Ruby",
+      "intensity": "savage",
+      "text": "Ruby on Rails — where 'convention over configuration' was taken so far that the developer has zero idea where the database queries are originating."
+    },
+    {
+      "id": "rule_090",
+      "category": "language",
+      "language": "Ruby",
+      "intensity": "nuclear",
+      "text": "Metaprogramming so aggressively clever that even the original author requires a medium to commune with the method_missing handlers."
+    },
+    {
+      "id": "rule_091",
+      "category": "language",
+      "language": "Swift",
+      "intensity": "savage",
+      "text": "Swift — Apple's walled garden language, used here to construct iOS applications that compile solely on the author's personal MacBook."
+    },
+    {
+      "id": "rule_092",
+      "category": "language",
+      "language": "Swift",
+      "intensity": "nuclear",
+      "text": "A Swift repository dependent on CocoaPods from 2019 that will implode the second someone updates Xcode by a minor patch version."
+    },
+    {
+      "id": "rule_093",
+      "category": "language",
+      "language": "Kotlin",
+      "intensity": "savage",
+      "text": "Kotlin chosen to escape Java boilerplate, yet all the legacy Java classes remain sitting right beside it in awkward coexistence."
+    },
+    {
+      "id": "rule_094",
+      "category": "language",
+      "language": "Kotlin",
+      "intensity": "nuclear",
+      "text": "Used modern coroutines and suspend functions, only to block the UI thread with an unawaited runBlocking anyway."
+    },
+    {
+      "id": "rule_095",
+      "category": "language",
+      "language": "default",
+      "intensity": "savage",
+      "text": "Committing heavily in {lang} in today's landscape takes an unapologetic confidence that the rest of this profile has yet to substantiate."
+    },
+    {
+      "id": "rule_096",
+      "category": "closer",
+      "intensity": "mild",
+      "tier": "catastrophic",
+      "text": "There is a great engineer buried in here somewhere — they just need a rigid deadline, high-grade caffeine, and someone to hide the delete key."
+    },
+    {
+      "id": "rule_097",
+      "category": "closer",
+      "intensity": "mild",
+      "tier": "rough",
+      "text": "Just one focused, uninterrupted sprint away from a legitimate portfolio. That sprint remains unscheduled, but optimism persists."
+    },
+    {
+      "id": "rule_098",
+      "category": "closer",
+      "intensity": "mild",
+      "tier": "mediocre",
+      "text": "A profile in absolute cosmic equilibrium: started things, left things, pushed code, lived life. Aggressively, reliably normal."
+    },
+    {
+      "id": "rule_099",
+      "category": "closer",
+      "intensity": "mild",
+      "tier": "decent",
+      "text": "Doing solidly overall. 'Solid' isn't an insult — it's an objective compliment from an algorithm calibrated to destroy."
+    },
+    {
+      "id": "rule_100",
+      "category": "closer",
+      "intensity": "mild",
+      "tier": "respectable",
+      "text": "High-quality engineering on display. The early commit artifacts tell a human origin story, and everyone starts somewhere."
+    },
+    {
+      "id": "rule_101",
+      "category": "closer",
+      "intensity": "savage",
+      "tier": "catastrophic",
+      "text": "In conclusion: the repositories exist, the commits occurred, and working production deployments remain an unsubstantiated rumour."
+    },
+    {
+      "id": "rule_102",
+      "category": "closer",
+      "intensity": "savage",
+      "tier": "rough",
+      "text": "Ships nothing, starts everything, writes 'Passionate Tech Enthusiast' in the bio — the complete, authentic junior dev starter pack."
+    },
+    {
+      "id": "rule_103",
+      "category": "closer",
+      "intensity": "savage",
+      "tier": "mediocre",
+      "text": "Persistently, professionally average — an outcome requiring more sustained effort to maintain than true greatness or spectacular failure."
+    },
+    {
+      "id": "rule_104",
+      "category": "closer",
+      "intensity": "savage",
+      "tier": "decent",
+      "text": "A decent developer with one radioactive repository in the corner hoping nobody clicks the git history."
+    },
+    {
+      "id": "rule_105",
+      "category": "closer",
+      "intensity": "savage",
+      "tier": "respectable",
+      "text": "Clean architecture, good habits. You survived the roast with minimal damage — now go delete that fork you made in 2020."
+    },
+    {
+      "id": "rule_106",
+      "category": "closer",
+      "intensity": "nuclear",
+      "tier": "catastrophic",
+      "text": "This profile isn't a body of work; it's a corpse — cold, still, with an 'Initial commit' coroner tag tied to every single project."
+    },
+    {
+      "id": "rule_107",
+      "category": "closer",
+      "intensity": "nuclear",
+      "tier": "rough",
+      "text": "A GitHub portfolio that peaked at folder creation and has been coasting on that monumental achievement for three consecutive calendar years."
+    },
+    {
+      "id": "rule_108",
+      "category": "closer",
+      "intensity": "nuclear",
+      "tier": "mediocre",
+      "text": "This profile doesn't crash spectacularly; it fails silently, predictably, and at infinite scale, which is so much more devastating."
+    },
+    {
+      "id": "rule_109",
+      "category": "closer",
+      "intensity": "nuclear",
+      "tier": "decent",
+      "text": "Competent profile. But that unmaintained portfolio project from 2019 will outlive your grandchildren and keep reminding them of the truth."
+    },
+    {
+      "id": "rule_110",
+      "category": "closer",
+      "intensity": "nuclear",
+      "tier": "respectable",
+      "text": "You actually know how to code. Which makes having unmerged pull requests on your own solo projects completely inexcusable."
+    }
+  ]
+}
