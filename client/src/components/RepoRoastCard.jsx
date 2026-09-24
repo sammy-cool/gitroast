@@ -25,7 +25,7 @@ export default function RepoRoastCard({ data, onProClick }) {
   const intervalRef = useRef(null)
   const cursorTimerRef = useRef(null)
 
-  const roastText = data.roast || ''
+  const roastText = data?.roast || ''
 
   // Typewriter effect
   useEffect(() => {
@@ -118,6 +118,23 @@ export default function RepoRoastCard({ data, onProClick }) {
       })
     })
   }
+ 
+  // ── Defensive Data Guard ────────────────────────────────────
+  // ── WHAT: ──────────────────────────────────────────────────
+  // Safeguards RepoRoastCard from rendering when repo roast data is not yet loaded.
+  //
+  // ── WHY: ───────────────────────────────────────────────────
+  // Prevents unhandled TypeError crashes on data.score while respecting React Rules of Hooks.
+  //
+  // ── WHERE & WHEN TO USE: ───────────────────────────────────
+  // Positioned directly after all React hooks (useState, useRef, useEffect) have executed.
+  //
+  // ── USE CASES: ─────────────────────────────────────────────
+  // Initial page mount, repo state changes, and offline network reconnects.
+  //
+  // ── WHEN NOT TO USE: ───────────────────────────────────────
+  // Never place before React hooks.
+  if (!data) return null;
 
   const scoreColor =
     data.score < 40 ? 'var(--bad)' : data.score < 70 ? 'var(--warn)' : 'var(--good)'

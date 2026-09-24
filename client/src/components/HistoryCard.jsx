@@ -1,18 +1,39 @@
 export default function HistoryCard({ roast, index }) {
+    // ── Safe History Entry Guard ─────────────────────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Validates that the roast history entry is defined before computing dates and scores.
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // Prevents fatal client crashes if historical records are missing or partially loaded.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // In list items rendering historical profiles.
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Rendering the developer roast history timeline.
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not use if items are guaranteed non-null via strict upstream TypeScript typing.
+    if (!roast) return null
+
     const scoreColor =
         roast.score < 40 ? 'var(--bad)' :
             roast.score < 70 ? 'var(--warn)' :
                 'var(--good)'
 
-    const date = new Date(roast.createdAt)
-        .toLocaleDateString('en-US', {
+    const date = roast.createdAt
+        ? new Date(roast.createdAt).toLocaleDateString('en-US', {
             month: 'short', day: 'numeric', year: 'numeric',
         })
+        : 'Recent'
 
-    const time = new Date(roast.createdAt)
-        .toLocaleTimeString('en-US', {
+    const time = roast.createdAt
+        ? new Date(roast.createdAt).toLocaleTimeString('en-US', {
             hour: '2-digit', minute: '2-digit',
         })
+        : ''
+
+    const roastText = roast.roastText || ''
 
     return (
         <div className="history-card">
@@ -32,9 +53,9 @@ export default function HistoryCard({ roast, index }) {
             {/* ── Middle: roast snippet + date ── */}
             <div className="card-middle">
                 <p className="card-roast">
-                    &ldquo;{roast.roastText.length > 120
-                        ? roast.roastText.slice(0, 120) + '...'
-                        : roast.roastText}&rdquo;
+                    &ldquo;{roastText.length > 120
+                        ? roastText.slice(0, 120) + '...'
+                        : roastText}&rdquo;
                 </p>
                 <p className="card-meta font-mono">
                     {date} at {time}

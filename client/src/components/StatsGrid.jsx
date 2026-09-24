@@ -4,6 +4,23 @@
 // WHY stats prop: parent passes in the real GitHub data
 //     this component just renders it. Separation of concerns.
 export default function StatsGrid({ stats }) {
+    // ── Safe Stats Array Validation ─────────────────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Validates that stats is a populated array prior to mapping.
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // Prevents fatal client crashes if stats is undefined or empty.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // In any pure presentation component mapping over array props.
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Displaying developer metric highlights (commit quality, repos, followers).
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not use when rendering an explicit empty-state message is required.
+    if (!Array.isArray(stats) || stats.length === 0) return null
+
     return (
         <div className="stats-grid">
             {stats.map((stat, i) => (

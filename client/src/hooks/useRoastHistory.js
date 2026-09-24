@@ -39,24 +39,45 @@ export function useRoastHistory(username) {
     // ── Derived data ────────────────────────────────────────
     // WHY: compute these once here, not in every component
 
+    // ── Safe Metric Aggregate Computations ───────────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Derives statistical score metrics (best, worst, average, trend) from history.
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // Sanitizes scores through Number() and isNaN() filtering. If a historical document
+    // possesses a null or malformed score, Math.max/min would otherwise return NaN,
+    // polluting dashboard summary cards and charts.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // In profile history aggregation hooks and analytics pipelines.
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // History page stats cards and trend indicator pills.
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not use if raw unconverted objects must be preserved for detailed audit logs.
+    const validScores = history
+        .map(r => Number(r?.score))
+        .filter(s => !isNaN(s));
+
     // Latest vs previous roast score difference
-    const scoreTrend = history.length >= 2
-        ? history[0].score - history[1].score
+    const scoreTrend = validScores.length >= 2
+        ? validScores[0] - validScores[1]
         : null
 
     // Best (highest) developer profile score
-    const bestScore = history.length > 0
-        ? Math.max(...history.map(r => r.score))
+    const bestScore = validScores.length > 0
+        ? Math.max(...validScores)
         : null
 
     // Worst (lowest) score (maximum roast)
-    const worstScore = history.length > 0
-        ? Math.min(...history.map(r => r.score))
+    const worstScore = validScores.length > 0
+        ? Math.min(...validScores)
         : null
 
     // Average score
-    const avgScore = history.length > 0
-        ? Math.round(history.reduce((s, r) => s + r.score, 0) / history.length)
+    const avgScore = validScores.length > 0
+        ? Math.round(validScores.reduce((s, v) => s + v, 0) / validScores.length)
         : null
 
     // WHY: group roasts by month for comparison chart

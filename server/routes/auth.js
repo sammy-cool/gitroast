@@ -119,8 +119,25 @@ router.get("/github/callback", async (req, res) => {
           },
         });
         const emails = await emailRes.json();
-        // WHY: find primary verified email
-        const primary = emails.find((e) => e.primary && e.verified);
+        // ── Safe Email Array Validation ─────────────────────────────
+        // ── WHAT: ────────────────────────────────────────────────────
+        // Verifies that the GitHub /user/emails response is an array before invoking .find().
+        //
+        // ── WHY: ─────────────────────────────────────────────────────
+        // Prevents TypeError if GitHub returns an API error payload ({ message: "..." })
+        // or rate limit notice rather than the expected array of email objects.
+        //
+        // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+        // In external API consumers expecting array responses.
+        //
+        // ── USE CASES: ───────────────────────────────────────────────
+        // Ingesting user profile contact info during OAuth callback.
+        //
+        // ── WHEN NOT TO USE: ─────────────────────────────────────────
+        // Do not use when the payload is guaranteed an array by strict schema validators.
+        const primary = Array.isArray(emails)
+          ? emails.find((e) => e.primary && e.verified)
+          : null;
         email = primary?.email || null;
       } catch {
         // WHY: email is optional — never block login for it

@@ -21,7 +21,7 @@ export default function BattleCard({ data }) {
         battleRoast,
         roast1, roast2,
         stats1, stats2,
-    } = data
+    } = data || {}
 
     // WHY: higher score = better dev = loses the roast battle
     //      lower score = more roastable = the winner of shame
@@ -29,13 +29,30 @@ export default function BattleCard({ data }) {
     const score2Color = score2 < score1 ? 'var(--bad)' : 'var(--good)'
 
     const isUser1Winner = winner === user1
-    const battleTargetId = data._id || data.battleId || (user1 && user2 ? `${user1}-vs-${user2}` : null)
+    const battleTargetId = data?._id || data?.battleId || (user1 && user2 ? `${user1}-vs-${user2}` : null)
 
     useEffect(() => {
         if (battleTargetId) {
             trackBattleView(battleTargetId)
         }
     }, [battleTargetId])
+
+    // ── Defensive Data Guard ────────────────────────────────────
+    // ── WHAT: ──────────────────────────────────────────────────
+    // Guards the battle card from rendering when data is missing or incompletely deserialized.
+    //
+    // ── WHY: ───────────────────────────────────────────────────
+    // Prevents unhandled TypeErrors while strictly keeping hook call orders invariant.
+    //
+    // ── WHERE & WHEN TO USE: ───────────────────────────────────
+    // Positioned immediately after all hook calls (useState, useEffect) are complete.
+    //
+    // ── USE CASES: ─────────────────────────────────────────────
+    // Route transitions, client hydration gaps, or empty cache states.
+    //
+    // ── WHEN NOT TO USE: ───────────────────────────────────────
+    // Never place before React hooks.
+    if (!data || !user1 || !user2) return null;
 
     // ── handleShare (Viral Battle Tweet) ──────────────────────────
     // ── WHAT: Generates an engaging, provocative Twitter/X challenge post with comparative metrics.
