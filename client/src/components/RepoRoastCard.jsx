@@ -262,6 +262,29 @@ export default function RepoRoastCard({ data, onProClick }) {
         </p>
       </div>
 
+      {/* ── AI Redemption Plan for Codebase ── */}
+      {/* WHAT: Displays 3 actionable architecture fixes for this codebase */}
+      {/* WHY: Delivers immense value turning repo burn into a prioritized refactoring roadmap */}
+      {/* WHERE & WHEN TO USE: Rendered after typing completes when redemptionPlan is present */}
+      {/* USE CASES: Engineering debt remediation, hackathon improvements, open-source PRs */}
+      {/* WHEN NOT TO USE: Never render while typing is in progress or when plan is empty */}
+      {typingDone && data?.redemptionPlan && data.redemptionPlan.length > 0 && (
+        <div className="redemption-container">
+          <div className="redemption-header font-mono">
+            <span className="redemption-badge">🛠️ ARCHITECT REDEMPTION PLAN</span>
+            <span className="redemption-pill">CODEBASE REPAIRS</span>
+          </div>
+          <div className="redemption-list">
+            {data.redemptionPlan.map((item, idx) => (
+              <div key={idx} className="redemption-row">
+                <span className="redemption-index font-mono">0{idx + 1}</span>
+                <span className="redemption-text">{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Brand row & share buttons */}
       <div className="card-footer">
         <div className="card-brand font-mono">gitroast 🔥</div>
@@ -499,6 +522,60 @@ export default function RepoRoastCard({ data, onProClick }) {
           vertical-align: text-bottom;
           margin-left: 2px;
         }
+        .redemption-container {
+          padding: 1.2rem 1.5rem;
+          border-top: 1px solid var(--border);
+          background: linear-gradient(180deg, rgba(24, 12, 4, 0.45) 0%, rgba(10, 10, 10, 0.6) 100%);
+        }
+        .redemption-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+          gap: 8px;
+        }
+        .redemption-badge {
+          font-size: 11px;
+          color: #ffaa55;
+          letter-spacing: 1px;
+          font-weight: 700;
+        }
+        .redemption-pill {
+          font-size: 9px;
+          padding: 2px 7px;
+          background: rgba(255, 69, 0, 0.12);
+          border: 1px solid rgba(255, 69, 0, 0.3);
+          border-radius: 4px;
+          color: var(--fire);
+          letter-spacing: 0.8px;
+        }
+        .redemption-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .redemption-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+          padding: 8px 10px;
+          background: rgba(255, 255, 255, 0.02);
+          border: 1px solid rgba(255, 255, 255, 0.05);
+          border-radius: var(--radius-sm);
+        }
+        .redemption-index {
+          font-size: 11px;
+          color: var(--fire-warm);
+          font-weight: 700;
+          line-height: 1.4;
+          flex-shrink: 0;
+        }
+        .redemption-text {
+          font-size: 12px;
+          line-height: 1.45;
+          color: var(--text-primary);
+        }
+
         .card-footer {
           display: flex;
           justify-content: space-between;

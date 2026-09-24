@@ -116,6 +116,17 @@ function sanitizeMeta(obj, depth = 0) {
   return sanitized;
 }
 
+// ── URL Query String Sanitizer ────────────────────────────────
+// WHAT: Redacts sensitive parameters (key, token, secret, auth, code, password) from URLs.
+// WHY: Prevents credentials and API tokens in query strings from leaking into HTTP access logs.
+function sanitizeUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== "string") return rawUrl;
+  return rawUrl.replace(
+    /([?&](?:key|token|secret|auth|code|password|apikey|api_key)=)[^&]+/gi,
+    "$1[REDACTED]"
+  );
+}
+
 // ── Memory telemetry helper ───────────────────────────────────
 function getMemoryMetrics() {
   try {
@@ -325,8 +336,18 @@ function trackPathTraffic(path) {
   return dynamicallySuppressedPaths.has(path);
 }
 
+// Dedicated Health Ping Heartbeat Counter
+const HEALTH_PATHS = new Set(["/health", "/api/health"]);
+let healthPingCount = 0;
+
 // Record suppressed request into rollup store
 function recordRollup(path, duration, status) {
+  // If health ping, track in dedicated lightweight counter
+  if (HEALTH_PATHS.has(path)) {
+    healthPingCount++;
+    return;
+  }
+
   let item = rollupAccumulator.get(path);
   if (!item) {
     item = { count: 0, totalMs: 0, minMs: duration, maxMs: duration, statusCodes: {} };
@@ -339,6 +360,19 @@ function recordRollup(path, duration, status) {
   item.maxMs = Math.max(item.maxMs, duration);
   item.statusCodes[status] = (item.statusCodes[status] || 0) + 1;
 }
+
+// Dedicated Health Ping Heartbeat Summary (every 5 minutes)
+// WHY: Keeps high-frequency /health keep-alive traffic out of the route rollup
+//      while providing transparent visibility that keep-alive pings are thriving.
+setInterval(() => {
+  if (healthPingCount > 0) {
+    logger.info(
+      "Health",
+      `🏥 Keep-alive heartbeat: ${healthPingCount} pings received (all OK) in last 5m`
+    );
+    healthPingCount = 0;
+  }
+}, 5 * 60 * 1000).unref();
 
 // Periodic Rollup & Decay Check
 setInterval(() => {
@@ -418,7 +452,7 @@ function logRequest(req, res, next) {
     if (status >= 400) {
       const level = status >= 500 ? "ERROR" : "WARN";
       const ip = req.ip || req.socket?.remoteAddress || "unknown";
-      log(level, "HTTP", `${req.method} ${req.originalUrl}`, {
+      log(level, "HTTP", `${req.method} ${sanitizeUrl(req.originalUrl)}`, {
         status,
         ms: duration,
         ip,
@@ -441,7 +475,7 @@ function logRequest(req, res, next) {
     const ip = req.ip || req.socket?.remoteAddress || "unknown";
     const contentLength = res.getHeader("content-length");
 
-    log("HTTP", "HTTP", `${req.method} ${req.originalUrl}`, {
+    log("HTTP", "HTTP", `${req.method} ${sanitizeUrl(req.originalUrl)}`, {
       status,
       ms: duration,
       ip,
@@ -505,4 +539,5 @@ module.exports = {
   attachProcessHandlers,
   getDynamicLoggerStats,
   sanitizeMeta,
+  sanitizeUrl,
 };

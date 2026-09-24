@@ -9,7 +9,7 @@
 //   - Diagnoses commit smells, missing tests, and open issue graveyards.
 // ============================================================
 
-const { generateAIRoast } = require("./aiService");
+const { generateAIRepoRoast, generateAIRoast, generateAIRedemptionPlan } = require("./aiService");
 const { logger } = require("../utils/logger");
 
 const BASE_URL = "https://api.github.com";
@@ -135,28 +135,55 @@ async function analyzeRepository(owner, repoName, userToken = null, isPro = fals
 
   if (isPro) {
     try {
-      const aiPromptData = {
-        username: `${owner}/${repoName}`,
-        totalRepos: 1,
-        joinYear: new Date(repo.created_at).getFullYear(),
-        followers: repo.stargazers_count,
-        stats: [
-          { label: "Stars", value: `${repo.stargazers_count}` },
-          { label: "Open Issues", value: `${repo.open_issues_count}` },
-          { label: "Commit Quality", value: `${commitQuality}%` },
-          { label: "Test Coverage", value: hasTests ? "Present" : "None" },
-        ],
-        shameCommits: commitMessages.slice(0, 3),
+      const repoMetrics = {
+        owner,
+        repoName,
+        fullName: `${owner}/${repoName}`,
+        description: repo.description,
+        language: repo.language || "Unknown",
+        stars: repo.stargazers_count || 0,
+        forks: repo.forks_count || 0,
+        openIssues: repo.open_issues_count || 0,
         score,
         grade,
+        commitQuality,
+        codeSmells,
+        shameCommits: commitMessages.slice(0, 4),
+        monthsInactive,
+        hasTests,
       };
-      const aiText = await generateAIRoast(aiPromptData, intensity);
+      const aiText = await generateAIRepoRoast(repoMetrics, intensity);
       if (aiText) {
         finalRoast = aiText;
         roastSource = "ai";
       }
     } catch (err) {
       logger.warn("RepoRoast", "AI generation failed, using rule roast", { message: err.message });
+    }
+  }
+
+  // ── AI Redemption Plan for Repository ───────────────────────
+  // WHAT: Generates 3 humorous, high-impact architecture fixes for this codebase.
+  // WHY: Delivers immediate engineering value turning a critical roast into an improvement plan.
+  // WHERE & WHEN TO USE: Calculated on Pro repo roast requests or fallback deterministic rules.
+  // USE CASES: Engineering sprint planning, technical debt triage, and portfolio cleanups.
+  // WHEN NOT TO USE: Never throw an unhandled error if LLM fails (fail-open pattern).
+  let redemptionPlan = [];
+  if (isPro) {
+    try {
+      redemptionPlan = await generateAIRedemptionPlan({
+        fullName: `${owner}/${repoName}`,
+        language: repo.language || "Unknown",
+        stars: repo.stargazers_count || 0,
+        openIssues: repo.open_issues_count || 0,
+        hasTests,
+        commitQuality,
+        codeSmells,
+        hasReadme,
+        monthsInactive,
+      });
+    } catch (err) {
+      logger.warn("RepoRoast", "Failed to generate repo redemption plan", { message: err.message });
     }
   }
 
@@ -179,6 +206,7 @@ async function analyzeRepository(owner, repoName, userToken = null, isPro = fals
     shameCommits: commitMessages.slice(0, 4),
     roast: finalRoast,
     roastSource,
+    redemptionPlan,
     intensity,
     url: repo.html_url,
     avatarUrl: repo.owner?.avatar_url || `https://avatars.githubusercontent.com/${owner}?s=96`,

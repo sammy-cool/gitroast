@@ -132,6 +132,17 @@ const roastSchema = new mongoose.Schema(
       default: null,
     },
 
+    // ── AI Redemption Plan ─────────────────────────────────────
+    // WHAT: 3 actionable, humorous tips to help developer or repository recover from their roast.
+    // WHY: Gives positive forward momentum and value beyond pure roasting (Staff Architect insights).
+    // WHERE & WHEN TO USE: Generated on Pro roasts or AI analysis workflows.
+    // USE CASES: Displayed in RoastCard / RepoRoastCard as "Redemption Path".
+    // WHEN NOT TO USE: Never store unvalidated arbitrary user text; only string arrays.
+    redemptionPlan: {
+      type: [String],
+      default: [],
+    },
+
     // ── Reactions ────────────────────────────────────────────
     // WHAT: Stores emoji reaction counts for this roast
     // WHY object not array:

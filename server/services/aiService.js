@@ -167,6 +167,72 @@ function getWorstStat({ repoAnalysis, commitAnalysis, readme, _raw }) {
   return angles[0];
 }
 
+// ── buildRepoRoastPrompt ─────────────────────────────────────
+// ── WHAT: ────────────────────────────────────────────────────
+// Generates a dedicated comedic prompt tailored specifically for GitHub codebases and repositories.
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// 1. Repositories have architectural and operational signals (test coverage, commit messages,
+//    abandonment months, code smells, issue backlog) that differ significantly from human user bios.
+// 2. Persona: Cynical Staff Principal Architect doing a brutal code review.
+// 3. Produces high-accuracy, technically astute humor that engineering teams love sharing.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// In generateAIRepoRoast when evaluating /api/roast/repo/:owner/:repo.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// Open source code reviews, company team repo roasts, and hackathon project audits.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// Do not use for user profile roasts (use buildRoastPrompt instead).
+function buildRepoRoastPrompt(data, intensity = "savage") {
+  const {
+    fullName,
+    repoName,
+    language,
+    stars,
+    forks,
+    openIssues,
+    score,
+    grade,
+    commitQuality,
+    codeSmells = [],
+    shameCommits = [],
+    description,
+    monthsInactive = 0,
+    hasTests,
+  } = data;
+
+  const config = INTENSITY_CONFIG[intensity] || INTENSITY_CONFIG.savage;
+
+  return `You are a cynical Staff Principal Software Architect and savage comedian doing a code review of a GitHub repository.
+Intensity level: ${intensity.toUpperCase()}
+Style: ${config.style}
+Instruction: Roast the architecture, commit discipline, and coding life choices of this project.
+
+RULES:
+- Exactly 3 sentences. No bullet points, no markdown headers.
+- Sentence 1: opener — evaluate the architectural ambition vs reality of the project.
+- Sentence 2: specific roast — target their actual commit habits, missing tests, or code smells.
+- Sentence 3: closer — deliver the ultimate comedic punchline about using this code in production.
+- Make it personal to the tech stack (${language || "code"}) and repository name (${repoName || "project"}).
+- NEVER start with "This repository" or "Welcome to". Start immediately with the punch.
+- No intro, no quotes, no explanation. Just the 3-sentence review.
+
+REPOSITORY SPECS:
+Project: @${fullName} (${description || "no description provided"})
+Primary Language: ${language || "Unknown"}
+Stars: ${stars} | Forks: ${forks} | Open Issues Backlog: ${openIssues}
+Repo Health Score: ${score}/100 (Grade: ${grade})
+Commit Message Quality: ${commitQuality}%
+Automated Tests: ${hasTests ? "Present" : "ZERO automated tests detected"}
+Inactivity: ${monthsInactive > 0 ? `${monthsInactive} months since last commit` : "actively maintained chaos"}
+Flagged Smells: ${codeSmells.slice(0, 3).join("; ") || "untested architectural chaos"}
+Sample Commit Messages: ${shameCommits.slice(0, 3).map((m) => `"${m}"`).join(", ") || "none"}
+
+Write ONLY the 3-sentence architectural roast:`;
+}
+
 async function generateAIRoast(data, intensity = "savage") {
   if (!process.env.GEMINI_API_KEY) {
     logger.warn("AI", "No Gemini API key — using rule engine");
@@ -397,4 +463,219 @@ async function* generateAIRoastStream(data, intensity = "savage") {
   }
 }
 
-module.exports = { generateAIRoast, generateAIRoastStream, GEMINI_MODEL, resolveGeminiModel };
+// ── generateAIRepoRoast ───────────────────────────────────────
+// ── WHAT: ────────────────────────────────────────────────────
+// Dedicated AI code review roast engine tailored specifically for GitHub repositories.
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// 1. Repositories have unique signals (code smells, commit hygiene, missing tests, open issues)
+//    that require a distinct system prompt from individual user accounts.
+// 2. Evaluates the codebase from the persona of a cynical Staff Principal Software Architect.
+// 3. Delivers high comedic value and deep architectural insights using Gemini 3.1 Pro / 2.5 Flash.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// In /api/roast/repo/:owner/:repo when roasting a repository with Pro privileges.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// Open-source project audits, tech stack roasts, and developer team code reviews.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// Do not use for user profile roasts (use generateAIRoast instead).
+async function generateAIRepoRoast(data, intensity = "savage") {
+  if (!process.env.GEMINI_API_KEY) {
+    logger.warn("AI", "No Gemini API key for repo roast — using rule engine");
+    return null;
+  }
+
+  const config = INTENSITY_CONFIG[intensity] || INTENSITY_CONFIG.savage;
+  const prompt = buildRepoRoastPrompt(data, intensity);
+
+  try {
+    const response = await fetch(
+      `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: config.temperature,
+            topP: 0.95,
+            topK: 40,
+          },
+        }),
+        signal: AbortSignal.timeout(50000),
+      }
+    );
+
+    if (!response.ok) {
+      logger.error("AI", "Gemini repo roast error", { status: response.status, model: GEMINI_MODEL });
+      if (response.status === 404 && GEMINI_MODEL !== "gemini-2.5-flash") {
+        logger.warn("AI", `Repo roast model ${GEMINI_MODEL} returned 404, falling back to gemini-2.5-flash`);
+        try {
+          const fallbackRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                  temperature: config.temperature,
+                  topP: 0.95,
+                  topK: 40,
+                },
+              }),
+              signal: AbortSignal.timeout(50000),
+            }
+          );
+          if (fallbackRes.ok) {
+            const fbJson = await fallbackRes.json();
+            const fbRoast = fbJson?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+            if (fbRoast && fbRoast.length >= 20) {
+              return fbRoast.replace(/^["']|["']$/g, "").trim();
+            }
+          }
+        } catch (fbErr) {
+          logger.error("AI", "Gemini repo fallback failed", { message: fbErr.message });
+        }
+      }
+      return null;
+    }
+
+    const json = await response.json();
+    const roast = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!roast || roast.length < 20) return null;
+    return roast.replace(/^["']|["']$/g, "").trim();
+  } catch (err) {
+    logger.error("AI", "Gemini repo request failed", { message: err.message });
+    return null;
+  }
+}
+
+// ── generateAIRedemptionPlan ──────────────────────────────────
+// ── WHAT: ────────────────────────────────────────────────────
+// Synthesizes 3 brutally honest, funny, yet genuinely actionable tips from Gemini AI
+// on how the developer can fix their GitHub habits and redeem their profile.
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// 1. Differentiates GitRoast from standard one-dimensional insult generators.
+// 2. High retention and viral value: users love actionable "prescriptions".
+// 3. Perfect showcase for Gemini 3.1 Pro / 2.5 Flash reasoning capabilities.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// In /api/roast/:username and repository roast endpoints when Pro AI is invoked.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// "How to Fix Your GitHub" checklist, social media sharing cards, and developer portfolio audits.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// Do not block core roast streaming if redemption plan fails (fail-open pattern).
+async function generateAIRedemptionPlan(data) {
+  const isRepo = !!data?.fullName;
+  const username = data?.username || data?.fullName || "developer";
+  const { repoAnalysis, commitAnalysis, readme, _raw, totalRepos } = data || {};
+
+  if (process.env.GEMINI_API_KEY) {
+    const prompt = isRepo
+      ? `You are a Senior Principal Software Architect and code mentor who is also funny.
+Review this GitHub repository's architecture and flaws and give exactly 3 funny, blunt, but GENUINELY actionable steps to redeem this codebase.
+
+REPOSITORY DATA:
+Project: @${data.fullName}
+Language: ${data.language || "code"}
+Stars: ${data.stars || 0} | Open Issues: ${data.openIssues || 0}
+Automated Tests: ${data.hasTests ? "Present" : "ZERO tests"}
+Commit Message Quality: ${data.commitQuality || 0}%
+Flagged Smells: ${(data.codeSmells || []).slice(0, 3).join("; ") || "untested chaos"}
+
+RULES:
+- Return a JSON array of strings containing EXACTLY 3 items: ["Tip 1", "Tip 2", "Tip 3"].
+- Each tip should be 1-2 punchy sentences.
+- Make it sound like tough love: humorous, specific, and actually helpful.
+- No markdown, no intro, no code block backticks. Return ONLY the raw JSON array.`
+      : `You are a Senior Principal Software Architect and career mentor who is also funny.
+Review this developer's GitHub flaws and give them exactly 3 funny, blunt, but GENUINELY actionable steps to redeem their profile.
+
+DEVELOPER DATA:
+@${username}
+Total Repos: ${totalRepos ?? 0}
+Top Language: ${_raw?.topLanguage || "unknown"}
+Abandoned Repos: ${repoAnalysis?.abandonedCount ?? 0} of ${repoAnalysis?.totalOwn ?? 0}
+Commit Message Quality: ${commitAnalysis?.qualityScore ?? 0}% (Worst commits: ${commitAnalysis?.shameList?.slice(0, 2).join(", ") || "none"})
+README Status: ${readme?.exists ? (readme.isEmpty ? "empty" : "written") : "missing"}
+
+RULES:
+- Return a JSON array of strings containing EXACTLY 3 items: ["Tip 1", "Tip 2", "Tip 3"].
+- Each tip should be 1-2 punchy sentences.
+- Make it sound like tough love: humorous, specific, and actually helpful.
+- No markdown, no intro, no code block backticks. Return ONLY the raw JSON array.`;
+
+    try {
+      const res = await fetch(
+        `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.8,
+              topP: 0.95,
+            },
+          }),
+          signal: AbortSignal.timeout(10000),
+        }
+      );
+
+      if (res.ok) {
+        const json = await res.json();
+        let text = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        text = text.replace(/^```json\s*|```$/g, "").trim();
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed) && parsed.length >= 2) {
+          return parsed.slice(0, 3).map((item) => String(item).trim());
+        }
+      }
+    } catch (err) {
+      logger.warn("AI", "Redemption plan generation failed", { message: err.message });
+    }
+  }
+
+  // Deterministic rule fallback if AI fails or times out
+  if (isRepo) {
+    const repoFallback = [];
+    if (!data.hasTests) repoFallback.push("Add automated CI tests so production users don't have to be your QA team.");
+    if ((data.commitQuality ?? 100) < 60) repoFallback.push("Enforce commit linters to stop committing vague messages like 'wip' or 'fix'.");
+    if (!data.hasReadme) repoFallback.push("Write a comprehensive README with setup instructions and architecture diagrams.");
+    if ((data.monthsInactive ?? 0) > 6) repoFallback.push("Archive this repo if it's dead, or tag a maintenance release if it's stable.");
+    if (repoFallback.length < 3) repoFallback.push("Add a CONTRIBUTING.md guide and issue templates to professionalize the project.");
+    return repoFallback.slice(0, 3);
+  }
+
+  const fallback = [];
+  if ((repoAnalysis?.abandonedPct ?? 0) > 40) {
+    fallback.push(`Archive or delete the ${repoAnalysis?.abandonedCount || 0} abandoned repos collecting digital dust.`);
+  }
+  if ((commitAnalysis?.qualityScore ?? 0) < 60) {
+    fallback.push(`Ban yourself from writing single-word commit messages like "${commitAnalysis?.shameList?.[0] || 'fix'}" — use conventional commits.`);
+  }
+  if (!readme?.exists || readme?.isEmpty) {
+    fallback.push("Write at least one real README explaining what your code actually does and how to run it.");
+  }
+  if (fallback.length < 3) {
+    fallback.push("Pick one core project, build an automated test suite, and actually deploy it to production.");
+  }
+  return fallback.slice(0, 3);
+}
+
+module.exports = {
+  generateAIRoast,
+  generateAIRoastStream,
+  generateAIRepoRoast,
+  generateAIRedemptionPlan,
+  buildRepoRoastPrompt,
+  GEMINI_MODEL,
+  resolveGeminiModel,
+};
+

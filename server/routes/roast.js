@@ -3,7 +3,12 @@ const router = express.Router();
 const { analyzeProfile, analyzeWrapped } = require("../services/githubService");
 const { analyzeRepository } = require("../services/repoRoastService");
 const { generateRoast } = require("../services/roastEngine");
-const { generateAIRoast, generateAIRoastStream, GEMINI_MODEL } = require("../services/aiService");
+const {
+  generateAIRoast,
+  generateAIRoastStream,
+  generateAIRedemptionPlan,
+  GEMINI_MODEL,
+} = require("../services/aiService");
 const { optionalAuth, requirePro } = require("../middleware/auth");
 const { verifyCaptcha } = require("../middleware/captcha");
 const Roast = require("../models/Roast");
@@ -276,11 +281,26 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
       res.write(`event: chunk\ndata: ${JSON.stringify({ text: fullRoast })}\n\n`);
     }
 
+    // ── AI Redemption Plan ─────────────────────────────────────
+    // WHAT: Generates 3 humorous, high-impact career/code tips for the user.
+    // WHY: Provides positive redemption value turning roast into an actionable improvement roadmap.
+    // WHERE & WHEN TO USE: Attached to Pro user roasts or fallback rules.
+    // USE CASES: Displayed in RoastCard as "Architect Redemption Plan".
+    // WHEN NOT TO USE: Never fail the roast if AI tips fail (fail-open pattern).
+    let redemptionPlan = [];
+    if (isPro) {
+      try {
+        redemptionPlan = await generateAIRedemptionPlan(data);
+      } catch (e) {
+        logger.warn("RoastStream", "Failed to generate redemption plan", { message: e.message });
+      }
+    }
+
     // 2. Persist to MongoDB
     // ── Full-Schema SSE Stream Persistence ───────────────────────
     // ── WHAT: ────────────────────────────────────────────────────
     // Persists the finalized streaming roast document to MongoDB with complete metadata:
-    // attribution (roastedBy), language tags, telemetry model, snapshot, and Pro flag.
+    // attribution (roastedBy), language tags, telemetry model, snapshot, redemptionPlan, and Pro flag.
     //
     // ── WHY: ─────────────────────────────────────────────────────
     // Guarantees 100% schema parity between the SSE streaming route and standard atomic REST route.
@@ -318,6 +338,7 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
       stats: data.stats,
       shameCommits: data.shameCommits,
       bioContrast: data.bioContrast || {},
+      redemptionPlan,
       isPro,
     });
 
@@ -337,6 +358,7 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
         roastId: newRoast._id,
         fullRoast,
         roastSource,
+        redemptionPlan,
       })}\n\n`
     );
     res.end();
@@ -425,6 +447,22 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
     data.roastSource = roastSource;
     data.intensity = intensity; // WHY: frontend can show intensity badge
 
+    // ── AI Redemption Plan ─────────────────────────────────────
+    // WHAT: Generates 3 humorous, high-impact career/code tips for the user.
+    // WHY: Delivers immediate engineering value turning a critical roast into an improvement plan.
+    // WHERE & WHEN TO USE: Attached to Pro user roasts or fallback rules.
+    // USE CASES: Displayed in RoastCard as "Architect Redemption Plan".
+    // WHEN NOT TO USE: Never fail the roast if AI tips fail (fail-open pattern).
+    let redemptionPlan = [];
+    if (isPro) {
+      try {
+        redemptionPlan = await generateAIRedemptionPlan(data);
+      } catch (e) {
+        logger.warn("Roast", "Failed to generate redemption plan", { message: e.message });
+      }
+    }
+    data.redemptionPlan = redemptionPlan;
+
     // ── Save to MongoDB ───────────────────────────────────
     try {
       const savedRoast = await Roast.create({
@@ -451,6 +489,7 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
         stats: data.stats,
         shameCommits: data.shameCommits,
         bioContrast: data.bioContrast || {},
+        redemptionPlan,
         isPro,
       });
       data.roastId = savedRoast._id;

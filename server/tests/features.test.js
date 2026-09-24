@@ -1043,3 +1043,141 @@ describe("AI Engine — Model Parity & Dynamic Configuration", () => {
     });
 });
 
+describe("Feature #9 — Logger URL Query Sanitizer & Heartbeat Tracking", () => {
+    // ── WHAT: Validates URL query string credential redaction in the HTTP access logger.
+    // ── WHY: Ensures keys, tokens, and secrets in URL queries never leak into persistent logs.
+    // ── WHERE & WHEN TO USE: In access log middleware and URL processing utilities.
+    // ── USE CASES: Protecting Render and Vercel log streams from credential contamination.
+    // ── WHEN NOT TO USE: Do not call on non-URL plain strings.
+    const { sanitizeUrl } = require("../utils/logger");
+
+    it("should export sanitizeUrl function", () => {
+        assert.equal(typeof sanitizeUrl, "function");
+    });
+
+    it("should redact sensitive query parameters (key, token, secret, auth, code, password, apikey)", () => {
+        const sensitiveUrl = "/api/test?user=octocat&key=AIzaSyD-123456789&page=1";
+        const sanitized = sanitizeUrl(sensitiveUrl);
+        assert.equal(sanitized, "/api/test?user=octocat&key=[REDACTED]&page=1");
+
+        const multiSensitive = "/v1/webhook?token=ghp_secret987&apikey=xyz123&code=authcode456";
+        const multiSanitized = sanitizeUrl(multiSensitive);
+        assert.equal(multiSanitized, "/v1/webhook?token=[REDACTED]&apikey=[REDACTED]&code=[REDACTED]");
+    });
+
+    it("should preserve harmless URLs without sensitive parameters", () => {
+        const safeUrl = "/api/roast/torvalds?intensity=nuclear&limit=10";
+        assert.equal(sanitizeUrl(safeUrl), safeUrl);
+    });
+
+    it("should handle null, undefined, and non-string inputs safely", () => {
+        assert.equal(sanitizeUrl(null), null);
+        assert.equal(sanitizeUrl(undefined), undefined);
+        assert.equal(sanitizeUrl(42), 42);
+    });
+});
+
+describe("Feature #10 — Gemini AI Repository Code Review & Redemption Engine", () => {
+    // ── WHAT: Validates repository architectural prompts, redemption plan generation, and model schema.
+    // ── WHY: Verifies Gemini 3.1 Pro / 2.5 Flash repo reviews and actionable advice workflows.
+    // ── WHERE & WHEN TO USE: In unit tests verifying AI and repository analysis integrity.
+    // ── USE CASES: Checking repo roast prompt synthesis and 3-step redemption plan fallback rules.
+    // ── WHEN NOT TO USE: Do not mock production API responses without matching schema shape.
+    const {
+        buildRepoRoastPrompt,
+        generateAIRepoRoast,
+        generateAIRedemptionPlan,
+    } = require("../services/aiService");
+    const Roast = require("../models/Roast");
+
+    it("should build a comprehensive architectural prompt for repository roasts", () => {
+        const repoData = {
+            fullName: "octocat/Spoon-Knife",
+            repoName: "Spoon-Knife",
+            language: "JavaScript",
+            stars: 12000,
+            forks: 135000,
+            openIssues: 450,
+            score: 35,
+            grade: "D",
+            commitQuality: 40,
+            codeSmells: ["Zero automated tests", "Vague commit messages"],
+            shameCommits: ["fix", "wip", "asdf"],
+            description: "This repo is that fork demo project",
+            monthsInactive: 14,
+            hasTests: false,
+        };
+
+        const prompt = buildRepoRoastPrompt(repoData, "savage");
+        assert.ok(prompt.includes("octocat/Spoon-Knife"), "Prompt must include repo full name");
+        assert.ok(prompt.includes("JavaScript"), "Prompt must include language");
+        assert.ok(prompt.includes("ZERO automated tests detected"), "Prompt must highlight missing tests");
+        assert.ok(prompt.includes("14 months since last commit"), "Prompt must reflect inactivity");
+    });
+
+    it("should return null for generateAIRepoRoast when GEMINI_API_KEY is unset", async () => {
+        const origKey = process.env.GEMINI_API_KEY;
+        try {
+            delete process.env.GEMINI_API_KEY;
+            const result = await generateAIRepoRoast({ fullName: "test/repo" });
+            assert.equal(result, null, "Should return null if no API key is present");
+        } finally {
+            process.env.GEMINI_API_KEY = origKey;
+        }
+    });
+
+    it("should generate a 3-step redemption plan using deterministic fallback for profiles", async () => {
+        const profileData = {
+            username: "spaghetti_coder",
+            totalRepos: 15,
+            repoAnalysis: { abandonedCount: 10, totalOwn: 12, abandonedPct: 83 },
+            commitAnalysis: { qualityScore: 35, shameList: ["fix", "update"] },
+            readme: { exists: false, isEmpty: true },
+        };
+
+        const plan = await generateAIRedemptionPlan(profileData);
+        assert.ok(Array.isArray(plan), "Redemption plan must be an array");
+        assert.equal(plan.length, 3, "Plan must contain exactly 3 tips");
+        assert.ok(plan[0].includes("abandoned repos"), "Tip 1 should address abandoned repos");
+        assert.ok(plan[1].includes("commit messages"), "Tip 2 should address commit messages");
+        assert.ok(plan[2].includes("README"), "Tip 3 should address README status");
+    });
+
+    it("should generate a 3-step redemption plan using deterministic fallback for repositories", async () => {
+        const repoData = {
+            fullName: "chaos/monolith",
+            hasTests: false,
+            commitQuality: 30,
+            hasReadme: false,
+            monthsInactive: 12,
+        };
+
+        const plan = await generateAIRedemptionPlan(repoData);
+        assert.ok(Array.isArray(plan), "Repo redemption plan must be an array");
+        assert.equal(plan.length, 3, "Plan must contain exactly 3 tips");
+        assert.ok(plan[0].includes("automated CI tests"), "Tip 1 should address automated CI tests");
+        assert.ok(plan[1].includes("commit linters"), "Tip 2 should address commit quality");
+        assert.ok(plan[2].includes("README"), "Tip 3 should address README documentation");
+    });
+
+    it("should verify Roast model schema supports redemptionPlan field", () => {
+        const roast = new Roast({
+            username: "redemption_tester",
+            score: 55,
+            grade: "C",
+            roastText: "Writing code like it is 1999.",
+            redemptionPlan: [
+                "Delete node_modules from git history.",
+                "Write unit tests with Jest.",
+                "Add an MIT license.",
+            ],
+        });
+
+        assert.equal(roast.redemptionPlan.length, 3);
+        assert.equal(roast.redemptionPlan[0], "Delete node_modules from git history.");
+        assert.equal(roast.redemptionPlan[1], "Write unit tests with Jest.");
+        assert.equal(roast.redemptionPlan[2], "Add an MIT license.");
+    });
+});
+
+
