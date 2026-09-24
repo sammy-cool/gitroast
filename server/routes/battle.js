@@ -7,6 +7,14 @@ const { optionalAuth } = require("../middleware/auth");
 const { verifyCaptcha } = require("../middleware/captcha");
 const { logger } = require("../utils/logger");
 
+const mongoose = require("mongoose");
+const Battle = require("../models/Battle");
+
+// In-memory reaction deduplication cache (ip:id:type -> true)
+const battleReactionCache = new Map();
+// WHY .unref(): prevents background interval from blocking process shutdown/tests
+setInterval(() => battleReactionCache.clear(), 24 * 60 * 60 * 1000).unref();
+
 // ─── GET /api/battle/:user1/vs/:user2 ────────────────────
 // WHY: GET not POST — results are cacheable + shareable URLs work
 router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) => {
@@ -40,6 +48,42 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
     const token = req.user?.githubAccessToken || null;
     const result = await runBattle(user1, user2, token);
 
+    // ── Save or update battle in MongoDB to persist reactions ──
+    const norm1 = user1.toLowerCase();
+    const norm2 = user2.toLowerCase();
+
+    try {
+      let battleDoc = await Battle.findOne({ user1: norm1, user2: norm2 });
+      if (battleDoc) {
+        battleDoc.score1 = result.score1;
+        battleDoc.score2 = result.score2;
+        battleDoc.grade1 = result.grade1;
+        battleDoc.grade2 = result.grade2;
+        battleDoc.winner = result.winner;
+        battleDoc.loser = result.loser;
+        battleDoc.roast1 = result.roast1;
+        battleDoc.roast2 = result.roast2;
+        battleDoc.battleRoast = result.battleRoast;
+        battleDoc.stats1 = result.stats1;
+        battleDoc.stats2 = result.stats2;
+        await battleDoc.save();
+      } else {
+        battleDoc = await Battle.create({
+          user1: norm1,
+          user2: norm2,
+          ...result,
+        });
+      }
+
+      result._id = battleDoc._id;
+      result.battleId = battleDoc._id;
+      result.reactions = battleDoc.reactions || { relatable: 0, destroyed: 0, savage: 0 };
+    } catch (dbErr) {
+      // Non-blocking: if MongoDB is temporarily disconnected, return computed battle
+      logger.warn("Battle", "Failed to persist battle in DB", { message: dbErr.message });
+      result.reactions = { relatable: 0, destroyed: 0, savage: 0 };
+    }
+
     return res.status(200).json({ success: true, data: result });
   } catch (err) {
     if (err.message === "ORGANIZATION_NOT_SUPPORTED" || err.code === "ORGANIZATION_NOT_SUPPORTED") {
@@ -64,6 +108,142 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
     return res.status(500).json({
       error: "SERVER_ERROR",
       message: "Battle failed. Both developers live to code another day.",
+    });
+  }
+});
+
+// ─── POST /api/battle/:id/react ───────────────────────────
+// WHAT: Records emoji reaction (relatable/destroyed/savage) for a battle
+router.post("/:id/react", async (req, res) => {
+  const { id } = req.params;
+  const { type } = req.body;
+
+  const allowed = ["relatable", "destroyed", "savage"];
+  if (!type || !allowed.includes(type)) {
+    return res.status(400).json({
+      error: "INVALID_TYPE",
+      message: `type must be one of: ${allowed.join(", ")}`,
+    });
+  }
+
+  const ip =
+    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+    req.ip ||
+    req.socket.remoteAddress ||
+    "unknown";
+
+  const cacheKey = `${ip}:${id}:${type}`;
+  if (battleReactionCache.has(cacheKey)) {
+    return res.status(200).json({
+      success: true,
+      duplicate: true,
+      message: "Already reacted to this battle.",
+    });
+  }
+
+  try {
+    let updated = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      updated = await Battle.addReaction(id, type);
+    } else if (id.includes("-vs-")) {
+      const [u1, u2] = id.split("-vs-");
+      const norm1 = (u1 || "").trim().toLowerCase();
+      const norm2 = (u2 || "").trim().toLowerCase();
+      const battle = await Battle.findOne({
+        $or: [
+          { user1: norm1, user2: norm2 },
+          { user1: norm2, user2: norm1 },
+        ],
+      });
+      if (battle) {
+        updated = await Battle.addReaction(battle._id, type);
+      }
+    }
+
+    if (!updated) {
+      return res.status(404).json({
+        error: "BATTLE_NOT_FOUND",
+        message: "Battle not found.",
+      });
+    }
+
+    if (battleReactionCache.size >= 50000) battleReactionCache.clear();
+    battleReactionCache.set(cacheKey, true);
+
+    return res.status(200).json({
+      success: true,
+      reactions: updated.reactions,
+    });
+  } catch (err) {
+    logger.error("Battle", "Save reaction failed", { message: err.message });
+    return res.status(500).json({
+      error: "SERVER_ERROR",
+      message: "Could not save reaction.",
+    });
+  }
+});
+
+// ─── POST /api/battle/:user1/vs/:user2/react ─────────────
+// WHAT: Convenience slug endpoint to react to a battle by username pair
+router.post("/:user1/vs/:user2/react", async (req, res) => {
+  const { user1, user2 } = req.params;
+  const { type } = req.body;
+
+  const allowed = ["relatable", "destroyed", "savage"];
+  if (!type || !allowed.includes(type)) {
+    return res.status(400).json({
+      error: "INVALID_TYPE",
+      message: `type must be one of: ${allowed.join(", ")}`,
+    });
+  }
+
+  const ip =
+    req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
+    req.ip ||
+    req.socket.remoteAddress ||
+    "unknown";
+
+  const norm1 = (user1 || "").toLowerCase();
+  const norm2 = (user2 || "").toLowerCase();
+  const cacheKey = `${ip}:${norm1}-vs-${norm2}:${type}`;
+
+  if (battleReactionCache.has(cacheKey)) {
+    return res.status(200).json({
+      success: true,
+      duplicate: true,
+      message: "Already reacted to this battle.",
+    });
+  }
+
+  try {
+    const battle = await Battle.findOne({
+      $or: [
+        { user1: norm1, user2: norm2 },
+        { user1: norm2, user2: norm1 },
+      ],
+    });
+
+    if (!battle) {
+      return res.status(404).json({
+        error: "BATTLE_NOT_FOUND",
+        message: "Battle not found. Run the battle first before reacting.",
+      });
+    }
+
+    const updated = await Battle.addReaction(battle._id, type);
+
+    if (battleReactionCache.size >= 50000) battleReactionCache.clear();
+    battleReactionCache.set(cacheKey, true);
+
+    return res.status(200).json({
+      success: true,
+      reactions: updated.reactions,
+    });
+  } catch (err) {
+    logger.error("Battle", "Save slug reaction failed", { message: err.message });
+    return res.status(500).json({
+      error: "SERVER_ERROR",
+      message: "Could not save reaction.",
     });
   }
 });

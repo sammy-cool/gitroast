@@ -1,49 +1,62 @@
 // ============================================================
-// GITROAST — Universal Server Logger
+// GITROAST — Universal Server Logger & Dynamic Telemetry Engine
 // ============================================================
-// WHAT: Centralized structured logging utility for the entire backend.
-//       Captures every event — HTTP requests, errors, warnings, debug info.
+// WHAT: Centralized structured logging and dynamic telemetry utility for
+//       the entire backend. Captures HTTP requests, errors, warnings,
+//       and runtime telemetry with zero external dependencies.
 //
-// DESIGN PRINCIPLES:
-//   • Structured JSON in production — parseable by Datadog, Grafana, ELK, etc.
-//   • Coloured readable text in development — instant visual triage
-//   • Zero external dependencies — raw ANSI codes, native crypto.randomUUID()
-//   • RFC 5424 numeric severity levels — enables numeric filtering in log drains
-//   • Request correlation via X-Request-Id — trace a single request across
-//     multiple log lines (middleware → route → service → error handler)
-//   • High-standard metadata — pid, hostname, service, version for production ops
-//   • res.on("finish") instead of res.json monkey-patch — captures ALL response
-//     types (JSON, HTML, redirects, streams, empty 204s, errors)
-//   • Health check suppression with periodic summary — noise-free Render logs
-//   • Process-level crash catchers — uncaughtException, unhandledRejection, SIGTERM
+// DESIGN PRINCIPLES & INDUSTRY STANDARDS:
+//   • RFC 5424 severity levels: Numeric severity (3=ERROR, 4=WARN, 6=INFO/HTTP, 7=DEBUG)
+//     enabling numeric filtering in CloudWatch, Grafana Loki, Datadog.
+//   • OpenTelemetry (OTel) & ECS standard metadata:
+//     - traceId (derived from X-Request-Id / UUID) & spanId (16-hex characters)
+//     - service identity (service, version, env, hostname, pid, uptime)
+//     - memory health (heapUsedMb, heapTotalMb)
+//     - client telemetry (ip, userAgent, method, route, status, durationMs, bytes)
+//   • Sensitive Data Sanitization:
+//     - Automatically redacts authorization headers, bearer tokens, passwords,
+//       API keys, cookies, and secret fields from all logged metadata.
+//   • Dynamic Log Suppression & Intelligent Rollup:
+//     - Automatically monitors request frequency per route in a sliding window.
+//     - High-frequency endpoints (e.g. /health pings every 5s, /api/roast/feed polls)
+//       are dynamically identified and their successful (2xx/3xx) individual lines
+//       are automatically suppressed to eliminate Render log noise and save bandwidth.
+//     - Safety Guarantee: 4xx and 5xx errors are NEVER suppressed — logged immediately.
+//     - Periodic Rollup Aggregation: Suppressed requests are summarized every 2m with
+//       hit counts, avg response times, and status distributions.
+//     - Dynamic Traffic Decay: Automatically restores individual logging if route
+//       traffic drops back below threshold.
+//   • Non-blocking & Leak-proof:
+//     - Native process.stdout/stderr streams with zero sync disk I/O.
+//     - All background intervals use .unref() to never block process exit or tests.
+//     - In-memory tracker bounded with strict capacity limits (LRU-style pruning).
 //
-// PERFORMANCE:
-//   • No synchronous I/O beyond process.stdout/stderr.write (Node's default)
-//   • Health pings skip the entire middleware (early return, zero closures)
-//   • format() uses string concatenation in dev (faster than template literals for
-//     long strings) and JSON.stringify in prod (native C++ binding)
-//   • Single object spread in production format — no nested stringify calls
-//   • .unref() on all intervals — never blocks process exit
-//
-// WHERE: Used by errorHandler.js, all routes, and process-level handlers.
+// WHERE: Used by errorHandler.js, index.js, and all service/route modules.
 //        Imported as: const { logger, logRequest, attachProcessHandlers } = require('../utils/logger')
 // ============================================================
 
-const { randomUUID } = require("crypto");
+const { randomUUID, randomBytes } = require("crypto");
 const os = require("os");
 
 // ── Service metadata (resolved once at module load) ───────────
-// WHY: log aggregators use service/hostname/pid to group and filter logs
-//      across multiple containers, deploys, and horizontally scaled instances.
+const packageJson = (() => {
+  try {
+    return require("../package.json");
+  } catch {
+    return { version: "1.0.0" };
+  }
+})();
+
 const SERVICE_META = {
   service: "gitroast-api",
+  version: packageJson.version || "1.0.0",
   hostname: os.hostname(),
   pid: process.pid,
   nodeVersion: process.version,
+  env: process.env.NODE_ENV || "development",
 };
 
-// WHY 'ansi-colors-free alternative': use raw ANSI codes — zero dependency
-// WHAT: Terminal color codes for each log level — visual scanning in dev
+// Terminal color codes for visual triage in development
 const COLORS = {
   reset: "\x1b[0m",
   red: "\x1b[31m",
@@ -56,11 +69,7 @@ const COLORS = {
   bold: "\x1b[1m",
 };
 
-// ── Log level definitions ─────────────────────────────────────
-// WHY RFC 5424 numeric severity:
-//   Log aggregators (Datadog, Grafana Loki, CloudWatch) support numeric
-//   filtering: severity <= 4 shows only WARN and above.
-//   Emoji + color = dev scanning; numeric severity = prod filtering.
+// RFC 5424 numeric severity levels
 const LEVELS = {
   ERROR: { severity: 3, emoji: "🔴", color: COLORS.red, label: "ERROR" },
   WARN: { severity: 4, emoji: "⚠️", color: COLORS.yellow, label: "WARN" },
@@ -69,22 +78,70 @@ const LEVELS = {
   DEBUG: { severity: 7, emoji: "🔍", color: COLORS.cyan, label: "DEBUG" },
 };
 
-// ── Environment detection (cached once) ───────────────────────
 const IS_PROD = process.env.NODE_ENV === "production";
-const IS_TEST = process.env.NODE_ENV === "test";
 
-// ── Core formatter ────────────────────────────────────────────
-// WHAT: Formats a log entry as structured JSON in production,
-//       coloured readable text in development
-// WHY JSON in prod: Render log drains and tools parse JSON natively
-//     coloured text in dev: readable at a glance in terminal
+// ── Sensitive Key Sanitization ────────────────────────────────
+// WHY: Prevents credentials, authorization tokens, session cookies, and API keys
+//      from leaking into log drains, CloudWatch, Datadog, or external log stores.
+const SENSITIVE_KEY_REGEX = /authorization|password|token|secret|cookie|apikey|api_key|credential|githubaccesstoken|signature|key/i;
+
+function sanitizeMeta(obj, depth = 0) {
+  if (!obj || typeof obj !== "object" || depth > 4) return obj;
+
+  if (obj instanceof Error) {
+    return {
+      name: obj.name,
+      message: obj.message,
+      code: obj.code,
+      stack: obj.stack,
+    };
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => sanitizeMeta(item, depth + 1));
+  }
+
+  const sanitized = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (SENSITIVE_KEY_REGEX.test(key)) {
+      sanitized[key] = "[REDACTED]";
+    } else if (typeof val === "string" && val.startsWith("Bearer ") && val.length > 12) {
+      sanitized[key] = "Bearer [REDACTED]";
+    } else if (typeof val === "object" && val !== null) {
+      sanitized[key] = sanitizeMeta(val, depth + 1);
+    } else {
+      sanitized[key] = val;
+    }
+  }
+  return sanitized;
+}
+
+// ── Memory telemetry helper ───────────────────────────────────
+function getMemoryMetrics() {
+  try {
+    const mem = process.memoryUsage();
+    return {
+      heapUsedMb: Math.round((mem.heapUsed / 1024 / 1024) * 10) / 10,
+      heapTotalMb: Math.round((mem.heapTotal / 1024 / 1024) * 10) / 10,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+// ── Core Formatter ────────────────────────────────────────────
+// WHAT: Formats structured JSON in production (parseable by Datadog, ELK, CloudWatch)
+//       and readable coloured text in development.
 function format(level, context, message, meta = {}) {
   const ts = new Date().toISOString();
   const levelData = LEVELS[level] || LEVELS.INFO;
+  const cleanMeta = sanitizeMeta(meta);
 
   if (IS_PROD) {
-    // WHY: structured JSON — parseable by log aggregators (Datadog, etc.)
-    // WHY spread order: base fields first, then meta overrides (requestId, etc.)
+    // OpenTelemetry standard fields: traceId, spanId, resource attributes
+    const traceId = cleanMeta.traceId || cleanMeta.requestId || undefined;
+    const spanId = cleanMeta.spanId || undefined;
+
     return JSON.stringify({
       ts,
       level: levelData.label,
@@ -92,151 +149,307 @@ function format(level, context, message, meta = {}) {
       context,
       message,
       ...SERVICE_META,
-      ...meta,
+      uptimeSec: Math.round(process.uptime()),
+      traceId,
+      spanId,
+      ...cleanMeta,
     });
   }
 
-  // WHY: coloured format in development — faster to read
+  // Coloured developer format for instant visual scanning
   const color = levelData.color;
   const emoji = levelData.emoji;
   const reset = COLORS.reset;
   const grey = COLORS.grey;
-  const metaStr = Object.keys(meta).length
-    ? " " + grey + JSON.stringify(meta) + reset
+  const metaStr = Object.keys(cleanMeta).length
+    ? " " + grey + JSON.stringify(cleanMeta) + reset
     : "";
 
-  return grey + ts + reset + " " + emoji + " " + color + "[" + levelData.label + "]" + reset + " " + color + "[" + context + "]" + reset + " " + message + metaStr;
+  return (
+    grey +
+    ts +
+    reset +
+    " " +
+    emoji +
+    " " +
+    color +
+    "[" +
+    levelData.label +
+    "]" +
+    reset +
+    " " +
+    color +
+    "[" +
+    context +
+    "]" +
+    reset +
+    " " +
+    message +
+    metaStr
+  );
 }
 
-// ── Public API ────────────────────────────────────────────────
-// WHAT: log(level, context, message, meta?)
-//       The base function — all others call this.
+// ── Base Log Output ───────────────────────────────────────────
 function log(level, context, message, meta = {}) {
   const entry = format(level, context, message, meta);
   if (level === "ERROR") {
-    // WHY stderr: errors go to stderr stream — separate from stdout in Render
-    //     allows error filtering without stdout noise
     process.stderr.write(entry + "\n");
   } else {
     process.stdout.write(entry + "\n");
   }
 }
 
-// ── Convenience methods ───────────────────────────────────────
-// WHY: shorthand methods so routes don't repeat the level string
-//      logger.info('Auth', 'User logged in', { userId }) is cleaner than
-//      log('INFO', 'Auth', 'User logged in', { userId })
+// ── Log Throttling / Deduplication Engine ─────────────────────
+// WHY: If a repetitive warning or error fires 100 times in 5 seconds (e.g. repeated
+//      timeout or database retry), throttle it to prevent console buffer flooding.
+const messageThrottle = new Map();
+const THROTTLE_WINDOW_MS = 5000;
+
+function throttledLog(level, context, message, meta = {}) {
+  const key = `${level}:${context}:${message}`;
+  const now = Date.now();
+  const entry = messageThrottle.get(key);
+
+  if (!entry || now - entry.firstSeen > THROTTLE_WINDOW_MS) {
+    if (entry && entry.count > 1) {
+      log(
+        level,
+        context,
+        `[Suppressed ${entry.count - 1} duplicate "${message}" occurrences in last ${Math.round((now - entry.firstSeen) / 1000)}s]`
+      );
+    }
+    messageThrottle.set(key, { firstSeen: now, count: 1 });
+    log(level, context, message, meta);
+  } else {
+    entry.count++;
+  }
+}
+
+// Prune stale throttles periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of messageThrottle.entries()) {
+    if (now - val.firstSeen > THROTTLE_WINDOW_MS * 2) {
+      messageThrottle.delete(key);
+    }
+  }
+}, 30000).unref();
+
+// ── Public Logger Object ──────────────────────────────────────
 const logger = {
   info: (ctx, msg, meta) => log("INFO", ctx, msg, meta),
-  warn: (ctx, msg, meta) => log("WARN", ctx, msg, meta),
-  error: (ctx, msg, meta) => log("ERROR", ctx, msg, meta),
+  warn: (ctx, msg, meta) => throttledLog("WARN", ctx, msg, meta),
+  error: (ctx, msg, meta) => throttledLog("ERROR", ctx, msg, meta),
   debug: (ctx, msg, meta) => {
-    // WHY: debug logs only in development — zero noise in production
-    if (!IS_PROD) {
-      log("DEBUG", ctx, msg, meta);
-    }
+    if (!IS_PROD) log("DEBUG", ctx, msg, meta);
   },
-  // WHY child(): creates a scoped logger that automatically injects a requestId
-  //     into every log call — eliminates manual requestId passing through service layers.
-  //     Usage: const reqLog = logger.child({ requestId: req.id }); reqLog.info('Ctx', 'msg');
+  // Child logger with bound context/tracing
   child: (defaults = {}) => ({
     info: (ctx, msg, meta) => log("INFO", ctx, msg, { ...defaults, ...meta }),
-    warn: (ctx, msg, meta) => log("WARN", ctx, msg, { ...defaults, ...meta }),
-    error: (ctx, msg, meta) => log("ERROR", ctx, msg, { ...defaults, ...meta }),
+    warn: (ctx, msg, meta) => throttledLog("WARN", ctx, msg, { ...defaults, ...meta }),
+    error: (ctx, msg, meta) => throttledLog("ERROR", ctx, msg, { ...defaults, ...meta }),
     debug: (ctx, msg, meta) => {
-      if (!IS_PROD) {
-        log("DEBUG", ctx, msg, { ...defaults, ...meta });
-      }
+      if (!IS_PROD) log("DEBUG", ctx, msg, { ...defaults, ...meta });
     },
   }),
 };
 
-// ── HTTP Request Logger (Express middleware) ──────────────────
-// WHAT: Logs every incoming HTTP request with method, path, status, duration,
-//       response size, user-agent, and a unique correlation requestId.
-//
-// WHY res.on("finish") instead of res.json monkey-patch:
-//   • Captures ALL response types — JSON, HTML, redirects, 204 No Content,
-//     stream errors, file sends — not just res.json() calls.
-//   • Non-intrusive — does not modify res.json or any response method.
-//   • Standard Node.js EventEmitter pattern — stable across Express versions.
-//   • Zero risk of breaking middleware that wraps res.json (e.g. compression).
-//
-// WHY requestId (X-Request-Id):
-//   • Enables end-to-end request tracing across multiple log lines.
-//   • If the upstream proxy (Render, Cloudflare) sends X-Request-Id, reuse it.
-//   • Otherwise generate a UUID v4 via crypto.randomUUID() (native, fast).
-//   • Attach to req.id AND set on response header — visible in browser DevTools.
+// ============================================================
+// DYNAMIC LOG SUPPRESSION & ROLLUP ENGINE
+// ============================================================
+// HOW IT WORKS:
+//   1. Static paths (/health, /api/health) are suppressed from day one.
+//   2. Incoming paths are tracked in a 60-second sliding traffic window.
+//   3. When ANY path exceeds HIGH_FREQ_THRESHOLD (default: 12 req/min), the
+//      engine automatically classifies it as high-frequency and suppresses
+//      its individual 2xx/3xx HTTP log lines.
+//   4. 4xx/5xx errors are NEVER suppressed.
+//   5. Suppressed requests are accumulated in rollupStore. Every ROLLUP_INTERVAL_MS
+//      (default: 2 minutes), a single consolidated summary is logged.
+//   6. If traffic on an auto-suppressed path subsides below DECAY_THRESHOLD (<4 req/min),
+//      the engine automatically restores individual line logging.
+// ============================================================
 
-const SUPPRESSED_PATHS = new Set(["/health", "/api/health"]);
-const healthPingTracker = { count: 0, since: Date.now() };
+const STATIC_SUPPRESSED_PATHS = new Set(
+  (process.env.SUPPRESSED_LOG_PATHS || "/health,/api/health")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+);
 
-// WHY .unref(): Prevents this background timer from keeping the Node.js event
-//     loop alive — critical for `node --test` exit and graceful SIGTERM shutdown.
-//     Without .unref(), the 5-minute interval blocks process termination.
+const HIGH_FREQ_THRESHOLD = parseInt(process.env.LOG_HIGH_FREQ_THRESHOLD, 10) || 12;
+const DECAY_THRESHOLD = 4;
+const WINDOW_DURATION_MS = 60 * 1000; // 1-minute sliding window
+const ROLLUP_INTERVAL_MS = 2 * 60 * 1000; // 2-minute rollup summary interval
+const MAX_TRACKED_PATHS = 500;
+
+// Dynamic state structures
+const dynamicallySuppressedPaths = new Set();
+const pathTrafficTracker = new Map(); // path -> { hits: number, windowStart: number }
+const rollupAccumulator = new Map();  // path -> { count, totalMs, minMs, maxMs, statusCodes: {} }
+
+// Normalize paths to group similar sub-routes or strip query params
+function normalizePath(rawPath) {
+  if (!rawPath) return "/";
+  const pathOnly = rawPath.split("?")[0];
+  return pathOnly.toLowerCase();
+}
+
+// Track path hit and evaluate dynamic auto-suppression
+function trackPathTraffic(path) {
+  if (STATIC_SUPPRESSED_PATHS.has(path)) return true;
+
+  const now = Date.now();
+  let stats = pathTrafficTracker.get(path);
+
+  if (!stats || now - stats.windowStart > WINDOW_DURATION_MS) {
+    if (pathTrafficTracker.size >= MAX_TRACKED_PATHS) {
+      const oldestKey = pathTrafficTracker.keys().next().value;
+      pathTrafficTracker.delete(oldestKey);
+    }
+    stats = { hits: 1, windowStart: now };
+    pathTrafficTracker.set(path, stats);
+  } else {
+    stats.hits++;
+  }
+
+  // Auto-identify high-frequency noisy paths
+  if (stats.hits >= HIGH_FREQ_THRESHOLD && !dynamicallySuppressedPaths.has(path)) {
+    dynamicallySuppressedPaths.add(path);
+    logger.info(
+      "DynamicLogger",
+      `🔇 Auto-suppressed high-frequency path: ${path} (${stats.hits} req/min > threshold ${HIGH_FREQ_THRESHOLD})`
+    );
+  }
+
+  return dynamicallySuppressedPaths.has(path);
+}
+
+// Record suppressed request into rollup store
+function recordRollup(path, duration, status) {
+  let item = rollupAccumulator.get(path);
+  if (!item) {
+    item = { count: 0, totalMs: 0, minMs: duration, maxMs: duration, statusCodes: {} };
+    rollupAccumulator.set(path, item);
+  }
+
+  item.count++;
+  item.totalMs += duration;
+  item.minMs = Math.min(item.minMs, duration);
+  item.maxMs = Math.max(item.maxMs, duration);
+  item.statusCodes[status] = (item.statusCodes[status] || 0) + 1;
+}
+
+// Periodic Rollup & Decay Check
 setInterval(() => {
-  if (healthPingTracker.count > 0) {
-    logger.info("Health", `🏥 Health check summary: ${healthPingTracker.count} pings received (all OK) in last 5m`);
-    healthPingTracker.count = 0;
-  }
-  healthPingTracker.since = Date.now();
-}, 5 * 60 * 1000).unref();
+  // 1. Output Rollup Summary if there were suppressed requests
+  if (rollupAccumulator.size > 0) {
+    const summaryBreakdown = {};
+    let totalSuppressed = 0;
+    const parts = [];
 
+    for (const [path, stats] of rollupAccumulator.entries()) {
+      totalSuppressed += stats.count;
+      const avgMs = Math.round((stats.totalMs / stats.count) * 10) / 10;
+      summaryBreakdown[path] = {
+        count: stats.count,
+        avgMs,
+        minMs: stats.minMs,
+        maxMs: stats.maxMs,
+        statusCodes: stats.statusCodes,
+      };
+      parts.push(`${path}: ${stats.count} hits (avg ${avgMs}ms)`);
+    }
+
+    if (IS_PROD) {
+      log("INFO", "DynamicLogger", "High-frequency traffic rollup summary", {
+        totalSuppressed,
+        routes: summaryBreakdown,
+        memory: getMemoryMetrics(),
+      });
+    } else {
+      logger.info(
+        "DynamicLogger",
+        `🔄 High-frequency traffic rollup (last 2m, ${totalSuppressed} total): ${parts.join(" · ")}`
+      );
+    }
+
+    rollupAccumulator.clear();
+  }
+
+  // 2. Traffic Decay: un-suppress paths whose traffic subsided
+  const now = Date.now();
+  for (const path of dynamicallySuppressedPaths) {
+    if (STATIC_SUPPRESSED_PATHS.has(path)) continue;
+    const stats = pathTrafficTracker.get(path);
+    if (!stats || now - stats.windowStart > WINDOW_DURATION_MS * 2 || stats.hits < DECAY_THRESHOLD) {
+      dynamicallySuppressedPaths.delete(path);
+      logger.info(
+        "DynamicLogger",
+        `🔊 Restored individual logging for path: ${path} (traffic normalized to <${DECAY_THRESHOLD} req/min)`
+      );
+    }
+  }
+}, ROLLUP_INTERVAL_MS).unref();
+
+// ── HTTP Request Logger Middleware ────────────────────────────
+// WHAT: Logs incoming HTTP requests with OpenTelemetry trace correlation,
+//       dynamic noise suppression, and performance metrics.
 function logRequest(req, res, next) {
-  // WHY early return: health pings arrive every ~5s from keep-alive, Docker,
-  //     Render monitoring, and client pre-warming. Logging each creates
-  //     hundreds of identical lines per hour — noise that buries real traffic.
-  //     Counter is summarized every 5 minutes (see interval above).
-  if (SUPPRESSED_PATHS.has(req.path)) {
-    healthPingTracker.count++;
-    return next();
-  }
-
   const start = Date.now();
+  const normalizedPath = normalizePath(req.path || req.originalUrl);
 
-  // WHY: reuse upstream request ID if available (Render/Cloudflare sets it),
-  //      otherwise generate a fresh UUID. Attached to req.id for downstream use.
-  const requestId =
-    req.headers["x-request-id"] || randomUUID();
+  // Request correlation: reuse upstream X-Request-Id or generate fresh UUID
+  const requestId = req.headers["x-request-id"] || randomUUID();
   req.id = requestId;
-
-  // WHY: echo requestId in response header — visible in browser DevTools
-  //      and curl output for end-to-end tracing without grep-ing server logs.
   res.setHeader("X-Request-Id", requestId);
 
-  // WHY res.on("finish"): standard Node.js event fired when response is fully
-  //     flushed to the OS network buffer. Unlike monkey-patching res.json:
-  //     • Fires for ALL response types (JSON, HTML, redirect, 204, streams)
-  //     • Non-intrusive — no prototype override, no closure-per-method
-  //     • Works with compression middleware (fires after gzip encoding)
+  // OpenTelemetry Span ID (16 hex chars)
+  const spanId = randomBytes(8).toString("hex");
+
+  // Track path frequency
+  const isSuppressed = trackPathTraffic(normalizedPath);
+
   res.on("finish", () => {
     const duration = Date.now() - start;
     const status = res.statusCode;
 
-    // WHY: color-code status for instant visual triage
-    const level = status >= 500 ? "ERROR" : status >= 400 ? "WARN" : "HTTP";
+    // Safety First: Errors & Warnings (>=400) are NEVER suppressed
+    if (status >= 400) {
+      const level = status >= 500 ? "ERROR" : "WARN";
+      const ip = req.ip || req.socket?.remoteAddress || "unknown";
+      log(level, "HTTP", `${req.method} ${req.originalUrl}`, {
+        status,
+        ms: duration,
+        ip,
+        requestId,
+        traceId: requestId,
+        spanId,
+        route: req.route?.path || undefined,
+        bytes: res.getHeader("content-length") ? parseInt(res.getHeader("content-length"), 10) : undefined,
+      });
+      return;
+    }
 
-    // WHY: resolve IP via req.ip (uses trust proxy setting) with fallback
+    // High-frequency suppression: route to accumulator instead of console
+    if (isSuppressed) {
+      recordRollup(normalizedPath, duration, status);
+      return;
+    }
+
+    // Normal logging for low-frequency, successful endpoints
     const ip = req.ip || req.socket?.remoteAddress || "unknown";
-
-    // WHY content-length: detect unexpectedly large payloads or missing compression
     const contentLength = res.getHeader("content-length");
 
-    log(level, "HTTP", `${req.method} ${req.originalUrl}`, {
+    log("HTTP", "HTTP", `${req.method} ${req.originalUrl}`, {
       status,
       ms: duration,
       ip,
       requestId,
-      // WHY originalUrl over path: includes query string for debugging
-      //     (e.g. /api/history/leaderboard/worst?page=2&limit=10)
-      // WHY route: shows the Express route pattern (e.g. /:username)
-      //     vs originalUrl which shows the actual URL — both are needed
-      //     for filtering in log aggregators (group by route pattern)
+      traceId: requestId,
+      spanId,
       route: req.route?.path || undefined,
-      // WHY bytes: helps detect payload bloat and verify compression
       bytes: contentLength ? parseInt(contentLength, 10) : undefined,
-      // WHY userAgent: distinguish bots (Googlebot, curl) from real users
-      //     Truncated to 120 chars to avoid log bloat from long UA strings
       userAgent: IS_PROD
         ? (req.headers["user-agent"] || "").slice(0, 120) || undefined
         : undefined,
@@ -246,56 +459,50 @@ function logRequest(req, res, next) {
   next();
 }
 
-// ── Process-level error capturing ────────────────────────────
-// WHAT: Catches errors that escape ALL try/catch blocks
-//       These are the "silent" crashes that kill the process
-// WHY:  Without these handlers, a single unhandled promise rejection
-//       can crash the Render server completely — invisible to the user
-//       until they reload and get a 502
-// WHERE: Called ONCE in server/index.js at startup
+// ── Process-level Error Capturing ─────────────────────────────
 function attachProcessHandlers() {
-  // WHY uncaughtException: synchronous throw with no try/catch around it
-  //     Example: JSON.parse(undefined) in a middleware with no error handling
   process.on("uncaughtException", (err) => {
     logger.error("Process", "💥 UNCAUGHT EXCEPTION — process will exit", {
       name: err.name,
       message: err.message,
       stack: err.stack,
     });
-    // WHY exit(1): Node.js docs recommend exiting after uncaughtException
-    //     app state is undefined after this — better to restart cleanly
     process.exit(1);
   });
 
-  // WHY unhandledRejection: async throw with no .catch() or try/catch
-  //     Example: await fetch(...) with no catch, fetch fails → rejected promise
-  //     WITHOUT this: Node silently swallows the error in older versions
-  //                   newer Node prints a warning but still continues
-  process.on("unhandledRejection", (reason, promise) => {
+  process.on("unhandledRejection", (reason) => {
     logger.error("Process", "💥 UNHANDLED PROMISE REJECTION — check this!", {
       reason: reason instanceof Error ? reason.message : String(reason),
       stack: reason instanceof Error ? reason.stack : undefined,
     });
-    // WHY: don't exit on rejection — server stays up
-    //      but we log it so we KNOW it happened
   });
 
-  // WHY SIGTERM: sent by Render when deploying new version
-  //     Without this: server dies mid-request → users see 503
-  //     With this: server finishes in-flight requests before exiting
   process.on("SIGTERM", () => {
     logger.info("Process", "🛑 SIGTERM received — shutting down gracefully");
     process.exit(0);
   });
 
-  // WHY startup metadata: provides instant visibility into the runtime
-  //     environment when tailing production logs — confirms Node version,
-  //     PID, hostname, and environment without SSH-ing into the container.
-  logger.info("Process", "✅ Process error handlers attached", {
+  logger.info("Process", "✅ Process error handlers and dynamic logger initialized", {
     ...SERVICE_META,
-    env: process.env.NODE_ENV || "development",
-    uptime: Math.round(process.uptime()) + "s",
+    memory: getMemoryMetrics(),
+    suppressedStaticPaths: Array.from(STATIC_SUPPRESSED_PATHS),
   });
 }
 
-module.exports = { logger, logRequest, attachProcessHandlers };
+// Observability inspector for health audits and automated test verification
+function getDynamicLoggerStats() {
+  return {
+    staticSuppressed: Array.from(STATIC_SUPPRESSED_PATHS),
+    dynamicallySuppressed: Array.from(dynamicallySuppressedPaths),
+    trackedPathsCount: pathTrafficTracker.size,
+    rollupStoreCount: rollupAccumulator.size,
+  };
+}
+
+module.exports = {
+  logger,
+  logRequest,
+  attachProcessHandlers,
+  getDynamicLoggerStats,
+  sanitizeMeta,
+};

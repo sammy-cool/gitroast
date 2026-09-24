@@ -6,6 +6,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createToast } from 'customizable-toast-notification'
 import { useAuth } from '@/context/AuthContext'
+import RoastReactions from './RoastReactions'
 
 export default function BattleCard({ data }) {
     const { user } = useAuth()
@@ -27,6 +28,7 @@ export default function BattleCard({ data }) {
     const score2Color = score2 < score1 ? 'var(--bad)' : 'var(--good)'
 
     const isUser1Winner = winner === user1
+    const battleTargetId = data._id || data.battleId || (user1 && user2 ? `${user1}-vs-${user2}` : null)
 
     function handleShare() {
         const url = window.location.href
@@ -282,6 +284,17 @@ export default function BattleCard({ data }) {
                 </p>
             </div>
 
+            {/* Battle Reactions — Saved in DB & captured in downloaded card image */}
+            {battleTargetId && (
+                <div className="battle-reactions-wrap">
+                    <RoastReactions
+                        roastId={battleTargetId}
+                        initialReactions={data.reactions || {}}
+                        targetType="battle"
+                    />
+                </div>
+            )}
+
             {/* Share & Download Buttons */}
             <div className="battle-share">
                 <button className="btn btn-primary share-btn" onClick={handleShare}>
@@ -520,7 +533,12 @@ export default function BattleCard({ data }) {
         }
         .winner-text { font-size: 18px; color: var(--bad); }
 
-        /* Share */
+        /* Reactions */
+        .battle-reactions-wrap {
+          padding: 0.75rem 1.25rem;
+          border-bottom: 1px solid var(--border);
+          background: rgba(0, 0, 0, 0.2);
+        }
         .battle-share {
           padding:  1rem 1.5rem;
           display:  flex;

@@ -19,6 +19,7 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const Roast = require("../models/Roast");
+const Battle = require("../models/Battle");
 const { logger } = require("../utils/logger");
 const { getCompanyLeaderboard } = require("../services/companyRoastService");
 
@@ -294,12 +295,19 @@ router.post("/:id/react", async (req, res) => {
   }
 
   try {
-    const updated = await Roast.addReaction(id, type);
+    let updated = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      updated = await Roast.addReaction(id, type);
+      if (!updated) {
+        // Dynamic fallback: check if ID belongs to a Battle document
+        updated = await Battle.addReaction(id, type);
+      }
+    }
 
     if (!updated) {
       return res.status(404).json({
-        error: "ROAST_NOT_FOUND",
-        message: "Roast not found.",
+        error: "NOT_FOUND",
+        message: "Roast or Battle not found.",
       });
     }
 

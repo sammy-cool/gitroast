@@ -187,6 +187,25 @@ export async function reactToRoast(roastId, type) {
   }
 }
 
+// ── reactToBattle ─────────────────────────────────────────────
+// WHAT: Sends an emoji reaction (relatable/destroyed/savage) to a battle
+// WHY: Persists battle reactions in MongoDB and updates social proof counts
+export async function reactToBattle(battleId, type) {
+  try {
+    const res = await fetch(`${API_BASE}/api/battle/${battleId}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type }),
+      signal: AbortSignal.timeout(10000),
+    });
+    const json = await res.json();
+    return json;
+  } catch {
+    // WHY: silently fail — reaction is non-critical for UX continuity
+    return null;
+  }
+}
+
 // ── getWrapped ────────────────────────────────────────────────
 // WHAT: Fetches GitHub Wrapped year-in-review roast
 export async function getWrapped(username, year = 2025, token = null) {

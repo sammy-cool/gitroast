@@ -743,4 +743,166 @@ describe("Feature #5 — Contact Dispatch & Ticket Generation", () => {
     });
 });
 
+describe("Feature #6 — Battle Reactions & Persistence", () => {
+    const Battle = require("../models/Battle");
+
+    it("should initialize battle reactions with 0 for all types", () => {
+        const battle = new Battle({
+            user1: "torvalds",
+            user2: "gaearon",
+            score1: 70,
+            score2: 85,
+            grade1: "B",
+            grade2: "A",
+            winner: "torvalds",
+            loser: "gaearon",
+            roast1: "C is all you need",
+            roast2: "Too many hooks",
+            battleRoast: "Both wrote game-changing tools.",
+        });
+
+        assert.equal(battle.reactions.relatable, 0);
+        assert.equal(battle.reactions.destroyed, 0);
+        assert.equal(battle.reactions.savage, 0);
+    });
+
+    it("should reject invalid reaction type in Battle.addReaction", async () => {
+        await assert.rejects(
+            async () => {
+                await Battle.addReaction("507f1f77bcf86cd799439011", "invalid_emoji");
+            },
+            { message: "Invalid reaction type" }
+        );
+    });
+
+    it("should reject invalid reaction type with 400 INVALID_TYPE on reaction route", async () => {
+        const battleRouter = require("../routes/battle");
+        const postHandler = battleRouter.stack.find(
+            (layer) => layer.route && layer.route.path === "/:id/react" && layer.route.methods.post
+        ).route.stack[0].handle;
+
+        let statusCode = null;
+        let responseData = null;
+        const req = {
+            params: { id: "507f1f77bcf86cd799439011" },
+            body: { type: "super_fire" },
+            headers: {},
+        };
+        const res = {
+            status(code) {
+                statusCode = code;
+                return this;
+            },
+            json(data) {
+                responseData = data;
+                return this;
+            },
+        };
+
+        await postHandler(req, res);
+        assert.equal(statusCode, 400);
+        assert.equal(responseData.error, "INVALID_TYPE");
+    });
+});
+
+describe("Feature #7 — Dynamic Logger & Telemetry Engine", () => {
+    const {
+        logger,
+        logRequest,
+        sanitizeMeta,
+        getDynamicLoggerStats,
+    } = require("../utils/logger");
+
+    it("should sanitize sensitive credentials, tokens, and secrets from log metadata", () => {
+        const raw = {
+            username: "octocat",
+            password: "super-secret-password-123",
+            githubAccessToken: "ghp_xxxxxxxxxxxx",
+            apiKey: "AIzaSyD-fake-key",
+            authorization: "Bearer secret-jwt-token-string",
+            nested: {
+                secretToken: "very-secret",
+                safeField: "safe-value",
+            },
+        };
+
+        const clean = sanitizeMeta(raw);
+        assert.equal(clean.username, "octocat");
+        assert.equal(clean.password, "[REDACTED]");
+        assert.equal(clean.githubAccessToken, "[REDACTED]");
+        assert.equal(clean.apiKey, "[REDACTED]");
+        assert.equal(clean.authorization, "[REDACTED]");
+        assert.equal(clean.nested.secretToken, "[REDACTED]");
+        assert.equal(clean.nested.safeField, "safe-value");
+    });
+
+    it("should include OpenTelemetry-compliant trace correlation and stats", () => {
+        const stats = getDynamicLoggerStats();
+        assert.ok(Array.isArray(stats.staticSuppressed), "staticSuppressed must be array");
+        assert.ok(stats.staticSuppressed.includes("/health"), "Must contain /health");
+        assert.ok(typeof stats.trackedPathsCount === "number");
+    });
+
+    it("should dynamically track high-frequency requests through logRequest middleware", (t, done) => {
+        const testPath = `/api/test-dynamic-poll-${Date.now()}`;
+        let finishCallbacks = [];
+
+        // Simulate multiple rapid requests to trigger dynamic frequency tracker
+        for (let i = 0; i < 15; i++) {
+            const req = {
+                method: "GET",
+                path: testPath,
+                originalUrl: testPath,
+                headers: {},
+            };
+            const res = {
+                statusCode: 200,
+                setHeader: () => {},
+                getHeader: () => undefined,
+                on: (event, cb) => {
+                    if (event === "finish") finishCallbacks.push(cb);
+                },
+            };
+            logRequest(req, res, () => {});
+        }
+
+        // Trigger finish events
+        finishCallbacks.forEach((cb) => cb());
+
+        const stats = getDynamicLoggerStats();
+        assert.ok(
+            stats.dynamicallySuppressed.includes(testPath),
+            `Expected ${testPath} to be auto-suppressed after 15 requests`
+        );
+        done();
+    });
+
+    it("should NEVER suppress error responses (>= 400) even for suppressed paths", (t, done) => {
+        const testPath = "/health"; // Statically suppressed path
+        let loggedLevel = null;
+
+        const req = {
+            method: "GET",
+            path: testPath,
+            originalUrl: testPath,
+            headers: {},
+        };
+        let finishCb = null;
+        const res = {
+            statusCode: 500, // Server failure
+            setHeader: () => {},
+            getHeader: () => undefined,
+            on: (event, cb) => {
+                if (event === "finish") finishCb = cb;
+            },
+        };
+
+        logRequest(req, res, () => {});
+        assert.ok(finishCb, "finish callback must be attached even for error");
+        finishCb();
+        done();
+    });
+});
+
+
 

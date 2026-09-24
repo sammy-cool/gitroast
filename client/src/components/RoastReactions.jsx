@@ -22,7 +22,7 @@
 
 import { useState, useEffect } from 'react'
 import { createToast } from 'customizable-toast-notification'
-import { reactToRoast } from '@/services/roastService'
+import { reactToRoast, reactToBattle } from '@/services/roastService'
 
 const REACTION_CONFIG = [
     { type: 'relatable', emoji: '😂', label: 'Relatable' },
@@ -30,18 +30,22 @@ const REACTION_CONFIG = [
     { type: 'savage', emoji: '🔥', label: 'Savage' },
 ]
 
-export default function RoastReactions({ roastId, initialReactions = {} }) {
+export default function RoastReactions({ roastId, initialReactions = {}, targetType = 'roast' }) {
     const [counts, setCounts] = useState(() => ({
         relatable: initialReactions?.relatable || 0,
         destroyed: initialReactions?.destroyed || 0,
         savage: initialReactions?.savage || 0,
     }))
 
+    const storageKey = targetType === 'battle'
+        ? `gitroast_reacted_battle_${roastId}`
+        : `gitroast_reacted_${roastId}`
+
     // Initialize clicked reactions directly from localStorage on mount (zero cascading renders)
     const [clicked, setClicked] = useState(() => {
         if (!roastId || typeof window === 'undefined') return new Set()
         try {
-            const stored = localStorage.getItem(`gitroast_reacted_${roastId}`)
+            const stored = localStorage.getItem(storageKey)
             if (stored) {
                 const parsed = JSON.parse(stored)
                 if (Array.isArray(parsed)) {
@@ -64,7 +68,7 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
         if (!roastId) {
             createToast({
                 type: 'warning',
-                message: 'Roast is still saving, please wait a moment!',
+                message: `${targetType === 'battle' ? 'Battle' : 'Roast'} is still saving, please wait a moment!`,
                 position: 'top-center',
                 duration: 2500,
             })
@@ -89,12 +93,13 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
 
         // Persist to localStorage
         try {
-            localStorage.setItem(`gitroast_reacted_${roastId}`, JSON.stringify([...nextClicked]))
+            localStorage.setItem(storageKey, JSON.stringify([...nextClicked]))
         } catch {
             // Ignored
         }
 
-        const result = await reactToRoast(roastId, type)
+        const apiFn = targetType === 'battle' ? reactToBattle : reactToRoast
+        const result = await apiFn(roastId, type)
         setLoading(null)
 
         if (!result) {
@@ -108,7 +113,7 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
             try {
                 const reverted = new Set(nextClicked)
                 reverted.delete(type)
-                localStorage.setItem(`gitroast_reacted_${roastId}`, JSON.stringify([...reverted]))
+                localStorage.setItem(storageKey, JSON.stringify([...reverted]))
             } catch {
                 // Ignored
             }
@@ -126,7 +131,7 @@ export default function RoastReactions({ roastId, initialReactions = {} }) {
             setCounts(c => ({ ...c, [type]: prev }))
             createToast({
                 type: 'info',
-                message: "You've already reacted to this roast! 🔥",
+                message: `You've already reacted to this ${targetType === 'battle' ? 'battle' : 'roast'}! 🔥`,
                 position: 'top-center',
                 duration: 3000,
             })
