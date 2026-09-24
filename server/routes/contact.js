@@ -14,6 +14,7 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const ContactMessage = require("../models/ContactMessage");
 const { sendContactNotification } = require("../services/emailService");
+const { enqueue } = require("../services/queueService");
 const { logger } = require("../utils/logger");
 
 const VALID_CATEGORIES = ["feedback", "bug", "pro", "dispute", "general"];
@@ -113,20 +114,25 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // 5. Asynchronously notify owner without blocking client response
-    sendContactNotification({
-      ticketId,
-      category: safeCategory,
-      name: safeName,
-      email: safeEmail,
-      message: safeMessage,
-      ip,
-    }).catch((emailErr) => {
-      logger.error("Contact", "Email notification background task failed", {
-        ticketId,
-        error: emailErr.message,
-      });
-    });
+    // 5. Enqueue email notification to owner via background queue (with auto-retry)
+    // ── WHAT: Dispatches email via QueueService worker with exponential backoff retries.
+    // ── WHY: Decouples external Resend API latency and handles transient rate-limits safely.
+    // ── WHERE & WHEN TO USE: Whenever asynchronous outbound webhooks/emails are triggered.
+    // ── USE CASES: Contact ticket notifications, dispute alerts.
+    // ── WHEN NOT TO USE: When the client awaits an immediate synchronous token or payload.
+    enqueue(
+      `contact-email-${ticketId}`,
+      () =>
+        sendContactNotification({
+          ticketId,
+          category: safeCategory,
+          name: safeName,
+          email: safeEmail,
+          message: safeMessage,
+          ip,
+        }),
+      { maxRetries: 2 },
+    );
 
     return res.status(201).json({
       success: true,

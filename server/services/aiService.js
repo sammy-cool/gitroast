@@ -181,4 +181,68 @@ async function generateAIRoast(data, intensity = "savage") {
   }
 }
 
-module.exports = { generateAIRoast };
+// ── generateAIRoastStream ─────────────────────────────────────
+// ── WHAT: Asynchronous generator that yields real-time roast tokens using Gemini SSE streaming.
+// ── WHY: Eliminates perceived waiting latency; streams tokens live to Server-Sent Events client.
+// ── WHERE & WHEN TO USE: In /api/roast/:username/stream endpoint.
+// ── USE CASES: Real-time live AI typing animation on roast results.
+// ── WHEN NOT TO USE: In batch jobs or image certificate generators.
+async function* generateAIRoastStream(data, intensity = "savage") {
+  if (!process.env.GEMINI_API_KEY) {
+    logger.warn("AI", "No Gemini API key for stream — fallback requested");
+    return;
+  }
+
+  const config = INTENSITY_CONFIG[intensity] || INTENSITY_CONFIG.savage;
+  const STREAM_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${process.env.GEMINI_API_KEY}`;
+
+  try {
+    const response = await fetch(STREAM_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: buildRoastPrompt(data, intensity) }] }],
+        generationConfig: {
+          temperature: config.temperature,
+          topP: 0.95,
+          topK: 40,
+        },
+      }),
+      signal: AbortSignal.timeout(50000),
+    });
+
+    if (!response.ok) {
+      logger.error("AI", "Gemini streaming error", { status: response.status });
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop(); // Keep incomplete trailing fragment
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const parsed = JSON.parse(line.slice(6));
+            const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) yield text;
+          } catch {
+            // Ignore non-json SSE lines
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logger.error("AI", "Gemini stream error", { message: err.message });
+  }
+}
+
+module.exports = { generateAIRoast, generateAIRoastStream };

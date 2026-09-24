@@ -33,11 +33,13 @@
 //   distributed production clusters requires a centralized Redis token bucket.
 // ============================================================
 
+const redisService = require("../services/redisService");
+
 // ── Shared request store ──────────────────────────────────────
 // WHY module-level Map:
-//   All limiter instances share one store
+//   All limiter instances share one store when running single-instance
 //   key = "ip:path" → each route+IP combo tracked separately
-//   e.g. "1.2.3.4:/torvalds" and "1.2.3.4:/linus" = different keys
+//   When Upstash Redis is configured, operations automatically sync across containers
 const requestCounts = new Map();
 
 // WHY single cleanup interval (module level, not per limiter):
@@ -103,6 +105,34 @@ function createRateLimiter({
     }
 
     const key = `${ip}:${routeScope}`;
+
+    // ── Distributed Redis Branch ──────────────────────────────
+    // When Upstash Redis is active, track counters in cloud cache
+    if (redisService.isConfigured) {
+      const ttlSeconds = Math.ceil(windowMs / 1000);
+      redisService
+        .incrWithTtl(key, ttlSeconds)
+        .then(({ count, ttl }) => {
+          if (count > maxRequests) {
+            res.setHeader("Retry-After", ttl);
+            res.setHeader("X-RateLimit-Limit", maxRequests);
+            res.setHeader("X-RateLimit-Remaining", 0);
+            return res.status(429).json({
+              error: "RATE_LIMIT_EXCEEDED",
+              message,
+              retryAfter: ttl,
+            });
+          }
+          res.setHeader("X-RateLimit-Limit", maxRequests);
+          res.setHeader("X-RateLimit-Remaining", Math.max(0, maxRequests - count));
+          next();
+        })
+        .catch(() => {
+          // Fail-open: network error on Redis must never block legitimate traffic
+          next();
+        });
+      return;
+    }
 
     const existing = requestCounts.get(key);
 

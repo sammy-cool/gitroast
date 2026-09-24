@@ -3,7 +3,7 @@ const router = express.Router();
 const { analyzeProfile, analyzeWrapped } = require("../services/githubService");
 const { analyzeRepository } = require("../services/repoRoastService");
 const { generateRoast } = require("../services/roastEngine");
-const { generateAIRoast } = require("../services/aiService");
+const { generateAIRoast, generateAIRoastStream } = require("../services/aiService");
 const { optionalAuth, requirePro } = require("../middleware/auth");
 const { verifyCaptcha } = require("../middleware/captcha");
 const Roast = require("../models/Roast");
@@ -143,6 +143,108 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
       error: "SERVER_ERROR",
       message: "Failed to analyze repository.",
     });
+  }
+});
+
+// ─── GET /api/roast/:username/stream ───────────────────────
+// ── WHAT: Server-Sent Events (SSE) streaming endpoint for live roast generation.
+// ── WHY: Eliminates perceived 4-6s latency by streaming roast chunks token-by-token.
+// ── WHERE & WHEN TO USE: Invoked when the client requests real-time roast generation.
+// ── USE CASES: Live typewriter typing powered by Gemini 2.5 Flash.
+// ── WHEN NOT TO USE: When generating offline static OG badges or PDF exports.
+router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) => {
+  const { username } = req.params;
+  const isPro = req.user?.isPro || false;
+  const rawIntensity = req.query.intensity || "savage";
+  const intensity = ["mild", "savage", "nuclear"].includes(rawIntensity) ? rawIntensity : "savage";
+
+  if (intensity === "nuclear" && !isPro) {
+    return res.status(403).json({
+      error: "PRO_REQUIRED",
+      message: "☢️ Nuclear intensity requires Pro.",
+    });
+  }
+
+  if (!username || username.length > 39 || !/^[a-zA-Z0-9-]+$/.test(username)) {
+    return res.status(400).json({
+      error: "INVALID_USERNAME",
+      message: "Invalid GitHub username format.",
+    });
+  }
+
+  // Set SSE Streaming Headers
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders?.();
+
+  try {
+    const githubToken = req.user?.githubAccessToken || null;
+    const authUsername = req.user?.username || null;
+    const data = await analyzeProfile(username, githubToken, authUsername, isPro);
+
+    // 1. Emit metadata event
+    res.write(
+      `event: metadata\ndata: ${JSON.stringify({
+        username: data.username,
+        score: data.score,
+        grade: data.grade,
+        joinYear: data.joinYear,
+        totalRepos: data.totalRepos,
+        stats: data.stats,
+        shameCommits: data.shameCommits,
+        bioContrast: data.bioContrast,
+        avatarUrl: data.avatarUrl,
+        isPro,
+      })}\n\n`
+    );
+
+    let fullRoast = "";
+    let roastSource = "rules";
+
+    if (isPro && process.env.GEMINI_API_KEY) {
+      roastSource = "ai";
+      for await (const chunk of generateAIRoastStream(data, intensity)) {
+        fullRoast += chunk;
+        res.write(`event: chunk\ndata: ${JSON.stringify({ text: chunk })}\n\n`);
+      }
+    }
+
+    // Fallback if AI yielded nothing or Free tier
+    if (!fullRoast) {
+      fullRoast = generateRoast(data, intensity);
+      roastSource = "rules";
+      res.write(`event: chunk\ndata: ${JSON.stringify({ text: fullRoast })}\n\n`);
+    }
+
+    // 2. Persist to MongoDB
+    const newRoast = await Roast.create({
+      username: data.username,
+      score: data.score,
+      grade: data.grade,
+      roastText: fullRoast,
+      intensity,
+      roastSource,
+      stats: data.stats,
+      shameCommits: data.shameCommits,
+      bioContrast: data.bioContrast,
+      avatarUrl: data.avatarUrl,
+    });
+
+    // 3. Emit done event
+    res.write(
+      `event: done\ndata: ${JSON.stringify({
+        roastId: newRoast._id,
+        fullRoast,
+        roastSource,
+      })}\n\n`
+    );
+    res.end();
+  } catch (err) {
+    logger.error("RoastStream", `Stream failed for ${username}`, { message: err.message });
+    res.write(`event: error\ndata: ${JSON.stringify({ message: err.message || "Roast failed" })}\n\n`);
+    res.end();
   }
 });
 
