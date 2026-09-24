@@ -55,11 +55,32 @@ export default function CompanyLeaderboardTable({ companies = [] }) {
 
               <div className="company-info">
                 <div className="company-title-row">
+                  {/* 
+                    ── WHAT: ────────────────────────────────────────────────────
+                    Fallback avatar source with explicit layout dimensions for company logos.
+                    
+                    ── WHY: ─────────────────────────────────────────────────────
+                    1. If company.avatarUrl is null or fails to resolve, fallback to GitHub's
+                       predictable public avatar CDN prevents missing image broken placeholders.
+                    2. Explicit width and height attributes eliminate Cumulative Layout Shift (CLS)
+                       during initial render before stylesheet rules are applied.
+                    
+                    ── WHERE & WHEN TO USE: ─────────────────────────────────────
+                    On all dynamically populated image elements rendered in list tables.
+                    
+                    ── USE CASES: ───────────────────────────────────────────────
+                    Company leaderboard and organization profiles with varying avatar availability.
+                    
+                    ── WHEN NOT TO USE: ─────────────────────────────────────────
+                    Do not use hardcoded dimensions if responsive fluid scaling requires dynamic CSS sizing.
+                  */}
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={company.avatarUrl}
+                    src={company.avatarUrl || `https://avatars.githubusercontent.com/${company.org}?s=96`}
                     alt={company.name}
                     className="company-avatar"
+                    width={32}
+                    height={32}
                     loading="lazy"
                     crossOrigin="anonymous"
                     onError={(e) => {

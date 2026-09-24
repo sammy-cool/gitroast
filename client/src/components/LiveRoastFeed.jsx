@@ -35,10 +35,27 @@ function getScoreColor(score) {
     return '#00E676'
 }
 
-// WHY relative time: "2 minutes ago" feels live
-//     "2026-04-20T14:23:00Z" feels like a database dump
+// ── Defensive Relative Time Formatter ─────────────────────────
+// ── WHAT: ────────────────────────────────────────────────────
+// Converts ISO timestamp strings into human-friendly relative duration labels (e.g. '2m ago').
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// Validates date parseability; if dateStr is invalid or missing, returns 'recently'
+// rather than computing NaN and rendering broken 'NaNd ago' text in the ticker.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// Real-time feeds, comment threads, and activity tickers.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// Live roast feed cards displaying recent burns.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// Do not use for legal receipts or audit logs requiring exact timezone-aware timestamps.
 function getRelativeTime(dateStr) {
-    const diff = Math.floor((Date.now() - new Date(dateStr)) / 1000)
+    if (!dateStr) return 'recently'
+    const parsed = new Date(dateStr).getTime()
+    if (isNaN(parsed)) return 'recently'
+    const diff = Math.floor((Date.now() - parsed) / 1000)
     if (diff < 60) return 'just now'
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
@@ -97,7 +114,7 @@ export default function LiveRoastFeed() {
                 <div className="feed-track">
                     {displayFeed.map((item, i) => (
                         <Link
-                            key={`${item._id}-${i}`}
+                            key={`${item._id || item.id || item.username}-${i}`}
                             href={`/history/${item.username}`}
                             className="feed-link"
                             title={`View @${item.username}'s roast`}

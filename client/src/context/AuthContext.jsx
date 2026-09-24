@@ -95,12 +95,30 @@ export function AuthProvider({ children }) {
 
     // ── Save token + set user (called from callback page) ───
     const loginWithToken = useCallback((token) => {
-        localStorage.setItem(TOKEN_KEY, token)
+        if (typeof window !== 'undefined') {
+            localStorage.setItem(TOKEN_KEY, token)
+        }
         fetchMe(token)
     }, [fetchMe])
 
     // ── Get stored token for API calls ──────────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Safely reads the active JWT authentication token from browser localStorage.
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // Checking typeof window prevents ReferenceError: localStorage is not defined
+    // during Next.js Server-Side Rendering (SSR) passes.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // In any context method or hook called across client and server boundaries.
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Supplying Bearer tokens for authenticated fetch requests.
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not use to store non-expiring credentials or sensitive private keys.
     const getToken = useCallback(() => {
+        if (typeof window === 'undefined') return null
         return localStorage.getItem(TOKEN_KEY)
     }, [])
 
@@ -116,7 +134,9 @@ export function AuthProvider({ children }) {
             // WHY: logout should always succeed locally
             //      even if server call fails
         }
-        localStorage.removeItem(TOKEN_KEY)
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem(TOKEN_KEY)
+        }
         setUser(null)
     }, [getToken])
 

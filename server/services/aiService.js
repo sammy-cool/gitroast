@@ -216,29 +216,63 @@ async function* generateAIRoastStream(data, intensity = "savage") {
       return;
     }
 
+    // ── WHATWG ReadableStream Lifecycle & Parser ───────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Reads line-delimited Server-Sent Events from the Gemini 2.5 Flash stream,
+    // parses 'data: {...}' envelopes, extracts text chunks, and releases the stream lock.
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // 1. Calling reader.releaseLock() inside a finally block guarantees the stream lock
+    //    is always freed even if consumer generator iteration aborts early.
+    // 2. Flushing any remaining trailing buffer after done: true prevents dropping the
+    //    final token if Gemini sends chunks without a terminating newline.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // In any asynchronous generator consuming WHATWG ReadableStream responses.
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Token-by-token LLM output pipelines and long-lived SSE streaming routes.
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not use for non-streaming atomic JSON endpoints.
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop(); // Keep incomplete trailing fragment
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop(); // Keep incomplete trailing fragment
 
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          try {
-            const parsed = JSON.parse(line.slice(6));
-            const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (text) yield text;
-          } catch {
-            // Ignore non-json SSE lines
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const parsed = JSON.parse(line.slice(6));
+              const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text) yield text;
+            } catch {
+              // Ignore non-json SSE lines
+            }
           }
         }
       }
+
+      // Flush remaining trailing line if complete JSON
+      if (buffer && buffer.startsWith("data: ")) {
+        try {
+          const parsed = JSON.parse(buffer.slice(6));
+          const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) yield text;
+        } catch {
+          // Ignore incomplete fragment
+        }
+      }
+    } finally {
+      reader.releaseLock();
     }
   } catch (err) {
     logger.error("AI", "Gemini stream error", { message: err.message });
