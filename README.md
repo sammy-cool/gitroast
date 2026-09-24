@@ -122,10 +122,13 @@ A clean, compact shields.io-compatible pill badge for minimalist READMEs:
 | Layer         | Technology                                                            |
 | ------------- | --------------------------------------------------------------------- |
 | Frontend      | Next.js 16 (App Router), React 19, styled-jsx, `next/font`, `next/og` |
-| Backend       | Node.js 20+, Express.js 5                                             |
+| Backend       | Node.js 20+, Express.js 5, Compression (Gzip/Brotli)                  |
 | Database      | MongoDB Atlas, Mongoose 9                                             |
-| AI Engine     | Google Gemini 2.5 Flash (`generateContent` API)                       |
+| Distributed Cache| Serverless Redis (Upstash REST API) with resilient in-memory fallback|
+| AI Engine     | Google Gemini 2.5 Flash (REST & SSE Live Streaming)                   |
 | Authentication| GitHub OAuth 2.0, JSON Web Tokens (JWT)                               |
+| Bot Defense   | Google reCAPTCHA v3 & Enterprise Assessments (Fail-open)             |
+| Email Dispatch| Resend REST API with in-process background retry queue                |
 | Payments      | Razorpay Node SDK & Checkout.js (INR)                                 |
 | Image Capture | `html2canvas`, Satori / Edge ImageResponse                            |
 | Deployment    | Vercel (Frontend), Render Docker Container (Backend)                  |
@@ -138,6 +141,8 @@ A clean, compact shields.io-compatible pill badge for minimalist READMEs:
 gitroast/
 ├── AGENTS.md                                # Repository rules & brand UX guidelines
 ├── README.md                                # Comprehensive documentation
+├── shared/                                  # Cross-tier single source of truth
+│   └── constants.js                         # Validation regexes, intensities, error codes
 │
 ├── client/                                  # Next.js 16 App Router frontend
 │   ├── package.json
@@ -171,14 +176,16 @@ gitroast/
 │       │   │   └── page.jsx                 # Wall of Shame global table
 │       │   ├── pricing/
 │       │   │   └── page.jsx                 # Pricing tiers, FAQ, Squad waitlist
-│       │   ├── payment/
-│       │   │   └── page.jsx                 # Fallback route (redirects to /pricing)
+│       │   ├── contact/
+│       │   │   └── page.jsx                 # Branded feedback & ticket submission portal
 │       │   ├── auth/callback/
 │       │   │   └── page.jsx                 # GitHub OAuth callback & token storage
 │       │   └── api/
+│       │       ├── badge/route.js           # Edge runtime SVG README badge
 │       │       ├── og/route.js              # Edge runtime dynamic OG card for roasts
 │       │       └── og-battle/route.js       # Edge runtime dynamic OG card for battles
 │       ├── components/
+│       │   ├── index.js                     # Centralized domain feature barrel
 │       │   ├── AnalyzingScreen.jsx          # Terminal animation during profile inspection
 │       │   ├── BattleCard.jsx               # Head-to-head battle score & roast display
 │       │   ├── CommitShame.jsx              # Hall of shame commit message tags
@@ -196,7 +203,6 @@ gitroast/
 │       │   ├── PricingCard.jsx              # Reusable pricing tier card
 │       │   ├── ProBadge.jsx                 # Reusable PRO ⚡ indicator
 │       │   ├── ProModal.jsx                 # Upgrade prompt modal with plan switcher
-│       │   ├── QuotaBroadcastBanner.jsx     # Unauthenticated shared quota warning & login prompt
 │       │   ├── RateLimitBanner.jsx          # Live countdown rate-limit warning banner
 │       │   ├── RoastCard.jsx                # Main roast result card (PNG capture target)
 │       │   ├── RoastCertificate.jsx         # Certificate of GitHub Shame generator with QR
@@ -211,38 +217,47 @@ gitroast/
 │       ├── hooks/
 │       │   └── useRoastHistory.js           # Roast history fetching & derived statistics
 │       ├── services/
-│       │   └── roastService.js              # Centralized backend API client
+│       │   └── roastService.js              # Centralized backend API client (REST & SSE)
 │       └── utils/
+│           ├── constants.js                 # Frontend shared constants bridge
 │           ├── clientErrorTracker.js        # Universal frontend error tracker
 │           └── toastUtils.js                # Centralized toast helper methods
 │
 └── server/                                  # Express.js backend API
-    ├── index.js                             # Express bootstrapping, security headers, CORS
+    ├── index.js                             # Express bootstrapping, compression, trust proxy, CORS
     ├── Dockerfile                           # Production container definition (node:20-alpine)
     ├── package.json
     ├── middleware/
     │   ├── auth.js                          # requireAuth, optionalAuth, requirePro
-    │   ├── errorHandler.js                  # Central error mapper & notFoundHandler
-    │   └── rateLimiter.js                   # In-memory rate limiting per endpoint & IP
+    │   ├── captcha.js                       # Google reCAPTCHA Enterprise & v3 dual engine
+    │   ├── errorHandler.js                  # Central error mapper & headersSent guard
+    │   └── rateLimiter.js                   # Distributed Upstash Redis rate limiting with memory fallback
     ├── models/
-    │   ├── User.js                          # User accounts, OAuth tokens, daily limit
-    │   ├── Roast.js                         # Roast snapshots, scores, grades, reactions
+    │   ├── User.js                          # User accounts, OAuth tokens, preferences, daily limit
+    │   ├── Roast.js                         # Roast snapshots, scores, grades, reactions, indexes
+    │   ├── Battle.js                        # Head-to-head battle verdicts, scores, reactions
+    │   ├── ContactMessage.js                # Contact tickets, category priorities, admin notes
     │   └── Payment.js                       # Razorpay order & payment records
     ├── routes/
     │   ├── auth.js                          # GitHub OAuth & /me endpoints
-    │   ├── battle.js                        # Head-to-head battle endpoint
-    │   ├── history.js                       # History, leaderboard, shares, reactions
+    │   ├── battle.js                        # Head-to-head battle & battle reaction endpoints
+    │   ├── contact.js                       # Contact inquiry dispatch & ticket generation
+    │   ├── history.js                       # History, leaderboard, search, shares, reactions
     │   ├── payment.js                       # Plan list, order creation, signature verify
-    │   └── roast.js                         # Feed, stats, and profile roast endpoints
+    │   └── roast.js                         # Feed, stats, stream, and profile roast endpoints
     ├── services/
-    │   ├── aiService.js                     # Google Gemini 2.5 Flash integration
+    │   ├── aiService.js                     # Google Gemini 2.5 Flash integration (Batch & SSE)
     │   ├── battleService.js                 # Dual profile analysis & battle generator
+    │   ├── emailService.js                  # Resend API email notification service
     │   ├── githubService.js                 # GitHub REST API client & scoring heuristics
     │   ├── paymentService.js                # Razorpay order creator & HMAC verifier
-    │   ├── roastEngine.js                   # Rule-based roast generator & language packs
+    │   ├── queueService.js                  # Asynchronous task queue with retries & concurrency
+    │   ├── redisService.js                  # Upstash Serverless Redis client & memory fallback
+    │   ├── roastEngine.js                   # Rule-based roast generator & 110-rule packs
     │   └── tokenService.js                  # JWT creation & verification utilities
     └── utils/
-        └── logger.js                        # Structured colored logger & process crash handlers
+        ├── constants.js                     # Backend shared constants bridge
+        └── logger.js                        # Telemetry logger with auto-suppression & redaction
 ```
 
 ---
@@ -388,6 +403,18 @@ JWT_EXPIRES_IN=7d
 # Google Gemini AI
 GEMINI_API_KEY=your_gemini_api_key
 
+# Distributed Cache & Rate Limiting (Upstash Serverless Redis)
+UPSTASH_REDIS_REST_URL=https://your-upstash-redis-url.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_rest_token_here
+
+# Contact Email Dispatch (Resend REST API)
+RESEND_API_KEY=re_your_resend_api_key
+OWNER_EMAIL=priyanshu.alt191@gmail.com
+EMAIL_FROM=GitRoast <onboarding@resend.dev>
+
+# Bot Defense (Google reCAPTCHA v3 / Enterprise)
+RECAPTCHA_SECRET_KEY=your_recaptcha_v3_secret_key
+
 # Razorpay Payments
 RAZORPAY_KEY_ID=rzp_live_your_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_secret_key
@@ -473,6 +500,13 @@ Headers:
     }
   }
 
+GET /api/roast/:username/stream?intensity=savage
+Accept: text/event-stream
+→ Server-Sent Events stream:
+  event: metadata → { username, score, grade, stats, avatarUrl }
+  event: chunk    → { text: "chunk..." }
+  event: done     → { roastId, fullRoast, roastSource }
+
 GET /api/roast/:username/wrapped?year=2025
 Headers:
   Authorization: Bearer <jwt> (optional, provides 5,000 req/hr rate limit)
@@ -496,6 +530,17 @@ GET /api/battle/:user1/vs/:user2
       winner, loser, roast1, roast2, battleRoast
     }
   }
+
+POST /api/battle/:id/react
+Body: { "type": "relatable" | "destroyed" | "savage" }
+→ { success: true, reactions: { relatable, destroyed, savage } }
+```
+
+### Contact & Support Endpoints
+```http
+POST /api/contact
+Body: { "category": "feedback"|"bug"|"pro"|"dispute"|"general", "name", "email", "message" }
+→ { success: true, ticketId: "GR-XXXXXX", message: "Dispatched..." }
 ```
 
 ### Auth Endpoints
@@ -529,6 +574,13 @@ GET  /api/history/leaderboard/worst?page=1&limit=10
     success: true,
     leaderboard: [ { _id: "username", bestScore: number, roastCount: number } ],
     pagination: { page: 1, limit: 10, total: 42, totalPages: 5, hasNext: true, hasPrev: false }
+  }
+
+GET  /api/history/leaderboard/search?q=:username&page=1&limit=10
+→ {
+    success: true,
+    results: [ { _id: "username", bestScore: number, roastCount: number } ],
+    pagination: { page: 1, limit: 10, total: 3, totalPages: 1, hasNext: false, hasPrev: false }
   }
 
 GET  /api/history/:username?limit=10
