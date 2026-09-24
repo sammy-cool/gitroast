@@ -1,14 +1,32 @@
 // ============================================================
-// GITROAST — Roast Service
+// GITROAST — Client API Gateway & HTTP Service Layer
 // ============================================================
-// WHAT: All API calls to the backend from the frontend.
-//       Single file for all fetch logic — components never
-//       call fetch directly.
+// ── WHAT: ────────────────────────────────────────────────────
+// Centralized frontend API abstraction communicating with the GitRoast Express backend.
+// Manages endpoint routing, dynamic timeout management (extended 60s for Render cold-starts),
+// transparent Google reCAPTCHA token injection for unauthenticated guests, idempotency keys,
+// Authorization Bearer headers, and standardized error parsing with HTTP 429 Retry-After.
 //
-// WHY centralized service:
-//   Error handling in one place — not duplicated per component
-//   Easy to add auth headers, timeouts, retryAfter everywhere
-//   If API base URL changes → change one constant
+// ── WHY: ─────────────────────────────────────────────────────
+// 1. Separation of Concerns: React components remain pure presentation and UI state handlers;
+//    they never formulate raw HTTP requests, fetch options, or header definitions directly.
+// 2. Centralized Fault Tolerance: Implements resilient timeout thresholds, network recovery,
+//    and fail-open CAPTCHA generation without duplicating logic across 12+ pages.
+// 3. Deployment Agility: Changing the API root URL or endpoint query parameters happens
+//    in a single file (`API_BASE`) rather than across dozens of scattered files.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// • Import named service functions (`getRoast`, `getRoastHistory`, `getLeaderboard`,
+//   `searchLeaderboard`, `startBattle`, etc.) inside React client components and custom hooks.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// • Fetching roast results with `X-Idempotency-Key` and `X-Captcha-Token` headers.
+// • Paging and searching the Wall of Shame leaderboard.
+// • Dispatching contact messages and support tickets.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// • DO NOT invoke browser-only functions (`getCaptchaToken`, `localStorage`) inside Server Components.
+// • DO NOT hardcode sensitive API keys or private tokens inside this client-facing file.
 // ============================================================
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";

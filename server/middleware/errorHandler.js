@@ -1,16 +1,30 @@
 // ============================================================
-// GITROAST — Global Express Error Handler
+// GITROAST — Global Express Error Handling Middleware
 // ============================================================
-// WHAT: Catches all errors passed via next(err) from any route,
-//       maps them to clean HTTP responses, and logs everything.
+// ── WHAT: ────────────────────────────────────────────────────
+// Centralized Express 4-parameter error interception and sanitization pipeline.
+// Traps all uncaught rejections and errors propagated via `next(err)`, maps known
+// domain exceptions (Mongoose Validation, CastError, JWT expiration, duplicate keys)
+// to standardized HTTP error envelopes, and prevents internal stack trace leakage in production.
 //
-// WHY:  Without a global handler, unhandled errors give Express's
-//       default "Cannot GET /..." HTML response — ugly, exposes info.
-//       Centralizing here means ONE place to change error formats.
+// ── WHY: ─────────────────────────────────────────────────────
+// • Prevents Node.js process crashes and hung HTTP requests.
+// • Masks database schemas, file system paths, and internal stack traces from malicious actors.
+// • Guarantees consistent `{ error: "CODE", message: "..." }` contract across all API endpoints.
+// • Defends against `ERR_HTTP_HEADERS_SENT` fatal crashes if errors trigger mid-stream.
 //
-// WHERE: Registered LAST in index.js after all routes:
-//        app.use(notFoundHandler)
-//        app.use(errorHandler)
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// • MUST be mounted as the VERY LAST middleware in `server/index.js` after all routes and 404 handlers.
+// • MUST specify exactly 4 arguments `(err, req, res, next)` for Express to register it as an error handler.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// • Translating database CastError (invalid ObjectId) into clean HTTP 400 response.
+// • Handling expired or malformed JWT tokens into HTTP 401 response.
+// • Catching unhandled runtime exceptions with safe HTTP 500 fallback.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// • DO NOT mount before application routes (it will never catch downstream route errors).
+// • DO NOT use to handle normal business logic branching (use controller try/catch or conditional checks).
 // ============================================================
 
 const { logger } = require("../utils/logger");

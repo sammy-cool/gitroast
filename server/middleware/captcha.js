@@ -1,16 +1,33 @@
 // ============================================================
-// GITROAST — reCAPTCHA Verification Middleware
+// GITROAST — Dual-Engine reCAPTCHA Verification Middleware
 // ============================================================
-// WHAT: Validates Google reCAPTCHA tokens for unauthenticated roasts & battles.
-//       Supports both:
-//       1. Google Cloud reCAPTCHA Enterprise Assessments API (projects.assessments)
-//       2. Classic Google reCAPTCHA v3 siteverify API
-// WHY:
-//   - Unauthenticated requests consume GitHub API quota and Gemini LLM tokens.
-//   - Stops headless bots and automated scrapers.
-//   - Logged-in users bypass CAPTCHA because their identity is verified via GitHub OAuth.
-//   - In dev/test, if keys are not configured, passes through gracefully.
-//   - Fail-open philosophy: If Google API fails or times out, allows genuine users.
+// ── WHAT: ────────────────────────────────────────────────────
+// Cryptographic bot verification gatekeeper supporting dual engines:
+// 1. Google Cloud reCAPTCHA Enterprise Assessments API (v1 projects.assessments)
+// 2. Classic Google reCAPTCHA v3 siteverify API (siteverify)
+// Inspects the `X-Captcha-Token` HTTP header, calculates risk analysis scores (0.0 to 1.0),
+// and halts automated headless bots before expensive upstream execution.
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// • Prevents bot-driven exhaustion of limited GitHub REST API quotas and Gemini LLM tokens.
+// • Eliminates automated scrapers farming roasts without human presence.
+// • Logged-in developers bypass CAPTCHA entirely because their identity is verified via GitHub OAuth.
+// • Built on a strict fail-open architecture: if Google's assessment API times out or fails,
+//   legitimate humans are never blocked by external third-party outages.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// • Apply to unauthenticated, resource-intensive generation routes (`/api/roast/:username`,
+//   `/api/roast/:username/wrapped`, `/api/battle/:user1/vs/:user2`).
+// • Apply AFTER authentication middleware (`optionalAuth`) so `req.user` is known.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// • Halting automated scrapers attempting to mass-roast millions of usernames.
+// • Guarding public endpoints against denial-of-wallet / quota depletion attacks.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// • NEVER run CAPTCHA on authenticated user actions (users who already logged in via GitHub).
+// • DO NOT run CAPTCHA on low-overhead read endpoints (`/api/history/leaderboard/*`, `/api/badge/:username`).
+// • DO NOT run CAPTCHA on automated webhook endpoints or server keep-alive health checks.
 // ============================================================
 
 const { logger } = require("../utils/logger");

@@ -1,5 +1,35 @@
 'use client'
 
+// ============================================================
+// GITROAST — Authentication Context & State Provider
+// ============================================================
+// ── WHAT: ────────────────────────────────────────────────────
+// React Context and custom hook (`useAuth`) that encapsulates client-side authentication state,
+// manages persistent JWT tokens in `localStorage`, synchronizes session state with the backend,
+// and supplies login, logout, and token retrieval functions across all React components.
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// 1. Single Source of Truth: Eliminates prop drilling for user data (`user`, `isPro`, `isLoggedIn`).
+// 2. Performance Optimization: Uses `useMemo` on context values and `useCallback` on handler methods
+//    to eliminate unnecessary re-renders of the component tree.
+// 3. Resilient Session Hydration: Recovers active sessions from `localStorage` on page mount,
+//    gracefully handling invalid/expired tokens without breaking the application.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// • Wrap at the root in `client/src/app/layout.jsx` via `<AuthProvider>`.
+// • Consume in any client component via `const { user, isPro, loginWithGitHub } = useAuth()`.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// • Displaying user avatar and Pro badge in the top navigation bar.
+// • Unlocking high-res watermark-free image downloads for Pro users.
+// • Suppressing guest-only login nudges and rate limit warnings for authenticated developers.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// • DO NOT use in React Server Components (`page.jsx` without 'use client'); Server Components
+//   do not have access to React Context or browser `localStorage`.
+// • DO NOT store raw passwords or sensitive credentials in AuthContext state.
+// ============================================================
+
 import {
     createContext,
     useContext,

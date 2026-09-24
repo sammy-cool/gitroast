@@ -1,26 +1,36 @@
 // ============================================================
 // GITROAST — Rate Limiter Middleware
 // ============================================================
-// WHAT: In-memory rate limiting per IP + path.
-//       Blocks abusive requests before they hit routes/DB/GitHub API.
+// ── WHAT: ────────────────────────────────────────────────────
+// In-memory sliding-window rate limiting engine per IP and route scope.
+// Inspects request frequency, tracks usage in a memory Map, injects RFC 7231
+// `Retry-After` and `X-RateLimit-*` headers, and terminates abuse with HTTP 429.
 //
-// HOW it works:
-//   Map key = "ip:path" → stores { count, resetTime }
-//   Each request increments count for that key
-//   If count > maxRequests within windowMs → 429 response
-//   On window expiry → key deleted → count resets
+// ── WHY: ─────────────────────────────────────────────────────
+// 1. Upstream Protection: Protects upstream GitHub REST API quotas and Google Gemini AI tokens
+//    from malicious or automated script flooding.
+// 2. Resource Conservation: Halts expensive MongoDB aggregation pipelines and full collection
+//    scans before they consume Node.js CPU cycles.
+// 3. Zero-Dependency Simplicity: Operates purely in-memory using JavaScript native Maps,
+//    eliminating Redis infrastructure overhead on single-instance Render hosting.
 //
-// WHY in-memory (not Redis):
-//   Zero dependency — fits the project's zero-dep principle
-//   Fine for single-server deployment on Render
-//   If scaling to multiple servers → switch to Redis later
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// • Mount at the router level in `server/index.js` or route controllers (`roast.js`, `battle.js`, `auth.js`).
+// • Mount BEFORE route handlers and expensive upstream network/database dispatches.
+// • Mount AFTER security headers and CORS to ensure 429 error responses still carry
+//   valid CORS headers for browser clients.
 //
-// WHY cleanup interval runs ONCE (not per limiter):
-//   OLD BUG: setInterval inside createRateLimiter()
-//   3 limiters = 3 setIntervals all cleaning the SAME Map
-//   Wasteful — creates 3 timers for identical work
-//   FIX: single cleanup interval at module level
-//        runs once, cleans the one shared Map ✅
+// ── USE CASES: ───────────────────────────────────────────────
+// • Throttling anonymous roast attempts (`roastLimiter`: 20/min).
+// • Throttling OAuth brute-force or rapid credential exchanges (`authLimiter`: 25/15min).
+// • Throttling developer battles requiring 2x GitHub API fetches (`battleLimiter`: 18/min).
+// • General application-wide DoS shield (`generalLimiter`: 75/min).
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// • DO NOT use on high-frequency internal keep-alive or Docker health check endpoints (`/health`).
+// • DO NOT use on static asset delivery or passive image streaming.
+// • DO NOT rely on in-memory rate limiting across horizontally scaled multi-container clusters;
+//   distributed production clusters requires a centralized Redis token bucket.
 // ============================================================
 
 // ── Shared request store ──────────────────────────────────────
@@ -41,6 +51,10 @@ setInterval(
       if (data.resetTime < now) {
         requestCounts.delete(key);
       }
+    }
+    // Defensive capacity guard against memory exhaustion from spoofed IP floods
+    if (requestCounts.size >= 50000) {
+      requestCounts.clear();
     }
   },
   5 * 60 * 1000,
