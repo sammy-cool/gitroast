@@ -277,17 +277,48 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
     }
 
     // 2. Persist to MongoDB
+    // ── Full-Schema SSE Stream Persistence ───────────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Persists the finalized streaming roast document to MongoDB with complete metadata:
+    // attribution (roastedBy), language tags, telemetry model, snapshot, and Pro flag.
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // Guarantees 100% schema parity between the SSE streaming route and standard atomic REST route.
+    // Prevents missing snapshots or null attribution in profile history and badge endpoints.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // In stream conclusion handlers right before emitting the terminal event.
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Completed Gemini 2.5 Flash token streams saving to MongoDB.
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not call before stream yields complete text (prevents partial document saves).
     const newRoast = await Roast.create({
       username: data.username,
+      roastedBy: req.user?._id || null,
       score: data.score,
       grade: data.grade,
       roastText: fullRoast,
       intensity,
       roastSource,
+      avatarUrl: data.avatarUrl || `https://avatars.githubusercontent.com/${data.username}?s=120`,
+      topLanguage: data._raw?.topLanguage || data.topLanguage || "",
+      aiModel: roastSource === "ai" ? "gemini-2.5-flash" : "rules-engine",
+      githubSnapshot: {
+        totalRepos: data.totalRepos,
+        joinYear: data.joinYear,
+        followers: data.followers || 0,
+        topLanguage: data._raw?.topLanguage || "",
+        abandonedCount: data.repoAnalysis?.abandonedCount || 0,
+        commitQuality: data.commitAnalysis?.qualityScore || 0,
+        totalStars: data._raw?.totalStars || 0,
+        hasReadme: data.readme?.exists || false,
+      },
       stats: data.stats,
       shameCommits: data.shameCommits,
-      bioContrast: data.bioContrast,
-      avatarUrl: data.avatarUrl,
+      bioContrast: data.bioContrast || {},
+      isPro,
     });
 
     if (req.user) {
@@ -406,7 +437,7 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
         intensity, // WHY: track which intensity was used
         avatarUrl: data.avatarUrl || `https://avatars.githubusercontent.com/${username}?s=120`,
         topLanguage: data._raw?.topLanguage || data.topLanguage || "",
-        aiModel: roastSource === "ai" ? "gemini-1.5-flash" : "rules-engine",
+        aiModel: roastSource === "ai" ? "gemini-2.5-flash" : "rules-engine",
         githubSnapshot: {
           totalRepos: data.totalRepos,
           joinYear: data.joinYear,

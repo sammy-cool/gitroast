@@ -6,7 +6,8 @@ const roastSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      index: true,
+      // WHY: index: true removed because compound index { username: 1, createdAt: -1 }
+      //      already indexes username with left-prefix query optimization
     },
 
     roastedBy: {
@@ -245,9 +246,26 @@ roastSchema.statics.incrementView = function (id) {
 //   Atomic $inc — safe for concurrent reactions
 //   Returns updated doc so frontend gets fresh counts
 //   type validated here so route stays clean
+// ── Safe Reaction Increment With ID Validation ──────────────
+// ── WHAT: ────────────────────────────────────────────────────
+// Atomically increments emoji reaction count for a verified roast document ID.
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// 1. Verifying mongoose.Types.ObjectId.isValid(id) prevents unhandled CastError exceptions.
+// 2. Atomic $inc prevents lost update race conditions under high concurrent clicks.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// In all model static methods handling document updates by dynamic ID.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// User reaction clicks on public roast permalinks.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// Do not use if arbitrary string identifiers are employed instead of Mongo ObjectIds.
 roastSchema.statics.addReaction = function (id, type) {
   const allowed = ["relatable", "destroyed", "savage"];
   if (!allowed.includes(type)) throw new Error("Invalid reaction type");
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
   return this.findByIdAndUpdate(
     id,
     { $inc: { [`reactions.${type}`]: 1 } },

@@ -61,6 +61,50 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
     const [loading, setLoading] = useState(null)
     const [justReactedType, setJustReactedType] = useState(null)
 
+    // ── React 19 State Adjustment During Render ───────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Synchronizes local counts and locked reaction sets when async props update.
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // Complies with React 19 / Next.js 16 guidelines: adjusting state during render
+    // (instead of inside useEffect) avoids cascading renders and re-render thrashing.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // When local state must reflect async changes from parent props.
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Updating reaction counts after server response resolves.
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not call setState unconditionally in render (causes infinite loops).
+    const [prevInitial, setPrevInitial] = useState(initialReactions)
+    if (initialReactions && initialReactions !== prevInitial) {
+        setPrevInitial(initialReactions)
+        setCounts({
+            relatable: initialReactions.relatable || 0,
+            destroyed: initialReactions.destroyed || 0,
+            savage: initialReactions.savage || 0,
+        })
+    }
+
+    const [prevRoastId, setPrevRoastId] = useState(roastId)
+    if (roastId !== prevRoastId) {
+        setPrevRoastId(roastId)
+        if (typeof window !== 'undefined' && roastId) {
+            try {
+                const stored = localStorage.getItem(storageKey)
+                if (stored) {
+                    const parsed = JSON.parse(stored)
+                    if (Array.isArray(parsed)) {
+                        setClicked(new Set(parsed))
+                    }
+                }
+            } catch {
+                // Ignore
+            }
+        }
+    }
+
     async function handleReact(type) {
         // Prevent double reacting to same emoji type
         if (clicked.has(type) || loading) return

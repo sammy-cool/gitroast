@@ -148,10 +148,28 @@ export default function BattleCard({ data }) {
                 ctx.restore()
             }
 
+            // ── Cross-Browser Programmatic File Download ────────────────
+            // ── WHAT: ────────────────────────────────────────────────────
+            // Programmatically appends the generated battle card anchor to document.body,
+            // clicks it to trigger the OS save dialog, and disposes of the element.
+            //
+            // ── WHY: ─────────────────────────────────────────────────────
+            // Ensures battle cards download deterministically on mobile browsers and desktop Safari.
+            //
+            // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+            // On battle card PNG export.
+            //
+            // ── USE CASES: ───────────────────────────────────────────────
+            // Exporting battle comparison card images for social media sharing.
+            //
+            // ── WHEN NOT TO USE: ─────────────────────────────────────────
+            // Do not use for server-side PDF generation.
             const link = document.createElement('a')
             link.download = `battle-${user1}-vs-${user2}.png`
             link.href = canvas.toDataURL('image/png')
+            document.body.appendChild(link)
             link.click()
+            document.body.removeChild(link)
 
             createToast({
                 type: 'success',

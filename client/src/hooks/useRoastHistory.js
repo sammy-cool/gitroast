@@ -80,10 +80,28 @@ export function useRoastHistory(username) {
         ? Math.round(validScores.reduce((s, v) => s + v, 0) / validScores.length)
         : null
 
-    // WHY: group roasts by month for comparison chart
+    // ── Resilient Monthly History Aggregation ───────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Groups historical roast documents by formatted calendar month ('Mon YY').
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // Defensively validates roast?.createdAt using getTime() and isNaN() checks.
+    // If a document has an invalid or missing date, it is omitted rather than creating
+    // a corrupted 'Invalid Date' bucket in trend analytics charts.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // In profile timeline and monthly comparison hooks.
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Monthly trend bars and historical progress indicators.
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not use if non-temporal grouping (e.g. by tag or language) is needed.
     const byMonth = history.reduce((acc, roast) => {
-        const month = new Date(roast.createdAt)
-            .toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
+        if (!roast?.createdAt) return acc
+        const parsed = new Date(roast.createdAt)
+        if (isNaN(parsed.getTime())) return acc
+        const month = parsed.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
         if (!acc[month]) acc[month] = []
         acc[month].push(roast)
         return acc

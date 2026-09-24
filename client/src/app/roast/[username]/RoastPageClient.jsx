@@ -88,9 +88,27 @@ export default function RoastPageClient({ username }) {
           new Promise(resolve => setTimeout(resolve, MIN_ANALYSIS_TIME)),
         ])
 
-        if (cancelled) return
-
-        sessionStorage.setItem(cacheKey, JSON.stringify({ data, cachedAt: Date.now() }))
+        // ── Safe SessionStorage Caching ─────────────────────────────
+        // ── WHAT: ────────────────────────────────────────────────────
+        // Stores retrieved roast payload in sessionStorage with timestamp.
+        //
+        // ── WHY: ─────────────────────────────────────────────────────
+        // Wrapping in try/catch prevents uncaught QuotaExceededError or DOMException
+        // in mobile browsers with strict storage partitioning or private mode enabled.
+        //
+        // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+        // When caching non-critical client UI payloads in browser web storage.
+        //
+        // ── USE CASES: ───────────────────────────────────────────────
+        // Browser back-button roast result caching.
+        //
+        // ── WHEN NOT TO USE: ─────────────────────────────────────────
+        // Do not use for security tokens or permanent user preferences.
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify({ data, cachedAt: Date.now() }))
+        } catch {
+          // Ignore storage quota exceeded or disabled storage exceptions
+        }
         setRoastData(data)
         setView('result')
 

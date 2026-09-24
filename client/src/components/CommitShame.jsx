@@ -1,6 +1,20 @@
 export default function CommitShame({ commits }) {
-    // WHY: if no commits found, don't render this section at all
-    if (!commits || commits.length === 0) return null
+    // ── Safe Commits Array Guard ────────────────────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Verifies that commits prop is a non-empty array before attempting to render tags.
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // Prevents TypeError: commits.map is not a function if an unexpected object or string is passed.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // At the entry point of all array-mapping presentation components.
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Displaying shameful commit messages on roast cards and badges.
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not use if component supports polymorphic data types (e.g. single item fallback).
+    if (!Array.isArray(commits) || commits.length === 0) return null
 
     return (
         <div className="commit-shame">

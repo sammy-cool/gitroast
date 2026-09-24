@@ -525,49 +525,70 @@ export async function streamRoast(
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+    // ── WHATWG Stream Lock Lifecycle Protection ──────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Consumes stream chunks and releases the ReadableStreamDefaultReader lock
+    // via reader.releaseLock() inside a finally block.
+    //
+    // ── WHY: ─────────────────────────────────────────────────────
+    // If the consumer aborts, cancels, or encounters a network drop during streaming,
+    // failing to release the lock leaves the underlying response stream pinned in memory.
+    //
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // In any client service utilizing fetch response.body.getReader().
+    //
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Real-time SSE roast streaming into React typewriter states.
+    //
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not use for standard res.json() calls where body is consumed atomically.
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
 
-      buffer += decoder.decode(value, { stream: true });
-      const blocks = buffer.split("\n\n");
-      buffer = blocks.pop() || "";
+        buffer += decoder.decode(value, { stream: true });
+        const blocks = buffer.split("\n\n");
+        buffer = blocks.pop() || "";
 
-      for (const block of blocks) {
-        const trimmed = block.trim();
-        if (!trimmed) continue;
+        for (const block of blocks) {
+          const trimmed = block.trim();
+          if (!trimmed) continue;
 
-        let eventType = "message";
-        let dataStr = "";
+          let eventType = "message";
+          let dataStr = "";
 
-        const lines = trimmed.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("event:")) {
-            eventType = line.replace(/^event:\s*/, "").trim();
-          } else if (line.startsWith("data:")) {
-            dataStr = line.replace(/^data:\s*/, "").trim();
+          const lines = trimmed.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("event:")) {
+              eventType = line.replace(/^event:\s*/, "").trim();
+            } else if (line.startsWith("data:")) {
+              dataStr = line.replace(/^data:\s*/, "").trim();
+            }
           }
-        }
 
-        if (!dataStr) continue;
+          if (!dataStr) continue;
 
-        try {
-          const parsed = JSON.parse(dataStr);
-          if (eventType === "metadata" && onMetadata) {
-            onMetadata(parsed);
-          } else if (eventType === "chunk" && onChunk) {
-            onChunk(parsed.chunk || parsed.text || "");
-          } else if (eventType === "done" && onDone) {
-            onDone(parsed.roast || parsed);
-          } else if (eventType === "error") {
-            const streamErr = new Error(parsed.message || "Streaming error");
-            if (onError) onError(streamErr);
-            throw streamErr;
+          try {
+            const parsed = JSON.parse(dataStr);
+            if (eventType === "metadata" && onMetadata) {
+              onMetadata(parsed);
+            } else if (eventType === "chunk" && onChunk) {
+              onChunk(parsed.chunk || parsed.text || "");
+            } else if (eventType === "done" && onDone) {
+              onDone(parsed.roast || parsed);
+            } else if (eventType === "error") {
+              const streamErr = new Error(parsed.message || "Streaming error");
+              if (onError) onError(streamErr);
+              throw streamErr;
+            }
+          } catch {
+            // Ignore JSON parse errors for non-JSON or heartbeat chunks
           }
-        } catch {
-          // Ignore JSON parse errors for non-JSON or heartbeat chunks
         }
       }
+    } finally {
+      reader.releaseLock();
     }
   } catch (err) {
     if (onError) onError(err);

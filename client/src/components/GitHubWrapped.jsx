@@ -91,10 +91,28 @@ export default function GitHubWrapped({ username, isPro }) {
                 ctx.restore();
             }
 
+            // ── Cross-Browser Programmatic File Download ────────────────
+            // ── WHAT: ────────────────────────────────────────────────────
+            // Programmatically appends the generated Wrapped card anchor to document.body,
+            // clicks it to trigger the OS save dialog, and disposes of the element.
+            //
+            // ── WHY: ─────────────────────────────────────────────────────
+            // Guarantees reliable file downloads across all mobile WebKit and desktop browsers.
+            //
+            // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+            // On Wrapped card PNG export.
+            //
+            // ── USE CASES: ───────────────────────────────────────────────
+            // Downloading year-in-review Wrapped summary cards.
+            //
+            // ── WHEN NOT TO USE: ─────────────────────────────────────────
+            // Do not use if streaming data directly via Blob URLs without revocation.
             const link = document.createElement("a");
             link.download = `gitroast-wrapped-2025-${username}.png`;
             link.href = canvas.toDataURL("image/png", 1.0);
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
 
             createToast({
                 type: "success",

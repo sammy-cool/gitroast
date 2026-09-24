@@ -113,10 +113,28 @@ export default function RoastCertificate({
                 ctx.restore();
             }
 
+            // ── Cross-Browser Programmatic File Download ────────────────
+            // ── WHAT: ────────────────────────────────────────────────────
+            // Programmatically appends the generated certificate anchor to document.body,
+            // clicks it to trigger the OS save dialog, and disposes of the element.
+            //
+            // ── WHY: ─────────────────────────────────────────────────────
+            // Guarantees reliable file downloads across all mobile WebKit and desktop browsers.
+            //
+            // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+            // On certificate generation completion.
+            //
+            // ── USE CASES: ───────────────────────────────────────────────
+            // Downloading Certificate of GitHub Shame PNG.
+            //
+            // ── WHEN NOT TO USE: ─────────────────────────────────────────
+            // Do not use if streaming data directly via Blob URLs without revocation.
             const link = document.createElement("a");
             link.download = `gitroast-certificate-${username}.png`;
             link.href = canvas.toDataURL("image/png", 1.0);
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
 
             createToast({
                 type: "success",

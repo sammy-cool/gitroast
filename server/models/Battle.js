@@ -20,7 +20,8 @@ const battleSchema = new mongoose.Schema(
       required: true,
       trim: true,
       lowercase: true,
-      index: true,
+      // WHY: index: true removed because compound index { user1: 1, user2: 1 }
+      //      already covers user1 lookups with left-prefix query optimization
     },
     user2: {
       type: String,
@@ -144,9 +145,26 @@ battleSchema.index({ "reactions.savage": -1, "reactions.destroyed": -1, createdA
 // WHY static method for atomic reaction updates:
 //   Avoids race conditions under concurrent clicks
 //   Uses returnDocument: 'after' complying with Mongoose 8+ standards
+// ── Safe Battle Reaction Increment With ID Validation ─────────
+// ── WHAT: ────────────────────────────────────────────────────
+// Atomically increments emoji reaction count for a verified battle document ID.
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// 1. Verifying mongoose.Types.ObjectId.isValid(id) prevents unhandled CastError exceptions.
+// 2. Atomic $inc avoids race conditions under concurrent clicks.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// In battle reaction route handlers and model static update methods.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// Recording peer reactions on 1-on-1 developer battles.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// Do not use for non-ObjectId string identifiers (e.g. slug strings) directly.
 battleSchema.statics.addReaction = function (id, type) {
   const allowed = ["relatable", "destroyed", "savage"];
   if (!allowed.includes(type)) throw new Error("Invalid reaction type");
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
   return this.findByIdAndUpdate(
     id,
     { $inc: { [`reactions.${type}`]: 1 } },

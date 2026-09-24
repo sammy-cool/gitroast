@@ -172,7 +172,26 @@ router.post("/:id/react", async (req, res) => {
     req.socket.remoteAddress ||
     "unknown";
 
-  const cacheKey = `${ip}:${id}:${type}`;
+  // ── Symmetrical Rivalry Deduplication Cache Key ─────────────
+  // ── WHAT: ────────────────────────────────────────────────────
+  // Normalizes rivalry participant order so that reacting to "alice-vs-bob"
+  // shares the exact same deduplication cache key as "bob-vs-alice".
+  //
+  // ── WHY: ─────────────────────────────────────────────────────
+  // Prevents malicious or accidental duplicate reaction bursts by swapping participant URL order.
+  //
+  // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+  // In any bilateral or symmetrical matchup deduplication system.
+  //
+  // ── USE CASES: ───────────────────────────────────────────────
+  // Battle reaction rate limiting and duplicate avoidance.
+  //
+  // ── WHEN NOT TO USE: ─────────────────────────────────────────
+  // Do not use for directional actions (e.g. following, unfollowing, blocking).
+  const normalizedId = id.includes("-vs-")
+    ? id.split("-vs-").map((s) => (s || "").trim().toLowerCase()).sort().join("-vs-")
+    : id;
+  const cacheKey = `${ip}:${normalizedId}:${type}`;
   if (battleReactionCache.has(cacheKey)) {
     return res.status(200).json({
       success: true,
@@ -245,7 +264,8 @@ router.post("/:user1/vs/:user2/react", async (req, res) => {
 
   const norm1 = (user1 || "").toLowerCase();
   const norm2 = (user2 || "").toLowerCase();
-  const cacheKey = `${ip}:${norm1}-vs-${norm2}:${type}`;
+  const pairKey = [norm1, norm2].sort().join("-vs-");
+  const cacheKey = `${ip}:${pairKey}:${type}`;
 
   if (battleReactionCache.has(cacheKey)) {
     return res.status(200).json({

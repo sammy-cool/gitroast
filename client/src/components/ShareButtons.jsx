@@ -165,10 +165,28 @@ export default function ShareButtons({
                 ctx.restore();
             }
 
+            // ── Cross-Browser Programmatic File Download ────────────────
+            // ── WHAT: ────────────────────────────────────────────────────
+            // Creates, mounts, triggers, and cleans up an invisible <a> element to initiate download.
+            //
+            // ── WHY: ─────────────────────────────────────────────────────
+            // Modern browsers (Firefox, Safari on iOS/macOS) require anchor elements to be attached
+            // to the active document body to permit programmatic .click() download events.
+            //
+            // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+            // In all client-side canvas-to-file export functions.
+            //
+            // ── USE CASES: ───────────────────────────────────────────────
+            // Exporting PNG cards, certificates, and reports.
+            //
+            // ── WHEN NOT TO USE: ─────────────────────────────────────────
+            // Do not use for server-streamed downloads (Content-Disposition handles those natively).
             const link = document.createElement("a");
             link.download = `gitroast-${username}.png`;
             link.href = canvas.toDataURL("image/png", 1.0);
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
 
             createToast({
                 type: "success",
