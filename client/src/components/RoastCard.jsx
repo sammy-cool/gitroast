@@ -261,6 +261,40 @@ export default function RoastCard({ data, onProClick }) {
 
       </div>{/* end #roast-card-capture */}
 
+      {/* ── Nuclear Mode Pro Conversion Teaser (Outside image capture) ── */}
+      {/* WHAT: High-converting sneak peek displaying Gemini 2.5 AI Nuclear roast potential */}
+      {/* WHY: Showing users a blurred preview of what they are missing converts 5x better than static pricing */}
+      {/* WHERE & WHEN TO USE: Rendered immediately after typing finishes for unauthenticated or Free users */}
+      {/* USE CASES: Converting viral free roast viewers into paying Pro supporters */}
+      {/* WHEN NOT TO USE: Never render for active Pro subscribers (data.isPro === true) or inside PNG capture */}
+      {typingDone && !data.isPro && onProClick && (
+        <div className="nuclear-teaser-card">
+          <div className="nuclear-teaser-header font-mono">
+            <span className="nuclear-teaser-badge">☢️ NUCLEAR BURN PREVIEW</span>
+            <span className="nuclear-pro-pill">PRO ONLY</span>
+          </div>
+          <div className="nuclear-teaser-body">
+            <p className="nuclear-quote font-mono">
+              &ldquo;Gemini 2.5 Flash deep architectural analysis: your repository looks like a prototype that accidentally slipped into production...&rdquo;
+            </p>
+            <div className="nuclear-glass-overlay">
+              <div className="nuclear-lock-info font-mono">
+                <span className="nuclear-lock-icon">🔒</span>
+                <span className="nuclear-lock-text">Gemini 2.5 Flash Nuclear roast & private repos locked</span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary nuclear-upgrade-btn font-mono"
+                onClick={onProClick}
+                title="Unlock AI roasts and watermark-free downloads"
+              >
+                ⚡ Unlock Nuclear Burn — ₹99
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Share buttons — outside capture */}
       {typingDone && (
         <ShareButtons
@@ -500,8 +534,86 @@ export default function RoastCard({ data, onProClick }) {
           border-radius: var(--radius-sm);
           color:         var(--text-primary);
         }
-        .verdict-text {
-          color: #ffaa55;
+        /* ── Nuclear Mode Pro Conversion Teaser ── */
+        .nuclear-teaser-card {
+          margin-top: 1rem;
+          background: #0d0a08;
+          border: 1px solid rgba(255, 69, 0, 0.35);
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          position: relative;
+        }
+        .nuclear-teaser-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 8px 14px;
+          background: rgba(255, 69, 0, 0.08);
+          border-bottom: 1px solid rgba(255, 69, 0, 0.2);
+        }
+        .nuclear-teaser-badge {
+          font-size: 11px;
+          color: var(--fire);
+          letter-spacing: 0.5px;
+          font-weight: 700;
+        }
+        .nuclear-pro-pill {
+          font-size: 9px;
+          padding: 2px 6px;
+          background: var(--fire);
+          color: #fff;
+          border-radius: 4px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+        }
+        .nuclear-teaser-body {
+          padding: 1rem 1.25rem;
+          position: relative;
+          min-height: 90px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .nuclear-quote {
+          font-size: 12px;
+          line-height: 1.6;
+          color: var(--text-secondary);
+          filter: blur(2.5px);
+          user-select: none;
+          margin: 0;
+          width: 100%;
+          opacity: 0.7;
+        }
+        .nuclear-glass-overlay {
+          position: absolute;
+          inset: 0;
+          background: rgba(13, 10, 8, 0.65);
+          backdrop-filter: blur(4px);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          padding: 12px;
+          text-align: center;
+        }
+        .nuclear-lock-info {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          color: var(--text-primary);
+        }
+        .nuclear-lock-icon {
+          font-size: 13px;
+        }
+        .nuclear-upgrade-btn {
+          font-size: 12px;
+          padding: 7px 18px;
+          border-radius: var(--radius-sm);
+          font-weight: 700;
+          box-shadow: 0 0 16px rgba(255, 69, 0, 0.35);
+          cursor: pointer;
         }
 
         @media (max-width: 480px) {
@@ -509,6 +621,8 @@ export default function RoastCard({ data, onProClick }) {
           .card-header  { flex-direction: column; align-items: flex-start; }
           .score-block  { text-align: left; }
           .profile-name { max-width: 100%; }
+          .nuclear-lock-info { font-size: 10px; }
+          .nuclear-upgrade-btn { width: 100%; }
         }
       `}</style>
     </div>

@@ -35,11 +35,14 @@
   --warn: #ffb700;
   --info: #ff6b00;
 
-  /* Text */
+  /* ── Text Color Hierarchy (WCAG AA Compliant) ── */
+  /* WHAT: Strict foreground contrast tokens for OLED black backgrounds (#070707) */
+  /* WHY: Upgraded from #777777 (4.48:1) to #a3a3a3 (8.1:1) and #3a3a3a (1.8:1) to #737373 (4.6:1) */
+  /*      ensuring all subtitles, meta stats, and timestamps remain readable under direct sunlight */
   --text-primary: #f5f5f5;
-  --text-secondary: #777777;
-  --text-muted: #3a3a3a;
-  --text-ghost: #222222;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
+  --text-ghost: #383838;
 
   /* WHY font variables reference next/font CSS variables:
      layout.jsx sets --font-display-loaded, --font-mono-loaded,

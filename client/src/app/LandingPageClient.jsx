@@ -698,16 +698,36 @@ export default function LandingPageClient() {
           margin: 0;
         }
 
+        /* ── Mobile Viewport Optimization (<600px) ── */
+        /* WHAT: Streamlined vertical layout ensuring Username Input is immediately prominent above the fold */
+        /* WHY: Eliminates excess vertical padding and shrinks button heights on compact mobile displays */
         @media (max-width: 600px) {
           .landing-page {
-            padding-top: 0.85rem;
-            gap: 1rem;
+            padding-top: 0.75rem;
+            gap: 0.85rem;
           }
           .landing-logo {
-            margin-top: 0.25rem;
+            margin-top: 0.2rem;
           }
           .status-label {
             display: none;
+          }
+          .intensity-wrap {
+            gap: 6px;
+          }
+          .intensity-btn {
+            padding: 8px 4px;
+            gap: 2px;
+          }
+          .intensity-emoji {
+            font-size: 16px;
+          }
+          .intensity-name {
+            font-size: 11px;
+          }
+          .intensity-desc {
+            font-size: 11px;
+            margin-top: -2px;
           }
         }
       `}</style>

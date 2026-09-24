@@ -37,18 +37,45 @@ export default function BattleCard({ data }) {
         }
     }, [battleTargetId])
 
+    // ── handleShare (Viral Battle Tweet) ──────────────────────────
+    // ── WHAT: Generates an engaging, provocative Twitter/X challenge post with comparative metrics.
+    // ── WHY: Converts passive viewers into active challengers; drives viral organic referrals.
+    // ── WHERE & WHEN TO USE: Triggered on "𝕏 Tweet Challenge" button click.
+    // ── USE CASES: Calling out colleagues or friends on Twitter/X to check their Git shame.
+    // ── WHEN NOT TO USE: When generating offline markdown or non-Twitter share targets.
     function handleShare() {
         if (battleTargetId) trackBattleShare(battleTargetId)
         const url = window.location.href
-        const tweet = `⚔️ GitHub Roast Battle: @${user1} vs @${user2}\n${winner ? `Winner (of shame): @${winner} 💀` : 'It\'s a draw!'}\n\n${url} 🔥 #GitRoast`
+        const tweet = `⚔️ Just challenged @${user2} to a @GitRoast battle! 💀\nCommit hygiene: ${stats1?.commitHygiene || '0%'} vs ${stats2?.commitHygiene || '0%'}.\n\nCheck the verdict or challenge a rival: ${url} 🔥 #GitRoast #DevCommunity`
         window.open(
             `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`,
             '_blank', 'noopener,noreferrer'
         )
         createToast({
-            type: 'success', message: '🐦 Battle tweet opened!',
+            type: 'success', message: '🐦 Battle challenge opened on Twitter / X!',
             position: 'top-center', duration: 3000,
         })
+    }
+
+    // ── handleChallengeCopy ───────────────────────────────────────
+    // ── WHAT: Copies formatted challenge invitation to clipboard for Discord, Slack, or WhatsApp.
+    // ── WHY: Enables frictionless peer-to-peer developer challenges outside Twitter/X.
+    // ── WHERE & WHEN TO USE: In battle action button row.
+    // ── USE CASES: Pasting challenge links directly into engineering Slack or Discord channels.
+    // ── WHEN NOT TO USE: In automated badge generators.
+    function handleChallengeCopy() {
+        if (battleTargetId) trackBattleShare(battleTargetId)
+        const url = window.location.href
+        const challengeMsg = `⚔️ I challenged @${user2} to a GitRoast battle! Check who writes cleaner code: ${url}`
+        navigator.clipboard.writeText(challengeMsg)
+            .then(() => {
+                setCopied(true)
+                createToast({
+                    type: 'success', message: '⚔️ Challenge invitation copied! Paste it in Slack, Discord, or WhatsApp.',
+                    position: 'top-center', showProgressBar: true, duration: 3500,
+                })
+                setTimeout(() => setCopied(false), 2500)
+            })
     }
 
     function handleCopyLink() {
@@ -314,13 +341,16 @@ export default function BattleCard({ data }) {
             {/* Share & Download Buttons */}
             <div className="battle-share">
                 <button className="btn btn-primary share-btn" onClick={handleShare}>
-                    𝕏 Tweet Battle
+                    𝕏 Tweet Challenge
+                </button>
+                <button className="btn btn-outline share-btn" onClick={handleChallengeCopy} title="Copy challenge invitation for Discord, Slack, or WhatsApp">
+                    {copied ? '✓ Challenge Copied!' : '⚔️ Challenge Rival'}
                 </button>
                 <button className="btn btn-outline share-btn" onClick={handleDownload} disabled={downloading}>
                     {downloading ? '⏳ Rendering...' : '📥 Save Card'}
                 </button>
                 <button className="btn btn-ghost share-btn" onClick={handleCopyLink}>
-                    {copied ? '✓ Copied!' : '🔗 Copy Link'}
+                    🔗 Link
                 </button>
             </div>
 
