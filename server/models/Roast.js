@@ -46,6 +46,17 @@ const roastSchema = new mongoose.Schema(
       default: "savage",
     },
 
+    avatarUrl: {
+      type: String,
+      default: null,
+    },
+
+    topLanguage: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     githubSnapshot: {
       totalRepos: { type: Number, default: 0 },
       joinYear: { type: Number, default: 0 },
@@ -85,17 +96,46 @@ const roastSchema = new mongoose.Schema(
       default: 0,
     },
 
+    // WHY viewCount: provides social proof on cards and reports (e.g. "👀 1,420 views")
+    viewCount: {
+      type: Number,
+      default: 0,
+    },
+
+    // WHY tags: dynamically renders category labels (e.g. 'abandoned_graveyard', 'ghost_dev')
+    tags: {
+      type: [String],
+      default: [],
+    },
+
+    // WHY customTitle: allows assigning hilarious roast archetypes (e.g. 'Senior Git Blame Dodger')
+    customTitle: {
+      type: String,
+      default: null,
+    },
+
+    // WHY isPinned: allows users to pin their favorite historical burn to their profile
+    isPinned: {
+      type: Boolean,
+      default: false,
+    },
+
+    // WHY aiModel & generationTimeMs: telemetry for LLM auditing and model performance tracking
+    aiModel: {
+      type: String,
+      default: null,
+    },
+
+    generationTimeMs: {
+      type: Number,
+      default: null,
+    },
+
     // ── Reactions ────────────────────────────────────────────
     // WHAT: Stores emoji reaction counts for this roast
-    //
     // WHY object not array:
     //   3 fixed reaction types — object lookup is O(1)
     //   No need to iterate — just reactions.relatable etc.
-    //
-    // WHY counts not user IDs here:
-    //   Keeping reaction counts here = fast read (one doc)
-    //   Preventing duplicate reactions = separate collection
-    //   (server checks IP/userId in react endpoint)
     reactions: {
       relatable: { type: Number, default: 0 }, // 😂
       destroyed: { type: Number, default: 0 }, // 💀
@@ -107,8 +147,12 @@ const roastSchema = new mongoose.Schema(
   },
 );
 
+// ── Indexes for Maximum Query Efficiency ─────────────────────
 roastSchema.index({ username: 1, createdAt: -1 });
+roastSchema.index({ username: 1, isPinned: -1, createdAt: -1 });
 roastSchema.index({ score: 1, createdAt: -1 });
+roastSchema.index({ topLanguage: 1, score: 1 });
+roastSchema.index({ "githubSnapshot.topLanguage": 1 });
 
 // WHY: /api/roast/feed sorts by { createdAt: -1 } with no $match — without
 //      this index, MongoDB performs a full collection scan on every 30s poll
@@ -119,7 +163,10 @@ roastSchema.index({ createdAt: -1 });
 roastSchema.index({ "reactions.savage": -1, "reactions.destroyed": -1, createdAt: -1 });
 
 roastSchema.statics.getHistory = function (username, limit = 10) {
-  return this.find({ username }).sort({ createdAt: -1 }).limit(limit).lean();
+  return this.find({ username })
+    .sort({ isPinned: -1, createdAt: -1 })
+    .limit(limit)
+    .lean();
 };
 
 roastSchema.statics.getLeaderboard = async function (options = {}) {
@@ -183,6 +230,15 @@ roastSchema.statics.getLeaderboard = async function (options = {}) {
 
 roastSchema.statics.incrementShare = function (id) {
   return this.findByIdAndUpdate(id, { $inc: { shareCount: 1 } });
+};
+
+roastSchema.statics.incrementView = function (id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
+  return this.findByIdAndUpdate(
+    id,
+    { $inc: { viewCount: 1 } },
+    { returnDocument: "after", select: "viewCount" }
+  );
 };
 
 // WHY static method for reactions:

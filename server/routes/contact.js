@@ -82,9 +82,17 @@ router.post("/", async (req, res) => {
     let savedToDb = false;
     if (mongoose.connection.readyState === 1) {
       try {
+        const priority =
+          safeCategory === "dispute" || safeCategory === "pro"
+            ? "high"
+            : safeCategory === "bug"
+            ? "high"
+            : "normal";
+
         const doc = new ContactMessage({
           ticketId,
           category: safeCategory,
+          priority,
           name: safeName,
           email: safeEmail,
           message: safeMessage,

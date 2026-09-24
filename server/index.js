@@ -176,6 +176,10 @@ mongoose
   .connect(process.env.MONGODB_URI, {
     // WHY: fail fast if Atlas unreachable — better 500 than hanging forever
     serverSelectionTimeoutMS: 5000,
+    // WHY pool settings: maintains warm connections, eliminates connection churn under concurrent spikes
+    maxPoolSize: 20,
+    minPoolSize: 2,
+    socketTimeoutMS: 45000,
   })
   .then(() => {
     logger.info("MongoDB", "✅ Connected to Atlas");

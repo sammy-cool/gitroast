@@ -114,6 +114,48 @@ export async function trackShare(roastId) {
   }
 }
 
+// ── trackView ─────────────────────────────────────────────────
+// WHAT: Silently records an anonymous roast view
+export async function trackView(roastId) {
+  if (!roastId) return;
+  try {
+    await fetch(`${API_BASE}/api/history/${roastId}/view`, {
+      method: "POST",
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {
+    /* silent */
+  }
+}
+
+// ── trackBattleShare ──────────────────────────────────────────
+// WHAT: Silently records a battle share event
+export async function trackBattleShare(battleId) {
+  if (!battleId) return;
+  try {
+    await fetch(`${API_BASE}/api/battle/${battleId}/share`, {
+      method: "POST",
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {
+    /* silent */
+  }
+}
+
+// ── trackBattleView ───────────────────────────────────────────
+// WHAT: Silently records a battle view event
+export async function trackBattleView(battleId) {
+  if (!battleId) return;
+  try {
+    await fetch(`${API_BASE}/api/battle/${battleId}/view`, {
+      method: "POST",
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {
+    /* silent */
+  }
+}
+
 // ── checkHealth ───────────────────────────────────────────────
 export async function checkHealth() {
   try {

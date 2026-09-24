@@ -234,6 +234,9 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
         roastText: roast,
         roastSource,
         intensity, // WHY: track which intensity was used
+        avatarUrl: data.avatarUrl || `https://avatars.githubusercontent.com/${username}?s=120`,
+        topLanguage: data._raw?.topLanguage || data.topLanguage || "",
+        aiModel: roastSource === "ai" ? "gemini-1.5-flash" : "rules-engine",
         githubSnapshot: {
           totalRepos: data.totalRepos,
           joinYear: data.joinYear,
@@ -250,6 +253,7 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
         isPro,
       });
       data.roastId = savedRoast._id;
+      data.avatarUrl = savedRoast.avatarUrl;
       data.reactions = savedRoast.reactions || {
         relatable: 0,
         destroyed: 0,

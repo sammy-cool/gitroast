@@ -904,5 +904,105 @@ describe("Feature #7 — Dynamic Logger & Telemetry Engine", () => {
     });
 });
 
+describe("Feature #8 — Database Schemas & Model Integrity", () => {
+    const User = require("../models/User");
+    const Roast = require("../models/Roast");
+    const Battle = require("../models/Battle");
+    const Payment = require("../models/Payment");
+    const ContactMessage = require("../models/ContactMessage");
+
+    it("should safely sanitize user object with badges, proPlan, and custom preferences", () => {
+        const user = new User({
+            githubId: "12345678",
+            username: "octocat",
+            email: "octocat@github.com",
+            avatarUrl: "https://avatars.githubusercontent.com/u/12345678",
+            githubAccessToken: "ghp_super_secret_token_12345",
+            isPro: true,
+            proPlan: "historian",
+            badges: ["early_adopter", "pro"],
+            customPreferences: {
+                defaultIntensity: "nuclear",
+                cardTheme: "matrix",
+                hideFromLeaderboard: false,
+            },
+        });
+
+        const safe = user.toSafeObject();
+        assert.equal(safe.githubId, "12345678");
+        assert.equal(safe.username, "octocat");
+        assert.equal(safe.isPro, true);
+        assert.equal(safe.proPlan, "historian");
+        assert.deepEqual(safe.badges, ["early_adopter", "pro"]);
+        assert.equal(safe.customPreferences.defaultIntensity, "nuclear");
+        assert.equal(safe.customPreferences.cardTheme, "matrix");
+        assert.equal(safe.githubAccessToken, undefined, "githubAccessToken must NEVER be present in safe object");
+    });
+
+    it("should initialize roast document with viewCount, tags, topLanguage, and avatarUrl", () => {
+        const roast = new Roast({
+            username: "deno_dev",
+            score: 42,
+            grade: "C",
+            roastText: "TypeScript everywhere, yet type errors abound.",
+            topLanguage: "TypeScript",
+            avatarUrl: "https://avatars.githubusercontent.com/deno_dev?s=120",
+        });
+
+        assert.equal(roast.viewCount, 0);
+        assert.equal(roast.shareCount, 0);
+        assert.equal(roast.topLanguage, "TypeScript");
+        assert.equal(roast.avatarUrl, "https://avatars.githubusercontent.com/deno_dev?s=120");
+        assert.equal(roast.isPinned, false);
+        assert.deepEqual(roast.tags, []);
+    });
+
+    it("should initialize battle document with avatarUrls, rematchCount, and viewCount", () => {
+        const battle = new Battle({
+            user1: "alice",
+            user2: "bob",
+            score1: 25,
+            score2: 80,
+            avatarUrl1: "https://avatars.githubusercontent.com/alice?s=120",
+            avatarUrl2: "https://avatars.githubusercontent.com/bob?s=120",
+        });
+
+        assert.equal(battle.avatarUrl1, "https://avatars.githubusercontent.com/alice?s=120");
+        assert.equal(battle.avatarUrl2, "https://avatars.githubusercontent.com/bob?s=120");
+        assert.equal(battle.rematchCount, 0);
+        assert.equal(battle.viewCount, 0);
+        assert.equal(battle.shareCount, 0);
+        assert.equal(battle.intensity, "savage");
+    });
+
+    it("should initialize payment document with default currency INR and metadata", () => {
+        const payment = new Payment({
+            userId: "507f1f77bcf86cd799439011",
+            planId: "roaster",
+            amount: 9900,
+            razorpayOrderId: "order_9A33XWu170gUtm",
+            status: "pending",
+        });
+
+        assert.equal(payment.currency, "INR");
+        assert.equal(payment.amount, 9900);
+        assert.equal(payment.status, "pending");
+        assert.deepEqual(payment.metadata, {});
+    });
+
+    it("should initialize contact message with default priority normal and status unread", () => {
+        const msg = new ContactMessage({
+            ticketId: "GR-889900",
+            category: "general",
+            message: "Just wanted to say the roasts are hilarious!",
+        });
+
+        assert.equal(msg.priority, "normal");
+        assert.equal(msg.status, "unread");
+        assert.equal(msg.emailDelivered, false);
+    });
+});
+
+
 
 

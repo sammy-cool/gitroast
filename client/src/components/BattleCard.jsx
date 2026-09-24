@@ -2,10 +2,11 @@
 
 // WHERE: client/src/components/BattleCard.jsx
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createToast } from 'customizable-toast-notification'
 import { useAuth } from '@/context/AuthContext'
+import { trackBattleShare, trackBattleView } from '@/services/roastService'
 import RoastReactions from './RoastReactions'
 
 export default function BattleCard({ data }) {
@@ -30,7 +31,14 @@ export default function BattleCard({ data }) {
     const isUser1Winner = winner === user1
     const battleTargetId = data._id || data.battleId || (user1 && user2 ? `${user1}-vs-${user2}` : null)
 
+    useEffect(() => {
+        if (battleTargetId) {
+            trackBattleView(battleTargetId)
+        }
+    }, [battleTargetId])
+
     function handleShare() {
+        if (battleTargetId) trackBattleShare(battleTargetId)
         const url = window.location.href
         const tweet = `⚔️ GitHub Roast Battle: @${user1} vs @${user2}\n${winner ? `Winner (of shame): @${winner} 💀` : 'It\'s a draw!'}\n\n${url} 🔥 #GitRoast`
         window.open(
@@ -44,6 +52,7 @@ export default function BattleCard({ data }) {
     }
 
     function handleCopyLink() {
+        if (battleTargetId) trackBattleShare(battleTargetId)
         navigator.clipboard.writeText(window.location.href)
             .then(() => {
                 setCopied(true)
@@ -127,7 +136,14 @@ export default function BattleCard({ data }) {
                 <p className="battle-card-title font-display text-fire">
                     ⚔️ ROAST BATTLE
                 </p>
-                <p className="battle-card-sub font-mono">gitroast.dev</p>
+                <div className="battle-sub-wrap">
+                    <p className="battle-card-sub font-mono">gitroast.dev</p>
+                    {data.rematchCount > 0 && (
+                        <span className="rematch-tag font-mono">
+                            🔥 Rematch #{data.rematchCount}
+                        </span>
+                    )}
+                </div>
             </div>
 
             {/* Two players */}
@@ -332,7 +348,17 @@ export default function BattleCard({ data }) {
           align-items:   center;
         }
         .battle-card-title { font-size: 28px; }
+        .battle-sub-wrap   { display: flex; align-items: center; gap: 8px; }
         .battle-card-sub   { font-size: 11px; color: var(--text-muted); }
+        .rematch-tag {
+          font-size: 10px;
+          background: rgba(255, 69, 0, 0.15);
+          border: 1px solid rgba(255, 69, 0, 0.35);
+          color: var(--fire);
+          padding: 2px 7px;
+          border-radius: 12px;
+          letter-spacing: 0.3px;
+        }
 
         /* Players row */
         .players-row {

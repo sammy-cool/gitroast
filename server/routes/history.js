@@ -225,6 +225,25 @@ router.post("/:id/share", async (req, res) => {
   }
 });
 
+// ── POST /api/history/:id/view ────────────────────────────────
+router.post("/:id/view", async (req, res) => {
+  const { id } = req.params;
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({
+      error: "INVALID_ID",
+      message: "Invalid roast ID.",
+    });
+  }
+
+  try {
+    const updated = await Roast.incrementView(id);
+    return res.status(200).json({ success: true, viewCount: updated?.viewCount || 0 });
+  } catch {
+    // WHY always 200: view tracking failure must never break UX
+    return res.status(200).json({ success: true });
+  }
+});
+
 // ── POST /api/history/:id/react ───────────────────────────────
 // WHAT: Adds one emoji reaction to a roast
 //

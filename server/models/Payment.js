@@ -48,6 +48,12 @@ const paymentSchema = new mongoose.Schema(
       required: true,
     },
 
+    // WHY currency: future international payment gateways (USD, EUR)
+    currency: {
+      type: String,
+      default: "INR",
+    },
+
     // ── Razorpay identifiers ──────────────────────────────────
     // WHY store both orderId and paymentId:
     //   orderId   = created by us before payment (Razorpay order)
@@ -67,6 +73,38 @@ const paymentSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
       index: true,
+    },
+
+    // ── Optional Billing & Auditing Fields ─────────────────────
+    customerEmail: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    receipt: {
+      type: String,
+      default: null,
+    },
+
+    invoiceId: {
+      type: String,
+      default: null,
+    },
+
+    metadata: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+
+    refundReason: {
+      type: String,
+      default: null,
+    },
+
+    refundedAt: {
+      type: Date,
+      default: null,
     },
 
     // ── Payment status ────────────────────────────────────────
@@ -91,9 +129,10 @@ const paymentSchema = new mongoose.Schema(
   },
 );
 
-// ── Compound index ─────────────────────────────────────────
+// ── Compound indexes ───────────────────────────────────────
 // WHY: most common query = all payments for one user, newest first
-//      compound index serves this in O(log n)
 paymentSchema.index({ userId: 1, createdAt: -1 });
+// WHY: admin revenue summaries and reconciliation jobs
+paymentSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Payment", paymentSchema);

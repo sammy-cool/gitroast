@@ -66,11 +66,16 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
         battleDoc.battleRoast = result.battleRoast;
         battleDoc.stats1 = result.stats1;
         battleDoc.stats2 = result.stats2;
+        battleDoc.avatarUrl1 = `https://avatars.githubusercontent.com/${norm1}?s=120`;
+        battleDoc.avatarUrl2 = `https://avatars.githubusercontent.com/${norm2}?s=120`;
+        battleDoc.rematchCount = (battleDoc.rematchCount || 0) + 1;
         await battleDoc.save();
       } else {
         battleDoc = await Battle.create({
           user1: norm1,
           user2: norm2,
+          avatarUrl1: `https://avatars.githubusercontent.com/${norm1}?s=120`,
+          avatarUrl2: `https://avatars.githubusercontent.com/${norm2}?s=120`,
           ...result,
         });
       }
@@ -245,6 +250,34 @@ router.post("/:user1/vs/:user2/react", async (req, res) => {
       error: "SERVER_ERROR",
       message: "Could not save reaction.",
     });
+  }
+});
+
+// ─── POST /api/battle/:id/view ────────────────────────────
+// WHAT: Records an anonymous view for battle social proof
+router.post("/:id/view", async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      await Battle.incrementView(id);
+    }
+    return res.status(200).json({ success: true });
+  } catch {
+    return res.status(200).json({ success: true });
+  }
+});
+
+// ─── POST /api/battle/:id/share ───────────────────────────
+// WHAT: Tracks battle share count
+router.post("/:id/share", async (req, res) => {
+  const { id } = req.params;
+  try {
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      await Battle.incrementShare(id);
+    }
+    return res.status(200).json({ success: true });
+  } catch {
+    return res.status(200).json({ success: true });
   }
 });
 

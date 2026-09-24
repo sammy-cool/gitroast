@@ -6,6 +6,7 @@ import StatsGrid from './StatsGrid'
 import CommitShame from './CommitShame'
 import ShareButtons from './ShareButtons'
 import RoastReactions from './RoastReactions'
+import { trackView } from '@/services/roastService'
 
 const TYPING_SPEED = 18
 
@@ -18,6 +19,14 @@ export default function RoastCard({ data, onProClick }) {
   const cursorTimerRef = useRef(null)
 
   const roastText = data.roast || ''
+  const roastTargetId = data.roastId || data._id
+
+  // Track view for database social proof
+  useEffect(() => {
+    if (roastTargetId) {
+      trackView(roastTargetId)
+    }
+  }, [roastTargetId])
 
   // Cancel speech on unmount
   useEffect(() => {
