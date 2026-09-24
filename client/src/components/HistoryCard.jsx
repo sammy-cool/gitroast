@@ -62,6 +62,9 @@ export default function HistoryCard({ roast, index }) {
                     {roast.roastSource === 'ai' && (
                         <span className="ai-tag"> · ⚡ AI</span>
                     )}
+                    {Array.isArray(roast.redemptionPlan) && roast.redemptionPlan.length > 0 && (
+                        <span className="plan-tag"> · 🛠️ Plan</span>
+                    )}
                 </p>
             </div>
 
@@ -113,6 +116,7 @@ export default function HistoryCard({ roast, index }) {
         }
         .card-meta { font-size: 11px; color: var(--text-muted); }
         .ai-tag    { color: var(--fire-warm); }
+        .plan-tag  { color: #ffaa55; }
         /* Right */
         .card-right  { flex-shrink: 0; }
         .lang-tag {
