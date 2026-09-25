@@ -112,13 +112,31 @@ export default function CompanyLeaderboardTable({ companies = [] }) {
                 </span>
               </div>
 
+                {/* 
+                  ── WHAT: ────────────────────────────────────────────────────
+                  Navigates to the cached history view for the organization.
+                  
+                  ── WHY: ─────────────────────────────────────────────────────
+                  Adheres strictly to AGENTS.md Rule 6: public leaderboard links
+                  must navigate to /history/:username, NEVER /roast/:username,
+                  preventing unnecessary AI generation costs and quota exhaustion.
+                  
+                  ── WHERE & WHEN TO USE: ─────────────────────────────────────
+                  All public leaderboard, feed, and table links.
+                  
+                  ── USE CASES: ───────────────────────────────────────────────
+                  User exploring tech giants on the Wall of Shame.
+                  
+                  ── WHEN NOT TO USE: ─────────────────────────────────────────
+                  Only the primary search bar and manual roast input trigger /roast/.
+                */}
               <div className="company-action-col">
                 <Link
-                  href={`/roast/${company.org}`}
+                  href={`/history/${company.org}`}
                   className="btn btn-roast-org font-mono"
-                  title={`Roast ${company.name}'s GitHub`}
+                  title={`View ${company.name}'s roast history`}
                 >
-                  🔥 Roast
+                  🔥 View Roast
                 </Link>
               </div>
             </div>

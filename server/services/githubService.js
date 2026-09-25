@@ -120,7 +120,15 @@ async function fetchRecentCommits(username, repos, userToken) {
       `/repos/${encodeURIComponent(username)}/${encodeURIComponent(mostActive.name)}/commits?per_page=15`,
       userToken,
     );
-    // WHY: extract just the message, trim whitespace
+    // ── Defensive Array Validation for External Payloads ─────────
+    // WHAT: Ensures the commits payload is an array before invoking array methods.
+    // WHY: GitHub REST API can return an error object without throwing a network error.
+    // WHERE & WHEN TO USE: Immediately after fetching collections from external APIs.
+    // USE CASES: Parsing commits, issue lists, and paginated responses.
+    // WHEN NOT TO USE: When strict schema validation has already guaranteed the type.
+    if (!Array.isArray(commits)) {
+      return [];
+    }
     return commits
       .map((c) => c.commit?.message?.split("\n")[0]?.trim())
       .filter(Boolean); // remove any undefined/empty

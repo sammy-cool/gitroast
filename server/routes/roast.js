@@ -12,6 +12,7 @@ const {
 const { optionalAuth, requirePro } = require("../middleware/auth");
 const { verifyCaptcha } = require("../middleware/captcha");
 const Roast = require("../models/Roast");
+const User = require("../models/User");
 const { logger } = require("../utils/logger");
 
 // ─── Idempotency store ────────────────────────────────────
@@ -147,13 +148,21 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
     const repoAnalysis = await analyzeRepository(owner, repo, userToken, isPro, intensity);
 
     if (req.user) {
+      // ── Atomic User Counters Update ──────────────────────────────
+      // WHAT: Uses MongoDB atomic operators ($inc, $set) to update roast stats.
+      // WHY: Prevents ParallelSaveError race conditions when multiple concurrent
+      //      requests hit the server, ensuring quotas are strictly enforced.
+      // WHERE & WHEN TO USE: Whenever updating usage counters or balances.
+      // USE CASES: Enforcing daily rate limits and tracking roast counts.
+      // WHEN NOT TO USE: When document-level schema pre-save hooks are mandatory.
       req.user.roastCount += 1;
       req.user.lastRoastDate = new Date();
-      await req.user
-        .save()
-        .catch((e) =>
-          logger.error("RepoRoast", "User save failed", { message: e.message })
-        );
+      await User.findByIdAndUpdate(req.user._id, {
+        $inc: { roastCount: 1 },
+        $set: { lastRoastDate: req.user.lastRoastDate },
+      }).catch((e) =>
+        logger.error("RepoRoast", "User atomic update failed", { message: e.message })
+      );
     }
 
     return res.status(200).json({ success: true, data: repoAnalysis });
@@ -370,13 +379,21 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
     });
 
     if (req.user) {
+      // ── Atomic User Counters Update ──────────────────────────────
+      // WHAT: Uses MongoDB atomic operators ($inc, $set) to update roast stats.
+      // WHY: Prevents ParallelSaveError race conditions when multiple concurrent
+      //      requests hit the server, ensuring quotas are strictly enforced.
+      // WHERE & WHEN TO USE: Whenever updating usage counters or balances.
+      // USE CASES: Enforcing daily rate limits and tracking roast counts.
+      // WHEN NOT TO USE: When document-level schema pre-save hooks are mandatory.
       req.user.roastCount += 1;
       req.user.lastRoastDate = new Date();
-      await req.user
-        .save()
-        .catch((e) =>
-          logger.error("RoastStream", "User save failed", { message: e.message }),
-        );
+      await User.findByIdAndUpdate(req.user._id, {
+        $inc: { roastCount: 1 },
+        $set: { lastRoastDate: req.user.lastRoastDate },
+      }).catch((e) =>
+        logger.error("RoastStream", "User atomic update failed", { message: e.message }),
+      );
     }
 
     // 3. Emit done event
@@ -531,13 +548,21 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
     }
 
     if (req.user) {
+      // ── Atomic User Counters Update ──────────────────────────────
+      // WHAT: Uses MongoDB atomic operators ($inc, $set) to update roast stats.
+      // WHY: Prevents ParallelSaveError race conditions when multiple concurrent
+      //      requests hit the server, ensuring quotas are strictly enforced.
+      // WHERE & WHEN TO USE: Whenever updating usage counters or balances.
+      // USE CASES: Enforcing daily rate limits and tracking roast counts.
+      // WHEN NOT TO USE: When document-level schema pre-save hooks are mandatory.
       req.user.roastCount += 1;
       req.user.lastRoastDate = new Date();
-      await req.user
-        .save()
-        .catch((e) =>
-          logger.error("Roast", "User save failed", { message: e.message }),
-        );
+      await User.findByIdAndUpdate(req.user._id, {
+        $inc: { roastCount: 1 },
+        $set: { lastRoastDate: req.user.lastRoastDate },
+      }).catch((e) =>
+        logger.error("Roast", "User atomic update failed", { message: e.message }),
+      );
     }
 
     const responseData = { success: true, data };

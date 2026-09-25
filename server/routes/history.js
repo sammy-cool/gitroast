@@ -331,8 +331,17 @@ router.post("/:id/react", async (req, res) => {
       });
     }
 
-    // WHY cap: prevents unbounded Map growth from spoofed IPs or bot traffic
-    if (reactionCache.size >= 50000) reactionCache.clear();
+    // ── Safe FIFO Map Capacity Eviction ──────────────────────────
+    // WHAT: Evicts the oldest entry rather than clearing the entire reactionCache.
+    // WHY: Clearing the entire Map resets the rate-limit state globally, allowing
+    //      attackers to bypass duplicate reaction checks for everyone else.
+    // WHERE & WHEN TO USE: In bounded memory stores with high-throughput keys.
+    // USE CASES: IP-based deduping and lightweight throttling.
+    // WHEN NOT TO USE: When persistent or distributed rate limiting is needed (use Redis).
+    if (reactionCache.size >= 50000) {
+      const firstKey = reactionCache.keys().next().value;
+      reactionCache.delete(firstKey);
+    }
     // WHY mark after successful DB write:
     //   If DB fails — don't cache — user can try again
     //   Only mark seen when we're sure it worked

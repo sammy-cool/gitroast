@@ -64,7 +64,17 @@ class JobQueue {
     this.running++;
 
     if (job.delayMs > 0) {
-      await new Promise((resolve) => setTimeout(resolve, job.delayMs));
+      // ── Non-Blocking Delay Promisification ─────────────────────────
+      // WHAT: Wraps setTimeout in a Promise and calls .unref() on the timer.
+      // WHY: Ensures background delayed retries do not hold the Node.js event loop open,
+      //      allowing the process to exit cleanly on SIGTERM / test completion.
+      // WHERE & WHEN TO USE: In background workers, retry mechanisms, and keep-alive loops.
+      // USE CASES: Exponential backoff for Resend API failures.
+      // WHEN NOT TO USE: In synchronous user-facing request timeouts.
+      await new Promise((resolve) => {
+        const timer = setTimeout(resolve, job.delayMs);
+        timer.unref();
+      });
     }
 
     try {

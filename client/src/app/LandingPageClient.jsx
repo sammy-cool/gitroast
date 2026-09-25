@@ -355,7 +355,10 @@ export default function LandingPageClient() {
               src={dailyRoast.avatarUrl || `https://avatars.githubusercontent.com/${dailyRoast.username}?s=96`}
               alt={`@${dailyRoast.username}`}
               className="daily-avatar"
+              width={36}
+              height={36}
               loading="lazy"
+              crossOrigin="anonymous"
             />
             <div className="daily-author-info">
               <Link

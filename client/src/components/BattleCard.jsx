@@ -374,17 +374,34 @@ export default function BattleCard({ data }) {
             )}
 
             {/* Share & Download Buttons */}
+            {/* 
+              ── WHAT: ────────────────────────────────────────────────────────
+              Interactive action buttons for sharing, copying, and downloading.
+              
+              ── WHY: ─────────────────────────────────────────────────────────
+              Explicitly declares type="button" to prevent implicit form submit
+              events and align with HTML5 accessibility guidelines.
+              
+              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+              All non-submitting interactive buttons.
+              
+              ── USE CASES: ───────────────────────────────────────────────────
+              Sharing battle cards to Twitter, copying links, downloading PNG.
+              
+              ── WHEN NOT TO USE: ─────────────────────────────────────────────
+              Do not use type="button" on primary form submit triggers.
+            */}
             <div className="battle-share">
-                <button className="btn btn-primary share-btn" onClick={handleShare}>
+                <button type="button" className="btn btn-primary share-btn" onClick={handleShare}>
                     𝕏 Tweet Challenge
                 </button>
-                <button className="btn btn-outline share-btn" onClick={handleChallengeCopy} title="Copy challenge invitation for Discord, Slack, or WhatsApp">
+                <button type="button" className="btn btn-outline share-btn" onClick={handleChallengeCopy} title="Copy challenge invitation for Discord, Slack, or WhatsApp">
                     {copied ? '✓ Challenge Copied!' : '⚔️ Challenge Rival'}
                 </button>
-                <button className="btn btn-outline share-btn" onClick={handleDownload} disabled={downloading}>
+                <button type="button" className="btn btn-outline share-btn" onClick={handleDownload} disabled={downloading}>
                     {downloading ? '⏳ Rendering...' : '📥 Save Card'}
                 </button>
-                <button className="btn btn-ghost share-btn" onClick={handleCopyLink}>
+                <button type="button" className="btn btn-ghost share-btn" onClick={handleCopyLink}>
                     🔗 Link
                 </button>
             </div>
