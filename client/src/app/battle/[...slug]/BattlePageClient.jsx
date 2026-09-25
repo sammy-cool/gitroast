@@ -41,6 +41,35 @@ export default function BattlePageClient({ user1, user2 }) {
         let cancelled = false
 
         async function fetchBattle() {
+            // ── Bidirectional Battle Session Cache ───────────────────────
+            // ── WHAT: ────────────────────────────────────────────────────
+            // Caches battle match results in browser sessionStorage by sorted pair key.
+            // ── WHY: ─────────────────────────────────────────────────────
+            // Prevents re-running identical 2x GitHub fetches when navigating back
+            // from a history link or refreshing the showdown page.
+            // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+            // On head-to-head battle display components with slug URL parameters.
+            // ── USE CASES: ───────────────────────────────────────────────
+            // Back-button navigation after copying battle challenge link.
+            // ── WHEN NOT TO USE: ─────────────────────────────────────────
+            // When rematch button is explicitly clicked to force a re-roll.
+            const pairKey = [(user1 || '').toLowerCase(), (user2 || '').toLowerCase()].sort().join('-vs-')
+            const cacheKey = `gitroast_battle_${pairKey}`
+            try {
+                const cached = sessionStorage.getItem(cacheKey)
+                if (cached) {
+                    const parsed = JSON.parse(cached)
+                    if (Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
+                        if (cancelled) return
+                        setBattleData(parsed.data)
+                        setView('result')
+                        return
+                    }
+                }
+            } catch {
+                // Ignore storage exceptions in private mode
+            }
+
             try {
                 const token = getToken()
 
@@ -50,6 +79,12 @@ export default function BattlePageClient({ user1, user2 }) {
                 ])
 
                 if (cancelled) return
+
+                try {
+                    sessionStorage.setItem(cacheKey, JSON.stringify({ data, cachedAt: Date.now() }))
+                } catch {
+                    // Ignore storage quota exceeded
+                }
 
                 setBattleData(data)
                 setView('result')

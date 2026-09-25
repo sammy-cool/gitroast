@@ -8,7 +8,7 @@
 //       and renders RepoRoastCard with error handling & toasts.
 // ============================================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createToast } from 'customizable-toast-notification'
@@ -28,7 +28,25 @@ export default function RepoRoastClient({ owner, repo }) {
   const router = useRouter()
   const { getToken } = useAuth()
 
+  // ── Idempotency Key ──────────────────────────────────────────
+  // ── WHAT: ────────────────────────────────────────────────────
+  // Stable idempotency token generated per mount lifecycle.
+  // ── WHY: ─────────────────────────────────────────────────────
+  // Prevents duplicate GitHub API repository fetches and double daily quota
+  // deductions caused by React StrictMode double mounts or rapid tab switching.
+  // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+  // Any computational or quota-sensitive analytical client fetch.
+  // ── USE CASES: ───────────────────────────────────────────────
+  // Repository roasts, profile roasts.
+  // ── WHEN NOT TO USE: ─────────────────────────────────────────
+  // Passive telemetry pings or search queries.
+  const idempotencyKey = useRef('')
+
   useEffect(() => {
+    if (!idempotencyKey.current && owner && repo) {
+      idempotencyKey.current = `repo-${owner}-${repo}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    }
+
     if (!owner || !repo) {
       createToast({ type: 'error', message: 'Invalid repository target.', position: 'top-center' })
       router.push('/')
@@ -38,16 +56,49 @@ export default function RepoRoastClient({ owner, repo }) {
     let cancelled = false
 
     async function fetchRepo() {
+      // ── Repository Session Cache (5m TTL) ────────────────────────
+      // ── WHAT: ────────────────────────────────────────────────────
+      // Caches repository roast results in sessionStorage by owner and repo name.
+      // ── WHY: ─────────────────────────────────────────────────────
+      // Prevents redundant GitHub API requests, rate-limit deductions, and AI token
+      // usage when navigating back from other tabs or reloading the page.
+      // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+      // Inside repository inspection client mount effect before executing fetch.
+      // ── USE CASES: ───────────────────────────────────────────────
+      // User inspects a repo, navigates to badge generator, and hits back.
+      // ── WHEN NOT TO USE: ─────────────────────────────────────────
+      // When an explicit force re-analyze button is provided.
+      const cacheKey = `gitroast_repo_${owner}_${repo}`
+      try {
+        const cached = sessionStorage.getItem(cacheKey)
+        if (cached) {
+          const parsed = JSON.parse(cached)
+          if (Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
+            if (cancelled) return
+            setRoastData(parsed.data)
+            setView('result')
+            return
+          }
+        }
+      } catch {
+        // Ignore sessionStorage exceptions in private mode
+      }
       try {
         const token = getToken()
         const intensity = sessionStorage.getItem('gitroast_intensity') || 'savage'
 
         const [data] = await Promise.all([
-          getRepoRoast(owner, repo, token, intensity),
+          getRepoRoast(owner, repo, token, intensity, idempotencyKey.current),
           new Promise((resolve) => setTimeout(resolve, MIN_ANALYSIS_TIME)),
         ])
 
         if (cancelled) return
+
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify({ data, cachedAt: Date.now() }))
+        } catch {
+          // Ignore storage quota exceeded
+        }
 
         setRoastData(data)
         setView('result')

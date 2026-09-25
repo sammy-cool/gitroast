@@ -403,8 +403,22 @@ export async function getRepoRoast(
   repo,
   token = null,
   intensity = "savage",
+  idempotencyKey = null,
 ) {
   const headers = { "Content-Type": "application/json" };
+  // ── X-Idempotency-Key Header Injection ──────────────────────
+  // ── WHAT: ────────────────────────────────────────────────────
+  // Attaches stable client-generated idempotency token to request headers.
+  // ── WHY: ─────────────────────────────────────────────────────
+  // Allows backend to deduplicate duplicate incoming analysis requests via
+  // Upstash Redis and in-memory cache, avoiding double API tokens & rate burning.
+  // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+  // In API service methods for intensive generation/roasting operations.
+  // ── USE CASES: ───────────────────────────────────────────────
+  // Component remounts, React 19 StrictMode double invokes, duplicate button clicks.
+  // ── WHEN NOT TO USE: ─────────────────────────────────────────
+  // Simple read-only listings, health checks, or metrics pings.
+  if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;

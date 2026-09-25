@@ -10,6 +10,7 @@ const { logger } = require("../utils/logger");
 const mongoose = require("mongoose");
 const Battle = require("../models/Battle");
 const User = require("../models/User");
+const redisService = require("../services/redisService");
 
 // In-memory reaction deduplication cache (ip:id:type -> true)
 const battleReactionCache = new Map();
@@ -43,6 +44,31 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
       error: "SAME_USER",
       message: "You cannot battle yourself. Even if you want to.",
     });
+  }
+
+  const norm1 = (user1 || "").toLowerCase();
+  const norm2 = (user2 || "").toLowerCase();
+  const battlePairKey = [norm1, norm2].sort().join("-vs-");
+  const cacheKey = `cache:battle:${battlePairKey}`;
+
+  // ── Distributed Battle Cache (60s TTL) ──────────────────────
+  // ── WHAT: ────────────────────────────────────────────────────
+  // Checks cloud Redis for recent match results between this pair.
+  // ── WHY: ─────────────────────────────────────────────────────
+  // A battle triggers 2 complete GitHub profile analyses plus Gemini AI
+  // announcer synthesis. Caching recent results for 60s eliminates redundant
+  // API calls when both rivals load the challenge link simultaneously.
+  // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+  // Bidirectional head-to-head match fetches.
+  // ── USE CASES: ───────────────────────────────────────────────
+  // Shared challenge links clicked from Discord, WhatsApp, or Twitter.
+  // ── WHEN NOT TO USE: ─────────────────────────────────────────
+  // When a rematch action is explicitly requested.
+  if (redisService.isConfigured) {
+    const cached = await redisService.get(cacheKey).catch(() => null);
+    if (cached) {
+      return res.status(200).json(cached);
+    }
   }
 
   try {
@@ -143,7 +169,12 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
       result.reactions = { relatable: 0, destroyed: 0, savage: 0 };
     }
 
-    return res.status(200).json({ success: true, data: result });
+    const responsePayload = { success: true, data: result };
+    if (redisService.isConfigured) {
+      redisService.set(cacheKey, responsePayload, 60).catch(() => {});
+    }
+
+    return res.status(200).json(responsePayload);
   } catch (err) {
     if (err.message === "ORGANIZATION_NOT_SUPPORTED" || err.code === "ORGANIZATION_NOT_SUPPORTED") {
       return res.status(400).json({

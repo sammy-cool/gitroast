@@ -144,6 +144,31 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
     });
   }
 
+  // ── Idempotency check (Distributed Redis + In-Memory Fallback) ──
+  // ── WHAT: ────────────────────────────────────────────────────
+  // Checks cloud Redis and in-memory store for previously analyzed repo results.
+  // ── WHY: ─────────────────────────────────────────────────────
+  // Repository analysis consumes multiple GitHub API calls and Gemini review tokens.
+  // Deduplicating requests via X-Idempotency-Key prevents double quota consumption.
+  // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+  // Start of repository inspection pipeline when idempotency header is present.
+  // ── USE CASES: ───────────────────────────────────────────────
+  // Double-clicks on repository roast submit, browser page refreshes.
+  // ── WHEN NOT TO USE: ─────────────────────────────────────────
+  // When user requests an explicit fresh re-roast.
+  const idempotencyKey = req.headers["x-idempotency-key"];
+  if (idempotencyKey) {
+    if (processedKeys.has(idempotencyKey)) {
+      return res.status(200).json(processedKeys.get(idempotencyKey).response);
+    }
+    if (redisService.isConfigured) {
+      const cached = await redisService.get(`idemp:${idempotencyKey}`).catch(() => null);
+      if (cached) {
+        return res.status(200).json(cached);
+      }
+    }
+  }
+
   try {
     const userToken = req.user?.githubAccessToken || null;
     const repoAnalysis = await analyzeRepository(owner, repo, userToken, isPro, intensity);
@@ -166,7 +191,23 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
       );
     }
 
-    return res.status(200).json({ success: true, data: repoAnalysis });
+    const responseData = { success: true, data: repoAnalysis };
+
+    if (idempotencyKey) {
+      if (processedKeys.size >= 1000) {
+        const firstKey = processedKeys.keys().next().value;
+        processedKeys.delete(firstKey);
+      }
+      processedKeys.set(idempotencyKey, {
+        response: responseData,
+        time: Date.now(),
+      });
+      if (redisService.isConfigured) {
+        redisService.set(`idemp:${idempotencyKey}`, responseData, 60).catch(() => {});
+      }
+    }
+
+    return res.status(200).json(responseData);
   } catch (err) {
     if (err.message === "REPO_NOT_FOUND" || err.code === "REPO_NOT_FOUND") {
       return res.status(404).json({
