@@ -31,12 +31,21 @@ export async function generateMetadata({ params }) {
       description: `Commit hygiene, missing tests, and architectural sins of ${repoSlug} exposed.`,
       type: 'website',
       url: `${siteUrl}/repo/${owner}/${repo}`,
+      images: [
+        {
+          url: `${siteUrl}/api/og?username=${encodeURIComponent(owner)}&score=35&grade=F`,
+          width: 1200,
+          height: 630,
+          alt: `${repoSlug} GitRoast preview`,
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: `${repoSlug} got roasted on GitRoast 🔥`,
       description: `Commit hygiene and architectural sins exposed.`,
       creator: '@gitroast',
+      images: [`${siteUrl}/api/og?username=${encodeURIComponent(owner)}&score=35&grade=F`],
     },
   }
 }

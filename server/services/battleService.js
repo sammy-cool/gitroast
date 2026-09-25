@@ -2,7 +2,7 @@
 
 const { analyzeProfile } = require("./githubService");
 const { generateRoast } = require("./roastEngine");
-const { generateAIRoast, GEMINI_MODEL } = require("./aiService");
+const { GEMINI_MODEL } = require("./aiService");
 const { logger } = require("../utils/logger");
 
 // ── Gemini Battle Model Configuration ─────────────────────────

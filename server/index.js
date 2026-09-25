@@ -28,7 +28,7 @@ const {
   battleLimiter, // WHY: battle = 2x GitHub API + AI — needs strict limit
   generalLimiter,
 } = require("./middleware/rateLimiter");
-const { logger, logRequest, attachProcessHandlers } = require("./utils/logger");
+const { logger, logRequest, recordHealthPing, attachProcessHandlers } = require("./utils/logger");
 const { startKeepAlive } = require("./services/keepAliveService");
 
 // ── Step 1: Attach process-level error handlers ───────────────
@@ -120,6 +120,20 @@ app.use(
 //     Must be BEFORE express.json/cookieParser/logRequest to skip unnecessary
 //     middleware overhead on high-frequency keep-alive pings (every 5s).
 app.get(["/health", "/api/health"], (req, res) => {
+  // ── WHAT: ────────────────────────────────────────────────────
+  // Increments dedicated health ping heartbeat telemetry counter.
+  // ── WHY: ─────────────────────────────────────────────────────
+  // Health checks bypass logRequest middleware to save CPU on 5s pings,
+  // but calling recordHealthPing here allows logger.js to emit a clean
+  // 5-minute keep-alive summary without request-level log flooding.
+  // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+  // High-frequency health / keep-alive ping handlers mounted before logRequest.
+  // ── USE CASES: ───────────────────────────────────────────────
+  // Render keep-alive and Docker healthcheck heartbeat monitoring.
+  // ── WHEN NOT TO USE: ─────────────────────────────────────────
+  // Do not call in standard application business routes.
+  recordHealthPing();
+
   res.json({
     status: "🔥 GitRoast server is alive",
     time: new Date().toISOString(),

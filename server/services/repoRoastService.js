@@ -9,7 +9,7 @@
 //   - Diagnoses commit smells, missing tests, and open issue graveyards.
 // ============================================================
 
-const { generateAIRepoRoast, generateAIRoast, generateAIRedemptionPlan } = require("./aiService");
+const { generateAIRepoRoast, generateAIRedemptionPlan } = require("./aiService");
 const { evaluateCommitHygiene } = require("./typeSafeService");
 const { logger } = require("../utils/logger");
 

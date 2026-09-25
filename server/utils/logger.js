@@ -361,6 +361,18 @@ function recordRollup(path, duration, status) {
   item.statusCodes[status] = (item.statusCodes[status] || 0) + 1;
 }
 
+// ── recordHealthPing ───────────────────────────────────────────
+// WHAT: Increments the healthPingCount counter for keep-alive pings.
+// WHY: Express mounts /health early to bypass body parsing and logging overhead,
+//      so this lightweight function allows the health route to report telemetry
+//      directly into the 5-minute keep-alive heartbeat accumulator.
+// WHERE & WHEN TO USE: Inside the /health and /api/health route handlers.
+// USE CASES: Keeping Render keep-alive telemetry active without request-level log flooding.
+// WHEN NOT TO USE: In generic business routes (use logRequest middleware instead).
+function recordHealthPing() {
+  healthPingCount++;
+}
+
 // Dedicated Health Ping Heartbeat Summary (every 5 minutes)
 // WHY: Keeps high-frequency /health keep-alive traffic out of the route rollup
 //      while providing transparent visibility that keep-alive pings are thriving.
@@ -536,6 +548,7 @@ function getDynamicLoggerStats() {
 module.exports = {
   logger,
   logRequest,
+  recordHealthPing,
   attachProcessHandlers,
   getDynamicLoggerStats,
   sanitizeMeta,

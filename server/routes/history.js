@@ -20,6 +20,7 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const Roast = require("../models/Roast");
 const Battle = require("../models/Battle");
+const User = require("../models/User");
 const { logger } = require("../utils/logger");
 const { getCompanyLeaderboard } = require("../services/companyRoastService");
 
@@ -346,6 +347,19 @@ router.post("/:id/react", async (req, res) => {
     //   If DB fails — don't cache — user can try again
     //   Only mark seen when we're sure it worked
     reactionCache.set(cacheKey, true);
+
+    // ── Wire Target User Reaction Counters ───────────────────────
+    // WHAT: Atomically increments reactionsReceived on the roasted user's account.
+    // WHY: Fulfills User schema stats.reactionsReceived field without blocking reaction response.
+    // WHERE & WHEN TO USE: When an emoji reaction is successfully recorded.
+    // USE CASES: User profile popularity and interaction telemetry.
+    // WHEN NOT TO USE: When the roasted entity is an anonymous/unregistered user.
+    if (updated.username) {
+      User.updateOne(
+        { username: new RegExp(`^${updated.username}$`, "i") },
+        { $inc: { "stats.reactionsReceived": 1 } }
+      ).catch(() => {});
+    }
 
     return res.status(200).json({
       success: true,

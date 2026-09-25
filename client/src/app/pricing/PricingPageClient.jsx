@@ -28,6 +28,7 @@ import PricingCard from '@/components/PricingCard'
 import GitHubLoginBtn from '@/components/GitHubLoginBtn'
 import Breadcrumb from '@/components/Breadcrumb'
 import { useAuth } from '@/context/AuthContext'
+import { dispatchContactMessage } from '@/services/roastService'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 
@@ -209,8 +210,26 @@ export default function PricingPageClient() {
 
     function handleWaitlist(e) {
         e.preventDefault()
-        if (!waitlistEmail.trim()) return
+        const trimmedEmail = waitlistEmail.trim()
+        if (!trimmedEmail) return
         setWaitlistDone(true)
+
+        // ── Wire Waitlist Persistence to Backend ───────────────────────
+        // WHAT: Persists early access waitlist lead directly to the database.
+        // WHY: Replaces a purely client-side mock simulation with real lead capture,
+        //      creating a ContactMessage record for notifications and follow-up.
+        // WHERE & WHEN TO USE: Whenever a user signs up for an unlaunched tier.
+        // USE CASES: Squad plan waitlist, beta feature previews.
+        // WHEN NOT TO USE: For active checkout tiers that open the payment modal.
+        dispatchContactMessage({
+            name: 'Squad Waitlist Lead',
+            email: trimmedEmail,
+            category: 'pro',
+            message: 'Requested early access to the GitRoast Squad Tier plan (waitlist signup).',
+        }).catch(() => {
+            // Non-blocking: UI already confirms signup to user
+        })
+
         createToast({
             type: 'success',
             message: "⚔️ You're on the list! We'll notify you when Squad launches.",

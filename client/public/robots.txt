@@ -1,6 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /auth/callback
-Disallow: /api/payment/
-
-Sitemap: https://gitroast.dev/sitemap.xml

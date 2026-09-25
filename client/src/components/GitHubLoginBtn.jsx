@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react'
 import { createToast } from 'customizable-toast-notification'
 import { useAuth } from '@/context/AuthContext'
+import ProBadge from './ProBadge'
 
 const subscribe = () => () => {}
 
@@ -53,9 +54,20 @@ export default function GitHubLoginBtn({ variant = 'full' }) {
                     />
                 )}
                 <span className="font-mono user-name">@{user.username}</span>
-                {isPro && (
-                    <span className="pro-badge font-mono">PRO ⚡</span>
-                )}
+                {/* 
+                  ── WHAT: ────────────────────────────────────────────────────
+                  Reusable ProBadge component showing gold/fire PRO ⚡ tag.
+                  ── WHY: ─────────────────────────────────────────────────────
+                  Centralizes badge styling across navbar, card, and history views,
+                  eliminating duplicate inline span styles.
+                  ── WHERE & WHEN TO USE: ─────────────────────────────────────
+                  Wherever authenticated Pro membership status is rendered.
+                  ── USE CASES: ───────────────────────────────────────────────
+                  Logged-in user navbar pill.
+                  ── WHEN NOT TO USE: ─────────────────────────────────────────
+                  Do not render for unauthenticated or free tier accounts.
+                */}
+                {isPro && <ProBadge size="sm" />}
                 <button
                     className="btn btn-ghost logout-btn"
                     onClick={() => {

@@ -9,6 +9,7 @@ const { logger } = require("../utils/logger");
 
 const mongoose = require("mongoose");
 const Battle = require("../models/Battle");
+const User = require("../models/User");
 
 // In-memory reaction deduplication cache (ip:id:type -> true)
 const battleReactionCache = new Map();
@@ -118,6 +119,24 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
       result._id = battleDoc._id;
       result.battleId = battleDoc._id;
       result.reactions = battleDoc.reactions || { relatable: 0, destroyed: 0, savage: 0 };
+
+      // ── Wire Battle Win/Loss Counters into User Model ───────────
+      // WHAT: Atomically increments battlesWon / battlesLost on registered user accounts.
+      // WHY: The User schema declares stats.battlesWon and stats.battlesLost;
+      //      updating them asynchronously guarantees real player rivalry statistics.
+      // WHERE & WHEN TO USE: Whenever a head-to-head battle yields a decisive winner.
+      // USE CASES: Player rivalry profiles, win/loss leaderboards.
+      // WHEN NOT TO USE: When battle ends in a draw (tie) or users aren't registered yet.
+      if (result.winner && result.winner !== "tie" && result.loser) {
+        User.updateOne(
+          { username: new RegExp(`^${result.winner}$`, "i") },
+          { $inc: { "stats.battlesWon": 1 } }
+        ).catch(() => {});
+        User.updateOne(
+          { username: new RegExp(`^${result.loser}$`, "i") },
+          { $inc: { "stats.battlesLost": 1 } }
+        ).catch(() => {});
+      }
     } catch (dbErr) {
       // Non-blocking: if MongoDB is temporarily disconnected, return computed battle
       logger.warn("Battle", "Failed to persist battle in DB", { message: dbErr.message });
@@ -226,7 +245,16 @@ router.post("/:id/react", async (req, res) => {
       });
     }
 
-    if (battleReactionCache.size >= 50000) battleReactionCache.clear();
+    // ── Safe FIFO Map Capacity Eviction ──────────────────────────
+    // WHAT: Evicts oldest entry instead of clearing entire battleReactionCache.
+    // WHY: Prevents attackers from wiping reaction dedup state for all users.
+    // WHERE & WHEN TO USE: In-memory high-throughput deduplication maps.
+    // USE CASES: Anonymous battle reaction throttling.
+    // WHEN NOT TO USE: When persistent cluster-wide state is required (use Redis).
+    if (battleReactionCache.size >= 50000) {
+      const firstKey = battleReactionCache.keys().next().value;
+      battleReactionCache.delete(firstKey);
+    }
     battleReactionCache.set(cacheKey, true);
 
     return res.status(200).json({
@@ -292,7 +320,16 @@ router.post("/:user1/vs/:user2/react", async (req, res) => {
 
     const updated = await Battle.addReaction(battle._id, type);
 
-    if (battleReactionCache.size >= 50000) battleReactionCache.clear();
+    // ── Safe FIFO Map Capacity Eviction ──────────────────────────
+    // WHAT: Evicts oldest entry instead of clearing entire battleReactionCache.
+    // WHY: Prevents attackers from wiping reaction dedup state for all users.
+    // WHERE & WHEN TO USE: In-memory high-throughput deduplication maps.
+    // USE CASES: Anonymous battle reaction throttling.
+    // WHEN NOT TO USE: When persistent cluster-wide state is required (use Redis).
+    if (battleReactionCache.size >= 50000) {
+      const firstKey = battleReactionCache.keys().next().value;
+      battleReactionCache.delete(firstKey);
+    }
     battleReactionCache.set(cacheKey, true);
 
     return res.status(200).json({
