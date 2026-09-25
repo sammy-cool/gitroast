@@ -14,9 +14,27 @@ export default function UsernameInput({ onSubmit }) {
         formState: { errors }, // WHY: gives us error messages to show user
     } = useForm()
 
+    /* 
+      ── WHAT: ────────────────────────────────────────────────────────
+      Sanitizes user input by stripping protocols, www subdomains, and github.com prefixes.
+      
+      ── WHY: ─────────────────────────────────────────────────────────
+      Users frequently paste full URLs from address bars (e.g., https://www.github.com/user).
+      Normalizing to a pure username or owner/repo string prevents downstream 404s.
+      
+      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+      In form submission handlers accepting GitHub user/repo inputs.
+      
+      ── USE CASES: ───────────────────────────────────────────────────
+      Pasted "https://github.com/facebook/react" -> "facebook/react".
+      Pasted "https://www.github.com/torvalds" -> "torvalds".
+      
+      ── WHEN NOT TO USE: ─────────────────────────────────────────────
+      Raw git clone URLs (with .git suffixes).
+    */
     function onValid(data) {
         let val = (data.username || '').trim()
-        val = val.replace(/^https?:\/\/github\.com\//i, '').replace(/^github\.com\//i, '').replace(/^\/+|\/+$/g, '')
+        val = val.replace(/^https?:\/\/(?:www\.)?github\.com\//i, '').replace(/^(?:www\.)?github\.com\//i, '').replace(/^\/+|\/+$/g, '')
         onSubmit(val)
     }
 
@@ -70,9 +88,9 @@ export default function UsernameInput({ onSubmit }) {
                         required: 'GitHub username or repository is required',
                         minLength: { value: 1, message: 'Too short' },
                         maxLength: { value: 120, message: 'Max 120 chars' },
-                        // WHY pattern: GitHub username or owner/repo rules, with optional https?:// or github.com/ prefix
+                        // WHY pattern: GitHub username or owner/repo rules, with optional https?:// and www. prefixes
                         pattern: {
-                            value: /^(?:https?:\/\/)?(?:github\.com\/)?[a-zA-Z0-9-._]+(?:\/[a-zA-Z0-9-._]+)?\/?$/,
+                            value: /^(?:https?:\/\/)?(?:(?:www\.)?github\.com\/)?[a-zA-Z0-9-._]+(?:\/[a-zA-Z0-9-._]+)?\/?$/,
                             message: 'Enter a username or owner/repo (e.g. torvalds/linux)',
                         },
                     })}

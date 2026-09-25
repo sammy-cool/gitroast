@@ -1235,5 +1235,201 @@ describe("Feature #11 — TypeSafe AI System One Engine", () => {
     });
 });
 
+describe("Feature #12 — Wall of Shame Search & Query Sanitization", () => {
+    const historyRoute = require("../routes/history");
+
+    it("should return empty results if query is less than 2 characters", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = { query: { q: "a" } };
+        const res = {
+            setHeader: () => res,
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const searchLayer = historyRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/leaderboard/search" && layer.route.methods.get,
+        );
+        assert.ok(searchLayer, "Search endpoint must exist in history routes");
+        const handler = searchLayer.route.stack[searchLayer.route.stack.length - 1].handle;
+        await handler(req, res);
+
+        assert.equal(statusCode, 200);
+        assert.equal(responseData.success, true);
+        assert.deepEqual(responseData.results, []);
+        assert.equal(responseData.pagination.total, 0);
+    });
+
+    it("should clamp pagination page and limit to safe boundaries", async () => {
+        let headersSent = {};
+        let responseJson = null;
+        const req = { query: { q: "test", page: "-5", limit: "999" } };
+        const res = {
+            setHeader: (name, val) => {
+                headersSent[name] = val;
+                return res;
+            },
+            status: () => res,
+            json: (data) => {
+                responseJson = data;
+                return res;
+            },
+        };
+
+        const Roast = require("../models/Roast");
+        const origAggregate = Roast.aggregate;
+        Roast.aggregate = async () => [
+            { metadata: [{ total: 1 }], data: [{ _id: "test", bestScore: 50, roastCount: 1 }] },
+        ];
+
+        try {
+            const searchLayer = historyRoute.stack.find(
+                (layer) => layer.route && layer.route.path === "/leaderboard/search" && layer.route.methods.get,
+            );
+            const handler = searchLayer.route.stack[searchLayer.route.stack.length - 1].handle;
+            await handler(req, res);
+
+            assert.ok(headersSent["Cache-Control"]);
+            assert.equal(responseJson?.pagination?.page, 1);
+            assert.equal(responseJson?.pagination?.limit, 50);
+        } finally {
+            Roast.aggregate = origAggregate;
+        }
+    });
+});
+
+describe("Feature #13 — Rate Limit Status & Route Precedence", () => {
+    const roastRoute = require("../routes/roast");
+
+    it("should mount /rate-limit-status before dynamic /:username route", () => {
+        const rateLimitIndex = roastRoute.stack.findIndex(
+            (layer) => layer.route && layer.route.path === "/rate-limit-status",
+        );
+        const usernameIndex = roastRoute.stack.findIndex(
+            (layer) => layer.route && layer.route.path === "/:username",
+        );
+
+        assert.ok(rateLimitIndex !== -1, "/rate-limit-status must be registered");
+        assert.ok(usernameIndex !== -1, "/:username must be registered");
+        assert.ok(
+            rateLimitIndex < usernameIndex,
+            `/rate-limit-status (index ${rateLimitIndex}) must precede /:username (index ${usernameIndex})`,
+        );
+    });
+
+    it("should return remaining quota and Pro status for unauthenticated callers", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = { user: null };
+        const res = {
+            setHeader: () => res,
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const rateLimitLayer = roastRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/rate-limit-status",
+        );
+        const handler = rateLimitLayer.route.stack[rateLimitLayer.route.stack.length - 1].handle;
+        await handler(req, res);
+
+        assert.equal(statusCode, 200);
+        assert.equal(responseData.success, true);
+        assert.equal(responseData.authenticated, false);
+        assert.equal(responseData.isPro, false);
+        assert.equal(responseData.canRoast, true);
+        assert.equal(responseData.remainingToday, 1);
+    });
+});
+
+describe("Feature #14 — Battle Invariants & Rematch Guarding", () => {
+    const battleRoute = require("../routes/battle");
+
+    it("should reject same-user battles with SAME_USER code", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = {
+            params: { user1: "Torvalds", user2: "torvalds" },
+            query: {},
+            user: null,
+            headers: {},
+        };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const battleLayer = battleRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/:user1/vs/:user2" && layer.route.methods.get,
+        );
+        const handler = battleLayer.route.stack[battleLayer.route.stack.length - 1].handle;
+        await handler(req, res);
+
+        assert.equal(statusCode, 400);
+        assert.equal(responseData.error, "SAME_USER");
+    });
+
+    it("should expose a GET / root endpoint for battle feeds", () => {
+        const rootBattleLayer = battleRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/" && layer.route.methods.get,
+        );
+        assert.ok(rootBattleLayer, "GET / must exist on battle router");
+    });
+});
+
+describe("Feature #15 — Repository Deep Roast Parameter Validation Order", () => {
+    const roastRoute = require("../routes/roast");
+
+    it("should reject invalid repository slugs with 400 INVALID_REPO before quota deduction", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = {
+            params: { owner: "invalid$$owner", repo: "bad;repo" },
+            query: {},
+            user: null,
+            headers: {},
+        };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const repoLayer = roastRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/repo/:owner/:repo" && layer.route.methods.get,
+        );
+        assert.ok(repoLayer, "/repo/:owner/:repo route must exist");
+        const handler = repoLayer.route.stack[repoLayer.route.stack.length - 1].handle;
+        await handler(req, res);
+
+        assert.equal(statusCode, 400);
+        assert.equal(responseData.error, "INVALID_REPO");
+    });
+});
+
 
 

@@ -109,7 +109,7 @@ router.get("/leaderboard/search", async (req, res) => {
   );
   try {
     // 1. Extract and validate query
-    const q = (req.query.q || "").trim();
+    const q = (req.query.q || "").trim().slice(0, 39);
     if (!q || q.length < 2) {
       return res.status(200).json({ success: true, results: [], pagination: { total: 0, page: 1, totalPages: 0 } });
     }
@@ -119,12 +119,27 @@ router.get("/leaderboard/search", async (req, res) => {
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
     const skip = (page - 1) * limit;
 
-    // 2. Aggregate: match by username regex, group like leaderboard, paginate
+    /* 
+      ── WHAT: ────────────────────────────────────────────────────────
+      Case-insensitive leaderboard search aggregation.
+      
+      ── WHY: ─────────────────────────────────────────────────────────
+      Projects username with $toLower so uppercase and lowercase variants
+      of the same user (e.g. Torvalds vs torvalds) are unified into a single
+      search entry with their absolute best (lowest) score.
+      
+      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+      In Wall of Shame developer search queries.
+      
+      ── USE CASES: ───────────────────────────────────────────────────
+      Finding developers on the leaderboard by prefix or substring.
+      
+      ── WHEN NOT TO USE: ─────────────────────────────────────────────
+      Case-sensitive repository path lookups.
+    */
     const result = await Roast.aggregate([
       { $match: { username: { $regex: safeQ, $options: "i" } } },
-      // WHY $project first: reduces RAM passed to $group — only username
-      //     and score are needed for leaderboard calculation
-      { $project: { username: 1, score: 1 } },
+      { $project: { username: { $toLower: "$username" }, score: 1 } },
       { $group: { _id: "$username", bestScore: { $min: "$score" }, roastCount: { $sum: 1 } } },
       { $facet: {
           metadata: [{ $count: "total" }],
@@ -179,7 +194,7 @@ router.get("/daily-burn", async (req, res) => {
       roastText: { $exists: true, $ne: "" },
     })
       .sort({ "reactions.savage": -1, "reactions.destroyed": -1, createdAt: -1 })
-      .select("username score grade roastText reactions avatarUrl")
+      .select("_id username score grade roastText reactions avatarUrl")
       .lean();
 
     let responseData;
@@ -187,6 +202,8 @@ router.get("/daily-burn", async (req, res) => {
       responseData = {
         success: true,
         roast: {
+          roastId: topRoast._id,
+          id: topRoast._id,
           username: topRoast.username,
           score: topRoast.score,
           grade: topRoast.grade,
@@ -409,8 +426,9 @@ router.post("/:id/react", async (req, res) => {
     // USE CASES: User profile popularity and interaction telemetry.
     // WHEN NOT TO USE: When the roasted entity is an anonymous/unregistered user.
     if (updated.username) {
+      const escapedUsername = String(updated.username).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       User.updateOne(
-        { username: new RegExp(`^${updated.username}$`, "i") },
+        { username: new RegExp(`^${escapedUsername}$`, "i") },
         { $inc: { "stats.reactionsReceived": 1 } }
       ).catch(() => {});
     }

@@ -31,6 +31,34 @@
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+/* 
+  ── safeParseJson ─────────────────────────────────────────────
+  ── WHAT: ────────────────────────────────────────────────────
+  Safely parses response body as JSON with fallback to plain text or status object.
+  
+  ── WHY: ─────────────────────────────────────────────────────
+  Cloudflare, Render spin-ups, and upstream gateways emit HTML 502/504 pages when
+  backend instances are cold. Calling res.json() directly throws an uncaught SyntaxError,
+  masking res.status and breaking client-side error handling and retry banners.
+  
+  ── WHERE & WHEN TO USE: ─────────────────────────────────────
+  In all HTTP client service methods prior to inspecting response body payloads.
+  
+  ── USE CASES: ───────────────────────────────────────────────
+  Consuming REST API endpoints during transient cold starts or network drops.
+  
+  ── WHEN NOT TO USE: ─────────────────────────────────────────
+  Do not use for binary streams (canvas downloads, SSE event streams).
+*/
+async function safeParseJson(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text || `HTTP ${res.status} ${res.statusText}`, error: "GATEWAY_ERROR" };
+  }
+}
+
 // ── getCaptchaToken ───────────────────────────────────────────
 // WHAT: Obtains Google reCAPTCHA v3 token for bot defense
 // WHY: Only executes for unauthenticated users when site key is present
@@ -91,7 +119,7 @@ export async function getRoast(
     signal: AbortSignal.timeout(60000),
   });
 
-  const json = await res.json();
+  const json = await safeParseJson(res);
 
   if (!res.ok) {
     const err = new Error(json.message || "Failed to fetch roast");
@@ -113,7 +141,7 @@ export async function getRoastHistory(username) {
     headers: { "Content-Type": "application/json" },
     signal: AbortSignal.timeout(30000),
   });
-  const json = await res.json();
+  const json = await safeParseJson(res);
   if (!res.ok) throw new Error(json.message || "Failed to fetch history");
   return json;
 }
@@ -212,7 +240,7 @@ export async function getBattleRoast(user1, user2, token = null) {
     { method: "GET", headers, signal: AbortSignal.timeout(60000) },
   );
 
-  const json = await res.json();
+  const json = await safeParseJson(res);
 
   if (!res.ok) {
     const err = new Error(json.message || "Battle failed");
@@ -239,7 +267,8 @@ export async function reactToRoast(roastId, type) {
       body: JSON.stringify({ type }),
       signal: AbortSignal.timeout(10000),
     });
-    const json = await res.json();
+    if (!res.ok) return null;
+    const json = await safeParseJson(res);
     return json;
   } catch {
     // WHY: silently fail — reaction is non-critical
@@ -258,7 +287,8 @@ export async function reactToBattle(battleId, type) {
       body: JSON.stringify({ type }),
       signal: AbortSignal.timeout(10000),
     });
-    const json = await res.json();
+    if (!res.ok) return null;
+    const json = await safeParseJson(res);
     return json;
   } catch {
     // WHY: silently fail — reaction is non-critical for UX continuity
@@ -282,7 +312,7 @@ export async function getWrapped(username, year = 2025, token = null) {
     { method: "GET", headers, signal: AbortSignal.timeout(60000) },
   );
 
-  const json = await res.json();
+  const json = await safeParseJson(res);
   if (!res.ok) {
     const err = new Error(json.message || "Failed to fetch GitHub Wrapped");
     err.code = json.error;
@@ -293,7 +323,7 @@ export async function getWrapped(username, year = 2025, token = null) {
   return json.wrapped;
 }
 
-// ── getLeaderboard ────────────────────────────────────────────
+// ── getLeaderboard ────────────────────────────────────
 // WHAT: Fetches paginated Wall of Shame leaderboard
 export async function getLeaderboard(page = 1, limit = 10) {
   const res = await fetch(
@@ -305,7 +335,7 @@ export async function getLeaderboard(page = 1, limit = 10) {
     },
   );
 
-  const json = await res.json();
+  const json = await safeParseJson(res);
   if (!res.ok) {
     const err = new Error(json.message || "Failed to fetch leaderboard");
     err.code = json.error;
@@ -327,7 +357,7 @@ export async function searchLeaderboard(query, page = 1, limit = 10) {
       signal: AbortSignal.timeout(10000),
     },
   );
-  const json = await res.json();
+  const json = await safeParseJson(res);
   if (!res.ok) {
     const err = new Error(json.message || "Search failed");
     err.code = json.error;
@@ -344,7 +374,7 @@ export async function getRoastFeed() {
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) return [];
-    const json = await res.json();
+    const json = await safeParseJson(res);
     return json.success && Array.isArray(json.feed) ? json.feed : [];
   } catch {
     return [];
@@ -359,7 +389,7 @@ export async function getRoastStats() {
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) return 0;
-    const json = await res.json();
+    const json = await safeParseJson(res);
     return json.success && typeof json.totalRoasts === "number" ? json.totalRoasts : 0;
   } catch {
     return 0;
@@ -374,7 +404,7 @@ export async function getCompanyLeaderboard() {
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) return [];
-    const json = await res.json();
+    const json = await safeParseJson(res);
     return json.success && Array.isArray(json.companies) ? json.companies : [];
   } catch {
     return [];
@@ -389,7 +419,7 @@ export async function getRoastOfTheDay() {
       signal: AbortSignal.timeout(10000),
     });
     if (!res.ok) return null;
-    const json = await res.json();
+    const json = await safeParseJson(res);
     return json.success && json.roast ? json.roast : null;
   } catch {
     return null;
@@ -435,7 +465,7 @@ export async function getRepoRoast(
     signal: AbortSignal.timeout(60000),
   });
 
-  const json = await res.json();
+  const json = await safeParseJson(res);
   if (!res.ok) {
     const err = new Error(json.message || "Failed to fetch repository roast");
     err.code = json.error;
@@ -464,7 +494,7 @@ export async function dispatchContactMessage({
     signal: AbortSignal.timeout(15000),
   });
 
-  const json = await res.json();
+  const json = await safeParseJson(res);
   if (!res.ok) {
     const err = new Error(json.error || "Failed to dispatch message");
     err.code = json.code;
@@ -614,3 +644,62 @@ export async function streamRoast(
   }
 }
 
+// ── Export Aliases for Cross-Component Ergonomics ────────────
+/* 
+  ── WHAT: ────────────────────────────────────────────────────────
+  Backward-compatible aliases for core roast fetching methods.
+  
+  ── WHY: ─────────────────────────────────────────────────────────
+  Provides ergonomic naming matching both historical and current route nomenclature
+  without forcing refactoring of existing battle or daily burn consumers.
+  
+  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+  Any client component importing `getBattle` or `getDailyBurn`.
+  
+  ── USE CASES: ───────────────────────────────────────────────────
+  Battle card displays, daily burn banners, quick-fetch hooks.
+  
+  ── WHEN NOT TO USE: ─────────────────────────────────────────────
+  Server-side scripts or Node.js background workers.
+*/
+export const getBattle = getBattleRoast;
+export const getDailyBurn = getRoastOfTheDay;
+
+// ── getRateLimitStatus ────────────────────────────────────────
+/* 
+  ── WHAT: ────────────────────────────────────────────────────────
+  Queries the backend rate-limit-status endpoint for remaining quota, Pro status, and reset window.
+  
+  ── WHY: ─────────────────────────────────────────────────────────
+  Allows the frontend to accurately render countdown banners, remaining roast credits,
+  and Pro upgrade triggers without guessing or maintaining duplicate client-side countdown clocks.
+  
+  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+  Invoked on landing page mount, rate limit warning banners, and profile cards.
+  
+  ── USE CASES: ───────────────────────────────────────────────────
+  Displaying "1 of 1 free daily roasts remaining" or "Unlimited Pro Roasting Active".
+  
+  ── WHEN NOT TO USE: ─────────────────────────────────────────────
+  Do not poll rapidly or in tight loops (mount-time check or post-action verification only).
+*/
+export async function getRateLimitStatus(token = null) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/api/roast/rate-limit-status`, {
+    method: "GET",
+    headers,
+    signal: AbortSignal.timeout(10000),
+  });
+
+  const json = await safeParseJson(res);
+  if (!res.ok) {
+    const err = new Error(json.message || "Failed to fetch rate limit status");
+    err.code = json.error;
+    err.status = res.status;
+    throw err;
+  }
+
+  return json;
+}

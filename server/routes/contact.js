@@ -66,9 +66,26 @@ router.post("/", optionalAuth, verifyCaptcha, async (req, res) => {
 
     const safeMessage = message.trim().slice(0, 3000);
 
-    // 2. Generate unique human-readable Ticket ID
+    /* 
+      ── WHAT: ────────────────────────────────────────────────────────
+      Mutable ticket ID declaration for collision retry resiliency.
+      
+      ── WHY: ─────────────────────────────────────────────────────────
+      Declaring with 'let' allows the while loop on line 128 to regenerate
+      a fresh GR-XXXXXX ticket ID upon encountering an E11000 duplicate key
+      error in MongoDB, preventing fatal TypeError crashes.
+      
+      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+      Any controller generating random unique ticket codes with collision retry.
+      
+      ── USE CASES: ───────────────────────────────────────────────────
+      Contact ticket dispatch, support message queuing.
+      
+      ── WHEN NOT TO USE: ─────────────────────────────────────────────
+      Immutable security tokens or nonces.
+    */
     const randomCode = Math.floor(100000 + Math.random() * 900000);
-    const ticketId = `GR-${randomCode}`;
+    let ticketId = `GR-${randomCode}`;
 
     const ip = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() ||
       req.socket.remoteAddress ||

@@ -162,6 +162,7 @@ export default function RoastCertificate({
         <>
             {/* Certificate trigger button */}
             <button
+                type="button"
                 className="cert-btn font-mono"
                 onClick={handleCertificate}
                 disabled={generating}

@@ -305,12 +305,13 @@ export default function PaymentFlow({ planId, onClose }) {
                 </p>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <button
+                        type="button"
                         className="btn btn-primary"
                         onClick={() => { setStatus('ready'); setErrorMsg('') }}
                     >
                         Try Again
                     </button>
-                    <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+                    <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
                 </div>
                 <style jsx>{STYLES}</style>
             </div>
@@ -359,6 +360,7 @@ export default function PaymentFlow({ planId, onClose }) {
 
             {/* Pay button */}
             <button
+                type="button"
                 className="btn btn-primary pf-pay-btn"
                 onClick={handlePayment}
             >
@@ -369,7 +371,7 @@ export default function PaymentFlow({ planId, onClose }) {
                 🔒 Secured by Razorpay · PCI DSS compliant
             </p>
 
-            <button className="btn btn-ghost pf-cancel" onClick={onClose}>
+            <button type="button" className="btn btn-ghost pf-cancel" onClick={onClose}>
                 ← Cancel
             </button>
 

@@ -242,10 +242,15 @@ export default function ShareButtons({
 
             {/* Primary row */}
             <div className="share-buttons">
-                <button className="btn btn-primary share-btn" onClick={handleShare}>
+                <button
+                    type="button"
+                    className="btn btn-primary share-btn"
+                    onClick={handleShare}
+                >
                     {copied ? "✓ Copied!" : "🔥 Share Roast"}
                 </button>
                 <button
+                    type="button"
                     className="btn btn-twitter share-btn"
                     onClick={handleTwitterShare}
                     title="Share on Twitter / X"
@@ -257,6 +262,7 @@ export default function ShareButtons({
             {/* Download */}
             <div className="secondary-buttons">
                 <button
+                    type="button"
                     className={`btn download-btn ${isPro ? "download-btn--pro" : "download-btn--free"}`}
                     onClick={handleDownload}
                     disabled={downloading}

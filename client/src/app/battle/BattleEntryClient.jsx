@@ -50,9 +50,28 @@ export default function BattleEntryClient() {
     const [user2, setUser2] = useState('')
     const router = useRouter()
 
+    /* 
+      ── WHAT: ────────────────────────────────────────────────────────
+      Sanitizes contenders' usernames and triggers route transition to arena matchup.
+      
+      ── WHY: ─────────────────────────────────────────────────────────
+      Users frequently paste full profile links (e.g., https://github.com/torvalds).
+      Stripping protocols and domains prevents 404 navigation traps in /battle/:user1/vs/:user2.
+      
+      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+      Called when starting a developer battle or clicking quick-match rivalries.
+      
+      ── USE CASES: ───────────────────────────────────────────────────
+      Pasted "github.com/shadcn" -> "shadcn".
+      
+      ── WHEN NOT TO USE: ─────────────────────────────────────────────
+      Single profile roast flows.
+    */
     function launchBattle(u1, u2) {
-        const p1 = (u1 || user1).trim().toLowerCase()
-        const p2 = (u2 || user2).trim().toLowerCase()
+        const raw1 = (u1 || user1 || '').trim()
+        const raw2 = (u2 || user2 || '').trim()
+        const p1 = raw1.replace(/^https?:\/\/(?:www\.)?github\.com\//i, '').replace(/^(?:www\.)?github\.com\//i, '').replace(/^\/+|\/+$/g, '').toLowerCase()
+        const p2 = raw2.replace(/^https?:\/\/(?:www\.)?github\.com\//i, '').replace(/^(?:www\.)?github\.com\//i, '').replace(/^\/+|\/+$/g, '').toLowerCase()
 
         if (!p1 || !p2) {
             createToast({
@@ -120,6 +139,7 @@ export default function BattleEntryClient() {
             {/* Top Navigation */}
             <nav className="battle-top-nav" aria-label="Battle Navigation">
                 <button
+                    type="button"
                     className="btn btn-ghost back-btn"
                     onClick={() => router.push('/')}
                     aria-label="Back to GitRoast Home"
@@ -128,6 +148,7 @@ export default function BattleEntryClient() {
                 </button>
                 <div className="battle-nav-actions">
                     <button
+                        type="button"
                         className="btn btn-ghost random-btn"
                         onClick={handleRandomBattle}
                         title="Pick random famous rivalry"
@@ -136,6 +157,7 @@ export default function BattleEntryClient() {
                     </button>
                     {user?.username && (
                         <button
+                            type="button"
                             className="btn btn-outline fill-me-btn"
                             onClick={handleFillMyself}
                             title={`Set @${user.username} as Player 1`}
@@ -234,6 +256,7 @@ export default function BattleEntryClient() {
                 {/* Battle Action */}
                 <div className="battle-actions">
                     <button
+                        type="button"
                         className="btn btn-primary battle-btn font-mono"
                         onClick={() => launchBattle()}
                     >

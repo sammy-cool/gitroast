@@ -121,6 +121,32 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
     });
   }
 
+  /* 
+    ── WHAT: ────────────────────────────────────────────────────────
+    Input validation for GitHub repository owner and name parameters.
+    
+    ── WHY: ─────────────────────────────────────────────────────────
+    Validates parameter format before inspecting user quota or invoking
+    downstream GitHub API calls, immediately rejecting malformed inputs with 400.
+    
+    ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+    At the beginning of repository roast controllers.
+    
+    ── USE CASES: ───────────────────────────────────────────────────
+    Rejecting path traversal characters, spaces, or excessive length handles.
+    
+    ── WHEN NOT TO USE: ─────────────────────────────────────────────
+    Do not use for general search queries with arbitrary punctuation.
+  */
+  const validOwner = /^[a-zA-Z0-9-]+$/.test(owner || "");
+  const validRepo = /^[a-zA-Z0-9._-]+$/.test(repo || "");
+  if (!owner || !repo || owner.length > 39 || repo.length > 100 || !validOwner || !validRepo) {
+    return res.status(400).json({
+      error: "INVALID_REPO",
+      message: "Invalid repository owner or name.",
+    });
+  }
+
   // ── Quota Enforcement for Free Authenticated Users ───────────
   // WHAT: Enforces daily 1-roast limit for free authenticated accounts on repository roasts.
   // WHY: Prevents free users from bypassing daily limits by targeting /repo/:owner/:repo directly.
@@ -135,15 +161,6 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
         message: "Free users get 1 roast per day. Go Pro for unlimited! ⚡",
       });
     }
-  }
-
-  const validOwner = /^[a-zA-Z0-9-]+$/.test(owner || "");
-  const validRepo = /^[a-zA-Z0-9._-]+$/.test(repo || "");
-  if (!owner || !repo || owner.length > 39 || repo.length > 100 || !validOwner || !validRepo) {
-    return res.status(400).json({
-      error: "INVALID_REPO",
-      message: "Invalid repository owner or name.",
-    });
   }
 
   // ── Idempotency check (Distributed Redis + In-Memory Fallback) ──
@@ -398,7 +415,29 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
     // Completed Gemini 2.5 Flash token streams saving to MongoDB.
     //
     // ── WHEN NOT TO USE: ─────────────────────────────────────────
-    // Do not call before stream yields complete text (prevents partial document saves).
+    /* 
+      ── WHAT: ────────────────────────────────────────────────────────
+      Client disconnect guard for SSE stream persistence.
+      
+      ── WHY: ─────────────────────────────────────────────────────────
+      If the client disconnects prematurely or the stream was aborted,
+      fullRoast will be empty or incomplete. Skipping save prevents corrupting
+      the user's profile history and avoids wrongfully docking daily roast quota.
+      
+      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+      Immediately prior to database persistence in SSE streaming endpoints.
+      
+      ── USE CASES: ───────────────────────────────────────────────────
+      Handling user navigation away from an in-flight AI roast generation.
+      
+      ── WHEN NOT TO USE: ─────────────────────────────────────────────
+      Background detached workers that must run to completion.
+    */
+    if (clientAborted || !fullRoast || fullRoast.trim().length < 20) {
+      logger.warn("RoastStream", `Stream aborted or incomplete for ${data.username} — skipping save`);
+      return;
+    }
+
     const newRoast = await Roast.create({
       username: data.username,
       roastedBy: req.user?._id || null,
@@ -464,6 +503,49 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
       res.end();
     }
   }
+});
+
+// ─── GET /api/roast/rate-limit-status ─────────────────────────
+/* 
+  ── WHAT: ────────────────────────────────────────────────────────
+  Endpoint returning caller rate limit quota, authenticated state, and Pro privileges.
+  
+  ── WHY: ─────────────────────────────────────────────────────────
+  1. Prevents the dynamic route trap where requests to /rate-limit-status
+     match router.get("/:username"), burning GitHub API quota on user "rate-limit-status".
+  2. Centralizes rate limit and subscription quota inspection for frontend banners.
+  
+  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+  Must be mounted strictly before router.get("/:username") in routes/roast.js.
+  
+  ── USE CASES: ───────────────────────────────────────────────────
+  Landing page rate-limit countdown banners, profile quota status chips.
+  
+  ── WHEN NOT TO USE: ─────────────────────────────────────────────
+  Do not use to bypass backend rate limiter middleware checks.
+*/
+router.get("/rate-limit-status", optionalAuth, async (req, res) => {
+  res.setHeader("Cache-Control", "no-store, private");
+
+  const isPro = req.user?.isPro || false;
+  const isAuthenticated = Boolean(req.user);
+  let canRoast = true;
+  let remainingToday = isPro ? Infinity : 1;
+
+  if (isAuthenticated && !isPro) {
+    canRoast = req.user.canRoastToday();
+    remainingToday = canRoast ? 1 : 0;
+  }
+
+  return res.status(200).json({
+    success: true,
+    authenticated: isAuthenticated,
+    isPro,
+    canRoast,
+    remainingToday: isPro ? "unlimited" : remainingToday,
+    plan: req.user?.proPlan || (isPro ? "roaster" : "free"),
+    resetAt: new Date(new Date().setHours(24, 0, 0, 0)).toISOString(),
+  });
 });
 
 // ─── GET /api/roast/:username ─────────────────────────────

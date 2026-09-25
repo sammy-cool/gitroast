@@ -17,6 +17,58 @@ const battleReactionCache = new Map();
 // WHY .unref(): prevents background interval from blocking process shutdown/tests
 setInterval(() => battleReactionCache.clear(), 24 * 60 * 60 * 1000).unref();
 
+// ─── GET /api/battle ──────────────────────────────────────────
+/* 
+  ── WHAT: ────────────────────────────────────────────────────────
+  Fetches paginated list of recent developer showdown battles.
+  
+  ── WHY: ─────────────────────────────────────────────────────────
+  1. Prevents 404 errors on root /api/battle route queries.
+  2. Provides indexed discovery for recent showdowns and rivalries.
+  3. Uses existing MongoDB { createdAt: -1 } index for sub-millisecond retrieval.
+  
+  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+  Mounted at the top of routes/battle.js before dynamic /:user1/vs/:user2.
+  
+  ── USE CASES: ───────────────────────────────────────────────────
+  Battle landing page, public feed of recently completed showdowns.
+  
+  ── WHEN NOT TO USE: ─────────────────────────────────────────────
+  Do not use for single-user profile roasts.
+*/
+router.get("/", async (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=60");
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const skip = (page - 1) * limit;
+
+    const [battles, total] = await Promise.all([
+      Battle.find({})
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .select("user1 user2 score1 score2 grade1 grade2 winner loser battleRoast reactions rematchCount createdAt")
+        .lean(),
+      Battle.estimatedDocumentCount(),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      battles,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1,
+      },
+    });
+  } catch (err) {
+    logger.error("Battle", "Failed to fetch battles list", { message: err.message });
+    return res.status(500).json({ success: false, error: "SERVER_ERROR", battles: [] });
+  }
+});
+
 // ─── GET /api/battle/:user1/vs/:user2 ────────────────────
 // WHY: GET not POST — results are cacheable + shareable URLs work
 router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) => {
@@ -107,8 +159,26 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
         }
         battleDoc.winner = result.winner;
         battleDoc.loser = result.loser;
-        battleDoc.battleRoast = result.battleRoast;
-        battleDoc.rematchCount = (battleDoc.rematchCount || 0) + 1;
+        /* 
+          ── WHAT: ────────────────────────────────────────────────────────
+          Guarded rematch counter increment.
+          
+          ── WHY: ─────────────────────────────────────────────────────────
+          Only increments rematchCount if the user explicitly triggers a rematch
+          (?rematch=true) rather than on every passive public page view.
+          
+          ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+          In battle showdown controllers when saving existing battle records.
+          
+          ── USE CASES: ───────────────────────────────────────────────────
+          Preventing rematch count inflation on shared link previews.
+          
+          ── WHEN NOT TO USE: ─────────────────────────────────────────────
+          Do not apply to new battle creation records.
+        */
+        if (req.query.rematch === "true") {
+          battleDoc.rematchCount = (battleDoc.rematchCount || 0) + 1;
+        }
         await battleDoc.save();
       } else {
         battleDoc = await Battle.create({

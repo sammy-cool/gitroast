@@ -162,7 +162,25 @@ router.post("/verify", requireAuth, async (req, res) => {
       logger.error("Payment", "Verify failed", { message: paymentErr.message });
     }
 
+    /* 
+      ── WHAT: ────────────────────────────────────────────────────────
+      Updates User document with Pro status and specific tier planId.
+      
+      ── WHY: ─────────────────────────────────────────────────────────
+      Persists the user's selected tier ('roaster' | 'historian') into proPlan,
+      ensuring account state matches the purchased SKU.
+      
+      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+      In payment verification controllers after cryptographic signature validation.
+      
+      ── USE CASES: ───────────────────────────────────────────────────
+      Unlocking Pro tier privileges and lifetime/subscription features.
+      
+      ── WHEN NOT TO USE: ─────────────────────────────────────────────
+      Do not set proPlan without verified payment confirmation.
+    */
     req.user.isPro = true;
+    req.user.proPlan = planId;
     req.user.proSince = new Date();
     await req.user.save();
 
@@ -283,6 +301,7 @@ router.post("/webhook", async (req, res) => {
         const user = await User.findById(userId);
         if (user && !user.isPro) {
           user.isPro = true;
+          user.proPlan = (paymentDoc && paymentDoc.planId) || "roaster";
           user.proSince = new Date();
           await user.save();
           logger.info("Payment", `Pro unlocked via webhook for user ${userId}`);

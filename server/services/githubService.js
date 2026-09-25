@@ -147,9 +147,27 @@ async function fetchRecentCommits(username, repos, userToken) {
 // ─── 4. Check README quality ─────────────────────────────
 // WHY: a missing or tiny README is prime roast material
 async function checkReadmeQuality(username, repos, userToken) {
-  // WHY: check the most starred repo for README
-  const sorted = [...repos].sort(
-    (a, b) => b.stargazers_count - a.stargazers_count,
+  /* 
+    ── WHAT: ────────────────────────────────────────────────────────
+    Selects top repository for README inspection, prioritizing own non-forked repos.
+    
+    ── WHY: ─────────────────────────────────────────────────────────
+    Forked repositories contain upstream author READMEs. Filtering for own repos
+    first ensures the roast evaluates the developer's actual documentation efforts.
+    
+    ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+    Profile documentation analysis.
+    
+    ── USE CASES: ───────────────────────────────────────────────────
+    Checking if developer creates comprehensive project READMEs.
+    
+    ── WHEN NOT TO USE: ─────────────────────────────────────────────
+    When user has exclusively forked repositories (falls back to pool).
+  */
+  const ownRepos = (repos || []).filter((r) => !r.fork);
+  const candidates = ownRepos.length > 0 ? ownRepos : (repos || []);
+  const sorted = [...candidates].sort(
+    (a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0),
   );
   const topRepo = sorted[0];
 
