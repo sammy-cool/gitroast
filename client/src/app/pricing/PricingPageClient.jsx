@@ -345,7 +345,24 @@ export default function PricingPageClient() {
           display:        flex;
           flex-direction: column;
           align-items:    center;
-          padding:        1.5rem 1rem 6rem;
+          /* 
+            ── WHAT: ────────────────────────────────────────────────────────
+            Pricing page container padding.
+            
+            ── WHY: ─────────────────────────────────────────────────────────
+            Per AGENTS.md Rule 2.3, the fixed site footer requires at least 6.5rem
+            bottom clearance to prevent CTA buttons and FAQ items from being hidden.
+            
+            ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+            Top-level page containers.
+            
+            ── USE CASES: ───────────────────────────────────────────────────
+            Pricing page layout rendering.
+            
+            ── WHEN NOT TO USE: ─────────────────────────────────────────────
+            Components nested inside sub-containers.
+          */
+          padding:        1.5rem 1rem 6.5rem;
           gap:            2rem;
           position:       relative;
           overflow:       hidden;
@@ -465,7 +482,7 @@ export default function PricingPageClient() {
 
         /* Responsive */
         @media (max-width: 540px) {
-          .pricing-page  { padding: 1.25rem 0.875rem 6rem; gap: 1.5rem; }
+          .pricing-page  { padding: 1.25rem 0.875rem 6.5rem; gap: 1.5rem; }
           .waitlist-form { flex-direction: column; align-items: stretch; }
           .waitlist-btn  { width: 100%; }
           .faq-item      { padding: 1rem 1.25rem; }

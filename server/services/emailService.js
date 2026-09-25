@@ -11,6 +11,7 @@
 // ============================================================
 
 const { logger } = require("../utils/logger");
+const ContactMessage = require("../models/ContactMessage");
 
 const OWNER_EMAIL = process.env.OWNER_EMAIL || "priyanshu.alt191@gmail.com";
 const RESEND_API_URL = "https://api.resend.com/emails";
@@ -143,6 +144,7 @@ async function sendContactNotification({ ticketId, category, name, email, messag
           to: OWNER_EMAIL,
           ticketId,
         });
+        ContactMessage.updateOne({ ticketId }, { emailDelivered: true }).catch(() => {});
         return { success: true, provider: "resend" };
       } else {
         const errText = await res.text();

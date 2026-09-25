@@ -84,6 +84,25 @@ async function verifyCaptcha(req, res, next) {
         signal: AbortSignal.timeout(5000),
       });
 
+      // ── Fail-Open on Google Upstream Outage ──────────────────────
+      // ── WHAT: ────────────────────────────────────────────────────
+      // Skips verification if Google reCAPTCHA Enterprise responds with non-2xx status.
+      // ── WHY: ─────────────────────────────────────────────────────
+      // Google API 500/503 outages return error JSON where tokenProperties is missing.
+      // Failing closed would lock out all legitimate users on external infrastructure issues.
+      // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+      // Immediately after checking HTTP response status of external security APIs.
+      // ── USE CASES: ───────────────────────────────────────────────
+      // Google Cloud regional outages or maintenance.
+      // ── WHEN NOT TO USE: ─────────────────────────────────────────
+      // Strict financial transaction or payment verification gateways.
+      if (googleRes.status && googleRes.status >= 500) {
+        logger.warn("Captcha", `Google reCAPTCHA Enterprise returned HTTP ${googleRes.status} — failing open`, {
+          status: googleRes.status,
+        });
+        return next();
+      }
+
       const data = await googleRes.json();
 
       if (data.tokenProperties) {
@@ -106,6 +125,13 @@ async function verifyCaptcha(req, res, next) {
         }),
         signal: AbortSignal.timeout(5000), // 5s timeout prevents blocking user on slow third-party responses
       });
+
+      if (googleRes.status && googleRes.status >= 500) {
+        logger.warn("Captcha", `Google reCAPTCHA v3 returned HTTP ${googleRes.status} — failing open`, {
+          status: googleRes.status,
+        });
+        return next();
+      }
 
       const data = await googleRes.json();
       isValid = data.success === true;

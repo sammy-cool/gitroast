@@ -76,10 +76,11 @@ async function incrWithTtl(key, ttlSeconds = 60) {
   if (redisClient) {
     try {
       const count = await redisClient.incr(key);
-      if (count === 1) {
+      let ttl = await redisClient.ttl(key);
+      if (count === 1 || ttl === -1) {
         await redisClient.expire(key, ttlSeconds);
+        ttl = ttlSeconds;
       }
-      const ttl = await redisClient.ttl(key);
       return { count, ttl: ttl > 0 ? ttl : ttlSeconds };
     } catch (err) {
       logger.warn("Redis", "Redis incr error, using in-memory fallback", { message: err.message });

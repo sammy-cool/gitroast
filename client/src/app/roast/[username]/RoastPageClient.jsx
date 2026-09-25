@@ -27,6 +27,7 @@ import AnalyzingScreen from '@/components/AnalyzingScreen'
 import dynamic from 'next/dynamic';
 const RoastCard = dynamic(() => import('@/components/RoastCard'));
 const ProModal = dynamic(() => import('@/components/ProModal'), { ssr: false });
+import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb'
 import { getRoast } from '@/services/roastService'
 import { useAuth } from '@/context/AuthContext'
@@ -278,21 +279,40 @@ export default function RoastPageClient({ username }) {
             onProClick={() => setShowProModal(true)}
           />
 
-          <div className="upsell-card card">
-            <div>
-              <p className="upsell-title">📈 Historian Plan</p>
-              <p className="upsell-sub font-mono">
-                Monthly report · Score trends · Roast streak tracking.
-              </p>
-            </div>
-            <div className="upsell-price">
-              <div className="upsell-amount-row">
-                <span className="font-display upsell-symbol">₹</span>
-                <span className="font-display upsell-number">199</span>
+          {/* 
+            ── WHAT: ────────────────────────────────────────────────────────
+            Interactive navigation link to the pricing page for the Historian Plan.
+            
+            ── WHY: ─────────────────────────────────────────────────────────
+            Replaces the previous unclickable div with an accessible Next.js Link
+            to drive conversions to paid tiers while preserving layout semantics.
+            
+            ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+            Call-to-action cards promoting subscription upgrades.
+            
+            ── USE CASES: ───────────────────────────────────────────────────
+            Roast results page upsell section.
+            
+            ── WHEN NOT TO USE: ─────────────────────────────────────────────
+            When the user is already on the maximum tier.
+          */}
+          <Link href="/pricing" className="upsell-link">
+            <div className="upsell-card card">
+              <div>
+                <p className="upsell-title">📈 Historian Plan</p>
+                <p className="upsell-sub font-mono">
+                  Monthly report · Score trends · Roast streak tracking.
+                </p>
               </div>
-              <span className="font-mono upsell-period">/month</span>
+              <div className="upsell-price">
+                <div className="upsell-amount-row">
+                  <span className="font-display upsell-symbol">₹</span>
+                  <span className="font-display upsell-number">199</span>
+                </div>
+                <span className="font-mono upsell-period">/month</span>
+              </div>
             </div>
-          </div>
+          </Link>
         </main>
 
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
@@ -303,7 +323,24 @@ export default function RoastPageClient({ username }) {
             display:        flex;
             flex-direction: column;
             align-items:    center;
-            padding:        1.5rem 1rem 6rem;
+            /* 
+              ── WHAT: ────────────────────────────────────────────────────────
+              Roast result page layout padding.
+              
+              ── WHY: ─────────────────────────────────────────────────────────
+              Per AGENTS.md Rule 2.3, the fixed site footer requires at least 6.5rem
+              clearance so the upsell card is never obscured by the bottom bar.
+              
+              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+              Top-level page views.
+              
+              ── USE CASES: ───────────────────────────────────────────────────
+              Roast result page viewport clearance.
+              
+              ── WHEN NOT TO USE: ─────────────────────────────────────────────
+              Inside scrollable modal bodies.
+            */
+            padding:        1.5rem 1rem 6.5rem;
             gap:            1.25rem;
           }
           .result-nav {
@@ -319,6 +356,17 @@ export default function RoastPageClient({ username }) {
             margin-top: -0.5rem;
           }
           .nav-logo      { font-size: 22px; }
+          .result-page :global(.upsell-link) {
+            text-decoration: none;
+            color:           inherit;
+            width:           100%;
+            max-width:       580px;
+            display:         block;
+            transition:      transform 0.18s ease;
+          }
+          .result-page :global(.upsell-link:hover) {
+            transform: translateY(-2px);
+          }
           .upsell-card {
             width:           100%;
             max-width:       580px;
@@ -327,6 +375,12 @@ export default function RoastPageClient({ username }) {
             justify-content: space-between;
             align-items:     center;
             gap:             1rem;
+            cursor:          pointer;
+            transition:      border-color 0.18s ease, box-shadow 0.18s ease;
+          }
+          .upsell-card:hover {
+            border-color: rgba(255, 69, 0, 0.4);
+            box-shadow: 0 4px 20px rgba(255, 69, 0, 0.08);
           }
           .upsell-title  { font-size: 14px; font-weight: 500; margin: 0 0 4px; }
           .upsell-sub    { color: var(--text-secondary); font-size: 12px; }

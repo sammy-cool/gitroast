@@ -175,7 +175,7 @@ roastSchema.index({ createdAt: -1 });
 roastSchema.index({ "reactions.savage": -1, "reactions.destroyed": -1, createdAt: -1 });
 
 roastSchema.statics.getHistory = function (username, limit = 10) {
-  return this.find({ username })
+  return this.find({ username: new RegExp(`^${username}$`, "i") })
     .sort({ isPinned: -1, createdAt: -1 })
     .limit(limit)
     .lean();
@@ -197,9 +197,9 @@ roastSchema.statics.getLeaderboard = async function (options = {}) {
   const skip = (page - 1) * limit;
 
   const result = await this.aggregate([
-    // WHY $project first: reduces data passed to $group — only username
-    //     and score are needed, not roastText, stats, shameCommits, etc.
-    { $project: { username: 1, score: 1 } },
+    // WHY $project first: reduces data passed to $group and normalizes username casing
+    //     so duplicate case variants (Alice vs alice) don't split rankings
+    { $project: { username: { $toLower: "$username" }, score: 1 } },
     {
       $group: {
         _id: "$username",
@@ -264,6 +264,7 @@ roastSchema.statics.incrementView = function (id) {
 // ── WHY: ─────────────────────────────────────────────────────
 // 1. Verifying mongoose.Types.ObjectId.isValid(id) prevents unhandled CastError exceptions.
 // 2. Atomic $inc prevents lost update race conditions under high concurrent clicks.
+// 3. Selecting both reactions AND username ensures callers can update User stats.reactionsReceived.
 //
 // ── WHERE & WHEN TO USE: ─────────────────────────────────────
 // In all model static methods handling document updates by dynamic ID.
@@ -280,7 +281,7 @@ roastSchema.statics.addReaction = function (id, type) {
   return this.findByIdAndUpdate(
     id,
     { $inc: { [`reactions.${type}`]: 1 } },
-    { returnDocument: "after", select: "reactions" },
+    { returnDocument: "after", select: "reactions username" },
   );
 };
 

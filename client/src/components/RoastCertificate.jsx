@@ -241,6 +241,27 @@ export default function RoastCertificate({
                                         className="cert-qr"
                                         crossOrigin="anonymous"
                                         loading="eager"
+                                        onError={(e) => {
+                                            /* 
+                                              ── WHAT: ────────────────────────────────────────────────────────
+                                              Fallback placeholder SVG when the third-party QR API fails.
+                                              
+                                              ── WHY: ─────────────────────────────────────────────────────────
+                                              Prevents html2canvas export failure or broken image artifacts
+                                              if api.qrserver.com is blocked by privacy tools or network drops.
+                                              
+                                              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+                                              All third-party generated certificate QR codes.
+                                              
+                                              ── USE CASES: ───────────────────────────────────────────────────
+                                              Certificate PDF/PNG download when offline or firewalled.
+                                              
+                                              ── WHEN NOT TO USE: ─────────────────────────────────────────────
+                                              Do not use for primary user avatar icons.
+                                            */
+                                            e.currentTarget.onerror = null;
+                                            e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72"><rect width="72" height="72" fill="%23fdfaf3"/><rect x="8" y="8" width="56" height="56" fill="none" stroke="%232c1810" stroke-width="2"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="%232c1810">VERIFY</text></svg>';
+                                        }}
                                     />
                                     <span className="cert-qr-label font-mono">SCAN TO VERIFY</span>
                                 </div>

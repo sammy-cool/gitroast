@@ -161,6 +161,27 @@ export default function RepoRoastCard({ data, onProClick }) {
             className="repo-avatar"
             crossOrigin="anonymous"
             loading="eager"
+            onError={(e) => {
+              /* 
+                ── WHAT: ────────────────────────────────────────────────────────
+                Safe inline SVG fallback on avatar load failure.
+                
+                ── WHY: ─────────────────────────────────────────────────────────
+                Prevents browser broken image icons and avoids infinite onError
+                loops by unsetting onerror before assigning the data URI fallback.
+                
+                ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+                All user and organization avatar img tags.
+                
+                ── USE CASES: ───────────────────────────────────────────────────
+                Offline mode, rate limits, or network partitions.
+                
+                ── WHEN NOT TO USE: ─────────────────────────────────────────────
+                Do not use heavy external HTTP image URLs for fallbacks.
+              */
+              e.currentTarget.onerror = null;
+              e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="54" height="54" viewBox="0 0 54 54"><rect width="54" height="54" rx="12" fill="%231a1a1a"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="20" fill="%23ff6b00">📦</text></svg>';
+            }}
           />
           <div>
             <div className="repo-title font-display">
@@ -604,7 +625,25 @@ export default function RepoRoastCard({ data, onProClick }) {
           display: flex;
           gap: 8px;
         }
-        .action-btn {
+        /* 
+          ── WHAT: ────────────────────────────────────────────────────────
+          Styled-JSX parent-scoped :global selector for action buttons and Links.
+          
+          ── WHY: ─────────────────────────────────────────────────────────
+          Per AGENTS.md Rule 12, Next.js <Link> renders as a custom React component,
+          meaning styled-jsx cannot inject its scoped hash class onto the <a> tag.
+          Parent-scoping via .share-actions :global(.action-btn) guarantees consistent styling.
+          
+          ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+          Any Next.js <Link> with CSS classes styled inside <style jsx>.
+          
+          ── USE CASES: ───────────────────────────────────────────────────
+          Repo roast card action buttons.
+          
+          ── WHEN NOT TO USE: ─────────────────────────────────────────────
+          Do not use raw unbounded :global(.action-btn) without parent scoping.
+        */
+        .share-actions :global(.action-btn) {
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid var(--border);
           color: var(--text-primary);
@@ -614,17 +653,20 @@ export default function RepoRoastCard({ data, onProClick }) {
           text-decoration: none;
           cursor: pointer;
           transition: all 0.2s;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
-        .action-btn:hover {
+        .share-actions :global(.action-btn:hover) {
           border-color: #ff6b00;
           color: #ff6b00;
         }
-        .action-btn--primary {
+        .share-actions :global(.action-btn--primary) {
           background: #ff4500;
           color: #fff;
           border-color: #ff4500;
         }
-        .action-btn--primary:hover {
+        .share-actions :global(.action-btn--primary:hover) {
           background: #ff6b00;
           color: #fff;
         }

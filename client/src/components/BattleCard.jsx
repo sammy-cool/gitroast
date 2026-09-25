@@ -191,7 +191,26 @@ export default function BattleCard({ data }) {
     }
 
     return (
-        <div className="battle-card card" id="battle-card-capture">
+        /* 
+          ── WHAT: ────────────────────────────────────────────────────────
+          Outer container holding the battle card and external action controls.
+          
+          ── WHY: ─────────────────────────────────────────────────────────
+          Separating the outer card from #battle-card-capture ensures that
+          html2canvas captures only the visual battle stats and verdicts
+          without baking interactive buttons and navigation links into the image.
+          
+          ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+          Any card component offering an image export feature.
+          
+          ── USE CASES: ───────────────────────────────────────────────────
+          Exporting clean, button-free PNG battle cards for social media.
+          
+          ── WHEN NOT TO USE: ─────────────────────────────────────────────
+          Do not place action buttons inside the element targeted by html2canvas.
+        */
+        <div className="battle-card card">
+            <div id="battle-card-capture">
 
             {/* Header */}
             <div className="battle-card-header">
@@ -373,6 +392,8 @@ export default function BattleCard({ data }) {
                 </div>
             )}
 
+            </div>
+
             {/* Share & Download Buttons */}
             {/* 
               ── WHAT: ────────────────────────────────────────────────────────
@@ -419,6 +440,29 @@ export default function BattleCard({ data }) {
 
             <style jsx>{`
         .battle-card { width: 100%; max-width: 680px; }
+
+        /* 
+          ── WHAT: ────────────────────────────────────────────────────────
+          Capture container styling for programmatic image export.
+          
+          ── WHY: ─────────────────────────────────────────────────────────
+          Provides a solid background and container boundary so html2canvas
+          exports a pixel-perfect card without transparent borders or artifacts.
+          
+          ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+          Applied to the element targeted by document.getElementById for canvas rendering.
+          
+          ── USE CASES: ───────────────────────────────────────────────────
+          html2canvas rasterization of battle statistics and verdicts.
+          
+          ── WHEN NOT TO USE: ─────────────────────────────────────────────
+          Do not apply interactive hover or active transforms that shift layout during capture.
+        */
+        #battle-card-capture {
+          background: var(--bg-card);
+          overflow: hidden;
+          width: 100%;
+        }
 
         /* Header */
         .battle-card-header {

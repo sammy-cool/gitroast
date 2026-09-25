@@ -278,7 +278,25 @@ export default function BattlePageClient({ user1, user2 }) {
                 <style jsx>{`
           .battle-result {
             min-height: 100vh; display: flex; flex-direction: column;
-            align-items: center; padding: 1.5rem 1rem 6rem; gap: 1.25rem;
+            align-items: center;
+            /* 
+              ── WHAT: ────────────────────────────────────────────────────────
+              Battle result page layout padding.
+              
+              ── WHY: ─────────────────────────────────────────────────────────
+              Per AGENTS.md Rule 2.3, the fixed site footer requires at least 6.5rem
+              clearance so the battle card and navigation footer are never obscured.
+              
+              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+              Top-level battle results page wrapper.
+              
+              ── USE CASES: ───────────────────────────────────────────────────
+              Displaying completed 1v1 battle comparisons.
+              
+              ── WHEN NOT TO USE: ─────────────────────────────────────────────
+              Inner battle card components.
+            */
+            padding: 1.5rem 1rem 6.5rem; gap: 1.25rem;
           }
           .battle-nav {
             display: flex; justify-content: space-between; align-items: center;

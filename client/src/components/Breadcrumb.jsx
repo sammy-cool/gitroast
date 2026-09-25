@@ -95,12 +95,31 @@ export default function Breadcrumb({ items = [] }) {
           font-weight: 300;
           user-select: none;
         }
-        .breadcrumb-link {
+        /* 
+          ── WHAT: ────────────────────────────────────────────────────────
+          Parent-scoped :global selector for breadcrumb navigation Links.
+          
+          ── WHY: ─────────────────────────────────────────────────────────
+          Per AGENTS.md Rule 12, Next.js <Link> renders as a custom React component
+          rather than a native DOM element, so styled-jsx does not inject scoped
+          hash classes onto it. Scoping via .breadcrumb-item :global(.breadcrumb-link)
+          reliably applies color and hover transition states to the anchor.
+          
+          ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+          Any Next.js <Link> rendered inside a styled-jsx list item.
+          
+          ── USE CASES: ───────────────────────────────────────────────────
+          Breadcrumb trail navigation links.
+          
+          ── WHEN NOT TO USE: ─────────────────────────────────────────────
+          Native anchors with plain href if not using Next.js client router.
+        */
+        .breadcrumb-item :global(.breadcrumb-link) {
           color: #8e8e8e;
           text-decoration: none;
           transition: color 0.15s ease;
         }
-        .breadcrumb-link:hover {
+        .breadcrumb-item :global(.breadcrumb-link:hover) {
           color: var(--fire, #ff4500);
         }
         .breadcrumb-current {

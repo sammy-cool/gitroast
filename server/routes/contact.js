@@ -17,13 +17,15 @@ const { sendContactNotification } = require("../services/emailService");
 const { enqueue } = require("../services/queueService");
 const { evaluateContactTicket } = require("../services/typeSafeService");
 const { verifyCaptcha } = require("../middleware/captcha");
+const { optionalAuth } = require("../middleware/auth");
 const { logger } = require("../utils/logger");
 
 const VALID_CATEGORIES = ["feedback", "bug", "pro", "dispute", "general"];
 
 // POST /api/contact — Dispatch a new message
 // WHY verifyCaptcha: Protects dispatch from bot spammers, ticket flooding, and email quota drain
-router.post("/", verifyCaptcha, async (req, res) => {
+// WHY optionalAuth: Links ticket to authenticated user account if logged in
+router.post("/", optionalAuth, verifyCaptcha, async (req, res) => {
   try {
     const { category, name, email, message } = req.body || {};
 
@@ -103,24 +105,36 @@ router.post("/", verifyCaptcha, async (req, res) => {
     // 4. Persist to MongoDB (with safe catch if DB is temporarily disconnected)
     let savedToDb = false;
     if (mongoose.connection.readyState === 1) {
-      try {
-        const doc = new ContactMessage({
-          ticketId,
-          category: safeCategory,
-          priority,
-          name: safeName,
-          email: safeEmail,
-          message: safeMessage,
-          ip,
-          userAgent,
-        });
-        await doc.save();
-        savedToDb = true;
-      } catch (dbErr) {
-        logger.warn("Contact", "Failed to save message to MongoDB (falling back to audit log)", {
-          ticketId,
-          error: dbErr.message,
-        });
+      let attempts = 0;
+      while (attempts < 3) {
+        try {
+          const doc = new ContactMessage({
+            ticketId,
+            userId: req.user?._id || null,
+            username: req.user?.username || null,
+            category: safeCategory,
+            priority,
+            name: safeName,
+            email: safeEmail,
+            message: safeMessage,
+            ip,
+            userAgent,
+          });
+          await doc.save();
+          savedToDb = true;
+          break;
+        } catch (dbErr) {
+          if (dbErr.code === 11000 && attempts < 2) {
+            ticketId = `GR-${Math.floor(100000 + Math.random() * 900000)}`;
+            attempts++;
+          } else {
+            logger.warn("Contact", "Failed to save message to MongoDB (falling back to audit log)", {
+              ticketId,
+              error: dbErr.message,
+            });
+            break;
+          }
+        }
       }
     } else {
       logger.info("Contact", "MongoDB disconnected — dispatched message logged to audit stream", {

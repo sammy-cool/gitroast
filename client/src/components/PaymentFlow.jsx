@@ -21,7 +21,7 @@
 //   Frontend never dictates price — prevents tampering
 // ============================================================
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { createToast } from 'customizable-toast-notification'
 
@@ -40,6 +40,33 @@ export default function PaymentFlow({ planId, onClose }) {
     const [status, setStatus] = useState('sdk_loading')
     const [errorMsg, setErrorMsg] = useState('')
     const [planInfo, setPlanInfo] = useState(null) // WHY: store price from server
+
+    /* 
+      ── WHAT: ────────────────────────────────────────────────────────
+      Timeout reference for delayed modal auto-close after successful payment.
+      
+      ── WHY: ─────────────────────────────────────────────────────────
+      Prevents memory leaks and executing setState/onClose on unmounted components
+      if the user dismisses the dialog manually before the 2-second grace period ends.
+      
+      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+      Any delayed UI transition or navigation following asynchronous flows.
+      
+      ── USE CASES: ───────────────────────────────────────────────────
+      Success toasts, modal dismissal timers, redirect delays.
+      
+      ── WHEN NOT TO USE: ─────────────────────────────────────────────
+      Immediate synchronous transitions.
+    */
+    const closeTimerRef = useRef(null)
+
+    useEffect(() => {
+        return () => {
+            if (closeTimerRef.current) {
+                clearTimeout(closeTimerRef.current)
+            }
+        }
+    }, [])
 
     // ── Load Razorpay SDK ──────────────────────────────────────
     // WHY load on mount not on click:
@@ -210,7 +237,9 @@ export default function PaymentFlow({ planId, onClose }) {
             })
 
             // WHY 2s delay: let user see success screen before closing
-            setTimeout(() => onClose(), 2000)
+            closeTimerRef.current = setTimeout(() => {
+                if (typeof onClose === 'function') onClose()
+            }, 2000)
 
         } catch (err) {
             setStatus('error')

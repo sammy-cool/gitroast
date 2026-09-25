@@ -167,11 +167,12 @@ app.use("/api", generalLimiter);
 // ── Step 7: Routes with specific rate limiters ────────────────
 // WHY route-specific limiters:
 //   /roast  — most expensive (GitHub API calls per request) → strictest
-//   /auth   — security sensitive (brute-force risk) → strict
+//   /auth   — authLimiter is applied inside routes/auth.js directly to /github and /github/callback
+//             so that GET /me session restores aren't throttled by general navigation.
 //   /battle — expensive (2x GitHub API + AI) → handled inside battle route
 //   others  — covered by generalLimiter above
 app.use("/api/roast", roastLimiter, require("./routes/roast"));
-app.use("/api/auth", authLimiter, require("./routes/auth"));
+app.use("/api/auth", require("./routes/auth"));
 app.use("/api/history", require("./routes/history"));
 app.use("/api/payment", require("./routes/payment"));
 app.use("/api/battle", battleLimiter, require("./routes/battle"));

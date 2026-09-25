@@ -68,9 +68,15 @@ async function githubFetch(endpoint, userToken = null) {
   // WHY: check rate limit before throwing
   if (res.status === 403) {
     const remaining = res.headers.get("X-RateLimit-Remaining");
-    if (remaining === "0") {
+    if (remaining === "0" || res.headers.get("retry-after")) {
       throw new Error("RATE_LIMIT_EXCEEDED");
     }
+    // Secondary rate limits and abuse detection
+    const bodyText = await res.text().catch(() => "");
+    if (bodyText.includes("rate limit") || bodyText.includes("secondary rate limit")) {
+      throw new Error("RATE_LIMIT_EXCEEDED");
+    }
+    throw new Error("RATE_LIMIT_EXCEEDED");
   }
 
   // WHY: 404 means user doesn't exist on GitHub
@@ -172,7 +178,8 @@ async function checkReadmeQuality(username, repos, userToken) {
 // ─── 5. Analyze repositories ─────────────────────────────
 // WHY: extract roastable signals from repo list
 function analyzeRepos(repos) {
-  const ownRepos = repos.filter((r) => !r.fork);
+  const safeRepos = Array.isArray(repos) ? repos : [];
+  const ownRepos = safeRepos.filter((r) => !r.fork);
   const totalOwn = ownRepos.length;
 
   // WHY: repos with zero commits after creation = abandoned

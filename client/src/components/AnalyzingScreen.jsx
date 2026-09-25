@@ -105,7 +105,25 @@ export default function AnalyzingScreen({ username }) {
           flex-direction:  column;
           align-items:     center;
           justify-content: center;
-          padding:         2rem 1rem;
+          /* 
+            ── WHAT: ────────────────────────────────────────────────────────
+            Layout padding ensuring bottom clearance above the fixed footer.
+            
+            ── WHY: ─────────────────────────────────────────────────────────
+            Per AGENTS.md Rule 2.3, the fixed site footer (z-index: 50) requires
+            at least 6.5rem bottom clearance so loading progress and indicators
+            are never obscured on mobile or compact viewports.
+            
+            ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+            All page wrappers and full-screen overlay components.
+            
+            ── USE CASES: ───────────────────────────────────────────────────
+            Roast and battle analysis progress screens.
+            
+            ── WHEN NOT TO USE: ─────────────────────────────────────────────
+            Inline cards or modals with their own internal scroll containers.
+          */
+          padding:         2rem 1rem 6.5rem;
           gap:             1.25rem;
         }
         /* ── Terminal ── */

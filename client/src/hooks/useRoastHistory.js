@@ -11,7 +11,7 @@ export function useRoastHistory(username) {
     const [error, setError] = useState(null)
 
     // WHY useCallback: stable fetch function
-    //     safe to call from useEffect + retry button
+    //     safe to call from retry button / refetch caller
     const fetchHistory = useCallback(async () => {
         if (!username) {
             setLoading(false)
@@ -32,9 +32,59 @@ export function useRoastHistory(username) {
         }
     }, [username])
 
+    /* 
+      ── WHAT: ────────────────────────────────────────────────────────
+      Effect-bound data fetch with local cancellation flag.
+      
+      ── WHY: ─────────────────────────────────────────────────────────
+      Prevents asynchronous race conditions and memory leaks on unmount.
+      If the username changes rapidly or the component unmounts while
+      an HTTP request is in-flight, outdated responses are safely ignored.
+      
+      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+      In data fetching custom hooks prone to rapid parameter changes.
+      
+      ── USE CASES: ───────────────────────────────────────────────────
+      Profile history timeline and score trend loading.
+      
+      ── WHEN NOT TO USE: ─────────────────────────────────────────────
+      Synchronous local state operations.
+    */
     useEffect(() => {
-        fetchHistory()
-    }, [fetchHistory])
+        let isCancelled = false
+
+        async function load() {
+            if (!username) {
+                setLoading(false)
+                return
+            }
+
+            setLoading(true)
+            setError(null)
+
+            try {
+                const res = await getRoastHistory(username)
+                if (!isCancelled) {
+                    setHistory(res.history || [])
+                }
+            } catch (err) {
+                if (!isCancelled) {
+                    setError(err.message || 'Failed to load history')
+                    setHistory([])
+                }
+            } finally {
+                if (!isCancelled) {
+                    setLoading(false)
+                }
+            }
+        }
+
+        load()
+
+        return () => {
+            isCancelled = true
+        }
+    }, [username])
 
     // ── Derived data ────────────────────────────────────────
     // WHY: compute these once here, not in every component

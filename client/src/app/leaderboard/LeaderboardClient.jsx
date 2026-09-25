@@ -633,7 +633,24 @@ export default function LeaderboardClient() {
 
         @media (max-width: 520px) {
           .lb-page {
-            padding: 1.25rem 0.75rem 6rem;
+            /* 
+              ── WHAT: ────────────────────────────────────────────────────────
+              Mobile leaderboard page padding.
+              
+              ── WHY: ─────────────────────────────────────────────────────────
+              Per AGENTS.md Rule 2.3, the fixed site footer requires at least 6.5rem
+              clearance so pagination controls and search entries are never covered.
+              
+              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+              Leaderboard mobile media queries.
+              
+              ── USE CASES: ───────────────────────────────────────────────────
+              Small-screen viewports (<= 520px).
+              
+              ── WHEN NOT TO USE: ─────────────────────────────────────────────
+              Desktop viewports.
+            */
+            padding: 1.25rem 0.75rem 6.5rem;
             gap: 1.25rem;
           }
 

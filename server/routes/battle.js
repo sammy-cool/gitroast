@@ -76,29 +76,6 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
     const result = await runBattle(user1, user2, token);
 
     // ── Save or update battle in MongoDB to persist reactions ──
-    const norm1 = user1.toLowerCase();
-    const norm2 = user2.toLowerCase();
-
-    // ── Symmetrical Battle Pairing Lookup & Persist ─────────────
-    // ── WHAT: ────────────────────────────────────────────────────
-    // Queries MongoDB for an existing match between two developers regardless of
-    // who was typed in the left versus right URL segment (/user1/vs/user2 or /user2/vs/user1).
-    //
-    // ── WHY: ─────────────────────────────────────────────────────
-    // A battle between Alice and Bob represents the same rivalry whether accessed via
-    // /battle/alice/vs/bob or /battle/bob/vs/alice. A strict { user1, user2 } query
-    // created fractured duplicate documents, splitting view counts, reaction tallies,
-    // and rematch statistics.
-    //
-    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-    // In any bidirectional matchup, rivalry, or peer comparison system where participant
-    // order in the URI is arbitrary.
-    //
-    // ── USE CASES: ───────────────────────────────────────────────
-    // Developer vs developer battles, code diff face-offs, chess match tracking.
-    //
-    // ── WHEN NOT TO USE: ─────────────────────────────────────────
-    // Do not use for directed relationships where role order matters (e.g. mentor vs mentee, parent vs child).
     try {
       let battleDoc = await Battle.findOne({
         $or: [
@@ -106,6 +83,7 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
           { user1: norm2, user2: norm1 },
         ],
       });
+      const isNewBattle = !battleDoc;
       if (battleDoc) {
         const isReversed = battleDoc.user1 === norm2 && battleDoc.user2 === norm1;
         if (isReversed) {
@@ -150,10 +128,10 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
       // WHAT: Atomically increments battlesWon / battlesLost on registered user accounts.
       // WHY: The User schema declares stats.battlesWon and stats.battlesLost;
       //      updating them asynchronously guarantees real player rivalry statistics.
-      // WHERE & WHEN TO USE: Whenever a head-to-head battle yields a decisive winner.
+      // WHERE & WHEN TO USE: Whenever a brand-new head-to-head battle yields a decisive winner.
       // USE CASES: Player rivalry profiles, win/loss leaderboards.
-      // WHEN NOT TO USE: When battle ends in a draw (tie) or users aren't registered yet.
-      if (result.winner && result.winner !== "tie" && result.loser) {
+      // WHEN NOT TO USE: On page reloads or rematches to prevent artificial counter inflation.
+      if (isNewBattle && result.winner && result.winner !== "tie" && result.loser) {
         User.updateOne(
           { username: new RegExp(`^${result.winner}$`, "i") },
           { $inc: { "stats.battlesWon": 1 } }

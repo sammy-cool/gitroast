@@ -137,7 +137,9 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
     }
   }
 
-  if (!owner || !repo || owner.length > 39 || repo.length > 100) {
+  const validOwner = /^[a-zA-Z0-9-]+$/.test(owner || "");
+  const validRepo = /^[a-zA-Z0-9._-]+$/.test(repo || "");
+  if (!owner || !repo || owner.length > 39 || repo.length > 100 || !validOwner || !validRepo) {
     return res.status(400).json({
       error: "INVALID_REPO",
       message: "Invalid repository owner or name.",
@@ -184,7 +186,7 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
       req.user.roastCount += 1;
       req.user.lastRoastDate = new Date();
       await User.findByIdAndUpdate(req.user._id, {
-        $inc: { roastCount: 1 },
+        $inc: { roastCount: 1, "stats.totalRoasts": 1 },
         $set: { lastRoastDate: req.user.lastRoastDate },
       }).catch((e) =>
         logger.error("RepoRoast", "User atomic update failed", { message: e.message })
@@ -343,17 +345,22 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
 
     let fullRoast = "";
     let roastSource = "rules";
+    let clientAborted = false;
+    req.on("close", () => {
+      clientAborted = true;
+    });
 
     if (isPro && process.env.GEMINI_API_KEY) {
       roastSource = "ai";
       for await (const chunk of generateAIRoastStream(data, intensity)) {
+        if (clientAborted || res.writableEnded || res.destroyed) break;
         fullRoast += chunk;
         res.write(`event: chunk\ndata: ${JSON.stringify({ text: chunk })}\n\n`);
       }
     }
 
     // Fallback if AI yielded nothing or Free tier
-    if (!fullRoast) {
+    if (!fullRoast && !clientAborted && !res.writableEnded && !res.destroyed) {
       fullRoast = generateRoast(data, intensity);
       roastSource = "rules";
       res.write(`event: chunk\ndata: ${JSON.stringify({ text: fullRoast })}\n\n`);
@@ -431,7 +438,7 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
       req.user.roastCount += 1;
       req.user.lastRoastDate = new Date();
       await User.findByIdAndUpdate(req.user._id, {
-        $inc: { roastCount: 1 },
+        $inc: { roastCount: 1, "stats.totalRoasts": 1 },
         $set: { lastRoastDate: req.user.lastRoastDate },
       }).catch((e) =>
         logger.error("RoastStream", "User atomic update failed", { message: e.message }),
@@ -439,19 +446,23 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
     }
 
     // 3. Emit done event
-    res.write(
-      `event: done\ndata: ${JSON.stringify({
-        roastId: newRoast._id,
-        fullRoast,
-        roastSource,
-        redemptionPlan,
-      })}\n\n`
-    );
-    res.end();
+    if (!res.writableEnded && !res.destroyed) {
+      res.write(
+        `event: done\ndata: ${JSON.stringify({
+          roastId: newRoast._id,
+          fullRoast,
+          roastSource,
+          redemptionPlan,
+        })}\n\n`
+      );
+      res.end();
+    }
   } catch (err) {
     logger.error("RoastStream", `Stream failed for ${username}`, { message: err.message });
-    res.write(`event: error\ndata: ${JSON.stringify({ message: err.message || "Roast failed" })}\n\n`);
-    res.end();
+    if (!res.writableEnded && !res.destroyed) {
+      res.write(`event: error\ndata: ${JSON.stringify({ message: err.message || "Roast failed" })}\n\n`);
+      res.end();
+    }
   }
 });
 
@@ -620,7 +631,7 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
       req.user.roastCount += 1;
       req.user.lastRoastDate = new Date();
       await User.findByIdAndUpdate(req.user._id, {
-        $inc: { roastCount: 1 },
+        $inc: { roastCount: 1, "stats.totalRoasts": 1 },
         $set: { lastRoastDate: req.user.lastRoastDate },
       }).catch((e) =>
         logger.error("Roast", "User atomic update failed", { message: e.message }),

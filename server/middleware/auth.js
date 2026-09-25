@@ -26,6 +26,7 @@
 // • DO NOT use `requirePro` as a standalone middleware; it must always run AFTER `requireAuth` or `optionalAuth` has populated `req.user`.
 // ============================================================
 
+const mongoose = require("mongoose");
 const { verifyToken, extractToken } = require("../services/tokenService");
 const User = require("../models/User");
 
@@ -46,7 +47,7 @@ async function requireAuth(req, res, next) {
   }
 
   const decoded = verifyToken(token);
-  if (!decoded || !decoded.userId) {
+  if (!decoded || !decoded.userId || !mongoose.Types.ObjectId.isValid(decoded.userId)) {
     return res.status(401).json({
       error: "TOKEN_INVALID",
       message: "Session expired or invalid. Please login again.",
@@ -88,7 +89,7 @@ async function optionalAuth(req, res, next) {
   if (!token) return next();
 
   const decoded = verifyToken(token);
-  if (!decoded || !decoded.userId) return next();
+  if (!decoded || !decoded.userId || !mongoose.Types.ObjectId.isValid(decoded.userId)) return next();
 
   try {
     const user = await User.findById(decoded.userId);

@@ -271,7 +271,26 @@ export default function CompanyLeaderboardTable({ companies = [] }) {
           display: flex;
           justify-content: flex-end;
         }
-        .btn-roast-org {
+        /* 
+          ── WHAT: ────────────────────────────────────────────────────────
+          Parent-scoped :global selector for company roast action Link.
+          
+          ── WHY: ─────────────────────────────────────────────────────────
+          Per AGENTS.md Rule 12, Next.js <Link> renders as a custom React component
+          rather than a native DOM element, so styled-jsx does not inject scoped
+          hash classes onto it. Scoping via .company-action-col :global(.btn-roast-org)
+          reliably applies background, borders, and hover states to the anchor.
+          
+          ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+          Any Next.js <Link> rendered inside a styled-jsx container.
+          
+          ── USE CASES: ───────────────────────────────────────────────────
+          Company leaderboard action buttons.
+          
+          ── WHEN NOT TO USE: ─────────────────────────────────────────────
+          Native <button> or <div> elements that receive styled-jsx scope natively.
+        */
+        .company-action-col :global(.btn-roast-org) {
           padding: 6px 12px;
           background: rgba(255, 69, 0, 0.1);
           border: 1px solid rgba(255, 69, 0, 0.3);
@@ -282,8 +301,11 @@ export default function CompanyLeaderboardTable({ companies = [] }) {
           text-decoration: none;
           transition: all 0.15s ease;
           white-space: nowrap;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
-        .btn-roast-org:hover {
+        .company-action-col :global(.btn-roast-org:hover) {
           background: var(--fire-grad);
           color: #fff;
           border-color: transparent;

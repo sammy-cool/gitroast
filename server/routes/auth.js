@@ -8,6 +8,7 @@ const {
   verifyToken,
 } = require("../services/tokenService");
 const { requireAuth } = require("../middleware/auth");
+const { authLimiter } = require("../middleware/rateLimiter");
 const { logger } = require("../utils/logger");
 
 const rawClientUrl = process.env.CLIENT_URL || "http://localhost:3000";
@@ -17,7 +18,7 @@ const CLIENT_URL = rawClientUrl.split(",")[0].trim().replace(/\/$/, "");
 // WHY: user clicks "Connect GitHub" → hits this route
 //      → we redirect them to GitHub's OAuth page with CSRF state token
 // GET /api/auth/github
-router.get("/github", (req, res) => {
+router.get("/github", authLimiter, (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
 
   // WHY httpOnly + sameSite: prevents client-side JS access & cross-site tampering
@@ -47,7 +48,7 @@ router.get("/github", (req, res) => {
 // WHY: after user approves, GitHub calls this URL with ?code=xxx&state=yyy
 //      we exchange that code for an access token after validating state
 // GET /api/auth/github/callback
-router.get("/github/callback", async (req, res) => {
+router.get("/github/callback", authLimiter, async (req, res) => {
   const { code, error, state } = req.query;
   const savedState = req.cookies?.oauth_state;
 
@@ -106,6 +107,29 @@ router.get("/github/callback", async (req, res) => {
       },
     });
     const profile = await profileRes.json();
+
+    // ── Safe GitHub Profile Payload Validation ──────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Validates that the GitHub API returned a successful HTTP status and
+    // a valid profile payload containing both an id and a username (login).
+    // ── WHY: ─────────────────────────────────────────────────────
+    // If GitHub returns an error payload (e.g. rate limit, bad credentials),
+    // profile.id would be undefined, causing String(profile.id) to evaluate to
+    // "undefined". An upsert would then overwrite existing records for githubId "undefined",
+    // corrupting user accounts and security boundaries.
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // Immediately after receiving the user profile response from GitHub OAuth.
+    // ── USE CASES: ───────────────────────────────────────────────
+    // User OAuth authorization callback.
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Internal user lookups with already-validated database IDs.
+    if (!profileRes.ok || !profile || !profile.id || !profile.login) {
+      logger.error("Auth", "Invalid or missing GitHub profile payload", {
+        status: profileRes.status,
+        profile,
+      });
+      return res.redirect(`${CLIENT_URL}/auth/callback?auth_error=profile_failed`);
+    }
 
     // ── Fetch email (may be private) ───────────────────
     let email = profile.email;

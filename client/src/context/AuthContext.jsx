@@ -58,19 +58,26 @@ export function AuthProvider({ children }) {
             })
 
             if (!res.ok) {
-                // WHY: token expired or invalid — clean up
-                localStorage.removeItem(TOKEN_KEY)
-                setUser(null)
-                return
+                // ── Explicit Auth Rejection ──────────────────────────────────
+                // ── WHAT: Clears stored session only if server explicitly rejects token.
+                // ── WHY: 500 server errors or rate-limits must not wipe valid sessions.
+                // ── WHERE & WHEN TO USE: On authenticated identity verification requests.
+                // ── USE CASES: Expired tokens, revoked access.
+                // ── WHEN NOT TO USE: On network blips or cold start 504 gateway timeouts.
+                if (res.status === 401 || res.status === 403) {
+                    try { localStorage.removeItem(TOKEN_KEY); } catch {}
+                    setUser(null);
+                }
+                return;
             }
 
-            const json = await res.json()
-            setUser(json.user)
+            const json = await res.json();
+            setUser(json.user);
         } catch {
-            localStorage.removeItem(TOKEN_KEY)
-            setUser(null)
+            // WHY: Never purge token on transient network timeouts or Render cold starts.
+            // Preserving the stored token allows automatic recovery once the server wakes.
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
     }, [])
 

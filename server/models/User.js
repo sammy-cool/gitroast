@@ -152,11 +152,11 @@ userSchema.methods.toSafeObject = function () {
             cardTheme: 'fire',
             hideFromLeaderboard: false,
         },
-        stats: this.stats || {
-            totalRoasts: this.roastCount || 0,
-            battlesWon: 0,
-            battlesLost: 0,
-            reactionsReceived: 0,
+        stats: {
+            totalRoasts: this.stats?.totalRoasts || this.roastCount || 0,
+            battlesWon: this.stats?.battlesWon || 0,
+            battlesLost: this.stats?.battlesLost || 0,
+            reactionsReceived: this.stats?.reactionsReceived || 0,
         },
     }
 }

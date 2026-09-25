@@ -37,12 +37,9 @@ async function githubFetch(endpoint, token = null) {
     throw err;
   }
   if (res.status === 403) {
-    const remaining = res.headers.get("X-RateLimit-Remaining");
-    if (remaining === "0") {
-      const err = new Error("RATE_LIMIT_EXCEEDED");
-      err.code = "RATE_LIMIT_EXCEEDED";
-      throw err;
-    }
+    const err = new Error("RATE_LIMIT_EXCEEDED");
+    err.code = "RATE_LIMIT_EXCEEDED";
+    throw err;
   }
   if (!res.ok) {
     throw new Error(`GITHUB_API_ERROR_${res.status}`);
@@ -100,7 +97,9 @@ async function analyzeRepository(owner, repoName, userToken = null, isPro = fals
   }
 
   // File structure checks
-  const fileNames = contents.map((f) => f.name.toLowerCase());
+  const fileNames = Array.isArray(contents)
+    ? contents.map((f) => (f && f.name ? f.name.toLowerCase() : "")).filter(Boolean)
+    : [];
   const hasTests = fileNames.some((n) => n.includes("test") || n.includes("spec"));
   const hasReadme = fileNames.includes("readme.md") || fileNames.includes("readme");
   const hasGitignore = fileNames.includes(".gitignore");

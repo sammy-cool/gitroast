@@ -40,8 +40,26 @@ export default function UsernameInput({ onSubmit }) {
                 {/* WHY prefix: shows github.com/ so user knows what to type */}
                 <div className="input-prefix font-mono">github.com/</div>
 
+                {/* 
+                  ── WHAT: ────────────────────────────────────────────────────────
+                  Accessible text input for GitHub usernames and repositories.
+                  
+                  ── WHY: ─────────────────────────────────────────────────────────
+                  Provides an explicit aria-label for screen readers (WCAG 2.1 AA)
+                  since the visual github.com/ prefix is presented in a separate div.
+                  
+                  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+                  All text input fields lacking an explicit <label for="..."> tag.
+                  
+                  ── USE CASES: ───────────────────────────────────────────────────
+                  Home landing roast and repo analysis input.
+                  
+                  ── WHEN NOT TO USE: ─────────────────────────────────────────────
+                  When an input is already wrapped with a dedicated HTML <label>.
+                */}
                 <input
                     type="text"
+                    aria-label="GitHub username or repository (e.g. torvalds/linux)"
                     placeholder="username or owner/repo"
                     autoComplete="off"
                     autoCapitalize="off"
