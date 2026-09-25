@@ -13,6 +13,7 @@ const { optionalAuth, requirePro } = require("../middleware/auth");
 const { verifyCaptcha } = require("../middleware/captcha");
 const Roast = require("../models/Roast");
 const User = require("../models/User");
+const redisService = require("../services/redisService");
 const { logger } = require("../utils/logger");
 
 // ─── Idempotency store ────────────────────────────────────
@@ -437,9 +438,29 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
     });
   }
 
-  // ── Idempotency check ─────────────────────────────────
-  if (idempotencyKey && processedKeys.has(idempotencyKey)) {
-    return res.status(200).json(processedKeys.get(idempotencyKey).response);
+  // ── Idempotency check (Distributed Redis + In-Memory Fallback) ──
+  // ── WHAT: ────────────────────────────────────────────────────
+  // Checks cloud Redis and in-memory store for previous roast response.
+  // ── WHY: ─────────────────────────────────────────────────────
+  // React StrictMode triggers double mounting in dev/staging, and mobile
+  // users often double-tap buttons. Using distributed Redis locks prevents
+  // duplicate GitHub API quota consumption and Google Gemini AI token spend.
+  // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+  // At the start of resource-heavy generation pipelines when X-Idempotency-Key is provided.
+  // ── USE CASES: ───────────────────────────────────────────────
+  // Cloud-synchronized deduplication across multi-container Render deployments.
+  // ── WHEN NOT TO USE: ─────────────────────────────────────────
+  // Do not use on mutating state operations requiring unique nonces.
+  if (idempotencyKey) {
+    if (processedKeys.has(idempotencyKey)) {
+      return res.status(200).json(processedKeys.get(idempotencyKey).response);
+    }
+    if (redisService.isConfigured) {
+      const cached = await redisService.get(`idemp:${idempotencyKey}`).catch(() => null);
+      if (cached) {
+        return res.status(200).json(cached);
+      }
+    }
   }
 
   // ── Input validation ──────────────────────────────────
@@ -568,7 +589,7 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
     const responseData = { success: true, data };
 
     if (idempotencyKey) {
-      // WHY cap: prevents unbounded memory growth from rapid unique requests
+      // 1. In-memory fallback cap & store
       if (processedKeys.size >= 1000) {
         // Evict oldest entries when capacity reached
         const firstKey = processedKeys.keys().next().value;
@@ -578,6 +599,21 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
         response: responseData,
         time: Date.now(),
       });
+
+      // 2. Distributed Cloud Redis cache (60 seconds TTL)
+      // ── WHAT: ────────────────────────────────────────────────────
+      // Caches completed roast payload in Upstash Redis with 60s TTL.
+      // ── WHY: ─────────────────────────────────────────────────────
+      // Synchronizes idempotency state across ephemeral container restarts.
+      // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+      // Immediately after successful roast synthesis and database persistence.
+      // ── USE CASES: ───────────────────────────────────────────────
+      // Rapid duplicate request deduplication across browser tabs.
+      // ── WHEN NOT TO USE: ─────────────────────────────────────────
+      // Do not store permanent user profiles in ephemeral Redis keys.
+      if (redisService.isConfigured) {
+        redisService.set(`idemp:${idempotencyKey}`, responseData, 60).catch(() => {});
+      }
     }
 
     return res.status(200).json(responseData);
