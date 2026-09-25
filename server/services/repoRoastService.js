@@ -10,6 +10,7 @@
 // ============================================================
 
 const { generateAIRepoRoast, generateAIRoast, generateAIRedemptionPlan } = require("./aiService");
+const { evaluateCommitHygiene } = require("./typeSafeService");
 const { logger } = require("../utils/logger");
 
 const BASE_URL = "https://api.github.com";
@@ -76,9 +77,27 @@ async function analyzeRepository(owner, repoName, userToken = null, isPro = fals
     }
   });
 
-  const commitQuality = commitMessages.length > 0
+  // ── TypeSafe AI (System One / Jev) Semantic Hygiene Evaluation ────────
+  // WHAT: Evaluates developer commit discipline and descriptive quality.
+  // WHY: Replaces rigid keyword regexes with semantic scoring of developer hygiene.
+  // WHERE & WHEN TO USE: During repository deep analysis when commits are available.
+  // USE CASES: Detecting nuanced low-effort commits beyond simple keywords.
+  // WHEN NOT TO USE: When commits are empty or when network latency must be bypassed.
+  let commitQuality = commitMessages.length > 0
     ? Math.max(10, Math.round(100 - (lazyCommitCount / commitMessages.length) * 80))
     : 30;
+
+  if (commitMessages.length > 0) {
+    try {
+      const typeSafeResult = await evaluateCommitHygiene(commitMessages);
+      if (typeSafeResult.aiEvaluated) {
+        // Blend heuristic (40%) and semantic TypeSafe score (60%) for calibrated accuracy
+        commitQuality = Math.round((commitQuality * 0.4) + (typeSafeResult.qualityPercentage * 0.6));
+      }
+    } catch {
+      // Fallback already preserved in commitQuality
+    }
+  }
 
   // File structure checks
   const fileNames = contents.map((f) => f.name.toLowerCase());

@@ -1184,4 +1184,56 @@ describe("Feature #10 — Gemini AI Repository Code Review & Redemption Engine",
     });
 });
 
+describe("Feature #11 — TypeSafe AI System One Engine", () => {
+    const {
+        isTypeSafeConfigured,
+        evaluateContactTicket,
+        evaluateCommitHygiene,
+    } = require("../services/typeSafeService");
+
+    it("should accurately report TypeSafe configuration status", () => {
+        const configured = isTypeSafeConfigured();
+        assert.equal(typeof configured, "boolean");
+    });
+
+    it("should detect urgent billing issues via fallback when API key is missing or mocked", async () => {
+        const result = await evaluateContactTicket("I was charged twice on Razorpay and my account is locked out!");
+        assert.ok(result.isUrgent, "Should mark double charge as urgent");
+        assert.equal(result.suggestedCategory, "dispute", "Should categorize payment issue as dispute");
+        assert.ok(result.urgencyScore >= 0.7, "Urgency score should be high");
+    });
+
+    it("should categorize bug reports properly in fallback mode", async () => {
+        const result = await evaluateContactTicket("The roast card crashes when I click download image on mobile");
+        assert.equal(result.suggestedCategory, "bug");
+    });
+
+    it("should evaluate commit hygiene with fallback when offline", async () => {
+        const lowEffortCommits = ["wip", "fix", "asdasd", "update", "oops"];
+        const result = await evaluateCommitHygiene(lowEffortCommits);
+        assert.ok(result.qualityPercentage < 50, "Low-effort commits should score below 50%");
+        assert.ok(result.score <= 2, "Low-effort commits should receive low score level");
+
+        const goodCommits = [
+            "feat(auth): implement GitHub OAuth callback handler",
+            "fix(roast): handle zero repos edge case gracefully",
+            "docs(readme): add environment setup guide",
+        ];
+        const goodResult = await evaluateCommitHygiene(goodCommits);
+        assert.ok(goodResult.qualityPercentage >= 80, "Good commits should score high quality");
+    });
+
+    it("should evaluate real TypeSafe System One live API if key is present", async () => {
+        if (!isTypeSafeConfigured()) {
+            return; // Skip live network call in CI without API key
+        }
+
+        const triage = await evaluateContactTicket("URGENT: I paid for Pro but my account is still free and card was charged!");
+        assert.equal(triage.aiEvaluated, true, "Should be evaluated by TypeSafe Jev model");
+        assert.equal(triage.isUrgent, true, "Should recognize urgent billing issue");
+        assert.equal(triage.suggestedCategory, "dispute", "Should pick dispute category");
+    });
+});
+
+
 

@@ -15,6 +15,7 @@ const mongoose = require("mongoose");
 const ContactMessage = require("../models/ContactMessage");
 const { sendContactNotification } = require("../services/emailService");
 const { enqueue } = require("../services/queueService");
+const { evaluateContactTicket } = require("../services/typeSafeService");
 const { verifyCaptcha } = require("../middleware/captcha");
 const { logger } = require("../utils/logger");
 
@@ -81,17 +82,28 @@ router.post("/", verifyCaptcha, async (req, res) => {
       messageLength: safeMessage.length,
     });
 
+    // 3b. Evaluate ticket urgency & triage via TypeSafe AI (System One / Jev)
+    // ── WHAT: Assesses incoming customer support text for critical billing issues or service blockage.
+    // ── WHY: Ensures users with payment failures or locked accounts are immediately elevated to 'urgent'.
+    // ── WHERE & WHEN TO USE: On unauthenticated /contact dispatches prior to DB persistence.
+    // ── USE CASES: Escalating Razorpay double-charges, production outages, or dispute appeals.
+    // ── WHEN NOT TO USE: Do not block responses if TypeSafe fails — fall back gracefully to heuristic priority.
+    let priority =
+      safeCategory === "dispute" || safeCategory === "pro"
+        ? "high"
+        : safeCategory === "bug"
+        ? "high"
+        : "normal";
+
+    const triage = await evaluateContactTicket(safeMessage);
+    if (triage.isUrgent) {
+      priority = "urgent";
+    }
+
     // 4. Persist to MongoDB (with safe catch if DB is temporarily disconnected)
     let savedToDb = false;
     if (mongoose.connection.readyState === 1) {
       try {
-        const priority =
-          safeCategory === "dispute" || safeCategory === "pro"
-            ? "high"
-            : safeCategory === "bug"
-            ? "high"
-            : "normal";
-
         const doc = new ContactMessage({
           ticketId,
           category: safeCategory,
