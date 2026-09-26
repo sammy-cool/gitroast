@@ -19,24 +19,29 @@
      chunks pre-warm smoothly in the background.
   4. Non-Intrusive Persistence: Uses `localStorage.getItem('gitroast_welcome_consent_v1')`
      so returning users are never interrupted.
+  5. WCAG 2.1 AA Accessibility: Complete focus trapping, initial focus placement,
+     focus restoration to trigger element, and keyboard navigation (Tab, Escape).
+  6. Replay-Aware Feedback: Prevents unwanted welcome toast spam when returning
+     users reopen the modal via the navbar "Rules ℹ️" button.
 
   ── WHERE & WHEN TO USE: ─────────────────────────────────────────
   Mounted dynamically on the landing page (`LandingPageClient.jsx`)
   using `next/dynamic` with `{ ssr: false }`. Triggers only once on
-  the user's initial browser session.
+  the user's initial browser session, or upon manual inspection.
 
   ── USE CASES: ───────────────────────────────────────────────────
   - First-time visitors landing on https://gitroast-dev.vercel.app/
   - Explaining the difference between Mild, Savage, and Nuclear burn modes.
   - Setting safe satirical boundaries for community developer roasts.
+  - Re-inspecting rules via the navbar "Rules ℹ️" action.
 
   ── WHEN NOT TO USE: ─────────────────────────────────────────────
   - Do NOT render synchronously on the server (avoids SSR hydration mismatches).
-  - Do NOT show to returning visitors who already consented in localStorage.
+  - Do NOT show automatically to returning visitors who already consented.
   - Do NOT block Googlebot or SEO crawlers (page HTML SSRs independently).
 */
 
-import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
+import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { toast } from '@/utils/toast'
@@ -49,64 +54,150 @@ export { WELCOME_CONSENT_KEY }
 export default function WelcomeConsentModal({ isOpen, onClose }) {
   const isClient = useSyncExternalStore(subscribe, () => true, () => false)
   const [agreedSatire, setAgreedSatire] = useState(true)
+  const modalBoxRef = useRef(null)
+  const triggerElementRef = useRef(null)
+  const wasAlreadyConsentedRef = useRef(false)
 
-  const handleConfirm = useCallback(() => {
+  // ── Track whether the user had already consented before opening ─
+  useEffect(() => {
+    if (isOpen) {
+      try {
+        wasAlreadyConsentedRef.current = !!localStorage.getItem(WELCOME_CONSENT_KEY)
+      } catch {
+        wasAlreadyConsentedRef.current = false
+      }
+    }
+  }, [isOpen])
+
+  // ── Explicit Consent Confirmation (Primary CTA) ────────────────
+  const handleAccept = useCallback(() => {
+    if (!agreedSatire) {
+      toast.warning('Please acknowledge the satire disclaimer to enter the Roast Zone!')
+      return
+    }
+
+    const isFirstTime = !wasAlreadyConsentedRef.current
     try {
       localStorage.setItem(WELCOME_CONSENT_KEY, new Date().toISOString())
     } catch {
       // Ignored if storage quota exceeded or disabled in private browsing
     }
+
     onClose()
-    toast.fire('🔥 Welcome to GitRoast! Enter a GitHub username to begin.', {
-      duration: 4000,
-    })
+
+    // Only fire celebratory toast for genuine first-time visitors
+    if (isFirstTime) {
+      toast.fire('🔥 Welcome to GitRoast! Enter a GitHub username to begin.', {
+        duration: 4000,
+      })
+    }
+  }, [agreedSatire, onClose])
+
+  // ── Dismissal Handler (Close Button, Backdrop Click, Escape Key) 
+  const handleDismiss = useCallback(() => {
+    try {
+      // Mark as acknowledged in storage so user isn't trapped in loop
+      if (!localStorage.getItem(WELCOME_CONSENT_KEY)) {
+        localStorage.setItem(WELCOME_CONSENT_KEY, new Date().toISOString())
+      }
+    } catch {
+      // Ignored if storage disabled
+    }
+    onClose()
   }, [onClose])
 
-  // ── Lock background scroll while modal is active ───────────
+  // ── Lock background scroll & restore focus on close ───────────
   useEffect(() => {
     if (!isOpen) return
-    const prev = document.body.style.overflow
+
+    // Save previously focused element to restore upon close
+    triggerElementRef.current = document.activeElement
+    const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
+
+    // Auto-focus the primary CTA button or container
+    const focusTimer = requestAnimationFrame(() => {
+      if (modalBoxRef.current) {
+        const ctaBtn = modalBoxRef.current.querySelector('.welcome-cta')
+        if (ctaBtn) {
+          ctaBtn.focus()
+        } else {
+          modalBoxRef.current.focus()
+        }
+      }
+    })
+
     return () => {
-      document.body.style.overflow = prev
+      cancelAnimationFrame(focusTimer)
+      document.body.style.overflow = prevOverflow
+      if (triggerElementRef.current && typeof triggerElementRef.current.focus === 'function') {
+        triggerElementRef.current.focus()
+      }
     }
   }, [isOpen])
 
-  // ── Keyboard ESC listener ──────────────────────────────────
+  // ── Keyboard Trap (Tab Loop) & Escape Listener ─────────────────
   useEffect(() => {
     if (!isOpen) return
+
     function handleKeyDown(e) {
       if (e.key === 'Escape') {
-        handleConfirm()
+        e.preventDefault()
+        handleDismiss()
+        return
+      }
+
+      if (e.key === 'Tab' && modalBoxRef.current) {
+        const focusable = modalBoxRef.current.querySelectorAll(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+        if (focusable.length === 0) return
+
+        const firstElement = focusable[0]
+        const lastElement = focusable[focusable.length - 1]
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+          lastElement.focus()
+          e.preventDefault()
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          firstElement.focus()
+          e.preventDefault()
+        }
       }
     }
+
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, handleConfirm])
+  }, [isOpen, handleDismiss])
 
   if (!isClient || !isOpen || typeof document === 'undefined') return null
 
   return createPortal(
     <div
       className="welcome-overlay"
-      onClick={handleConfirm}
+      onClick={handleDismiss}
       role="dialog"
       aria-modal="true"
       aria-labelledby="welcome-modal-title"
       aria-describedby="welcome-modal-desc"
     >
-      <div className="welcome-box card" onClick={(e) => e.stopPropagation()}>
+      <div
+        ref={modalBoxRef}
+        className="welcome-box card"
+        onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
+      >
         {/* Close Button */}
         <button
           type="button"
           className="welcome-close font-mono"
-          onClick={handleConfirm}
+          onClick={handleDismiss}
           aria-label="Close welcome modal and enter GitRoast"
         >
           ✕
         </button>
 
-        {/* Header Header */}
+        {/* Header Section */}
         <div className="welcome-header">
           <div className="welcome-badge font-mono">
             <span className="welcome-flame" aria-hidden="true">🔥</span>
@@ -154,7 +245,7 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
         </div>
 
         {/* Satire Agreement Checkbox */}
-        <label className="welcome-checkbox-label">
+        <label className={`welcome-checkbox-label ${!agreedSatire ? 'welcome-checkbox-label--warning' : ''}`}>
           <input
             type="checkbox"
             className="welcome-checkbox"
@@ -170,8 +261,9 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
         <div className="welcome-actions">
           <button
             type="button"
-            className="welcome-cta btn-fire font-display"
-            onClick={handleConfirm}
+            className={`welcome-cta btn-fire font-display ${!agreedSatire ? 'welcome-cta--disabled' : ''}`}
+            onClick={handleAccept}
+            aria-disabled={!agreedSatire}
           >
             I CAN TAKE IT — LET&apos;S ROAST 🔥
           </button>
@@ -179,7 +271,7 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
             <Link
               href="/about"
               className="welcome-learn-link"
-              onClick={handleConfirm}
+              onClick={handleDismiss}
             >
               How It Works & Terms ↗
             </Link>
@@ -217,7 +309,11 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           flex-direction: column;
           gap: 1.25rem;
           max-height: 90vh;
+          max-height: calc(100dvh - 2rem);
           overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          overscroll-behavior: contain;
+          outline: none;
           animation: welcomeScaleUp 0.24s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
@@ -242,6 +338,10 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           background: rgba(255, 69, 0, 0.15);
           color: var(--fire);
           border-color: var(--fire);
+        }
+        .welcome-close:focus-visible {
+          outline: 2px solid var(--fire);
+          outline-offset: 2px;
         }
 
         .welcome-header {
@@ -342,8 +442,15 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           align-items: center;
           gap: 10px;
           cursor: pointer;
-          padding: 4px 6px;
+          padding: 6px 8px;
+          border-radius: var(--radius-sm, 6px);
           user-select: none;
+          transition: background 0.18s ease, border-color 0.18s ease;
+          border: 1px solid transparent;
+        }
+        .welcome-checkbox-label--warning {
+          border-color: rgba(255, 183, 0, 0.35);
+          background: rgba(255, 183, 0, 0.06);
         }
 
         .welcome-checkbox {
@@ -377,14 +484,24 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           border: none;
           cursor: pointer;
           box-shadow: 0 4px 20px rgba(255, 69, 0, 0.35);
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
+          transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.18s ease, filter 0.18s ease;
         }
-        .welcome-cta:hover {
+        .welcome-cta:hover:not(.welcome-cta--disabled) {
           transform: translateY(-1px);
           box-shadow: 0 6px 25px rgba(255, 69, 0, 0.45);
         }
-        .welcome-cta:active {
+        .welcome-cta:active:not(.welcome-cta--disabled) {
           transform: translateY(0);
+        }
+        .welcome-cta--disabled {
+          opacity: 0.45;
+          filter: grayscale(0.6);
+          cursor: not-allowed;
+          box-shadow: none;
+        }
+        .welcome-cta:focus-visible {
+          outline: 2px solid var(--fire);
+          outline-offset: 2px;
         }
 
         .welcome-links {
@@ -399,6 +516,10 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
         .welcome-learn-link:hover {
           color: var(--fire);
           text-decoration: underline;
+        }
+        .welcome-learn-link:focus-visible {
+          outline: 2px solid var(--fire);
+          outline-offset: 2px;
         }
 
         @keyframes welcomeFadeIn {
@@ -420,7 +541,7 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
         @media (max-width: 520px) {
           .welcome-box {
             padding: 1.5rem 1.25rem 1.25rem;
-            max-height: 94vh;
+            max-height: calc(100dvh - 1.5rem);
           }
           .welcome-title {
             font-size: 26px;

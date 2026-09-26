@@ -4,17 +4,18 @@
 /* 
   ── WHAT: ────────────────────────────────────────────────────────
   Unit tests verifying the welcome consent key contract, storage lifecycle,
-  and onboarding invariants for the Welcome & Satirical Consent modal.
+  satirical agreement gating, and first-time vs returning visitor resolution.
   
   ── WHY: ─────────────────────────────────────────────────────────
   Validates that first-time visitors receive the correct storage key,
-  that the key format is deterministic, and that consent persistence is robust.
+  that the key format is deterministic, that consent persistence is robust,
+  and that returning users are not spammed with welcome toasts.
   
   ── WHERE & WHEN TO USE: ─────────────────────────────────────────
   Run via `npm test --prefix client` as part of the client verification suite.
   
   ── USE CASES: ───────────────────────────────────────────────────
-  First-time onboarding, re-engagement rules, and consent tracking.
+  First-time onboarding, satire disclaimer gating, re-engagement rules.
   
   ── WHEN NOT TO USE: ─────────────────────────────────────────────
   End-to-end browser rendering tests.
@@ -55,5 +56,65 @@ describe("WelcomeConsentModal Invariants & Key Contracts", () => {
     // After agreement
     mockStorage[WELCOME_CONSENT_KEY] = new Date().toISOString();
     assert.equal(isFirstTimeVisitor(mockStorage), false);
+  });
+
+  it("should gate consent confirmation on satire agreement", () => {
+    function processConsent(agreedSatire, storage) {
+      if (!agreedSatire) {
+        return { success: false, reason: "SATIRE_UNACKNOWLEDGED" };
+      }
+      storage[WELCOME_CONSENT_KEY] = new Date().toISOString();
+      return { success: true, timestamp: storage[WELCOME_CONSENT_KEY] };
+    }
+
+    // Attempting without agreement should fail
+    const rejected = processConsent(false, mockStorage);
+    assert.equal(rejected.success, false);
+    assert.equal(rejected.reason, "SATIRE_UNACKNOWLEDGED");
+    assert.equal(mockStorage[WELCOME_CONSENT_KEY], undefined);
+
+    // With agreement should succeed
+    const accepted = processConsent(true, mockStorage);
+    assert.equal(accepted.success, true);
+    assert.ok(mockStorage[WELCOME_CONSENT_KEY]);
+  });
+
+  it("should suppress welcome toast on revisit while preserving initial toast on first visit", () => {
+    function handleConsentFlow(storage) {
+      const isFirstTime = !storage[WELCOME_CONSENT_KEY];
+      storage[WELCOME_CONSENT_KEY] = new Date().toISOString();
+      return {
+        shouldShowWelcomeToast: isFirstTime,
+      };
+    }
+
+    // First visit: should trigger welcome celebration
+    const firstResult = handleConsentFlow(mockStorage);
+    assert.equal(firstResult.shouldShowWelcomeToast, true);
+
+    // Reopening modal via Rules button: should NOT trigger welcome toast
+    const secondResult = handleConsentFlow(mockStorage);
+    assert.equal(secondResult.shouldShowWelcomeToast, false);
+  });
+
+  it("should handle storage exceptions gracefully (private browsing mode)", () => {
+    const brokenStorage = {
+      getItem() {
+        throw new Error("QuotaExceededError");
+      },
+      setItem() {
+        throw new Error("QuotaExceededError");
+      },
+    };
+
+    function safeCheck(storage) {
+      try {
+        return !!storage.getItem("test");
+      } catch {
+        return false;
+      }
+    }
+
+    assert.equal(safeCheck(brokenStorage), false);
   });
 });

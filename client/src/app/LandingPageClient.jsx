@@ -8,6 +8,7 @@ import { toast } from "@/utils/toast";
 import dynamic from 'next/dynamic';
 const ProModal = dynamic(() => import('@/components/ProModal'), { ssr: false });
 const WelcomeConsentModal = dynamic(() => import('@/components/WelcomeConsentModal'), { ssr: false });
+import { WELCOME_CONSENT_KEY } from "@/utils/welcomeConstants";
 import GitHubLoginBtn from "@/components/GitHubLoginBtn";
 import RateLimitBanner from "@/components/RateLimitBanner";
 import LiveRoastFeed from "@/components/LiveRoastFeed";
@@ -99,7 +100,7 @@ export default function LandingPageClient() {
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
-        const consented = localStorage.getItem("gitroast_welcome_consent_v1");
+        const consented = localStorage.getItem(WELCOME_CONSENT_KEY);
         if (!consented) {
           const timer = setTimeout(() => {
             setShowWelcomeModal(true);
@@ -136,7 +137,7 @@ export default function LandingPageClient() {
       !showWelcomeModal &&
       typeof window !== "undefined" &&
       !sessionStorage.getItem("gitroast_login_broadcast") &&
-      localStorage.getItem("gitroast_welcome_consent_v1")
+      localStorage.getItem(WELCOME_CONSENT_KEY)
     ) {
       toast.info("⚡ Please log in with GitHub to avoid public API rate limit throttling!", {
         duration: 8000,
@@ -216,7 +217,8 @@ export default function LandingPageClient() {
             title="How GitRoast works & Satire Rules"
             aria-label="How GitRoast works & Satire Rules"
           >
-            Rules ℹ️
+            <span className="nav-guide-label">Rules</span>
+            <span className="nav-guide-icon" aria-hidden="true">ℹ️</span>
           </button>
         </div>
         <GitHubLoginBtn variant="compact" />
@@ -791,6 +793,15 @@ export default function LandingPageClient() {
           .intensity-desc {
             font-size: 11px;
             margin-top: -2px;
+          }
+          .nav-guide-btn {
+            font-size: 9.5px;
+            padding: 2px 6px;
+          }
+        }
+        @media (max-width: 380px) {
+          .nav-guide-btn .nav-guide-label {
+            display: none;
           }
         }
       `}</style>
