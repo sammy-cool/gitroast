@@ -248,6 +248,7 @@ export default function LandingPageClient() {
         <div className="intensity-options">
           {INTENSITIES.map((opt) => (
             <button
+              type="button"
               key={opt.key}
               className={`intensity-btn font-mono ${intensity === opt.key ? "intensity-btn--active" : ""} ${opt.isPro ? "intensity-btn--pro" : ""}`}
               style={{
@@ -300,27 +301,25 @@ export default function LandingPageClient() {
 
       {/* CTA buttons */}
       <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
-        <button
-          className="btn btn-outline"
-          onClick={() => router.push("/pricing")}
-        >
+        <Link href="/pricing" className="btn btn-outline">
           ⚡ Pricing
-        </button>
-        <button className="btn btn-ghost" onClick={() => setShowProModal(true)}>
+        </Link>
+        <button
+          type="button"
+          className="btn btn-ghost"
+          onClick={() => setShowProModal(true)}
+        >
           What&apos;s in Pro?
         </button>
       </div>
 
-      <button
-        className="btn btn-ghost"
-        onClick={() => router.push("/leaderboard")}
-      >
+      <Link href="/leaderboard" className="btn btn-ghost">
         🏆 Wall of Shame
-      </button>
+      </Link>
 
-      <button className="btn btn-ghost" onClick={() => router.push("/battle")}>
+      <Link href="/battle" className="btn btn-ghost">
         ⚔️ Roast Battle
-      </button>
+      </Link>
 
       {/* ── Community Roast of the Day ── */}
       <div className="sample-roast card">

@@ -60,8 +60,21 @@ router.get("/stats", async (req, res) => {
 // ─── GET /api/roast/:username/wrapped ─────────────────────
 // WHY: Feature #4 — Spotify-Wrapped style year in review
 router.get("/:username/wrapped", optionalAuth, verifyCaptcha, async (req, res) => {
-  const { username } = req.params;
-  const year = parseInt(req.query.year, 10) || 2025;
+  // ── Wrapped Year Boundary Clamping ──────────────────────────
+  // ── WHAT: ────────────────────────────────────────────────────
+  // Clamps requested Wrapped year within GitHub operational era (2008 to current year).
+  // Defaults to 2025 if missing, non-numeric, or outside valid range.
+  // ── WHY: ─────────────────────────────────────────────────────
+  // Prevents malformed ISO date queries (e.g. negative or future years) from being dispatched to GitHub API.
+  // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+  // Wrapped annual review endpoints.
+  // ── USE CASES: ───────────────────────────────────────────────
+  // Parsing ?year= query parameters.
+  // ── WHEN NOT TO USE: ─────────────────────────────────────────
+  // Timestamp queries expecting precise epoch milliseconds.
+  const currentYear = new Date().getFullYear();
+  const rawYear = parseInt(req.query.year, 10);
+  const year = isNaN(rawYear) || rawYear < 2008 || rawYear > currentYear ? 2025 : rawYear;
 
   if (!username || username.length > 39 || !/^[a-zA-Z0-9-]+$/.test(username)) {
     return res.status(400).json({
@@ -147,34 +160,19 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
     });
   }
 
-  // ── Quota Enforcement for Free Authenticated Users ───────────
-  // WHAT: Enforces daily 1-roast limit for free authenticated accounts on repository roasts.
-  // WHY: Prevents free users from bypassing daily limits by targeting /repo/:owner/:repo directly.
-  // WHERE & WHEN TO USE: In all compute/AI-intensive roast generation endpoints.
-  // USE CASES: Preventing automated quota bypass on repository inspections.
-  // WHEN NOT TO USE: Do not apply to Pro users (isPro === true) who have unlimited burns.
-  if (req.user && !isPro) {
-    const canRoast = req.user.canRoastToday();
-    if (!canRoast) {
-      return res.status(429).json({
-        error: "DAILY_LIMIT_REACHED",
-        message: "Free users get 1 roast per day. Go Pro for unlimited! ⚡",
-      });
-    }
-  }
-
   // ── Idempotency check (Distributed Redis + In-Memory Fallback) ──
   // ── WHAT: ────────────────────────────────────────────────────
   // Checks cloud Redis and in-memory store for previously analyzed repo results.
   // ── WHY: ─────────────────────────────────────────────────────
   // Repository analysis consumes multiple GitHub API calls and Gemini review tokens.
-  // Deduplicating requests via X-Idempotency-Key prevents double quota consumption.
+  // Checking idempotency BEFORE quota prevents duplicate clicks and React StrictMode
+  // mounts from prematurely triggering 429 DAILY_LIMIT_REACHED errors on cached runs.
   // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-  // Start of repository inspection pipeline when idempotency header is present.
+  // Start of repository inspection pipeline prior to quota verification.
   // ── USE CASES: ───────────────────────────────────────────────
   // Double-clicks on repository roast submit, browser page refreshes.
   // ── WHEN NOT TO USE: ─────────────────────────────────────────
-  // When user requests an explicit fresh re-roast.
+  // When user requests an explicit fresh re-roast without an idempotency header.
   const idempotencyKey = req.headers["x-idempotency-key"];
   if (idempotencyKey) {
     if (processedKeys.has(idempotencyKey)) {
@@ -185,6 +183,22 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
       if (cached) {
         return res.status(200).json(cached);
       }
+    }
+  }
+
+  // ── Quota Enforcement for Free Authenticated Users ───────────
+  // WHAT: Enforces daily 1-roast limit for free authenticated accounts on repository roasts.
+  // WHY: Prevents free users from bypassing daily limits by targeting /repo/:owner/:repo directly.
+  // WHERE & WHEN TO USE: In all compute/AI-intensive roast generation endpoints after idempotency check.
+  // USE CASES: Preventing automated quota bypass on repository inspections.
+  // WHEN NOT TO USE: Do not apply to Pro users (isPro === true) who have unlimited burns.
+  if (req.user && !isPro) {
+    const canRoast = req.user.canRoastToday();
+    if (!canRoast) {
+      return res.status(429).json({
+        error: "DAILY_LIMIT_REACHED",
+        message: "Free users get 1 roast per day. Go Pro for unlimited! ⚡",
+      });
     }
   }
 

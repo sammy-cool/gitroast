@@ -69,6 +69,7 @@ export default function GitHubLoginBtn({ variant = 'full' }) {
                 */}
                 {isPro && <ProBadge size="sm" />}
                 <button
+                    type="button"
                     className="btn btn-ghost logout-btn"
                     onClick={() => {
                         logout()
@@ -114,6 +115,7 @@ export default function GitHubLoginBtn({ variant = 'full' }) {
     return (
         <>
             <button
+                type="button"
                 onClick={loginWithGitHub}
                 className={`btn github-btn ${variant === 'full' ? 'btn-full' : 'btn-compact'
                     }`}

@@ -1531,5 +1531,64 @@ describe("Feature #16 — Profile Fail-Fast Validation & Battle Rematch Invarian
     });
 });
 
+describe("Feature #17 — Repo Idempotency Precedence, Wrapped Year Clamping & CastError Guards", () => {
+    const roastRoute = require("../routes/roast");
+    const Roast = require("../models/Roast");
+    const redisService = require("../services/redisService");
 
+    it("should return cached response for repo roast when idempotency key is matched even if user daily quota is reached", async () => {
+        const originalIsConfigured = redisService.isConfigured;
+        const originalGet = redisService.get;
 
+        try {
+            redisService.isConfigured = true;
+            redisService.get = async (key) => {
+                if (key === "idemp:cached-repo-key") {
+                    return { success: true, data: { cached: true, repo: "test/repo" } };
+                }
+                return null;
+            };
+
+            let statusCode = 0;
+            let responseData = null;
+            const req = {
+                params: { owner: "valid-owner", repo: "valid-repo" },
+                query: {},
+                headers: { "x-idempotency-key": "cached-repo-key" },
+                user: {
+                    isPro: false,
+                    canRoastToday: () => false, // quota depleted
+                },
+            };
+            const res = {
+                status: (code) => {
+                    statusCode = code;
+                    return res;
+                },
+                json: (data) => {
+                    responseData = data;
+                    return res;
+                },
+            };
+
+            const repoLayer = roastRoute.stack.find(
+                (layer) => layer.route && layer.route.path === "/repo/:owner/:repo" && layer.route.methods.get,
+            );
+            assert.ok(repoLayer, "/repo/:owner/:repo route must exist");
+            const handler = repoLayer.route.stack[repoLayer.route.stack.length - 1].handle;
+            await handler(req, res);
+
+            assert.equal(statusCode, 200, "Should return 200 from cache instead of 429 DAILY_LIMIT_REACHED");
+            assert.equal(responseData.success, true);
+            assert.equal(responseData.data.cached, true);
+        } finally {
+            redisService.isConfigured = originalIsConfigured;
+            redisService.get = originalGet;
+        }
+    });
+
+    it("should safely return null in Roast.incrementShare when given an invalid ObjectId", async () => {
+        const result = await Roast.incrementShare("invalid-not-an-objectid");
+        assert.equal(result, null, "Roast.incrementShare must return null without throwing CastError on invalid ID");
+    });
+});

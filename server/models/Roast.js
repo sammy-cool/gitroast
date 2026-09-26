@@ -240,7 +240,20 @@ roastSchema.statics.getLeaderboard = async function (options = {}) {
   };
 };
 
+// ── Safe Share Increment With ID Validation ─────────────────
+// ── WHAT: ────────────────────────────────────────────────────
+// Atomically increments shareCount for a roast after validating the MongoDB ObjectId.
+// ── WHY: ─────────────────────────────────────────────────────
+// Guarding with mongoose.Types.ObjectId.isValid(id) prevents unhandled CastError exceptions
+// when client sends an invalid or truncated document ID.
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// Invoked by social share tracking endpoints (POST /api/history/:id/share).
+// ── USE CASES: ───────────────────────────────────────────────
+// Telemetry tracking for social share clicks across platforms.
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// Do not use when querying by username or composite keys.
 roastSchema.statics.incrementShare = function (id) {
+  if (!mongoose.Types.ObjectId.isValid(id)) return null;
   return this.findByIdAndUpdate(id, { $inc: { shareCount: 1 } });
 };
 

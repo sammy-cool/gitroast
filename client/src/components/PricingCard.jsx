@@ -102,6 +102,7 @@ export default function PricingCard({ plan, onSelect }) {
 
             {/* CTA button */}
             <button
+                type="button"
                 className="btn plan-cta"
                 style={{
                     background: plan.highlight ? 'var(--fire-grad)' :

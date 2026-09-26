@@ -200,6 +200,7 @@ export default function GitHubWrapped({ username, isPro }) {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button
+                            type="button"
                             className="close-btn"
                             onClick={() => setIsOpen(false)}
                             aria-label="Close Wrapped Modal"

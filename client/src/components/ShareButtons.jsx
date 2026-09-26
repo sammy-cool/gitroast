@@ -357,13 +357,14 @@ export default function ShareButtons({
             {/* Tertiary row */}
             <div className="tertiary-buttons">
                 <button
+                    type="button"
                     className="btn btn-ghost copy-text-btn"
                     onClick={handleCopyText}
                 >
                     {copiedText ? "✓ Copied!" : "📋 Copy Roast Text"}
                 </button>
                 {!isPro && (
-                    <button className="btn btn-outline pro-btn" onClick={handlePro}>
+                    <button type="button" className="btn btn-outline pro-btn" onClick={handlePro}>
                         ⚡ Go Pro — ₹99
                     </button>
                 )}

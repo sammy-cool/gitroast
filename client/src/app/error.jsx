@@ -40,12 +40,14 @@ export default function GlobalError({ error, reset }) {
           {/* WHY reset: Next.js provides this to re-render the segment
               user can recover without full page reload */}
           <button
+            type="button"
             className="btn btn-primary err-btn"
             onClick={() => reset()}
           >
             Try Again
           </button>
           <button
+            type="button"
             className="btn btn-ghost err-btn-ghost"
             onClick={() => window.location.href = '/'}
           >

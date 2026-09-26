@@ -22,6 +22,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createToast } from 'customizable-toast-notification'
 import PaymentModal from '@/components/PaymentModal'
 import PricingCard from '@/components/PricingCard'
@@ -245,9 +246,9 @@ export default function PricingPageClient() {
 
             {/* Nav */}
             <nav className="pricing-nav">
-                <button className="btn btn-ghost" onClick={() => router.push('/')}>
+                <Link href="/" className="btn btn-ghost">
                     ← Home
-                </button>
+                </Link>
                 <GitHubLoginBtn variant="compact" />
             </nav>
 
@@ -311,7 +312,7 @@ export default function PricingPageClient() {
                             onKeyDown={e => e.key === 'Enter' && handleWaitlist(e)}
                             className="waitlist-input font-mono"
                         />
-                        <button className="btn btn-primary waitlist-btn" onClick={handleWaitlist}>
+                        <button type="button" className="btn btn-primary waitlist-btn" onClick={handleWaitlist}>
                             Notify Me ⚔️
                         </button>
                     </div>
