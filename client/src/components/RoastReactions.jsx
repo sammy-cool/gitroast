@@ -20,9 +20,19 @@
 //     live reactions and social proof!
 // ============================================================
 
-import { useState, useEffect } from 'react'
-import { createToast } from 'customizable-toast-notification'
-import { reactToRoast, reactToBattle } from '@/services/roastService'
+/* 
+  ── WHAT: ────────────────────────────────────────────────────────
+  Standardized GitRoast toast notifications powered by customizable-toast-notification.
+  ── WHY: ─────────────────────────────────────────────────────────
+  Provides consistent styling, dark theme cards, and sound/haptic harmony.
+  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+  For interactive user feedback on emoji reactions and network acknowledgments.
+  ── USE CASES: ───────────────────────────────────────────────────
+  Reaction locked in, cooldown warning, duplicate reaction notice, network error.
+  ── WHEN NOT TO USE: ─────────────────────────────────────────────
+  Not for background silent polling loops.
+*/
+import { toast } from '@/utils/toast'
 
 const REACTION_CONFIG = [
     { type: 'relatable', emoji: '😂', label: 'Relatable' },
@@ -110,9 +120,19 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
         if (clicked.has(type) || loading) return
 
         if (!roastId) {
-            createToast({
-                type: 'warning',
-                message: `${targetType === 'battle' ? 'Battle' : 'Roast'} is still saving, please wait a moment!`,
+            /* 
+              ── WHAT: ────────────────────────────────────────────────────────
+              Warn user that card is still writing to MongoDB before accepting reactions.
+              ── WHY: ─────────────────────────────────────────────────────────
+              Avoids orphaned reaction attempts before the document has an _id.
+              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+              Immediately when user clicks reaction on an unsaved live roast card.
+              ── USE CASES: ───────────────────────────────────────────────────
+              Clicking reaction during initial burn stream.
+              ── WHEN NOT TO USE: ─────────────────────────────────────────────
+              Do not show if roastId is already established.
+            */
+            toast.warning(`${targetType === 'battle' ? 'Battle' : 'Roast'} is still saving, please wait a moment!`, {
                 position: 'top-center',
                 duration: 2500,
             })
@@ -161,9 +181,19 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
             } catch {
                 // Ignored
             }
-            createToast({
-                type: 'error',
-                message: 'Failed to record reaction. Check connection.',
+            /* 
+              ── WHAT: ────────────────────────────────────────────────────────
+              Notify user when network drop prevents reaction persistence.
+              ── WHY: ─────────────────────────────────────────────────────────
+              Accompanies state revert so user knows why count reverted.
+              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+              When reaction POST request throws or returns null.
+              ── USE CASES: ───────────────────────────────────────────────────
+              Offline or intermittent mobile connectivity.
+              ── WHEN NOT TO USE: ─────────────────────────────────────────────
+              Do not show if server returned duplicate indicator.
+            */
+            toast.error('Failed to record reaction. Check connection.', {
                 position: 'top-center',
                 duration: 3000,
             })
@@ -173,9 +203,19 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
         if (result.duplicate) {
             // Server already recorded this IP — revert count but keep UI disabled
             setCounts(c => ({ ...c, [type]: prev }))
-            createToast({
-                type: 'info',
-                message: `You've already reacted to this ${targetType === 'battle' ? 'battle' : 'roast'}! 🔥`,
+            /* 
+              ── WHAT: ────────────────────────────────────────────────────────
+              Polite notification that this client/IP already cast this reaction.
+              ── WHY: ─────────────────────────────────────────────────────────
+              Prevents vote brigading while informing user their vote is already counted.
+              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+              When server returns { duplicate: true }.
+              ── USE CASES: ───────────────────────────────────────────────────
+              Repeated taps across tabs or multiple sessions from same IP.
+              ── WHEN NOT TO USE: ─────────────────────────────────────────────
+              On successful fresh reactions.
+            */
+            toast.info(`You've already reacted to this ${targetType === 'battle' ? 'battle' : 'roast'}! 🔥`, {
                 position: 'top-center',
                 duration: 3000,
             })
@@ -192,9 +232,19 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
         }
 
         const config = REACTION_CONFIG.find(r => r.type === type)
-        createToast({
-            type: 'success',
-            message: `${config ? config.emoji + ' ' + config.label : 'Reaction'} locked in!`,
+        /* 
+          ── WHAT: ────────────────────────────────────────────────────────
+          Positive reinforcement toast confirming reaction lock-in.
+          ── WHY: ─────────────────────────────────────────────────────────
+          Delightful micro-interaction that rewards engagement.
+          ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+          Immediately after server confirms successful reaction save.
+          ── USE CASES: ───────────────────────────────────────────────────
+          Reacting with Savage, Relatable, or Destroyed.
+          ── WHEN NOT TO USE: ─────────────────────────────────────────────
+          On failed requests or duplicate detections.
+        */
+        toast.success(`${config ? config.emoji + ' ' + config.label : 'Reaction'} locked in!`, {
             position: 'top-center',
             duration: 2500,
         })

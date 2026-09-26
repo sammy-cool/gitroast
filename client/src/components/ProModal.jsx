@@ -23,7 +23,7 @@ import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import PaymentModal from './PaymentModal'
 import { useAuth } from '@/context/AuthContext'
-import { createToast } from 'customizable-toast-notification'
+import { toast } from '@/utils/toast'
 
 const subscribe = () => () => {}
 
@@ -79,12 +79,8 @@ export default function ProModal({ onClose }) {
 
     function handlePlanSelect(planId) {
         if (!user) {
-            createToast({
-                type: 'info',
-                message: '🔐 Connect GitHub first to upgrade.',
-                position: 'top-center',
+            toast.info('🔐 Connect GitHub first to upgrade.', {
                 duration: 6000,
-                showCloseButton: true,
                 cta: {
                     label: 'Connect GitHub →',
                     onClick: () => { onClose(); loginWithGitHub() },
@@ -100,21 +96,11 @@ export default function ProModal({ onClose }) {
                 return;
             }
             if (userPlan === planId) {
-                createToast({
-                    type: 'info',
-                    message: '✓ You are already subscribed to this plan.',
-                    position: 'top-center',
-                    duration: 4000,
-                });
+                toast.info('✓ You are already subscribed to this plan.');
                 return;
             }
             if (userPlan === 'historian' && planId === 'roaster') {
-                createToast({
-                    type: 'info',
-                    message: '⚡ Historian plan includes all Roaster features.',
-                    position: 'top-center',
-                    duration: 4000,
-                });
+                toast.info('⚡ Historian plan includes all Roaster features.');
                 return;
             }
         }

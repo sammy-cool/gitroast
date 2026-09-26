@@ -23,7 +23,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { createToast } from 'customizable-toast-notification'
+import { toast } from '@/utils/toast'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
@@ -89,13 +89,7 @@ export default function PaymentFlow({ planId, onClose }) {
         script.onerror = () => {
             setStatus('error')
             setErrorMsg('Razorpay failed to load. Check your connection.')
-            createToast({
-                type: 'error',
-                message: 'Payment SDK failed to load. Try refreshing.',
-                position: 'top-center',
-                duration: 5000,
-                showCloseButton: true,
-            })
+            toast.error('Payment SDK failed to load. Try refreshing.')
         }
         document.body.appendChild(script)
     }, [])
@@ -151,11 +145,7 @@ export default function PaymentFlow({ planId, onClose }) {
 
                 modal: {
                     ondismiss: function () {
-                        createToast({
-                            type: 'warning',
-                            message: 'Payment cancelled. No charge was made.',
-                            position: 'top-center',
-                        })
+                        toast.warning('Payment cancelled. No charge was made.')
                         setStatus('ready')
                     },
                     confirm_close: false,
@@ -169,13 +159,7 @@ export default function PaymentFlow({ planId, onClose }) {
             //   Razorpay popup handles UI for failures
             //   But we need to reset our state and inform user
             rzp.on('payment.failed', function (response) {
-                createToast({
-                    type: 'error',
-                    message: `Payment failed: ${response.error.description}`,
-                    position: 'top-center',
-                    duration: 6000,
-                    showCloseButton: true,
-                })
+                toast.paymentError(`Payment failed: ${response.error.description}`)
                 setStatus('ready')
             })
 
@@ -185,13 +169,7 @@ export default function PaymentFlow({ planId, onClose }) {
         } catch (err) {
             setStatus('error')
             setErrorMsg(err.message || 'Could not create payment session.')
-            createToast({
-                type: 'error',
-                message: err.message || 'Payment setup failed. Try again.',
-                position: 'top-center',
-                duration: 5000,
-                showCloseButton: true,
-            })
+            toast.paymentError(err.message || 'Payment setup failed. Try again.')
         }
     }
 
@@ -228,12 +206,21 @@ export default function PaymentFlow({ planId, onClose }) {
 
             setStatus('done')
 
-            createToast({
-                type: 'success',
+            /* 
+              ── WHAT: ────────────────────────────────────────────────────────
+              Trigger master Pro payment celebratory toast on verification success.
+              ── WHY: ─────────────────────────────────────────────────────────
+              Provides immediate dopamine and clarifies that Pro features are active.
+              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+              Called only after backend cryptographically verifies the Razorpay signature.
+              ── USE CASES: ───────────────────────────────────────────────────
+              Completing checkout on Roaster or Historian tier.
+              ── WHEN NOT TO USE: ─────────────────────────────────────────────
+              Do not trigger before backend signature validation succeeds.
+            */
+            toast.paymentSuccess({
                 message: '⚡ You are now Pro! AI roasts + Nuclear unlocked.',
                 position: 'top-center',
-                showProgressBar: true,
-                duration: 5000,
             })
 
             // WHY 2s delay: let user see success screen before closing
@@ -244,13 +231,22 @@ export default function PaymentFlow({ planId, onClose }) {
         } catch (err) {
             setStatus('error')
             setErrorMsg(err.message || 'Payment verification failed.')
-            createToast({
-                type: 'error',
-                message: err.message || 'Verification failed. Contact support with your payment ID.',
-                position: 'top-center',
-                duration: 8000,
-                showCloseButton: true,
-            })
+            /* 
+              ── WHAT: ────────────────────────────────────────────────────────
+              Display high-priority payment failure toast with reassurance and guidance.
+              ── WHY: ─────────────────────────────────────────────────────────
+              Avoids user panic by confirming no accidental charges and advising next step.
+              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+              In catch block of backend payment verification step.
+              ── USE CASES: ───────────────────────────────────────────────────
+              Tampered signatures, network drops, or rejected payments.
+              ── WHEN NOT TO USE: ─────────────────────────────────────────────
+              Do not display on intentional user modal dismissals.
+            */
+            toast.paymentError(
+                err.message || 'Verification failed. Contact support with your payment ID.',
+                { position: 'top-center' }
+            )
         }
     }
 

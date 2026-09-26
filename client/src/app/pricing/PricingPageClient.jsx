@@ -23,7 +23,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createToast } from 'customizable-toast-notification'
+import { toast } from '@/utils/toast'
 import PaymentModal from '@/components/PaymentModal'
 import PricingCard from '@/components/PricingCard'
 import GitHubLoginBtn from '@/components/GitHubLoginBtn'
@@ -183,12 +183,8 @@ export default function PricingPageClient() {
             return
         }
         if (!user) {
-            createToast({
-                type: 'info',
-                message: '🔐 Connect GitHub first to unlock Pro.',
-                position: 'top-center',
-                duration: 5000,
-                showCloseButton: true,
+            toast.info('🔐 Connect GitHub first to unlock Pro.', {
+                duration: 6000,
                 cta: {
                     label: 'Connect GitHub →',
                     onClick: () => loginWithGitHub(),
@@ -215,14 +211,11 @@ export default function PricingPageClient() {
                 setSelectedPlan(planId);
                 return;
             }
-            createToast({
-                type: 'info',
-                message: userPlan === 'historian'
+            toast.info(
+                userPlan === 'historian'
                     ? '⚡ You are already on the Historian plan with maximum access!'
-                    : '⚡ You are already subscribed to this plan.',
-                position: 'top-center',
-                duration: 4000,
-            });
+                    : '⚡ You are already subscribed to this plan.'
+            );
             return;
         }
         setSelectedPlan(planId)
@@ -250,12 +243,7 @@ export default function PricingPageClient() {
             // Non-blocking: UI already confirms signup to user
         })
 
-        createToast({
-            type: 'success',
-            message: "⚔️ You're on the list! We'll notify you when Squad launches.",
-            position: 'top-center',
-            duration: 5000,
-        })
+        toast.success("⚔️ You're on the list! We'll notify you when Squad launches.")
     }
 
     return (

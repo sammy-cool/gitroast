@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createToast } from "customizable-toast-notification";
 import UsernameInput from "@/components/UsernameInput";
+import { toast } from "@/utils/toast";
 import dynamic from 'next/dynamic';
 const ProModal = dynamic(() => import('@/components/ProModal'), { ssr: false });
 import GitHubLoginBtn from "@/components/GitHubLoginBtn";
@@ -103,12 +103,8 @@ export default function LandingPageClient() {
       typeof window !== "undefined" &&
       !sessionStorage.getItem("gitroast_login_broadcast")
     ) {
-      createToast({
-        type: "info",
-        message: "⚡ Please log in with GitHub to avoid public API rate limit throttling!",
-        position: "top-center",
+      toast.info("⚡ Please log in with GitHub to avoid public API rate limit throttling!", {
         duration: 8000,
-        showCloseButton: true,
         cta: {
           label: "Login ↗",
           onClick: loginWithGitHub,
@@ -131,19 +127,7 @@ export default function LandingPageClient() {
   function handleIntensitySelect(key) {
     const selected = INTENSITIES.find((i) => i.key === key);
     if (selected.isPro && !user?.isPro) {
-      createToast({
-        type: "info",
-        message: "☢️ Nuclear mode is a Pro feature.",
-        position: "top-center",
-        duration: 5000,
-        showCloseButton: true,
-        showProgressBar: true,
-        cta: {
-          label: "See Plans ⚡",
-          onClick: () => setShowProModal(true),
-          autoClose: true,
-        },
-      });
+      toast.proNudge("☢️ Nuclear mode is a Pro feature.", () => setShowProModal(true), "See Plans ⚡");
       return;
     }
     setIntensity(key);
@@ -152,22 +136,13 @@ export default function LandingPageClient() {
 
   function handleRoast(target) {
     if (rateLimitSecs && rateLimitSecs > 0) {
-      createToast({
-        type: "warning",
-        message: `⏱ Rate limited. Wait ${rateLimitSecs} more seconds.`,
-        position: "top-center",
-      });
+      toast.rateLimit(rateLimitSecs, loginWithGitHub);
       return;
     }
 
     const cleanTarget = (target || "").trim().toLowerCase();
     if (!cleanTarget) {
-      createToast({
-        type: "warning",
-        message: "Enter a GitHub username or repo first!",
-        position: "top-center",
-        showProgressBar: true,
-      });
+      toast.warning("Enter a GitHub username or repo first!");
       return;
     }
 

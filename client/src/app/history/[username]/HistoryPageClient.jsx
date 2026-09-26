@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createToast } from 'customizable-toast-notification'
+import { toast } from '@/utils/toast'
 import { useRoastHistory } from '@/hooks/useRoastHistory'
 import HistoryCard from '@/components/HistoryCard'
 import ScoreChart from '@/components/ScoreChart'
@@ -20,14 +20,11 @@ export default function HistoryPageClient({ username }) {
 
     useEffect(() => {
         if (error) {
-            createToast({
-                type: 'error',
-                message: error || 'Failed to load roast history',
-                position: 'top-center',
-                duration: 5000,
+            toast.error(error || 'Failed to load roast history', {
                 cta: {
-                    label: 'Retry',
+                    label: 'Retry 🔄',
                     onClick: refetch,
+                    autoClose: true,
                 },
             })
         }

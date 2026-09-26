@@ -14,7 +14,7 @@
 // ============================================================
 
 import { useState, useRef } from "react";
-import { createToast } from "customizable-toast-notification";
+import { toast, toastPromise } from "@/utils/toast";
 import { getWrapped } from "@/services/roastService";
 import { useAuth } from "@/context/AuthContext";
 
@@ -37,12 +37,7 @@ export default function GitHubWrapped({ username, isPro }) {
             setWrappedData(data);
         } catch (err) {
             console.error("[Wrapped] Load error:", err);
-            createToast({
-                type: "error",
-                message: err.message || "Failed to load 2025 Wrapped report.",
-                position: "top-center",
-                duration: 4000,
-            });
+            toast.error(err.message || "Failed to load 2025 Wrapped report.");
             setIsOpen(false);
         } finally {
             setLoading(false);
@@ -53,83 +48,79 @@ export default function GitHubWrapped({ username, isPro }) {
         if (!wrappedData) return;
         setDownloading(true);
         try {
-            const html2canvas = (await import("html2canvas")).default;
-            const el = cardRef.current;
-            if (!el) throw new Error("Card capture element not found");
+            await toastPromise(
+                (async () => {
+                    const html2canvas = (await import("html2canvas")).default;
+                    const el = cardRef.current;
+                    if (!el) throw new Error("Card capture element not found");
 
-            el.style.display = "block";
+                    el.style.display = "block";
 
-            const canvas = await html2canvas(el, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: "#0A0A0A",
-                logging: false,
-                windowWidth: 700,
-                windowHeight: 900,
-            });
+                    const canvas = await html2canvas(el, {
+                        scale: 2,
+                        useCORS: true,
+                        backgroundColor: "#0A0A0A",
+                        logging: false,
+                        windowWidth: 700,
+                        windowHeight: 900,
+                    });
 
-            el.style.display = "none";
+                    el.style.display = "none";
 
-            // Watermark for free tier
-            if (!isPro) {
-                const ctx = canvas.getContext("2d");
-                ctx.save();
-                ctx.globalAlpha = 0.15;
-                ctx.fillStyle = "#FF6B00";
-                ctx.font = 'bold 32px "Courier New", monospace';
-                ctx.textAlign = "center";
-                const angle = -Math.PI / 6;
-                for (let y = -100; y < canvas.height + 100; y += 180) {
-                    for (let x = -100; x < canvas.width + 100; x += 260) {
+                    // Watermark for free tier
+                    if (!isPro) {
+                        const ctx = canvas.getContext("2d");
                         ctx.save();
-                        ctx.translate(x, y);
-                        ctx.rotate(angle);
-                        ctx.fillText("GITROAST WRAPPED 2025", 0, 0);
+                        ctx.globalAlpha = 0.15;
+                        ctx.fillStyle = "#FF6B00";
+                        ctx.font = 'bold 32px "Courier New", monospace';
+                        ctx.textAlign = "center";
+                        const angle = -Math.PI / 6;
+                        for (let y = -100; y < canvas.height + 100; y += 180) {
+                            for (let x = -100; x < canvas.width + 100; x += 260) {
+                                ctx.save();
+                                ctx.translate(x, y);
+                                ctx.rotate(angle);
+                                ctx.fillText("GITROAST WRAPPED 2025", 0, 0);
+                                ctx.restore();
+                            }
+                        }
                         ctx.restore();
                     }
+
+                    // ── Cross-Browser Programmatic File Download ────────────────
+                    // ── WHAT: ────────────────────────────────────────────────────
+                    // Programmatically appends the generated Wrapped card anchor to document.body,
+                    // clicks it to trigger the OS save dialog, and disposes of the element.
+                    //
+                    // ── WHY: ─────────────────────────────────────────────────────
+                    // Guarantees reliable file downloads across all mobile WebKit and desktop browsers.
+                    //
+                    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+                    // On Wrapped card PNG export.
+                    //
+                    // ── USE CASES: ───────────────────────────────────────────────
+                    // Downloading year-in-review Wrapped summary cards.
+                    //
+                    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+                    // Do not use if streaming data directly via Blob URLs without revocation.
+                    const link = document.createElement("a");
+                    link.download = `gitroast-wrapped-2025-${username}.png`;
+                    link.href = canvas.toDataURL("image/png", 1.0);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                })(),
+                {
+                    loading: "📦 Generating 2025 GitHub Wrapped card...",
+                    success: isPro
+                        ? "⚡ 2025 Wrapped Card downloaded (HD No Watermark)!"
+                        : "🔥 2025 Wrapped Card downloaded! Go Pro for watermark-free.",
+                    error: "Download failed. Please try again.",
                 }
-                ctx.restore();
-            }
-
-            // ── Cross-Browser Programmatic File Download ────────────────
-            // ── WHAT: ────────────────────────────────────────────────────
-            // Programmatically appends the generated Wrapped card anchor to document.body,
-            // clicks it to trigger the OS save dialog, and disposes of the element.
-            //
-            // ── WHY: ─────────────────────────────────────────────────────
-            // Guarantees reliable file downloads across all mobile WebKit and desktop browsers.
-            //
-            // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-            // On Wrapped card PNG export.
-            //
-            // ── USE CASES: ───────────────────────────────────────────────
-            // Downloading year-in-review Wrapped summary cards.
-            //
-            // ── WHEN NOT TO USE: ─────────────────────────────────────────
-            // Do not use if streaming data directly via Blob URLs without revocation.
-            const link = document.createElement("a");
-            link.download = `gitroast-wrapped-2025-${username}.png`;
-            link.href = canvas.toDataURL("image/png", 1.0);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            createToast({
-                type: "success",
-                message: isPro
-                    ? "⚡ 2025 Wrapped Card downloaded (HD No Watermark)!"
-                    : "🔥 2025 Wrapped Card downloaded! Go Pro for watermark-free.",
-                position: "top-center",
-                duration: 4000,
-            });
+            );
         } catch (err) {
             console.error("[Wrapped] Download failed:", err);
-            createToast({
-                type: "error",
-                message: "Download failed. Please try again.",
-                position: "top-center",
-                duration: 4000,
-            });
             if (cardRef.current) cardRef.current.style.display = "none";
         } finally {
             setDownloading(false);
@@ -147,12 +138,7 @@ export default function GitHubWrapped({ username, isPro }) {
             "_blank",
             "noopener,noreferrer",
         );
-        createToast({
-            type: "success",
-            message: "🐦 Twitter opened! Share your 2025 Wrapped.",
-            position: "top-center",
-            duration: 3000,
-        });
+        toast.success("🐦 Twitter opened! Share your 2025 Wrapped.");
     }
 
     // ── Safe Monthly Commits Calculation ─────────────────────────

@@ -11,7 +11,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createToast } from 'customizable-toast-notification'
+import { toast } from '@/utils/toast'
 import AnalyzingScreen from '@/components/AnalyzingScreen'
 import RepoRoastCard from '@/components/RepoRoastCard'
 import ProModal from '@/components/ProModal'
@@ -48,7 +48,7 @@ export default function RepoRoastClient({ owner, repo }) {
     }
 
     if (!owner || !repo) {
-      createToast({ type: 'error', message: 'Invalid repository target.', position: 'top-center' })
+      toast.error('Invalid repository target.')
       router.push('/')
       return
     }
@@ -103,38 +103,20 @@ export default function RepoRoastClient({ owner, repo }) {
         setRoastData(data)
         setView('result')
 
-        createToast({
-          type: 'success',
-          message: `🔥 Repository "${owner}/${repo}" roasted!`,
-          position: 'top-center',
-          showProgressBar: true,
-          duration: 3500,
-        })
+        toast.fire(`🔥 Repository "${owner}/${repo}" roasted!`)
       } catch (err) {
         if (cancelled) return
         setView('error')
 
         if (err.status === 404 || err.code === 'REPO_NOT_FOUND') {
-          createToast({
-            type: 'error',
-            message: `Repository "${owner}/${repo}" not found or is private.`,
-            position: 'top-center',
-            duration: 6000,
-          })
+          toast.error(`Repository "${owner}/${repo}" not found or is private.`)
         } else if (err.status === 429) {
-          createToast({
-            type: 'warning',
-            message: '⏱ GitHub rate limit exceeded. Please log in or wait 60s.',
-            position: 'top-center',
-            duration: 6000,
+          toast.rateLimit(60, () => {
+            const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
+            window.location.href = `${apiBase}/api/auth/github`
           })
         } else {
-          createToast({
-            type: 'error',
-            message: err.message || 'Failed to roast repository.',
-            position: 'top-center',
-            duration: 6000,
-          })
+          toast.error(err.message || 'Failed to roast repository.')
         }
       }
     }

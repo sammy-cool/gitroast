@@ -1,7 +1,7 @@
 "use client";
 
-import { createToast } from "customizable-toast-notification";
 import { useState } from "react";
+import { toast, toastPromise } from "@/utils/toast";
 import { trackShare } from "@/services/roastService";
 import dynamic from 'next/dynamic';
 const RoastCertificate = dynamic(() => import('./RoastCertificate'), { ssr: false });
@@ -30,23 +30,11 @@ export default function ShareButtons({
             .then(() => {
                 setCopied(true);
                 trackShare(roastId);
-                createToast({
-                    type: "success",
-                    message: "🔥 Roast link copied! Go share your shame.",
-                    position: "top-center",
-                    showProgressBar: true,
-                    duration: 3000,
-                });
+                toast.copy("🔥 Roast link copied! Go share your shame.");
                 setTimeout(() => setCopied(false), 2500);
             })
             .catch(() => {
-                createToast({
-                    type: "error",
-                    message: "Could not copy link. Try manually.",
-                    position: "top-center",
-                    duration: 5000,
-                    showCloseButton: true,
-                });
+                toast.error("Could not copy link. Try manually.");
             });
     }
 
@@ -57,23 +45,11 @@ export default function ShareButtons({
             .writeText(textToCopy)
             .then(() => {
                 setCopiedText(true);
-                createToast({
-                    type: "success",
-                    message: "📋 Roast text copied! Paste it anywhere.",
-                    position: "top-center",
-                    showProgressBar: true,
-                    duration: 3000,
-                });
+                toast.copy("📋 Roast text copied! Paste it anywhere.");
                 setTimeout(() => setCopiedText(false), 2500);
             })
             .catch(() => {
-                createToast({
-                    type: "error",
-                    message: "Could not copy text. Try manually.",
-                    position: "top-center",
-                    duration: 5000,
-                    showCloseButton: true,
-                });
+                toast.error("Could not copy text. Try manually.");
             });
     }
 
@@ -89,12 +65,7 @@ export default function ShareButtons({
             "noopener,noreferrer",
         );
         trackShare(roastId);
-        createToast({
-            type: "success",
-            message: "🐦 Twitter opened! Share your shame.",
-            position: "top-center",
-            duration: 3000,
-        });
+        toast.success("🐦 Twitter opened! Share your shame.");
     }
 
     function handleCopyBadge(styleToCopy = badgeStyle) {
@@ -106,126 +77,102 @@ export default function ShareButtons({
             .then(() => {
                 setCopiedBadge(true);
                 trackShare(roastId);
-                createToast({
-                    type: "success",
-                    message: "🛡️ Badge Markdown copied! Paste in your GitHub profile README.md.",
-                    position: "top-center",
-                    showProgressBar: true,
-                    duration: 4000,
-                });
+                toast.copy("🛡️ Badge Markdown copied! Paste into your GitHub profile README.md.");
                 setTimeout(() => setCopiedBadge(false), 2500);
             })
             .catch(() => {
-                createToast({
-                    type: "error",
-                    message: "Could not copy badge code. Try manually.",
-                    position: "top-center",
-                    duration: 4000,
-                });
+                toast.error("Could not copy badge code. Try manually.");
             });
     }
 
     async function handleDownload() {
+        if (downloading) return;
         setDownloading(true);
         try {
-            const html2canvas = (await import("html2canvas")).default;
-            const element = document.getElementById("roast-card-capture");
-            if (!element) throw new Error("Card element not found");
+            await toastPromise(
+                (async () => {
+                    const html2canvas = (await import("html2canvas")).default;
+                    const element = document.getElementById("roast-card-capture");
+                    if (!element) throw new Error("Card element not found");
 
-            const scale = isPro ? 2 : 1;
-            const canvas = await html2canvas(element, {
-                scale,
-                useCORS: true,
-                backgroundColor: "#0F0F0F",
-                logging: false,
-                windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight,
-            });
+                    const scale = isPro ? 2 : 1;
+                    const canvas = await html2canvas(element, {
+                        scale,
+                        useCORS: true,
+                        backgroundColor: "#0F0F0F",
+                        logging: false,
+                        windowWidth: element.scrollWidth,
+                        windowHeight: element.scrollHeight,
+                    });
 
-            if (!isPro) {
-                const ctx = canvas.getContext("2d");
-                ctx.save();
-                ctx.globalAlpha = 0.18;
-                ctx.fillStyle = "#FF6B00";
-                ctx.font = 'bold 38px "Courier New", monospace';
-                ctx.textAlign = "center";
-                const angle = -Math.PI / 6;
-                const stepX = 260;
-                const stepY = 180;
-                const text = "ROASTED BY GITROAST";
-                for (let y = -100; y < canvas.height + 100; y += stepY) {
-                    for (let x = -100; x < canvas.width + 100; x += stepX) {
+                    if (!isPro) {
+                        const ctx = canvas.getContext("2d");
                         ctx.save();
-                        ctx.translate(x, y);
-                        ctx.rotate(angle);
-                        ctx.fillText(text, 0, 0);
+                        ctx.globalAlpha = 0.18;
+                        ctx.fillStyle = "#FF6B00";
+                        ctx.font = 'bold 38px "Courier New", monospace';
+                        ctx.textAlign = "center";
+                        const angle = -Math.PI / 6;
+                        const stepX = 260;
+                        const stepY = 180;
+                        const text = "ROASTED BY GITROAST";
+                        for (let y = -100; y < canvas.height + 100; y += stepY) {
+                            for (let x = -100; x < canvas.width + 100; x += stepX) {
+                                ctx.save();
+                                ctx.translate(x, y);
+                                ctx.rotate(angle);
+                                ctx.fillText(text, 0, 0);
+                                ctx.restore();
+                            }
+                        }
                         ctx.restore();
                     }
+
+                    // ── Cross-Browser Programmatic File Download ────────────────
+                    // ── WHAT: ────────────────────────────────────────────────────
+                    // Creates, mounts, triggers, and cleans up an invisible <a> element to initiate download.
+                    //
+                    // ── WHY: ─────────────────────────────────────────────────────
+                    // Modern browsers (Firefox, Safari on iOS/macOS) require anchor elements to be attached
+                    // to the active document body to permit programmatic .click() download events.
+                    //
+                    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+                    // In all client-side canvas-to-file export functions.
+                    //
+                    // ── USE CASES: ───────────────────────────────────────────────
+                    // Exporting PNG cards, certificates, and reports.
+                    //
+                    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+                    // Do not use for server-streamed downloads (Content-Disposition handles those natively).
+                    const link = document.createElement("a");
+                    link.download = `gitroast-${username}.png`;
+                    link.href = canvas.toDataURL("image/png", 1.0);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                })(),
+                {
+                    loading: "🎨 Rendering roast card...",
+                    success: isPro
+                        ? "⚡ HD roast card downloaded! No watermark, full quality."
+                        : "🔥 Card downloaded! Go Pro to remove the watermark.",
+                    error: "Download failed. Please try again.",
                 }
-                ctx.restore();
-            }
-
-            // ── Cross-Browser Programmatic File Download ────────────────
-            // ── WHAT: ────────────────────────────────────────────────────
-            // Creates, mounts, triggers, and cleans up an invisible <a> element to initiate download.
-            //
-            // ── WHY: ─────────────────────────────────────────────────────
-            // Modern browsers (Firefox, Safari on iOS/macOS) require anchor elements to be attached
-            // to the active document body to permit programmatic .click() download events.
-            //
-            // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-            // In all client-side canvas-to-file export functions.
-            //
-            // ── USE CASES: ───────────────────────────────────────────────
-            // Exporting PNG cards, certificates, and reports.
-            //
-            // ── WHEN NOT TO USE: ─────────────────────────────────────────
-            // Do not use for server-streamed downloads (Content-Disposition handles those natively).
-            const link = document.createElement("a");
-            link.download = `gitroast-${username}.png`;
-            link.href = canvas.toDataURL("image/png", 1.0);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            createToast({
-                type: "success",
-                message: isPro
-                    ? "⚡ HD roast card downloaded! No watermark, full quality."
-                    : "🔥 Card downloaded! Go Pro to remove the watermark.",
-                position: "top-center",
-                showProgressBar: true,
-                duration: 4000,
-            });
+            );
             trackShare(roastId);
         } catch (err) {
             console.error("[Download] Failed:", err);
-            createToast({
-                type: "error",
-                message: "Download failed. Try again.",
-                position: "top-center",
-                duration: 4000,
-                showCloseButton: true,
-            });
         } finally {
             setDownloading(false);
         }
     }
 
     function handlePro() {
-        createToast({
-            type: "info",
-            message: "⚡ Unlock AI roasts, private repos + HD watermark-free card.",
-            position: "top-center",
-            duration: 6000,
-            showCloseButton: true,
-            showProgressBar: true,
-            cta: {
-                label: "See Plans ⚡",
-                onClick: onProClick,
-                autoClose: true,
-            },
-        });
+        toast.proNudge(
+            "⚡ Unlock AI roasts, private repos + HD watermark-free card.",
+            onProClick,
+            "See Plans ⚡"
+        );
     }
 
     return (

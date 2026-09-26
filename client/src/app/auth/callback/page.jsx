@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { createToast } from 'customizable-toast-notification'
+import { toast } from '@/utils/toast'
 
 export default function AuthCallbackPage() {
     const router = useRouter()
@@ -22,13 +22,7 @@ export default function AuthCallbackPage() {
                 token_failed: 'Login failed. Please try again.',
                 server_error: 'Something went wrong. Please try again.',
             }
-            createToast({
-                type: 'error',
-                message: messages[authError] || 'Login failed.',
-                position: 'top-center',
-                duration: 5000,
-                textColor: "snow"
-            })
+            toast.error(messages[authError] || 'Login failed. Please try again.')
             router.replace('/')
             return
         }
@@ -36,14 +30,7 @@ export default function AuthCallbackPage() {
         // WHY: store token + fetch user profile
         loginWithToken(token)
 
-        createToast({
-            type: 'success',
-            message: '🔥 GitHub connected! Welcome to GitRoast Pro.',
-            position: 'top-center',
-            showProgressBar: true,
-            duration: 4000,
-            textColor: "snow"
-        })
+        toast.success('🔥 GitHub connected! Welcome to GitRoast.')
 
         // WHY router.replace not push: removes /auth/callback
         //     from browser history so back button works cleanly

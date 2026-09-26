@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { createToast } from 'customizable-toast-notification'
+import { toast, toastPromise } from '@/utils/toast'
 import { useAuth } from '@/context/AuthContext'
 import { trackBattleShare, trackBattleView } from '@/services/roastService'
 import RoastReactions from './RoastReactions'
@@ -68,10 +68,7 @@ export default function BattleCard({ data }) {
             `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`,
             '_blank', 'noopener,noreferrer'
         )
-        createToast({
-            type: 'success', message: '🐦 Battle challenge opened on Twitter / X!',
-            position: 'top-center', duration: 3000,
-        })
+        toast.success('🐦 Battle challenge opened on Twitter / X!')
     }
 
     // ── handleChallengeCopy ───────────────────────────────────────
@@ -87,10 +84,7 @@ export default function BattleCard({ data }) {
         navigator.clipboard.writeText(challengeMsg)
             .then(() => {
                 setCopied(true)
-                createToast({
-                    type: 'success', message: '⚔️ Challenge invitation copied! Paste it in Slack, Discord, or WhatsApp.',
-                    position: 'top-center', showProgressBar: true, duration: 3500,
-                })
+                toast.copy('⚔️ Challenge invitation copied! Paste it in Slack, Discord, or WhatsApp.')
                 setTimeout(() => setCopied(false), 2500)
             })
     }
@@ -100,91 +94,85 @@ export default function BattleCard({ data }) {
         navigator.clipboard.writeText(window.location.href)
             .then(() => {
                 setCopied(true)
-                createToast({
-                    type: 'success', message: '⚔️ Battle link copied!',
-                    position: 'top-center', showProgressBar: true, duration: 3000,
-                })
+                toast.copy('⚔️ Battle link copied!')
                 setTimeout(() => setCopied(false), 2500)
             })
     }
 
     async function handleDownload() {
+        if (downloading) return
         setDownloading(true)
         try {
-            const html2canvas = (await import('html2canvas')).default
-            const element = document.getElementById('battle-card-capture')
-            if (!element) throw new Error('Battle card element not found')
+            await toastPromise(
+                (async () => {
+                    const html2canvas = (await import('html2canvas')).default
+                    const element = document.getElementById('battle-card-capture')
+                    if (!element) throw new Error('Battle card element not found')
 
-            const scale = isPro ? 2 : 1
-            const canvas = await html2canvas(element, {
-                scale,
-                useCORS: true,
-                backgroundColor: '#0F0F0F',
-                logging: false,
-                windowWidth: element.scrollWidth,
-                windowHeight: element.scrollHeight,
-            })
+                    const scale = isPro ? 2 : 1
+                    const canvas = await html2canvas(element, {
+                        scale,
+                        useCORS: true,
+                        backgroundColor: '#0F0F0F',
+                        logging: false,
+                        windowWidth: element.scrollWidth,
+                        windowHeight: element.scrollHeight,
+                    })
 
-            if (!isPro) {
-                const ctx = canvas.getContext('2d')
-                ctx.save()
-                ctx.globalAlpha = 0.16
-                ctx.fillStyle = '#FF6B00'
-                ctx.font = 'bold 36px "Courier New", monospace'
-                ctx.textAlign = 'center'
-                const angle = -Math.PI / 6
-                const stepX = 260
-                const stepY = 180
-                const text = 'ROASTED BY GITROAST'
-                for (let y = -100; y < canvas.height + 100; y += stepY) {
-                    for (let x = -100; x < canvas.width + 100; x += stepX) {
+                    if (!isPro) {
+                        const ctx = canvas.getContext('2d')
                         ctx.save()
-                        ctx.translate(x, y)
-                        ctx.rotate(angle)
-                        ctx.fillText(text, 0, 0)
+                        ctx.globalAlpha = 0.16
+                        ctx.fillStyle = '#FF6B00'
+                        ctx.font = 'bold 36px "Courier New", monospace'
+                        ctx.textAlign = 'center'
+                        const angle = -Math.PI / 6
+                        const stepX = 260
+                        const stepY = 180
+                        const text = 'ROASTED BY GITROAST'
+                        for (let y = -100; y < canvas.height + 100; y += stepY) {
+                            for (let x = -100; x < canvas.width + 100; x += stepX) {
+                                ctx.save()
+                                ctx.translate(x, y)
+                                ctx.rotate(angle)
+                                ctx.fillText(text, 0, 0)
+                                ctx.restore()
+                            }
+                        }
                         ctx.restore()
                     }
+
+                    // ── Cross-Browser Programmatic File Download ────────────────
+                    // ── WHAT: ────────────────────────────────────────────────────
+                    // Programmatically appends the generated battle card anchor to document.body,
+                    // clicks it to trigger the OS save dialog, and disposes of the element.
+                    //
+                    // ── WHY: ─────────────────────────────────────────────────────
+                    // Ensures battle cards download deterministically on mobile browsers and desktop Safari.
+                    //
+                    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+                    // On battle card PNG export.
+                    //
+                    // ── USE CASES: ───────────────────────────────────────────────
+                    // Exporting battle comparison card images for social media sharing.
+                    //
+                    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+                    // Do not use for server-side PDF generation.
+                    const link = document.createElement('a')
+                    link.download = `battle-${user1}-vs-${user2}.png`
+                    link.href = canvas.toDataURL('image/png')
+                    document.body.appendChild(link)
+                    link.click()
+                    document.body.removeChild(link)
+                })(),
+                {
+                    loading: '⚔️ Rendering comparison battle card...',
+                    success: isPro ? '📥 High-res battle card saved!' : '📥 Battle card saved (Free Watermarked)!',
+                    error: 'Failed to export battle card image. Please try again.',
                 }
-                ctx.restore()
-            }
-
-            // ── Cross-Browser Programmatic File Download ────────────────
-            // ── WHAT: ────────────────────────────────────────────────────
-            // Programmatically appends the generated battle card anchor to document.body,
-            // clicks it to trigger the OS save dialog, and disposes of the element.
-            //
-            // ── WHY: ─────────────────────────────────────────────────────
-            // Ensures battle cards download deterministically on mobile browsers and desktop Safari.
-            //
-            // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-            // On battle card PNG export.
-            //
-            // ── USE CASES: ───────────────────────────────────────────────
-            // Exporting battle comparison card images for social media sharing.
-            //
-            // ── WHEN NOT TO USE: ─────────────────────────────────────────
-            // Do not use for server-side PDF generation.
-            const link = document.createElement('a')
-            link.download = `battle-${user1}-vs-${user2}.png`
-            link.href = canvas.toDataURL('image/png')
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-
-            createToast({
-                type: 'success',
-                message: isPro ? '📥 High-res battle card saved!' : '📥 Battle card saved (Free Watermarked)!',
-                position: 'top-center',
-                duration: 3000,
-            })
+            )
         } catch (err) {
             console.error('Battle download error:', err)
-            createToast({
-                type: 'error',
-                message: 'Failed to export battle card image. Please try again.',
-                position: 'top-center',
-                duration: 4000,
-            })
         } finally {
             setDownloading(false)
         }

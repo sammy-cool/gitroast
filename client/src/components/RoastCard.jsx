@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { createToast } from 'customizable-toast-notification'
+import { toast } from '@/utils/toast'
 import StatsGrid from './StatsGrid'
 import CommitShame from './CommitShame'
 import ShareButtons from './ShareButtons'
@@ -39,12 +39,7 @@ export default function RoastCard({ data, onProClick }) {
 
   function handleVoiceRoast() {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      createToast({
-        type: 'warning',
-        message: 'Speech synthesis is not supported on this device/browser.',
-        position: 'top-center',
-        duration: 3500,
-      })
+      toast.warning('Speech synthesis is not supported on this device/browser.')
       return
     }
 
@@ -74,12 +69,7 @@ export default function RoastCard({ data, onProClick }) {
 
     window.speechSynthesis.speak(utterance)
 
-    createToast({
-      type: 'info',
-      message: '🔊 Playing roast aloud... Turn up the volume!',
-      position: 'top-center',
-      duration: 3000,
-    })
+    toast.info('🔊 Playing roast aloud... Turn up the volume!')
   }
 
   useEffect(() => {

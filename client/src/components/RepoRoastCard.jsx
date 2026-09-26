@@ -11,7 +11,7 @@
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react'
-import { createToast } from 'customizable-toast-notification'
+import { toast } from '@/utils/toast'
 import Link from 'next/link'
 
 const TYPING_SPEED = 18
@@ -72,11 +72,7 @@ export default function RepoRoastCard({ data, onProClick }) {
   function handleVoiceRoast() {
     if (typeof window === 'undefined') return
     if (!('speechSynthesis' in window)) {
-      createToast({
-        type: 'warning',
-        message: 'Speech synthesis is not supported on this browser.',
-        position: 'top-center',
-      })
+      toast.warning('Speech synthesis is not supported on this browser.')
       return
     }
 
@@ -102,12 +98,7 @@ export default function RepoRoastCard({ data, onProClick }) {
 
     utterance.onstart = () => {
       setIsPlayingAudio(true)
-      createToast({
-        type: 'info',
-        message: '🔊 Playing Voice Roast...',
-        position: 'top-center',
-        duration: 3000,
-      })
+      toast.info('🔊 Playing Voice Roast...')
     }
 
     utterance.onend = () => setIsPlayingAudio(false)
@@ -120,12 +111,7 @@ export default function RepoRoastCard({ data, onProClick }) {
     if (typeof window === 'undefined') return
     const url = window.location.href
     navigator.clipboard.writeText(url).then(() => {
-      createToast({
-        type: 'success',
-        message: '📋 Repository roast link copied to clipboard!',
-        position: 'top-center',
-        duration: 3500,
-      })
+      toast.copy('📋 Repository roast link copied to clipboard!')
     })
   }
  

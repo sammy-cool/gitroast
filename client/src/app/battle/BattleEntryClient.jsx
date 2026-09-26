@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createToast } from 'customizable-toast-notification'
+import { toast } from '@/utils/toast'
 import { useAuth } from '@/context/AuthContext'
 import Breadcrumb from '@/components/Breadcrumb'
 
@@ -75,22 +75,12 @@ export default function BattleEntryClient() {
         const p2 = raw2.replace(/^https?:\/\/(?:www\.)?github\.com\//i, '').replace(/^(?:www\.)?github\.com\//i, '').replace(/^\/+|\/+$/g, '').toLowerCase()
 
         if (!p1 || !p2) {
-            createToast({
-                type: 'warning',
-                message: 'Enter both GitHub usernames to start the battle!',
-                position: 'top-center',
-                showProgressBar: true,
-            })
+            toast.warning('Enter both GitHub usernames to start the battle!')
             return
         }
 
         if (p1 === p2) {
-            createToast({
-                type: 'warning',
-                message: 'You cannot battle yourself. Or can you? No. You cannot.',
-                position: 'top-center',
-                duration: 4000,
-            })
+            toast.warning('You cannot battle yourself. Or can you? No. You cannot.')
             return
         }
 
@@ -107,23 +97,19 @@ export default function BattleEntryClient() {
         const pick = FEATURED_RIVALRIES[Math.floor(Math.random() * FEATURED_RIVALRIES.length)]
         setUser1(pick.user1)
         setUser2(pick.user2)
-        createToast({
-            type: 'info',
-            message: `🎲 Selected: @${pick.user1} vs @${pick.user2}!`,
-            position: 'top-center',
-            duration: 3000,
+        toast.info(`🎲 Selected: @${pick.user1} vs @${pick.user2}!`, {
+            cta: {
+                label: 'Fight Now ⚔️',
+                onClick: () => launchBattle(pick.user1, pick.user2),
+                autoClose: true,
+            },
         })
     }
 
     function handleFillMyself() {
         if (!user?.username) return
         setUser1(user.username.toLowerCase())
-        createToast({
-            type: 'info',
-            message: `⚔️ Set @${user.username} as Player 1! Pick your opponent.`,
-            position: 'top-center',
-            duration: 3000,
-        })
+        toast.info(`⚔️ Set @${user.username} as Player 1! Pick your opponent.`)
     }
 
     function handleSwap() {
