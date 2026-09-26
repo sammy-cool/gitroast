@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { toast, toastPromise } from "@/utils/toast";
 import { trackShare } from "@/services/roastService";
 import dynamic from 'next/dynamic';
@@ -241,6 +242,20 @@ export default function ShareButtons({
                     isPro={isPro}
                 />
             </div>
+
+            {/* ── 3D Code Solar System Cosmic Visualizer ── */}
+            {/* WHAT: Interactive WebGL launch button transporting user to real-time 3D planetary galaxy */}
+            {/* WHY: High visual delight and viral curiosity: turns code metrics into orbiting celestial worlds */}
+            {/* WHERE & WHEN TO USE: Rendered in share actions for every completed roast */}
+            {/* USE CASES: Viewing candidate or self repos as orbiting planets and stars */}
+            {/* WHEN NOT TO USE: Never render before roast analysis completes */}
+            <Link href={`/universe/${username}`} className="universe-link-wrapper">
+                <div className="btn-universe font-mono">
+                    <span className="universe-star-icon" aria-hidden="true">✦</span>
+                    <span className="universe-text">Launch 3D Code Solar System</span>
+                    <span className="universe-pill">3D WEBGL</span>
+                </div>
+            </Link>
 
             {/* Badge & Embed row */}
             <div className="badge-row">
@@ -544,6 +559,52 @@ export default function ShareButtons({
         .extras-row {
           display: flex;
           gap: 8px;
+        }
+
+        :global(.universe-link-wrapper) {
+          text-decoration: none;
+          display: block;
+          width: 100%;
+        }
+        .btn-universe {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          padding: 12px 16px;
+          background: linear-gradient(135deg, rgba(0, 229, 255, 0.1) 0%, rgba(124, 77, 255, 0.1) 100%);
+          border: 1px solid rgba(0, 229, 255, 0.35);
+          border-radius: var(--radius-md);
+          color: #00E5FF;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 4px 16px rgba(0, 229, 255, 0.08);
+        }
+        .btn-universe:hover {
+          background: linear-gradient(135deg, rgba(0, 229, 255, 0.2) 0%, rgba(124, 77, 255, 0.2) 100%);
+          border-color: #00E5FF;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 22px rgba(0, 229, 255, 0.25);
+          color: #FFFFFF;
+        }
+        .universe-star-icon {
+          color: #00E5FF;
+          animation: pulseUniverse 1.8s infinite ease-in-out;
+        }
+        @keyframes pulseUniverse {
+          0%, 100% { opacity: 0.6; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.3); text-shadow: 0 0 8px #00E5FF; }
+        }
+        .universe-pill {
+          font-size: 9px;
+          letter-spacing: 1px;
+          background: rgba(0, 229, 255, 0.2);
+          border: 1px solid rgba(0, 229, 255, 0.3);
+          color: #00E5FF;
+          padding: 2px 6px;
+          border-radius: 4px;
         }
         @media (max-width: 480px) {
           .badge-row {

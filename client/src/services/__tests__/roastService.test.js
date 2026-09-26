@@ -38,6 +38,7 @@ import {
   getRateLimitStatus,
   dispatchContactMessage,
   updateUserPreferences,
+  getUniverse,
 } from "../roastService.js";
 
 const originalFetch = global.fetch;
@@ -220,5 +221,28 @@ describe("Client Service Layer — roastService.js", () => {
     });
     assert.equal(res.success, true);
     assert.equal(res.preferences.defaultPersona, "ramsay");
+  });
+
+  it("should fetch 3D code solar system universe data via getUniverse", async () => {
+    let capturedUrl = "";
+    global.fetch = async (url) => {
+      capturedUrl = url;
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          success: true,
+          universe: {
+            star: { username: "torvalds", spectralClass: "O-Type Blue Hypergiant" },
+            planets: [{ name: "linux", planetType: "habitable" }],
+          },
+        }),
+      };
+    };
+
+    const res = await getUniverse("torvalds");
+    assert.match(capturedUrl, /\/api\/roast\/torvalds\/universe$/);
+    assert.equal(res.success, true);
+    assert.equal(res.universe.star.spectralClass, "O-Type Blue Hypergiant");
   });
 });

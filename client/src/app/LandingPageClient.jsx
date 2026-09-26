@@ -409,13 +409,23 @@ export default function LandingPageClient() {
         </button>
       </div>
 
-      <Link href="/leaderboard" className="btn btn-ghost">
-        🏆 Wall of Shame
-      </Link>
-
-      <Link href="/battle" className="btn btn-ghost">
-        ⚔️ Roast Battle
-      </Link>
+      {/* ── Exploratory Navigation Links ── */}
+      {/* WHAT: Direct entry points to Wall of Shame, Developer Battles, and the 3D Code Solar System */}
+      {/* WHY: Exposes secondary viral features directly below the primary roast input */}
+      {/* WHERE & WHEN TO USE: Landing page central column */}
+      {/* USE CASES: Visitors who want to browse before roasting themselves */}
+      {/* WHEN NOT TO USE: Inside individual roast result pages */}
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+        <Link href="/leaderboard" className="btn btn-ghost">
+          🏆 Wall of Shame
+        </Link>
+        <Link href="/battle" className="btn btn-ghost">
+          ⚔️ Roast Battle
+        </Link>
+        <Link href="/universe" className="btn btn-ghost" style={{ color: "#00E5FF", borderColor: "rgba(0, 229, 255, 0.3)" }}>
+          🌌 3D Universe
+        </Link>
+      </div>
 
       {/* ── Community Roast of the Day ── */}
       <div className="sample-roast card">

@@ -806,4 +806,257 @@ async function analyzeWrapped(
   };
 }
 
-module.exports = { analyzeProfile, analyzeWrapped };
+// ─── 11. Analyze 3D Code Universe / Solar System ─────────────
+/* 
+  ── WHAT: ────────────────────────────────────────────────────────
+  Transforms a developer profile and their top repositories into a rich,
+  physically structured 3D celestial solar system (star + orbiting planets + black holes).
+  
+  ── WHY: ─────────────────────────────────────────────────────────
+  Powers the interactive WebGL 3D Code Solar System experience, turning abstract
+  metrics (commit frequency, stars, tech debt, abandonment) into intuitive cosmic phenomena
+  (blazing inferno planets, ringed gas giants, frozen cryo-worlds, and supermassive black holes).
+  
+  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+  Invoked in `server/routes/roast.js` for `GET /api/roast/:username/universe`.
+  
+  ── USE CASES: ───────────────────────────────────────────────────
+  3D planetary system exploration, interactive orbit inspection, space-themed roasts.
+  
+  ── WHEN NOT TO USE: ─────────────────────────────────────────────
+  Do not call for Organization accounts (rejects with ORGANIZATION_NOT_SUPPORTED).
+*/
+async function analyzeUniverse(
+  username,
+  userToken = null,
+  authUsername = null,
+  isPro = false,
+) {
+  const isOwnProfileAndPro = Boolean(
+    isPro &&
+      authUsername &&
+      username.toLowerCase() === authUsername.toLowerCase(),
+  );
+
+  const [profile, repos] = await Promise.all([
+    fetchProfile(username, userToken),
+    fetchRepos(username, userToken, isOwnProfileAndPro),
+  ]);
+
+  if (profile.type === "Organization") {
+    const orgErr = new Error("ORGANIZATION_NOT_SUPPORTED");
+    orgErr.code = "ORGANIZATION_NOT_SUPPORTED";
+    throw orgErr;
+  }
+
+  const repoAnalysis = analyzeRepos(repos);
+  const rawScore = calculateRoastScore(
+    repoAnalysis,
+    { qualityScore: 70 },
+    { exists: true, isEmpty: false },
+  );
+  const score = Math.max(10, Math.min(99, rawScore));
+  const grade = getGrade(score);
+
+  // ── Star Classification (The Developer) ──────────────────────
+  let spectralClass = "G-Type Yellow Solar";
+  let starColor = "#FFB700";
+  let coronaColor = "rgba(255, 183, 0, 0.4)";
+  let starTitle = "Main Sequence Solar Engine";
+
+  if (score >= 85) {
+    spectralClass = "O-Type Blue Hypergiant";
+    starColor = "#00E5FF";
+    coronaColor = "rgba(0, 229, 255, 0.45)";
+    starTitle = "Luminous Celestial Architect";
+  } else if (score >= 70) {
+    spectralClass = "B-Type Blue-White Giant";
+    starColor = "#80D8FF";
+    coronaColor = "rgba(128, 216, 255, 0.4)";
+    starTitle = "High-Energy Stellar Builder";
+  } else if (score >= 55) {
+    spectralClass = "G-Type Golden Sun";
+    starColor = "#FFB700";
+    coronaColor = "rgba(255, 183, 0, 0.35)";
+    starTitle = "Equilibrium Standard Sun";
+  } else if (score >= 40) {
+    spectralClass = "K-Type Orange Giant";
+    starColor = "#FF6B00";
+    coronaColor = "rgba(255, 107, 0, 0.4)";
+    starTitle = "Overheated Late-Night Red Giant";
+  } else {
+    spectralClass = "M-Type Red Dwarf / Dying Star";
+    starColor = "#FF3333";
+    coronaColor = "rgba(255, 51, 51, 0.5)";
+    starTitle = "Erratic Flare Star (High Panic Factor)";
+  }
+
+  const star = {
+    username,
+    name: profile.name || username,
+    avatarUrl: profile.avatar_url,
+    bio: profile.bio || "Roaming through deep cyberspace.",
+    score,
+    grade,
+    spectralClass,
+    starTitle,
+    starColor,
+    coronaColor,
+    radius: 14 + Math.round((score / 100) * 8),
+    temperature: `${(score * 120 + 3000).toLocaleString()} K`,
+    luminosity: Math.round(profile.followers * 1.5 + profile.public_repos * 2 + 100),
+    totalRepos: profile.public_repos,
+    followers: profile.followers,
+    following: profile.following,
+  };
+
+  // ── Celestial Bodies / Orbiting Planets (Top Repositories) ──
+  const validRepos = (repos || []).filter((r) => !r.fork);
+  const pool = validRepos.length > 0 ? validRepos : (repos || []);
+
+  // Sort by combination of stars and recent activity
+  const sortedRepos = [...pool].sort((a, b) => {
+    const starDiff = (b.stargazers_count || 0) - (a.stargazers_count || 0);
+    if (starDiff !== 0) return starDiff;
+    return new Date(b.pushed_at || 0) - new Date(a.pushed_at || 0);
+  }).slice(0, 18);
+
+  const now = Date.now();
+
+  const planets = sortedRepos.map((repo, idx) => {
+    const pushedTime = new Date(repo.pushed_at || repo.created_at || now).getTime();
+    const daysSincePush = Math.max(0, Math.floor((now - pushedTime) / (1000 * 60 * 60 * 24)));
+    const stars = repo.stargazers_count || 0;
+    const forks = repo.forks_count || 0;
+    const sizeKb = repo.size || 0;
+
+    let planetType = "barren_rock";
+    let typeName = "Barren Terrestrial Rock";
+    let themeColor = "#90A4AE";
+    let atmosphere = "Thin Vacuum";
+    let verdict = "Cratered planetary outpost with quiet git logs.";
+    let hasRings = false;
+
+    if ((sizeKb > 180000 && stars === 0) || (daysSincePush > 730 && stars === 0 && !repo.description)) {
+      planetType = "black_hole";
+      typeName = "Singularity (Supermassive Black Hole)";
+      themeColor = "#7A00FF";
+      atmosphere = "Infinite Gravity Well & Dark Vacuum";
+      verdict = `Gravitational anomaly holding ${Math.round(sizeKb / 1024)}MB of untracked node_modules. Light cannot escape.`;
+    } else if (daysSincePush <= 14) {
+      planetType = "inferno";
+      typeName = "Volcanic Magma World";
+      themeColor = "#FF4500";
+      atmosphere = "Superheated Plasma & Live Commits";
+      verdict = "Boiling planetary core! Recent frantic commits detected directly on main.";
+    } else if (stars >= 15 || (daysSincePush <= 60 && repo.description)) {
+      planetType = "habitable";
+      typeName = "Habitable Biosphere";
+      themeColor = "#00E676";
+      atmosphere = "Oxygen-Rich & Documented Code";
+      verdict = "Rare living planetary oasis equipped with a real README and thriving architecture.";
+    } else if (sizeKb > 25000 || forks >= 5) {
+      planetType = "gas_giant";
+      typeName = "Ringed Gas Giant";
+      themeColor = "#FFB300";
+      atmosphere = "Thick Methane & Dependency Cloud";
+      verdict = "Enormous gas giant holding deep architectural layers and unfinished branch rings.";
+      hasRings = true;
+    } else if (daysSincePush > 365) {
+      planetType = "frozen_ice";
+      typeName = "Sub-Zero Cryo World";
+      themeColor = "#00E5FF";
+      atmosphere = "Frozen Methane & Absolute Zero";
+      verdict = `Permafrost planet abandoned ${daysSincePush} days ago. Even alien rovers froze to death here.`;
+    }
+
+    const orbitDistance = 38 + idx * 17 + Math.min(25, idx * 2.5);
+    const sizeScale = Math.max(2.0, Math.min(5.6, 2.2 + Math.log10(Math.max(1, stars + 1)) * 1.5 + (sizeKb > 50000 ? 1 : 0)));
+    const orbitSpeed = 0.009 / (1 + idx * 0.12);
+    const rotationSpeed = 0.012 + (idx % 3) * 0.006;
+    const moonsCount = Math.min(4, Math.floor(forks / 3) + (repo.open_issues_count > 0 ? 1 : 0));
+
+    return {
+      id: `planet-${idx}`,
+      index: idx + 1,
+      name: repo.name,
+      description: repo.description || "No description provided (lost in outer space).",
+      language: repo.language || "Unknown Void",
+      stars,
+      forks,
+      sizeKb,
+      openIssues: repo.open_issues_count || 0,
+      isFork: Boolean(repo.fork),
+      daysSincePush,
+      planetType,
+      typeName,
+      themeColor,
+      atmosphere,
+      verdict,
+      orbitDistance,
+      sizeScale,
+      orbitSpeed,
+      rotationSpeed,
+      hasRings,
+      moonsCount,
+    };
+  });
+
+  // If user has 0 repos, generate a placeholder asteroid belt
+  if (planets.length === 0) {
+    planets.push({
+      id: "planet-void",
+      index: 1,
+      name: "void-capsule",
+      description: "Mysterious drifting probe in an empty stellar sector.",
+      language: "Empty Void",
+      stars: 0,
+      forks: 0,
+      sizeKb: 4,
+      openIssues: 0,
+      isFork: false,
+      daysSincePush: 999,
+      planetType: "barren_rock",
+      typeName: "Lonely Asteroid",
+      themeColor: "#9E9E9E",
+      atmosphere: "Total Vacuum",
+      verdict: "Zero public repos discovered. This star system is completely uninhabited.",
+      orbitDistance: 45,
+      sizeScale: 2.2,
+      orbitSpeed: 0.006,
+      rotationSpeed: 0.01,
+      hasRings: false,
+      moonsCount: 0,
+    });
+  }
+
+  const systemMetrics = {
+    totalPlanets: planets.length,
+    habitableCount: planets.filter((p) => p.planetType === "habitable").length,
+    frozenCount: planets.filter((p) => p.planetType === "frozen_ice").length,
+    blackHoleCount: planets.filter((p) => p.planetType === "black_hole").length,
+    infernoCount: planets.filter((p) => p.planetType === "inferno").length,
+    gasGiantCount: planets.filter((p) => p.planetType === "gas_giant").length,
+    galaxyType:
+      score >= 80
+        ? "Super-Dense Hypergiant Cluster"
+        : score >= 60
+          ? "Stable Spiral Galactic Sector"
+          : "Volatile Dark Nebula of Technical Debt",
+    cosmicVerdict:
+      score >= 75
+        ? "A dazzling celestial empire with thriving architectures and blazing stellar energy."
+        : score >= 45
+          ? "A chaotic planetary sector where half the colonies survived and the other half froze to death."
+          : "A cosmic wasteland littered with dead cryo-worlds and black holes swallowing forgotten code.",
+  };
+
+  return {
+    star,
+    planets,
+    systemMetrics,
+  };
+}
+
+module.exports = { analyzeProfile, analyzeWrapped, analyzeUniverse };
+

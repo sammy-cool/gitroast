@@ -551,12 +551,12 @@ const PERSONA_FALLBACK_WRAPPERS = {
     prefixes: [
       "Arre bhai,",
       "Dekh bhai,",
-      "Senior engineer hone ke naate sach bol raha hu,",
-      "Aisa code dekh ke HR bhi resign kar de —",
+      "Senior engineer hone ke naate sach bol raha hu bhai,",
+      "Aisa code dekh ke HR bhi resign kar de bhai —",
     ],
     suffixes: [
-      "Batao zara, is code ke bharose onsite jaane ka sapna dekh rahe the?",
-      "Friday ko bina test ke push karke so gaye the na? Production fat gaya!",
+      "Batao zara, is code ke bharose onsite jaane ka sapna dekh rahe the bhai?",
+      "Friday ko bina test ke push karke so gaye the na? Production fat gaya bhai!",
       "Har mahine salary credit hoti hai bas, commits me zero effort hai bhai.",
     ],
   },

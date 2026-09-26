@@ -240,3 +240,74 @@ export function playBurn() {
     osc.stop(ctx.currentTime + 0.35)
   } catch {}
 }
+
+/**
+ * WHAT: Synthesizes an ethereal dual-sine celestial resonant chime.
+ * WHY: Provides futuristic space atmosphere when focusing on 3D planets.
+ * WHERE & WHEN TO USE: In 3D Code Solar System when user clicks on a planet or star.
+ * USE CASES: Planetary inspection focus, cosmic tooltip reveal.
+ * WHEN NOT TO USE: Standard HTML buttons (use playClick instead).
+ */
+export function playCosmicChime() {
+  if (isMuted()) return
+  const ctx = getAudioContext()
+  if (!ctx) return
+
+  try {
+    const freqs = [587.33, 880.0, 1174.66]
+    freqs.forEach((freq, idx) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, ctx.currentTime)
+
+      gain.gain.setValueAtTime(0.04, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.6 + idx * 0.15)
+
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.75 + idx * 0.15)
+    })
+  } catch {}
+}
+
+/**
+ * WHAT: Synthesizes a sci-fi Doppler hyperspace acceleration glide.
+ * WHY: Provides auditory thrill when warping to a new developer's solar system.
+ * WHERE & WHEN TO USE: When warping to another developer in the 3D Code Solar System.
+ * USE CASES: Warp drive navigation.
+ * WHEN NOT TO USE: Ordinary page transitions.
+ */
+export function playWarpSpeed() {
+  if (isMuted()) return
+  const ctx = getAudioContext()
+  if (!ctx) return
+
+  try {
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+
+    osc.type = 'sawtooth'
+    osc.frequency.setValueAtTime(80, ctx.currentTime)
+    osc.frequency.exponentialRampToValueAtTime(1400, ctx.currentTime + 0.45)
+
+    const filter = ctx.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.setValueAtTime(200, ctx.currentTime)
+    filter.frequency.exponentialRampToValueAtTime(2200, ctx.currentTime + 0.45)
+    filter.Q.value = 3.0
+
+    gain.gain.setValueAtTime(0.08, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5)
+
+    osc.connect(filter)
+    filter.connect(gain)
+    gain.connect(ctx.destination)
+
+    osc.start(ctx.currentTime)
+    osc.stop(ctx.currentTime + 0.5)
+  } catch {}
+}

@@ -755,3 +755,36 @@ export async function updateUserPreferences(preferences, token) {
 
   return json;
 }
+
+// ── getUniverse ───────────────────────────────────────────────
+/**
+ * WHAT: Fetches structured 3D celestial solar system data for a developer profile.
+ * WHY: Powers the interactive WebGL 3D Code Solar System experience, mapping repositories to
+ *      planets, technical debt to black holes, and active repos to volcanic inferno worlds.
+ * WHERE & WHEN TO USE: In /universe/[username] client page.
+ * USE CASES: Rendering real-time 3D planetary orbits, solar flares, and celestial roasts.
+ * WHEN NOT TO USE: For organization accounts or non-GitHub handles.
+ */
+export async function getUniverse(username, token = null) {
+  const cleanUsername = (username || "").trim().toLowerCase();
+  if (!cleanUsername) throw new Error("Username is required.");
+
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/api/roast/${encodeURIComponent(cleanUsername)}/universe`, {
+    method: "GET",
+    headers,
+    signal: AbortSignal.timeout(30000),
+  });
+
+  const json = await safeParseJson(res);
+  if (!res.ok) {
+    const err = new Error(json.message || "Failed to generate 3D Code Solar System.");
+    err.code = json.error;
+    err.status = res.status;
+    throw err;
+  }
+
+  return json;
+}

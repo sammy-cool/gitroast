@@ -40,6 +40,12 @@ export default function Footer() {
             Battle
           </Link>
           <Link
+            href="/universe"
+            className={`footer-link ${isActive('/universe') ? 'footer-link--active' : ''}`}
+          >
+            3D Universe
+          </Link>
+          <Link
             href="/pricing"
             className={`footer-link ${isActive('/pricing') ? 'footer-link--active' : ''}`}
           >

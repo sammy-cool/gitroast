@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { analyzeProfile, analyzeWrapped } = require("../services/githubService");
+const { analyzeProfile, analyzeWrapped, analyzeUniverse } = require("../services/githubService");
 const { analyzeRepository } = require("../services/repoRoastService");
 const { generateRoast } = require("../services/roastEngine");
 const {
@@ -112,6 +112,89 @@ router.get("/:username/wrapped", optionalAuth, verifyCaptcha, async (req, res) =
     return res.status(500).json({
       error: "SERVER_ERROR",
       message: "Failed to generate Wrapped report.",
+    });
+  }
+});
+
+// ─── GET /api/roast/:username/universe ────────────────────
+/* 
+  ── WHAT: ────────────────────────────────────────────────────────
+  Transforms a developer's GitHub profile into a rich 3D celestial solar system,
+  mapping repositories to physical planets, code activity to climate, and tech debt to black holes.
+  
+  ── WHY: ─────────────────────────────────────────────────────────
+  Powers the interactive WebGL 3D Code Solar System experience. Specific route precedes
+  the generic dynamic `/:username` route to satisfy Express route precedence.
+  
+  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+  Mounted on `/api/roast/:username/universe`.
+  
+  ── USE CASES: ───────────────────────────────────────────────────
+  3D planetary explorer, cosmic code telemetry, celestial orbital visualization.
+  
+  ── WHEN NOT TO USE: ─────────────────────────────────────────────
+  Do not bypass for organizations (rejects with 400).
+*/
+router.get("/:username/universe", optionalAuth, verifyCaptcha, async (req, res) => {
+  const { username } = req.params;
+  const isPro = req.user?.isPro || false;
+  const authUsername = req.user?.username || null;
+  const githubToken = req.user?.githubAccessToken || null;
+
+  if (!username || username.length > 39 || !/^[a-zA-Z0-9-]+$/.test(username)) {
+    return res.status(400).json({
+      error: "INVALID_USERNAME",
+      message: "GitHub usernames can only contain letters, numbers, and hyphens.",
+    });
+  }
+
+  // Check Redis cache first (TTL: 10 minutes)
+  const cacheKey = `universe:${username.toLowerCase()}`;
+  if (redisService.isConfigured) {
+    const cached = await redisService.get(cacheKey).catch(() => null);
+    if (cached) {
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+      return res.status(200).json({ success: true, universe: cached, cached: true });
+    }
+  }
+
+  try {
+    const universe = await analyzeUniverse(
+      username,
+      githubToken,
+      authUsername,
+      isPro,
+    );
+
+    if (redisService.isConfigured) {
+      redisService.set(cacheKey, universe, 600).catch(() => {});
+    }
+
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+    return res.status(200).json({ success: true, universe });
+  } catch (err) {
+    if (err.code === "ORGANIZATION_NOT_SUPPORTED") {
+      return res.status(400).json({
+        error: "ORGANIZATION_NOT_SUPPORTED",
+        message: `@${username} is an Organization. 3D Solar Systems are generated for individual developers!`,
+      });
+    }
+    if (err.message === "USER_NOT_FOUND") {
+      return res.status(404).json({
+        error: "USER_NOT_FOUND",
+        message: `GitHub user "@${username}" does not exist.`,
+      });
+    }
+    if (err.message === "RATE_LIMIT_EXCEEDED") {
+      return res.status(429).json({
+        error: "RATE_LIMIT_EXCEEDED",
+        message: "GitHub rate limit hit. Try again in 60 seconds or log in with GitHub.",
+      });
+    }
+    logger.error("Universe", `Error generating universe for ${username}`, { message: err.message });
+    return res.status(500).json({
+      error: "SERVER_ERROR",
+      message: "Failed to generate 3D Code Solar System.",
     });
   }
 });

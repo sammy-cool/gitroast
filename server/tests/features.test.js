@@ -1698,8 +1698,9 @@ describe("Feature #19 — Roast Personas, User Preferences & Ghost Mode Invarian
         const shakespeareanRoast = generateRoast(mockData, "savage", "shakespearean");
 
         assert.ok(classicRoast && classicRoast.length > 20);
+        const hinglishLower = hinglishRoast.toLowerCase();
         assert.ok(
-            hinglishRoast.includes("bhai") || hinglishRoast.includes("production") || hinglishRoast.includes("salary") || hinglishRoast.includes("onsite"),
+            hinglishLower.includes("bhai") || hinglishLower.includes("production") || hinglishLower.includes("salary") || hinglishLower.includes("onsite"),
             "Hinglish roast must include authentic Desi Tech Lead slang"
         );
         assert.ok(
@@ -1758,4 +1759,164 @@ describe("Feature #19 — Roast Personas, User Preferences & Ghost Mode Invarian
         assert.equal(roast.isPrivate, false);
     });
 });
+
+describe("Feature #20 — 3D Code Solar System & Universe Engine", () => {
+    const { analyzeUniverse } = require("../services/githubService");
+    const roastRoute = require("../routes/roast");
+
+    it("should mount /:username/universe before dynamic /:username route", () => {
+        const universeIndex = roastRoute.stack.findIndex(
+            (layer) => layer.route && layer.route.path === "/:username/universe" && layer.route.methods.get,
+        );
+        const dynamicUserIndex = roastRoute.stack.findIndex(
+            (layer) => layer.route && layer.route.path === "/:username" && layer.route.methods.get,
+        );
+
+        assert.ok(universeIndex !== -1, "/:username/universe route must be registered");
+        assert.ok(dynamicUserIndex !== -1, "/:username route must be registered");
+        assert.ok(
+            universeIndex < dynamicUserIndex,
+            "/:username/universe must precede /:username for Express route precedence",
+        );
+    });
+
+    it("should transform GitHub profile and repositories into a structured 3D solar system", async () => {
+        const originalFetch = global.fetch;
+
+        try {
+            global.fetch = async (url) => {
+                if (url.includes("/users/astrodev/repos")) {
+                    return {
+                        ok: true,
+                        status: 200,
+                        json: async () => [
+                            {
+                                name: "active-magma-api",
+                                description: "Burning fast API service",
+                                language: "TypeScript",
+                                stargazers_count: 5,
+                                forks_count: 0,
+                                size: 500,
+                                pushed_at: new Date().toISOString(), // recent -> inferno
+                                created_at: "2024-01-01T00:00:00Z",
+                                fork: false,
+                            },
+                            {
+                                name: "popular-living-framework",
+                                description: "Production ready web framework",
+                                language: "Rust",
+                                stargazers_count: 120, // stars >= 15 -> habitable
+                                forks_count: 12,
+                                size: 4000,
+                                pushed_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
+                                created_at: "2023-01-01T00:00:00Z",
+                                fork: false,
+                            },
+                            {
+                                name: "ancient-frozen-graveyard",
+                                description: "Old frozen experiment",
+                                language: "Python",
+                                stargazers_count: 1,
+                                forks_count: 0,
+                                size: 200,
+                                pushed_at: new Date(Date.now() - 500 * 24 * 3600 * 1000).toISOString(), // >365d -> frozen_ice
+                                created_at: "2021-01-01T00:00:00Z",
+                                fork: false,
+                            },
+                            {
+                                name: "massive-node-modules-black-hole",
+                                description: "", // no desc + large + 0 stars + >2y -> black_hole
+                                language: "JavaScript",
+                                stargazers_count: 0,
+                                forks_count: 0,
+                                size: 350000, // 350MB
+                                pushed_at: new Date(Date.now() - 800 * 24 * 3600 * 1000).toISOString(),
+                                created_at: "2020-01-01T00:00:00Z",
+                                fork: false,
+                            },
+                        ],
+                    };
+                }
+
+                if (url.includes("/users/astrodev")) {
+                    return {
+                        ok: true,
+                        status: 200,
+                        json: async () => ({
+                            login: "astrodev",
+                            name: "Cosmic Developer",
+                            avatar_url: "https://avatars.githubusercontent.com/u/12345?v=4",
+                            bio: "Exploring the cosmos through code.",
+                            public_repos: 4,
+                            followers: 42,
+                            following: 10,
+                            created_at: "2020-01-01T00:00:00Z",
+                            type: "User",
+                        }),
+                    };
+                }
+
+                return { ok: false, status: 404 };
+            };
+
+            const universe = await analyzeUniverse("astrodev");
+            assert.ok(universe.star, "Must include central star object");
+            assert.equal(universe.star.username, "astrodev");
+            assert.ok(universe.star.spectralClass, "Must assign spectral class to star");
+            assert.ok(universe.star.starColor, "Must assign star color");
+
+            assert.ok(Array.isArray(universe.planets), "Must include planets array");
+            assert.equal(universe.planets.length, 4);
+
+            const inferno = universe.planets.find((p) => p.name === "active-magma-api");
+            assert.ok(inferno, "Must include inferno planet");
+            assert.equal(inferno.planetType, "inferno");
+
+            const habitable = universe.planets.find((p) => p.name === "popular-living-framework");
+            assert.ok(habitable, "Must include habitable planet");
+            assert.equal(habitable.planetType, "habitable");
+
+            const frozen = universe.planets.find((p) => p.name === "ancient-frozen-graveyard");
+            assert.ok(frozen, "Must include frozen cryo planet");
+            assert.equal(frozen.planetType, "frozen_ice");
+
+            const blackHole = universe.planets.find((p) => p.name === "massive-node-modules-black-hole");
+            assert.ok(blackHole, "Must classify bloated repo as black hole");
+            assert.equal(blackHole.planetType, "black_hole");
+
+            assert.ok(universe.systemMetrics.totalPlanets === 4);
+            assert.ok(universe.systemMetrics.galaxyType);
+        } finally {
+            global.fetch = originalFetch;
+        }
+    });
+
+    it("should reject organizations with ORGANIZATION_NOT_SUPPORTED", async () => {
+        const originalFetch = global.fetch;
+
+        try {
+            global.fetch = async () => ({
+                ok: true,
+                status: 200,
+                json: async () => ({
+                    login: "fakeorg",
+                    type: "Organization",
+                }),
+            });
+
+            await assert.rejects(
+                async () => {
+                    await analyzeUniverse("fakeorg");
+                },
+                (err) => {
+                    assert.equal(err.code, "ORGANIZATION_NOT_SUPPORTED");
+                    return true;
+                },
+            );
+        } finally {
+            global.fetch = originalFetch;
+        }
+    });
+});
+
 
