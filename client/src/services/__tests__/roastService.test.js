@@ -149,4 +149,22 @@ describe("Client Service Layer — roastService.js", () => {
     await searchLeaderboard("foo bar/test?special=1");
     assert.match(searchUrl, /q=foo%20bar%2Ftest%3Fspecial%3D1/);
   });
+
+  it("should append ?rematch=true when rematch flag is true in getBattleRoast", async () => {
+    let capturedUrl = "";
+    global.fetch = async (url) => {
+      capturedUrl = url;
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ success: true, data: { user1: "alice", user2: "bob" } }),
+      };
+    };
+
+    await getBattleRoast("alice", "bob", "fake-token", true);
+    assert.match(capturedUrl, /\/api\/battle\/alice\/vs\/bob\?rematch=true$/);
+
+    await getBattleRoast("alice", "bob", "fake-token", false);
+    assert.match(capturedUrl, /\/api\/battle\/alice\/vs\/bob$/);
+  });
 });

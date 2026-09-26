@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createToast } from 'customizable-toast-notification'
 import BattleCard from '@/components/BattleCard'
 import Breadcrumb from '@/components/Breadcrumb'
@@ -26,6 +26,8 @@ export default function BattlePageClient({ user1, user2 }) {
     const [battleData, setBattleData] = useState(null)
     const [visibleSteps, setVisibleSteps] = useState(0)
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const isRematch = searchParams?.get('rematch') === 'true'
     const { getToken } = useAuth()
 
     // ── Animation ─────────────────────────────────────────────
@@ -52,29 +54,31 @@ export default function BattlePageClient({ user1, user2 }) {
             // ── USE CASES: ───────────────────────────────────────────────
             // Back-button navigation after copying battle challenge link.
             // ── WHEN NOT TO USE: ─────────────────────────────────────────
-            // When rematch button is explicitly clicked to force a re-roll.
+            // When rematch button is explicitly clicked (?rematch=true) to force a re-roll.
             const pairKey = [(user1 || '').toLowerCase(), (user2 || '').toLowerCase()].sort().join('-vs-')
             const cacheKey = `gitroast_battle_${pairKey}`
-            try {
-                const cached = sessionStorage.getItem(cacheKey)
-                if (cached) {
-                    const parsed = JSON.parse(cached)
-                    if (Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
-                        if (cancelled) return
-                        setBattleData(parsed.data)
-                        setView('result')
-                        return
+            if (!isRematch) {
+                try {
+                    const cached = sessionStorage.getItem(cacheKey)
+                    if (cached) {
+                        const parsed = JSON.parse(cached)
+                        if (Date.now() - parsed.cachedAt < 5 * 60 * 1000) {
+                            if (cancelled) return
+                            setBattleData(parsed.data)
+                            setView('result')
+                            return
+                        }
                     }
+                } catch {
+                    // Ignore storage exceptions in private mode
                 }
-            } catch {
-                // Ignore storage exceptions in private mode
             }
 
             try {
                 const token = getToken()
 
                 const [data] = await Promise.all([
-                    getBattleRoast(user1, user2, token),
+                    getBattleRoast(user1, user2, token, isRematch),
                     new Promise(resolve => setTimeout(resolve, MIN_BATTLE_TIME)),
                 ])
 
@@ -148,7 +152,7 @@ export default function BattlePageClient({ user1, user2 }) {
 
         fetchBattle()
         return () => { cancelled = true }
-    }, [user1, user2, router, getToken])
+    }, [user1, user2, router, getToken, isRematch])
 
     const progress = Math.round((visibleSteps / BATTLE_STEPS.length) * 100)
 
@@ -255,10 +259,10 @@ export default function BattlePageClient({ user1, user2 }) {
                     <div className="battle-nav">
                         <div className="font-display nav-logo text-fire">GITROAST ⚔️</div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                            <button className="btn btn-ghost" onClick={() => router.push('/battle')}>
+                            <button type="button" className="btn btn-ghost" onClick={() => router.push('/battle')}>
                                 ⚔️ New Battle
                             </button>
-                            <button className="btn btn-ghost" onClick={() => router.push('/')}>
+                            <button type="button" className="btn btn-ghost" onClick={() => router.push('/')}>
                                 ← Home
                             </button>
                         </div>

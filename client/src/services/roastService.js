@@ -224,9 +224,19 @@ export function wakeUpServer() {
 }
 
 // ── getBattleRoast ────────────────────────────────────────────
-// WHY attach retryAfter here too:
-//   Battle route also has rate limiting — same pattern
-export async function getBattleRoast(user1, user2, token = null) {
+// ── WHAT: ──────────────────────────────────────────────────────
+// Initiates or fetches head-to-head GitHub developer roast battle comparison.
+// Appends '?rematch=true' when rematch flag is passed to bypass cloud cache.
+// ── WHY: ───────────────────────────────────────────────────────
+// Distinguishes initial page views from intentional rematch resets,
+// allowing server to increment rematch count and produce fresh roasts.
+// ── WHERE & WHEN TO USE: ───────────────────────────────────────
+// In BattlePageClient when resolving battle match promises.
+// ── USE CASES: ─────────────────────────────────────────────────
+// Rivalry showdowns, swap & rematch actions, rematch buttons.
+// ── WHEN NOT TO USE: ───────────────────────────────────────────
+// Non-battle roast operations.
+export async function getBattleRoast(user1, user2, token = null, rematch = false) {
   const headers = { "Content-Type": "application/json" };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -235,8 +245,9 @@ export async function getBattleRoast(user1, user2, token = null) {
     if (captchaToken) headers["X-Captcha-Token"] = captchaToken;
   }
 
+  const queryParams = rematch ? "?rematch=true" : "";
   const res = await fetch(
-    `${API_BASE}/api/battle/${encodeURIComponent(user1)}/vs/${encodeURIComponent(user2)}`,
+    `${API_BASE}/api/battle/${encodeURIComponent(user1)}/vs/${encodeURIComponent(user2)}${queryParams}`,
     { method: "GET", headers, signal: AbortSignal.timeout(60000) },
   );
 

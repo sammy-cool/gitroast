@@ -151,10 +151,7 @@ export default function RepoRoastClient({ owner, repo }) {
       <div className="landing-glow animate-glow" />
 
       {view === 'analyzing' && (
-        <AnalyzingScreen
-          username={`${owner}/${repo}`}
-          intensity={sessionStorage.getItem('gitroast_intensity') || 'savage'}
-        />
+        <AnalyzingScreen username={`${owner}/${repo}`} />
       )}
 
       {view === 'result' && roastData && (

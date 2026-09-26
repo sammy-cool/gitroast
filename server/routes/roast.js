@@ -551,6 +551,26 @@ router.get("/rate-limit-status", optionalAuth, async (req, res) => {
 // ─── GET /api/roast/:username ─────────────────────────────
 router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
   const { username } = req.params;
+
+  // ── Input validation ──────────────────────────────────
+  // ── WHAT: ────────────────────────────────────────────────────
+  // Validates username format against GitHub RFC specifications (max 39 chars, alphanumeric + hyphens).
+  // ── WHY: ─────────────────────────────────────────────────────
+  // Fail-fast validation prevents executing intensity checks, idempotency lookups,
+  // or hitting downstream APIs with malformed requests.
+  // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+  // First step in any endpoint accepting user-provided URL route parameters.
+  // ── USE CASES: ───────────────────────────────────────────────
+  // Sanitizing direct route access or automated scanner requests.
+  // ── WHEN NOT TO USE: ─────────────────────────────────────────
+  // Do not use if routing by internal ObjectIds or email identifiers.
+  if (!username || username.length > 39 || !/^[a-zA-Z0-9-]+$/.test(username)) {
+    return res.status(400).json({
+      error: "INVALID_USERNAME",
+      message: "Invalid GitHub username format.",
+    });
+  }
+
   const isPro = req.user?.isPro || false;
   const idempotencyKey = req.headers["x-idempotency-key"];
 
@@ -595,14 +615,6 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
         return res.status(200).json(cached);
       }
     }
-  }
-
-  // ── Input validation ──────────────────────────────────
-  if (!username || username.length > 39 || !/^[a-zA-Z0-9-]+$/.test(username)) {
-    return res.status(400).json({
-      error: "INVALID_USERNAME",
-      message: "Invalid GitHub username format.",
-    });
   }
 
   // ── Free user daily limit ─────────────────────────────

@@ -115,8 +115,9 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
   // ── USE CASES: ───────────────────────────────────────────────
   // Shared challenge links clicked from Discord, WhatsApp, or Twitter.
   // ── WHEN NOT TO USE: ─────────────────────────────────────────
-  // When a rematch action is explicitly requested.
-  if (redisService.isConfigured) {
+  // When a rematch action is explicitly requested (?rematch=true).
+  const isRematchRequested = req.query.rematch === "true";
+  if (redisService.isConfigured && !isRematchRequested) {
     const cached = await redisService.get(cacheKey).catch(() => null);
     if (cached) {
       return res.status(200).json(cached);
@@ -425,12 +426,33 @@ router.post("/:user1/vs/:user2/react", async (req, res) => {
 });
 
 // ─── POST /api/battle/:id/view ────────────────────────────
-// WHAT: Records an anonymous view for battle social proof
+// ── WHAT: ──────────────────────────────────────────────────
+// Records an anonymous view for battle social proof counter.
+// Supports both MongoDB ObjectId and 'user1-vs-user2' slug patterns.
+// ── WHY: ───────────────────────────────────────────────────
+// Client may emit telemetry before document ID is resolved (e.g. from static SSR slug URLs).
+// ── WHERE & WHEN TO USE: ───────────────────────────────────
+// Battle page mounting and direct link previews.
+// ── USE CASES: ─────────────────────────────────────────────
+// Real-time battle popularity tracking.
+// ── WHEN NOT TO USE: ───────────────────────────────────────
+// Rate-limited user mutations or billing operations.
 router.post("/:id/view", async (req, res) => {
   const { id } = req.params;
   try {
     if (mongoose.Types.ObjectId.isValid(id)) {
       await Battle.incrementView(id);
+    } else if (id && id.includes("-vs-")) {
+      const [u1, u2] = id.split("-vs-");
+      if (u1 && u2) {
+        const battle = await Battle.findOne({
+          $or: [
+            { user1: u1.trim().toLowerCase(), user2: u2.trim().toLowerCase() },
+            { user1: u2.trim().toLowerCase(), user2: u1.trim().toLowerCase() },
+          ],
+        });
+        if (battle) await Battle.incrementView(battle._id);
+      }
     }
     return res.status(200).json({ success: true });
   } catch {
@@ -439,12 +461,32 @@ router.post("/:id/view", async (req, res) => {
 });
 
 // ─── POST /api/battle/:id/share ───────────────────────────
-// WHAT: Tracks battle share count
+// ── WHAT: ──────────────────────────────────────────────────
+// Increments viral battle share counter for social proof metrics.
+// ── WHY: ───────────────────────────────────────────────────
+// Safely tracks viral distributions across Twitter, Slack, and Discord.
+// ── WHERE & WHEN TO USE: ───────────────────────────────────
+// Triggered on clicking "𝕏 Tweet Challenge" or "⚔️ Challenge Rival".
+// ── USE CASES: ─────────────────────────────────────────────
+// Virality attribution and engagement metrics.
+// ── WHEN NOT TO USE: ───────────────────────────────────────
+// Bot crawls or synthetic ping requests.
 router.post("/:id/share", async (req, res) => {
   const { id } = req.params;
   try {
     if (mongoose.Types.ObjectId.isValid(id)) {
       await Battle.incrementShare(id);
+    } else if (id && id.includes("-vs-")) {
+      const [u1, u2] = id.split("-vs-");
+      if (u1 && u2) {
+        const battle = await Battle.findOne({
+          $or: [
+            { user1: u1.trim().toLowerCase(), user2: u2.trim().toLowerCase() },
+            { user1: u2.trim().toLowerCase(), user2: u1.trim().toLowerCase() },
+          ],
+        });
+        if (battle) await Battle.incrementShare(battle._id);
+      }
     }
     return res.status(200).json({ success: true });
   } catch {

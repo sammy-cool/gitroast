@@ -253,12 +253,13 @@ export default function RoastPageClient({ username }) {
             <div className="font-display nav-logo text-fire">GITROAST 🔥</div>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
+                type="button"
                 className="btn btn-ghost"
                 onClick={() => router.push(`/history/${roastData.username}`)}
               >
                 📈 History
               </button>
-              <button className="btn btn-ghost" onClick={handleRoastAnother}>
+              <button type="button" className="btn btn-ghost" onClick={handleRoastAnother}>
                 ← Roast Another
               </button>
             </div>

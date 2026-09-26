@@ -429,8 +429,12 @@ export default function BattleCard({ data }) {
 
             {/* Rematch & Navigation Links */}
             <div className="battle-nav-footer font-mono">
-                <Link href={`/battle/${user2}/vs/${user1}`} className="nav-action-link">
-                    🔄 Swap Positions & Rematch
+                <Link href={`/battle/${user1}/vs/${user2}?rematch=true`} className="nav-action-link">
+                    ⚡ Rematch
+                </Link>
+                <span className="nav-action-sep">•</span>
+                <Link href={`/battle/${user2}/vs/${user1}?rematch=true`} className="nav-action-link">
+                    🔄 Swap & Rematch
                 </Link>
                 <span className="nav-action-sep">•</span>
                 <Link href="/battle" className="nav-action-link">

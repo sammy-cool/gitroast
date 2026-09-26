@@ -45,7 +45,7 @@ export default function HistoryPageClient({ username }) {
                 {/* Nav stays real — always visible */}
                 <div className="history-nav">
                     <div className="font-display nav-logo text-fire">GITROAST 🔥</div>
-                    <button className="btn btn-ghost" onClick={() => router.push('/')}>
+                    <button type="button" className="btn btn-ghost" onClick={() => router.push('/')}>
                         ← Home
                     </button>
                 </div>
@@ -228,10 +228,10 @@ export default function HistoryPageClient({ username }) {
                     ❌ {error}
                 </p>
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <button className="btn btn-primary" onClick={refetch}>
+                    <button type="button" className="btn btn-primary" onClick={refetch}>
                         Try Again
                     </button>
-                    <button className="btn btn-ghost" onClick={() => router.push('/')}>
+                    <button type="button" className="btn btn-ghost" onClick={() => router.push('/')}>
                         ← Home
                     </button>
                 </div>
@@ -256,7 +256,7 @@ export default function HistoryPageClient({ username }) {
             {/* ── Nav ── */}
             <div className="history-nav">
                 <div className="font-display nav-logo text-fire">GITROAST 🔥</div>
-                <button className="btn btn-ghost" onClick={() => router.push('/')}>
+                <button type="button" className="btn btn-ghost" onClick={() => router.push('/')}>
                     ← Home
                 </button>
             </div>
@@ -301,6 +301,7 @@ export default function HistoryPageClient({ username }) {
                     </div>
                 </div>
                 <button
+                    type="button"
                     className="btn btn-primary roast-again-btn"
                     onClick={() => router.push(`/roast/${username}`)}
                 >
@@ -316,6 +317,7 @@ export default function HistoryPageClient({ username }) {
                         @{username} hasn&apos;t been roasted yet.
                     </p>
                     <button
+                        type="button"
                         className="btn btn-primary"
                         onClick={() => router.push(`/roast/${username}`)}
                     >

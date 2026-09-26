@@ -1431,5 +1431,105 @@ describe("Feature #15 — Repository Deep Roast Parameter Validation Order", () 
     });
 });
 
+describe("Feature #16 — Profile Fail-Fast Validation & Battle Rematch Invariants", () => {
+    const roastRoute = require("../routes/roast");
+    const battleRoute = require("../routes/battle");
+    const redisService = require("../services/redisService");
+
+    it("should fail-fast with 400 INVALID_USERNAME on malformed username before idempotency", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = {
+            params: { username: "invalid$$user" },
+            query: { intensity: "nuclear" },
+            user: null,
+            headers: { "x-idempotency-key": "test-key" },
+        };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const usernameLayer = roastRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/:username" && layer.route.methods.get,
+        );
+        assert.ok(usernameLayer, "/:username route must exist");
+        const handler = usernameLayer.route.stack[usernameLayer.route.stack.length - 1].handle;
+        await handler(req, res);
+
+        assert.equal(statusCode, 400);
+        assert.equal(responseData.error, "INVALID_USERNAME");
+    });
+
+    it("should bypass Redis battle cache when req.query.rematch is 'true'", async () => {
+        const originalIsConfigured = redisService.isConfigured;
+        const originalGet = redisService.get;
+        let redisGetCalled = false;
+
+        try {
+            redisService.isConfigured = true;
+            redisService.get = async () => {
+                redisGetCalled = true;
+                return { success: true, cached: true };
+            };
+
+            const req = {
+                params: { user1: "invalid1$$$", user2: "invalid2$$$" },
+                query: { rematch: "true" },
+                headers: {},
+            };
+            const res = {
+                status: () => res,
+                json: () => res,
+            };
+
+            const battleLayer = battleRoute.stack.find(
+                (layer) => layer.route && layer.route.path === "/:user1/vs/:user2" && layer.route.methods.get,
+            );
+            const handler = battleLayer.route.stack[battleLayer.route.stack.length - 1].handle;
+            await handler(req, res);
+
+            assert.equal(redisGetCalled, false, "Redis battle cache must not be queried when rematch=true");
+        } finally {
+            redisService.isConfigured = originalIsConfigured;
+            redisService.get = originalGet;
+        }
+    });
+
+    it("should safely accept slug format in POST /:id/view without error", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = {
+            params: { id: "dev1-vs-dev2" },
+        };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const viewLayer = battleRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/:id/view" && layer.route.methods.post,
+        );
+        assert.ok(viewLayer, "/:id/view route must exist");
+        const handler = viewLayer.route.stack[viewLayer.route.stack.length - 1].handle;
+        await handler(req, res);
+
+        assert.equal(statusCode, 200);
+        assert.equal(responseData.success, true);
+    });
+});
+
 
 
