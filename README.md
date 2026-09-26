@@ -20,6 +20,9 @@
 - [What Is GitRoast](#-what-is-gitroast)
 - [Live Demo](#-live-demo)
 - [GitHub Profile Badges](#️-embed-your-gitroast-badge-in-your-github-readme)
+- [3D Code Solar System](#-3d-code-solar-system)
+- [Developer Dashboard & Ghost Mode](#-developer-dashboard--ghost-mode)
+- [Roast Personas & Sound FX](#-roast-personas--sound-fx)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
@@ -46,6 +49,9 @@ Users can:
 
 - **Get roasted for free** via the rule-based roast engine with tone banks
 - **Upgrade to Pro** for personalized AI roasts via Google Gemini 2.5 Flash
+- **Choose comedy personas**: Classic Fire 🔥, Gordon Ramsay 👨‍🍳, Desi / Hinglish 🌶️, Tech Bro 🚀, Shakespeare 📜
+- **Explore their 3D Code Solar System**: Interactive WebGL galaxy mapping repositories as orbiting celestial worlds
+- **Track their developer stats** in the authenticated personal `/dashboard` with Ghost Mode privacy
 - **Choose intensity**: Mild 🌶 / Savage 🔥 / Nuclear ☢️ (Pro)
 - **Battle head-to-head** with another developer's GitHub profile
 - **Download cards & certificates**: Shareable PNG roast cards and printable Certificates of GitHub Shame
@@ -57,13 +63,15 @@ Users can:
 
 ## 🌐 Live Demo
 
-| Resource       | URL                                         |
-| -------------- | ------------------------------------------- |
-| Production App | https://gitroast-dev.vercel.app             |
-| API Health     | https://gitroast-latest.onrender.com/health |
-| Wall of Shame  | https://gitroast-dev.vercel.app/leaderboard |
-| Battle Mode    | https://gitroast-dev.vercel.app/battle      |
-| Pricing Plans  | https://gitroast-dev.vercel.app/pricing     |
+| Resource              | URL                                                 |
+| --------------------- | --------------------------------------------------- |
+| Production App        | https://gitroast-dev.vercel.app                     |
+| 3D Code Universe 🌌   | https://gitroast-dev.vercel.app/universe            |
+| Developer Dashboard 📊| https://gitroast-dev.vercel.app/dashboard           |
+| API Health            | https://gitroast-latest.onrender.com/health         |
+| Wall of Shame         | https://gitroast-dev.vercel.app/leaderboard         |
+| Battle Mode           | https://gitroast-dev.vercel.app/battle              |
+| Pricing Plans         | https://gitroast-dev.vercel.app/pricing             |
 
 ---
 
@@ -89,10 +97,69 @@ A clean, compact shields.io-compatible pill badge for minimalist READMEs:
 
 ---
 
+## 🌌 3D Code Solar System
+
+GitRoast transforms any developer's GitHub repositories into an interactive 3D WebGL solar system rendered with Three.js (`/universe` and `/universe/:username`).
+
+- **Central Star (Luminosity & Corona)**: The developer's core identity. Size, fiery flare intensity, and solar corona scale with total public repositories and GitHub followers.
+- **Repository Planet Classification**:
+  - 🌋 **Inferno Worlds**: Repositories with hotfix commits pushed within the last 14 days, glowing with active magma fissures.
+  - 🌍 **Habitable Goldilocks Worlds**: Well-maintained projects with $\ge 15$ stars, README documentation, and steady activity.
+  - 🪐 **Gas Giants with Saturn Rings**: Large architectural codebases ($>25\text{MB}$ code size or $\ge 5$ forks).
+  - 🧊 **Cryo Ice Worlds**: Abandoned repositories untouched for over 365 days, encased in frozen methane crusts.
+  - 🕳️ **Black Hole debt Singularities**: Massive technical debt anomalies ($>180\text{MB}$ repository size).
+  - 🪨 **Barren Rocks**: Compact terrestrial project outposts.
+- **WebGL Procedural Textures**: Custom HTML5 canvas procedural shaders (zero external images, zero CORS canvas taint).
+- **Interactive Space Flight**: Raycasting hover inspection, orbital drag rotation, mouse wheel zoom, cinematic auto-orbit mode, and an expandable Planet Inspector drawer with 1-click links to deep repository roasts.
+
+---
+
+## 📊 Developer Dashboard & Ghost Mode
+
+The authenticated personal developer dashboard (`/dashboard`) empowers users to manage their GitRoast presence:
+
+- **Roasting Diagnostics**: Personal score trends, total times roasted, worst letter grade, and active rate limit status.
+- **Ghost Mode (Privacy Toggle)**: When enabled, your roast records are excluded from the public Wall of Shame leaderboard. Historical roast visibility automatically synchronizes across MongoDB.
+- **Live SVG Badge Customizer**: Real-time preview of your Markdown badges (Fiery Card vs Shield Pill) with instant copy-to-clipboard buttons.
+- **Personal Roast Vault**: Direct access to your complete roast history archive with instant sharing and PNG export options.
+
+---
+
+## 🎭 Roast Personas & Sound FX
+
+### 5 Selectable Comedy Personas
+Customize the comedic voice of your roast across both Free rule-based tone banks and Pro AI synthesis:
+1. 🔥 **Classic Fire**: The signature GitRoast burn—sharp, balanced, and brutally accurate.
+2. 👨‍🍳 **Gordon Ramsay**: Unfiltered culinary rage ("This code is RAW! An idiot sandwich of nested loops!").
+3. 🌶️ **Desi / Hinglish**: Relatable South-Asian tech wit with desi corporate humor ("Beta, itne bugs me to rishta cancel ho jayega").
+4. 🚀 **Tech Bro / VC**: Silicon Valley hype parody ("Bro is burning runway faster than a Series A crypto startup").
+5. 📜 **Shakespearean Tragedy**: Elizabethan iambic pentameter drama ("Alas, poor codebase! A tragedy in four thousand lines").
+
+### Procedural Synthesizer Sound FX
+Zero external audio files—100% Web Audio API procedural synthesis:
+- 🔥 `playRoastSizzle()`: Crackling pink-noise fire burst when roasts ignite.
+- 🎺 `playVictoryFanfare()` / `playDefeatSound()`: Rich multi-oscillator harmonic chords for battle results.
+- 🌌 `playCosmicChime()` / `playWarpSpeed()`: Ethereal bell resonance and frequency-glide doppler sweeps for 3D galaxy navigation.
+- 🔇 Global persistent mute toggle saved in `localStorage`.
+
+---
+
+## 📱 Progressive Web App (PWA)
+
+GitRoast is a certified installable Progressive Web App:
+- **W3C Web App Manifest**: Fullscreen mobile experience, custom icons, theme colors (`#070707`), and quick app shortcuts (Roast Me, 3D Universe, Leaderboard).
+- **Service Worker Lifecycle**: Automated asset caching, offline fallback resilience, and safe development isolation.
+
+---
+
 ## ✨ Features
 
 ### Core Capabilities
 - **GitHub Profile Analysis** — fetches user profile, repositories, commit history, READMEs, and language distributions in parallel.
+- **3D Code Solar System (`/universe/:username`)** — procedural WebGL Three.js galaxy turning code repositories into orbiting planetary worlds.
+- **Personal Developer Dashboard (`/dashboard`)** — aggregated personal roast analytics, README badge generator, Ghost Mode privacy toggle, and roast vault.
+- **Multi-Persona Roast Engine** — 5 selectable comedic archetypes (Classic Fire, Gordon Ramsay, Desi / Hinglish, Tech Bro, Shakespeare).
+- **Web Audio API Sound FX** — procedural synthesizer audio delight with global mute control.
 - **Custom Scoring Engine** — 1–99 score computed across 4 weighted penalties with letter grades (`A` to `F-`).
 - **Rule-Based Roast Engine** — zero-API-cost comedy generator with intensity tone banks and language-specific stereotype packs (JavaScript, Python, Rust, Go, TypeScript, etc.).
 - **AI Roast Engine (Pro)** — Google Gemini 3.1 Pro & 2.5 Flash tuned with role-specific prompt templates, temperature scaling, preview alias resolution, and automated 404 fallback.
@@ -102,6 +169,7 @@ A clean, compact shields.io-compatible pill badge for minimalist READMEs:
 - **Wall of Shame Leaderboard with Real-Time Search** — aggregated MongoDB leaderboard with instant debounced developer search.
 
 ### Viral & Engagement Differentiators
+- **Progressive Web App (PWA)** — installable on iOS, Android, and desktop with offline support.
 - **GitHub Wrapped 2025** — Spotify-Wrapped style annual retrospective analyzing commit seasonality, longest streaks, developer archetypes, and most abandoned repository.
 - **Head-to-Head Roast Battle** — parallel profile analysis of two developers with comparative AI boxing announcer verdict.
 - **Certificate of GitHub Shame** — downloadable vintage parchment-style certificate with embedded QR code rendered via HTML5 canvas.
@@ -124,6 +192,9 @@ A clean, compact shields.io-compatible pill badge for minimalist READMEs:
 | Layer         | Technology                                                            |
 | ------------- | --------------------------------------------------------------------- |
 | Frontend      | Next.js 16 (App Router), React 19, styled-jsx, `next/font`, `next/og` |
+| 3D Graphics   | Three.js (WebGL 3D Rendering & Procedural Shaders)                    |
+| Audio Engine  | Web Audio API (Procedural Synthesizer Sound Engine)                   |
+| Mobile App    | Progressive Web App (PWA) Manifest & Service Worker Cache             |
 | Backend       | Node.js 20+, Express.js 5, Compression (Gzip/Brotli)                  |
 | Database      | MongoDB Atlas, Mongoose 9                                             |
 | Distributed Cache| Serverless Redis (Upstash REST API) with resilient in-memory fallback|
@@ -152,6 +223,8 @@ gitroast/
 │   ├── public/
 │   │   ├── favicon.ico
 │   │   ├── apple-touch-icon.png
+│   │   ├── manifest.json                    # W3C Progressive Web App manifest
+│   │   ├── sw.js                            # PWA Service Worker caching & offline engine
 │   │   ├── og-default.png                   # Fallback 1200×630 OG image
 │   │   ├── robots.txt
 │   │   └── sitemap.xml
@@ -159,10 +232,16 @@ gitroast/
 │       ├── app/
 │       │   ├── layout.jsx                   # Root layout — fonts, AuthProvider, error tracker
 │       │   ├── globals.css                  # Design system tokens, utilities, animations
-│       │   ├── page.jsx                     # Landing page — intensity selector, input, live feed
+│       │   ├── page.jsx                     # Landing page — personas, intensity, input, live feed
 │       │   ├── not-found.jsx                # Branded 404 page
 │       │   ├── error.jsx                    # Global React error boundary
 │       │   ├── loading.jsx                  # Route transition loader
+│       │   ├── dashboard/
+│       │   │   └── page.jsx                 # User dashboard, Ghost Mode, badges, roast vault
+│       │   ├── universe/
+│       │   │   ├── page.jsx                 # 3D Code Universe launcher & featured galaxies
+│       │   │   └── [username]/
+│       │   │       └── page.jsx             # Three.js 3D Code Solar System interactive visualizer
 │       │   ├── roast/[username]/
 │       │   │   ├── page.jsx                 # SSR shell + dynamic OG metadata
 │       │   │   └── RoastPageClient.jsx      # Roast fetch, terminal animation, result card
@@ -202,18 +281,24 @@ gitroast/
 │       │   ├── Pagination.jsx               # Accessible, responsive pagination controls
 │       │   ├── PaymentFlow.jsx              # Razorpay checkout modal logic
 │       │   ├── PaymentModal.jsx             # Fullscreen portal modal for checkout
+│       │   ├── PersonaSelector.jsx          # Interactive 5-persona comedy selector
 │       │   ├── PricingCard.jsx              # Reusable pricing tier card
 │       │   ├── ProBadge.jsx                 # Reusable PRO ⚡ indicator
 │       │   ├── ProModal.jsx                 # Upgrade prompt modal with plan switcher
+│       │   ├── PWARegister.jsx              # PWA service worker registration & life cycle
 │       │   ├── RateLimitBanner.jsx          # Live countdown rate-limit warning banner
 │       │   ├── RoastCard.jsx                # Main roast result card (PNG capture target)
 │       │   ├── RoastCertificate.jsx         # Certificate of GitHub Shame generator with QR
 │       │   ├── RoastReactions.jsx           # Emoji reaction counter & buttons
 │       │   ├── ScoreChart.jsx               # Pure SVG score-over-time trend chart
 │       │   ├── ShareButtons.jsx             # Twitter share, link copy, PNG downloads
+│       │   ├── SoundToggle.jsx              # Global Web Audio API synthesizer mute toggle
 │       │   ├── StatsGrid.jsx                # 4-metric GitHub diagnostic grid
 │       │   ├── ToastConfig.jsx              # Global brand toast color configuration
-│       │   └── UsernameInput.jsx            # Validated GitHub username input form
+│       │   ├── UsernameInput.jsx            # Validated GitHub username input form
+│       │   ├── WelcomeConsentModal.jsx      # First-visit satirical agreement & welcome modal
+│       │   └── universe/
+│       │       └── CodeSolarSystem.jsx      # Three.js WebGL canvas, shaders, orbit controls
 │       ├── context/
 │       │   └── AuthContext.jsx              # User session, JWT tokens, Pro status
 │       ├── hooks/
@@ -223,6 +308,7 @@ gitroast/
 │       └── utils/
 │           ├── constants.js                 # Frontend shared constants bridge
 │           ├── clientErrorTracker.js        # Universal frontend error tracker
+│           ├── soundFX.js                   # Web Audio API procedural synthesizer sound engine
 │           └── toastUtils.js                # Centralized toast helper methods
 │
 └── server/                                  # Express.js backend API
@@ -490,20 +576,42 @@ GET /api/roast/feed
 GET /api/roast/stats
 → { success: true, totalRoasts: number }
 
-GET /api/roast/:username?intensity=savage
+GET /api/roast/rate-limit-status
+Headers: Authorization: Bearer <jwt> (optional)
+→ { success: true, isAuthenticated: boolean, isPro: boolean, limit: number, remaining: number, resetAt: string }
+
+GET /api/roast/:username?intensity=savage&persona=classic
 Headers:
   Authorization: Bearer <jwt> (optional)
   X-Idempotency-Key: <uuid> (recommended)
+Query:
+  intensity: "mild" | "savage" | "nuclear" (nuclear requires Pro)
+  persona: "classic" | "gordon_ramsay" | "hinglish" | "tech_bro" | "shakespeare"
 → {
     success: true,
     data: {
-      username, score, grade, roast, roastSource, intensity,
+      username, score, grade, roast, roastSource, intensity, persona,
       redemptionPlan: ["Tip 1", "Tip 2", "Tip 3"],
       stats: [...], shameCommits: [...], reactions: { relatable, destroyed, savage }
     }
   }
 
-GET /api/roast/:username/stream?intensity=savage
+GET /api/roast/:username/universe
+Headers:
+  Authorization: Bearer <jwt> (optional, provides private repo mapping for owner)
+  X-Captcha-Token: <recaptcha_token> (required for unauthenticated guests)
+→ {
+    success: true,
+    universe: {
+      star: { name, followers, publicRepos, color, size, luminosity, coronaScale },
+      planets: [
+        { id, name, type, orbitRadius, orbitSpeed, size, color, stars, language, textureType, rings, isPrivate }
+      ],
+      metrics: { totalPlanets, habitableCount, frozenCount, blackHoleCount, galaxyType, cosmicVerdict }
+    }
+  }
+
+GET /api/roast/:username/stream?intensity=savage&persona=classic
 Accept: text/event-stream
 → Server-Sent Events stream:
   event: metadata → { username, score, grade, stats, avatarUrl }
@@ -569,7 +677,11 @@ Body: { "category": "feedback"|"bug"|"pro"|"dispute"|"general", "name", "email",
 ```http
 GET  /api/auth/github          → Sets httpOnly oauth_state CSRF cookie and redirects to GitHub
 GET  /api/auth/github/callback → Validates oauth_state, exchanges code for JWT, redirects to frontend
-GET  /api/auth/me              → { success: true, user: { id, username, email, avatarUrl, isPro } }
+GET  /api/auth/me              → { success: true, user: { id, username, email, avatarUrl, isPro, customPreferences } }
+PATCH /api/auth/preferences    → Updates user Ghost Mode, default persona, default intensity
+Headers: Authorization: Bearer <jwt>
+Body: { "hideFromLeaderboard"?: boolean, "defaultPersona"?: string, "defaultIntensity"?: string }
+→ { success: true, user: { ... } }
 POST /api/auth/logout          → { success: true, message: "Logged out." }
 ```
 
