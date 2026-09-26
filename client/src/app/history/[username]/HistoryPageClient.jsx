@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createToast } from 'customizable-toast-notification'
 import { useRoastHistory } from '@/hooks/useRoastHistory'
 import HistoryCard from '@/components/HistoryCard'
@@ -256,9 +257,9 @@ export default function HistoryPageClient({ username }) {
             {/* ── Nav ── */}
             <div className="history-nav">
                 <div className="font-display nav-logo text-fire">GITROAST 🔥</div>
-                <button type="button" className="btn btn-ghost" onClick={() => router.push('/')}>
+                <Link href="/" className="btn btn-ghost">
                     ← Home
-                </button>
+                </Link>
             </div>
 
             <div className="breadcrumb-wrap">

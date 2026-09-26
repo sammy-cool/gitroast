@@ -144,7 +144,7 @@ userSchema.methods.toSafeObject = function () {
         email: this.email,
         avatarUrl: this.avatarUrl,
         isPro: this.isPro,
-        proPlan: this.proPlan || (this.isPro ? 'roaster' : 'none'),
+        proPlan: this.isPro && (!this.proPlan || this.proPlan === 'none') ? 'roaster' : (this.proPlan || 'none'),
         proSince: this.proSince,
         badges: this.badges || [],
         customPreferences: this.customPreferences || {

@@ -44,6 +44,51 @@ export default function PricingCard({ plan, onSelect }) {
         isComingSoon ? 'var(--text-muted)' :
             'var(--fire-warm)'
 
+    // ── Tier-Aware Button State Evaluation ────────────────────────
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Computes plan CTA label and disabled state based on the caller's active subscription tier.
+    // ── WHY: ─────────────────────────────────────────────────────
+    // Allows Roaster users to seamlessly upgrade to Historian, prevents redundant purchases of current tiers,
+    // and clarifies that Historian members already include all Roaster features.
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // Inside PricingCard render prior to returning button JSX.
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Handling guest, free, roaster, and historian user states on /pricing.
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not use in non-pricing informational components.
+    const userPlan = user?.proPlan || (isPro ? 'roaster' : 'none')
+    const isCurrentPlan = isPro && userPlan === plan.id
+    const isIncludedInHistorian = isPro && userPlan === 'historian' && plan.id === 'roaster'
+    const isHistorianUpgrade = isPro && userPlan === 'roaster' && plan.id === 'historian'
+
+    let ctaLabel = plan.cta
+    let isCtaDisabled = false
+
+    if (isComingSoon) {
+        ctaLabel = plan.cta
+        isCtaDisabled = false
+    } else if (isCurrentPlan) {
+        ctaLabel = '✓ Current Plan'
+        isCtaDisabled = true
+    } else if (isIncludedInHistorian) {
+        ctaLabel = '✓ Included in Historian'
+        isCtaDisabled = true
+    } else if (isHistorianUpgrade) {
+        ctaLabel = 'Upgrade to Historian ⚡'
+        isCtaDisabled = false
+    } else if (!user) {
+        ctaLabel = 'Connect GitHub to Pay'
+        isCtaDisabled = false
+    }
+
+    const buttonBackground = isHistorianUpgrade
+        ? 'var(--fire-grad)'
+        : plan.highlight
+            ? 'var(--fire-grad)'
+            : isComingSoon
+                ? 'transparent'
+                : color
+
     return (
         <div className={`pricing-card card ${plan.highlight ? 'pricing-card--highlight' : ''} ${isComingSoon ? 'pricing-card--soon' : ''}`}>
 
@@ -105,20 +150,14 @@ export default function PricingCard({ plan, onSelect }) {
                 type="button"
                 className="btn plan-cta"
                 style={{
-                    background: plan.highlight ? 'var(--fire-grad)' :
-                        isComingSoon ? 'transparent' :
-                            color,
+                    background: buttonBackground,
                     color: isComingSoon ? 'var(--text-secondary)' : '#fff',
                     border: isComingSoon ? '1px solid var(--border)' : 'none',
                 }}
                 onClick={() => onSelect(plan.id)}
-                disabled={isPro && !isComingSoon}
+                disabled={isCtaDisabled}
             >
-                {isPro && !isComingSoon
-                    ? '✓ Already Pro'
-                    : !user && !isComingSoon
-                        ? 'Connect GitHub to Pay'
-                        : plan.cta}
+                {ctaLabel}
             </button>
 
             {plan.ctaSubtext && (

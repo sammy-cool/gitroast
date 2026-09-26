@@ -188,6 +188,7 @@ router.post("/verify", requireAuth, async (req, res) => {
       success: true,
       message: "⚡ Pro unlocked! Enjoy the nuclear roasts.",
       isPro: true,
+      proPlan: req.user.proPlan,
     });
   } catch (err) {
     logger.error("Payment", "Verify DB error", { message: err.message });

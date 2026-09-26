@@ -198,13 +198,32 @@ export default function PricingPageClient() {
             return
         }
         if (isPro) {
+            // ── Seamless Plan Upgrade Handling ──────────────────────────
+            // ── WHAT: ────────────────────────────────────────────────────
+            // Allows active Roaster subscribers to upgrade directly to the Historian tier.
+            // ── WHY: ─────────────────────────────────────────────────────
+            // Pro users on the base ₹99 tier should not be blocked from purchasing the ₹199
+            // Historian plan containing long-term historical tracking and archives.
+            // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+            // Plan selection router when caller has an active Pro membership.
+            // ── USE CASES: ───────────────────────────────────────────────
+            // Roaster user clicking "Upgrade to Historian ⚡" on /pricing.
+            // ── WHEN NOT TO USE: ─────────────────────────────────────────
+            // When user is already on the Historian plan or re-selecting their active tier.
+            const userPlan = user?.proPlan || 'roaster';
+            if (userPlan === 'roaster' && planId === 'historian') {
+                setSelectedPlan(planId);
+                return;
+            }
             createToast({
-                type: 'success',
-                message: '⚡ You already have Pro! Enjoy the nuclear roasts.',
+                type: 'info',
+                message: userPlan === 'historian'
+                    ? '⚡ You are already on the Historian plan with maximum access!'
+                    : '⚡ You are already subscribed to this plan.',
                 position: 'top-center',
                 duration: 4000,
-            })
-            return
+            });
+            return;
         }
         setSelectedPlan(planId)
     }

@@ -39,7 +39,7 @@ export default function RoastPageClient({ username }) {
   const [roastData, setRoastData] = useState(null)
   const [showProModal, setShowProModal] = useState(false)
   const router = useRouter()
-  const { getToken, isPro } = useAuth()
+  const { getToken, isPro, user } = useAuth()
 
   const idempotencyKey = useRef('')
 
@@ -297,23 +297,25 @@ export default function RoastPageClient({ username }) {
             ── WHEN NOT TO USE: ─────────────────────────────────────────────
             When the user is already on the maximum tier.
           */}
-          <Link href="/pricing" className="upsell-link">
-            <div className="upsell-card card">
-              <div>
-                <p className="upsell-title">📈 Historian Plan</p>
-                <p className="upsell-sub font-mono">
-                  Monthly report · Score trends · Roast streak tracking.
-                </p>
-              </div>
-              <div className="upsell-price">
-                <div className="upsell-amount-row">
-                  <span className="font-display upsell-symbol">₹</span>
-                  <span className="font-display upsell-number">199</span>
+          {user?.proPlan !== 'historian' && (
+            <Link href="/pricing" className="upsell-link">
+              <div className="upsell-card card">
+                <div>
+                  <p className="upsell-title">📈 Historian Plan</p>
+                  <p className="upsell-sub font-mono">
+                    Monthly report · Score trends · Roast streak tracking.
+                  </p>
                 </div>
-                <span className="font-mono upsell-period">/month</span>
+                <div className="upsell-price">
+                  <div className="upsell-amount-row">
+                    <span className="font-display upsell-symbol">₹</span>
+                    <span className="font-display upsell-number">199</span>
+                  </div>
+                  <span className="font-mono upsell-period">/month</span>
+                </div>
               </div>
-            </div>
-          </Link>
+            </Link>
+          )}
         </main>
 
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}

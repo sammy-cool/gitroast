@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createToast } from 'customizable-toast-notification'
 import { useAuth } from '@/context/AuthContext'
 import Breadcrumb from '@/components/Breadcrumb'
@@ -138,14 +139,13 @@ export default function BattleEntryClient() {
 
             {/* Top Navigation */}
             <nav className="battle-top-nav" aria-label="Battle Navigation">
-                <button
-                    type="button"
+                <Link
+                    href="/"
                     className="btn btn-ghost back-btn"
-                    onClick={() => router.push('/')}
                     aria-label="Back to GitRoast Home"
                 >
                     ← Home
-                </button>
+                </Link>
                 <div className="battle-nav-actions">
                     <button
                         type="button"

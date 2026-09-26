@@ -158,6 +158,8 @@ export function AuthProvider({ children }) {
         loading,
         isLoggedIn: !!user,
         isPro: user?.isPro || false,
+        proPlan: user?.proPlan || (user?.isPro ? 'roaster' : 'none'),
+        isHistorian: user?.proPlan === 'historian',
         loginWithGitHub,
         loginWithToken,
         getToken,

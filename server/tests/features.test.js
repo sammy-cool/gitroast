@@ -1592,3 +1592,73 @@ describe("Feature #17 — Repo Idempotency Precedence, Wrapped Year Clamping & C
         assert.equal(result, null, "Roast.incrementShare must return null without throwing CastError on invalid ID");
     });
 });
+
+describe("Feature #18 — Multi-Tier User Personas & Historian Plan Invariants", () => {
+    const paymentRoute = require("../routes/payment");
+    const User = require("../models/User");
+
+    it("should return public plans including roaster and historian with correct pricing", () => {
+        let responseData = null;
+        const res = {
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+        const plansLayer = paymentRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/plans" && layer.route.methods.get,
+        );
+        assert.ok(plansLayer, "/plans route must exist");
+        const handler = plansLayer.route.stack[plansLayer.route.stack.length - 1].handle;
+        handler({}, res);
+
+        assert.equal(responseData.success, true);
+        const roaster = responseData.plans.find((p) => p.id === "roaster");
+        const historian = responseData.plans.find((p) => p.id === "historian");
+        assert.ok(roaster, "Roaster plan must be present");
+        assert.ok(historian, "Historian plan must be present");
+        assert.equal(roaster.amount, 9900);
+        assert.equal(historian.amount, 19900);
+    });
+
+    it("should safely reject unknown plan IDs with 400 INVALID_PLAN on create-order", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = {
+            body: { planId: "fake_nonexistent_plan" },
+            user: { _id: "64b000000000000000000001" },
+        };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const createOrderLayer = paymentRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/create-order" && layer.route.methods.post,
+        );
+        assert.ok(createOrderLayer, "/create-order route must exist");
+        const handler = createOrderLayer.route.stack[createOrderLayer.route.stack.length - 1].handle;
+        await handler(req, res);
+
+        assert.equal(statusCode, 400);
+        assert.equal(responseData.error, "INVALID_PLAN");
+    });
+
+    it("should preserve user proPlan across free, roaster, and historian tiers in toSafeObject", () => {
+        const guestUser = new User({ username: "free_dev", isPro: false, proPlan: "none" });
+        const roasterUser = new User({ username: "roaster_dev", isPro: true, proPlan: "roaster" });
+        const legacyProUser = new User({ username: "legacy_dev", isPro: true, proPlan: "none" });
+        const historianUser = new User({ username: "historian_dev", isPro: true, proPlan: "historian" });
+
+        assert.equal(guestUser.toSafeObject().proPlan, "none");
+        assert.equal(roasterUser.toSafeObject().proPlan, "roaster");
+        assert.equal(legacyProUser.toSafeObject().proPlan, "roaster", "Legacy Pro defaults to roaster");
+        assert.equal(historianUser.toSafeObject().proPlan, "historian");
+    });
+});

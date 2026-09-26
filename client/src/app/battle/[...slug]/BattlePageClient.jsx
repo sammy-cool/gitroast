@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { createToast } from 'customizable-toast-notification'
 import BattleCard from '@/components/BattleCard'
 import Breadcrumb from '@/components/Breadcrumb'
@@ -259,12 +260,12 @@ export default function BattlePageClient({ user1, user2 }) {
                     <div className="battle-nav">
                         <div className="font-display nav-logo text-fire">GITROAST ⚔️</div>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                            <button type="button" className="btn btn-ghost" onClick={() => router.push('/battle')}>
+                            <Link href="/battle" className="btn btn-ghost">
                                 ⚔️ New Battle
-                            </button>
-                            <button type="button" className="btn btn-ghost" onClick={() => router.push('/')}>
+                            </Link>
+                            <Link href="/" className="btn btn-ghost">
                                 ← Home
-                            </button>
+                            </Link>
                         </div>
                     </div>
                     <div className="breadcrumb-container">

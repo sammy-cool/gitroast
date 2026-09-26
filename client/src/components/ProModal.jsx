@@ -93,6 +93,31 @@ export default function ProModal({ onClose }) {
             })
             return
         }
+        if (user?.isPro) {
+            const userPlan = user?.proPlan || 'roaster';
+            if (userPlan === 'roaster' && planId === 'historian') {
+                setSelectedPlan(planId);
+                return;
+            }
+            if (userPlan === planId) {
+                createToast({
+                    type: 'info',
+                    message: '✓ You are already subscribed to this plan.',
+                    position: 'top-center',
+                    duration: 4000,
+                });
+                return;
+            }
+            if (userPlan === 'historian' && planId === 'roaster') {
+                createToast({
+                    type: 'info',
+                    message: '⚡ Historian plan includes all Roaster features.',
+                    position: 'top-center',
+                    duration: 4000,
+                });
+                return;
+            }
+        }
         setSelectedPlan(planId)
     }
 
@@ -116,7 +141,27 @@ export default function ProModal({ onClose }) {
                         </div>
 
                         <div className="modal-plans">
-                            {MODAL_PLANS.map(plan => (
+                            {MODAL_PLANS.map(plan => {
+                                const userPlan = user?.proPlan || (user?.isPro ? 'roaster' : 'none');
+                                const isCurrent = user?.isPro && userPlan === plan.id;
+                                const isIncluded = user?.isPro && userPlan === 'historian' && plan.id === 'roaster';
+                                const isUpgrade = user?.isPro && userPlan === 'roaster' && plan.id === 'historian';
+
+                                let ctaText = plan.cta;
+                                let isDisabled = false;
+
+                                if (isCurrent) {
+                                    ctaText = '✓ Current Plan';
+                                    isDisabled = true;
+                                } else if (isIncluded) {
+                                    ctaText = '✓ Included in Historian';
+                                    isDisabled = true;
+                                } else if (isUpgrade) {
+                                    ctaText = 'Upgrade to Historian ⚡';
+                                    isDisabled = false;
+                                }
+
+                                return (
                                 <div
                                     key={plan.id}
                                     className={`modal-plan ${plan.highlight ? 'modal-plan--highlight' : ''}`}
@@ -152,13 +197,14 @@ export default function ProModal({ onClose }) {
 
                                     <button
                                         type="button"
-                                        className={`btn modal-cta ${plan.highlight ? 'btn-primary' : 'btn-outline'}`}
+                                        className={`btn modal-cta ${isUpgrade || plan.highlight ? 'btn-primary' : 'btn-outline'}`}
                                         onClick={() => handlePlanSelect(plan.id)}
+                                        disabled={isDisabled}
                                     >
-                                        {plan.cta}
+                                        {ctaText}
                                     </button>
                                 </div>
-                            ))}
+                            )})}
                         </div>
 
                         <button
