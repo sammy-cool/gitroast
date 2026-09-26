@@ -7,6 +7,7 @@ import UsernameInput from "@/components/UsernameInput";
 import { toast } from "@/utils/toast";
 import dynamic from 'next/dynamic';
 const ProModal = dynamic(() => import('@/components/ProModal'), { ssr: false });
+const WelcomeConsentModal = dynamic(() => import('@/components/WelcomeConsentModal'), { ssr: false });
 import GitHubLoginBtn from "@/components/GitHubLoginBtn";
 import RateLimitBanner from "@/components/RateLimitBanner";
 import LiveRoastFeed from "@/components/LiveRoastFeed";
@@ -47,6 +48,7 @@ const INTENSITIES = [
 export default function LandingPageClient() {
   const { user, loginWithGitHub, loading: authLoading } = useAuth();
   const [showProModal, setShowProModal] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [totalRoasts, setTotalRoasts] = useState(null);
   const [dailyRoast, setDailyRoast] = useState(null);
   const [broadcastDismissed, setBroadcastDismissed] = useState(false);
@@ -80,6 +82,36 @@ export default function LandingPageClient() {
   });
   const router = useRouter();
 
+  /* 
+    ── WHAT: ────────────────────────────────────────────────────────
+    First-time visitor welcome & satirical consent modal onboarding check.
+    ── WHY: ─────────────────────────────────────────────────────────
+    Ensures new users understand GitRoast's public data safety & comedic
+    satire. Uses a soft 350ms timeout to allow initial SSR hydration and
+    hero paints to settle without incurring any Core Web Vitals (LCP) penalty.
+    ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+    Fires exclusively on initial client-side landing page mount.
+    ── USE CASES: ───────────────────────────────────────────────────
+    First-time visitors on any device/viewport.
+    ── WHEN NOT TO USE: ─────────────────────────────────────────────
+    Returning visitors who have already established consent in localStorage.
+  */
+  useEffect(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const consented = localStorage.getItem("gitroast_welcome_consent_v1");
+        if (!consented) {
+          const timer = setTimeout(() => {
+            setShowWelcomeModal(true);
+          }, 350);
+          return () => clearTimeout(timer);
+        }
+      }
+    } catch {
+      // Ignored in strict private browsing environments
+    }
+  }, []);
+
   // WHY health poll: powers the glowing status indicator dot
   //     Checks immediately on mount, then every 30s
   //     Aligned with LiveRoastFeed polling interval for efficiency
@@ -96,12 +128,15 @@ export default function LandingPageClient() {
   // WHY broadcast toast: alert unauthenticated visitors to log in for dedicated 5,000 req/hr rate limits
   // WHY !authLoading guard: AuthContext initializes user=null while checking token.
   //     Without checking !authLoading, logged-in users falsely receive the login prompt on initial mount.
+  // WHY !showWelcomeModal: Avoids competing notifications while welcome modal is active.
   useEffect(() => {
     if (authLoading) return;
     if (
       !user &&
+      !showWelcomeModal &&
       typeof window !== "undefined" &&
-      !sessionStorage.getItem("gitroast_login_broadcast")
+      !sessionStorage.getItem("gitroast_login_broadcast") &&
+      localStorage.getItem("gitroast_welcome_consent_v1")
     ) {
       toast.info("⚡ Please log in with GitHub to avoid public API rate limit throttling!", {
         duration: 8000,
@@ -113,7 +148,7 @@ export default function LandingPageClient() {
       });
       sessionStorage.setItem("gitroast_login_broadcast", "1");
     }
-  }, [authLoading, user, loginWithGitHub]);
+  }, [authLoading, user, loginWithGitHub, showWelcomeModal]);
 
   useEffect(() => {
     getRoastStats().then((total) => {
@@ -174,6 +209,15 @@ export default function LandingPageClient() {
                 ? "Connecting…"
                 : "Checking…"}
           </span>
+          <button
+            type="button"
+            className="nav-guide-btn font-mono"
+            onClick={() => setShowWelcomeModal(true)}
+            title="How GitRoast works & Satire Rules"
+            aria-label="How GitRoast works & Satire Rules"
+          >
+            Rules ℹ️
+          </button>
         </div>
         <GitHubLoginBtn variant="compact" />
       </nav>
@@ -355,6 +399,13 @@ export default function LandingPageClient() {
 
       {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
 
+      {showWelcomeModal && (
+        <WelcomeConsentModal
+          isOpen={showWelcomeModal}
+          onClose={() => setShowWelcomeModal(false)}
+        />
+      )}
+
       <style jsx>{`
         .landing-page {
           min-height: 100vh;
@@ -382,6 +433,25 @@ export default function LandingPageClient() {
           display: flex;
           align-items: center;
           gap: 8px;
+        }
+        .nav-guide-btn {
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid var(--border);
+          color: var(--text-secondary);
+          font-size: 10px;
+          letter-spacing: 0.5px;
+          padding: 2px 8px;
+          border-radius: 6px;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          transition: all 0.18s ease;
+        }
+        .nav-guide-btn:hover {
+          color: var(--fire);
+          border-color: rgba(255, 69, 0, 0.4);
+          background: rgba(255, 69, 0, 0.08);
         }
 
         /* ── Health Status Indicator ── */
