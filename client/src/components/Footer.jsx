@@ -46,6 +46,12 @@ export default function Footer() {
             Pricing
           </Link>
           <Link
+            href="/dashboard"
+            className={`footer-link ${isActive('/dashboard') ? 'footer-link--active' : ''}`}
+          >
+            Dashboard
+          </Link>
+          <Link
             href="/about"
             className={`footer-link ${isActive('/about') ? 'footer-link--active' : ''}`}
           >
