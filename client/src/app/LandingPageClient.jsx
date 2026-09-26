@@ -126,10 +126,13 @@ export default function LandingPageClient() {
     return () => clearInterval(interval);
   }, []);
 
-  // WHY broadcast toast: alert unauthenticated visitors to log in for dedicated 5,000 req/hr rate limits
-  // WHY !authLoading guard: AuthContext initializes user=null while checking token.
-  //     Without checking !authLoading, logged-in users falsely receive the login prompt on initial mount.
-  // WHY !showWelcomeModal: Avoids competing notifications while welcome modal is active.
+  /**
+   * WHAT: Evaluates whether an unauthenticated guest visitor should receive a GitHub login nudge toast, debounced by 5000ms.
+   * WHY: Alerts unauthenticated visitors to log in for dedicated 5,000 req/hr rate limits; 5000ms debounce avoids colliding with the 4000ms welcome toast.
+   * WHERE & WHEN TO USE: Landing page effect triggered after auth loading completes and when welcome modal is closed and consent granted.
+   * USE CASES: First-time or returning guest visitors exploring the landing page without an active session.
+   * WHEN NOT TO USE: When user is authenticated (`user !== null`), when auth is still verifying (`authLoading === true`), or when welcome modal is open.
+   */
   useEffect(() => {
     if (authLoading) return;
     if (
@@ -139,15 +142,21 @@ export default function LandingPageClient() {
       !sessionStorage.getItem("gitroast_login_broadcast") &&
       localStorage.getItem(WELCOME_CONSENT_KEY)
     ) {
-      toast.info("⚡ Please log in with GitHub to avoid public API rate limit throttling!", {
-        duration: 8000,
-        cta: {
-          label: "Login ↗",
-          onClick: loginWithGitHub,
-          autoClose: true,
-        },
-      });
-      sessionStorage.setItem("gitroast_login_broadcast", "1");
+      const timer = setTimeout(() => {
+        if (!sessionStorage.getItem("gitroast_login_broadcast")) {
+          toast.info("⚡ Please log in with GitHub to avoid public API rate limit throttling!", {
+            duration: 8000,
+            cta: {
+              label: "Login ↗",
+              onClick: loginWithGitHub,
+              autoClose: true,
+            },
+          });
+          sessionStorage.setItem("gitroast_login_broadcast", "1");
+        }
+      }, 5000);
+
+      return () => clearTimeout(timer);
     }
   }, [authLoading, user, loginWithGitHub, showWelcomeModal]);
 

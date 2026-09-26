@@ -117,4 +117,37 @@ describe("WelcomeConsentModal Invariants & Key Contracts", () => {
 
     assert.equal(safeCheck(brokenStorage), false);
   });
+
+  it("should guard against rapid double-clicks on confirmation", () => {
+    let callCount = 0;
+    let isSubmitting = false;
+
+    function handleAccept() {
+      if (isSubmitting) return false;
+      isSubmitting = true;
+      callCount++;
+      return true;
+    }
+
+    assert.equal(handleAccept(), true);
+    assert.equal(handleAccept(), false);
+    assert.equal(callCount, 1);
+  });
+
+  it("should close modal upon cross-tab storage consent event", () => {
+    let closed = false;
+    function handleStorageEvent(event) {
+      if (event.key === WELCOME_CONSENT_KEY && event.newValue) {
+        closed = true;
+      }
+    }
+
+    // Irrelevant event
+    handleStorageEvent({ key: "other_key", newValue: "123" });
+    assert.equal(closed, false);
+
+    // Consent established in another tab
+    handleStorageEvent({ key: WELCOME_CONSENT_KEY, newValue: new Date().toISOString() });
+    assert.equal(closed, true);
+  });
 });

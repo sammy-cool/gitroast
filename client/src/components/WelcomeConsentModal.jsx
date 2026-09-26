@@ -57,10 +57,19 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
   const modalBoxRef = useRef(null)
   const triggerElementRef = useRef(null)
   const wasAlreadyConsentedRef = useRef(false)
+  const isSubmittingRef = useRef(false)
 
-  // ── Track whether the user had already consented before opening ─
+  // ── Reset submission guard and check prior consent status ─────
+  /**
+   * WHAT: Resets submission in-flight flag and detects existing consent in local storage.
+   * WHY: Prevents stale submission lockouts across modal re-openings (e.g. from navbar "Rules ℹ️").
+   * WHERE & WHEN TO USE: Triggered on modal open lifecycle transition (`isOpen === true`).
+   * USE CASES: User opens modal from navbar after previous session; flag resets so they can re-accept or dismiss.
+   * WHEN NOT TO USE: Do not call on background state updates or while modal is closed.
+   */
   useEffect(() => {
     if (isOpen) {
+      isSubmittingRef.current = false
       try {
         wasAlreadyConsentedRef.current = !!localStorage.getItem(WELCOME_CONSENT_KEY)
       } catch {
@@ -69,13 +78,41 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
     }
   }, [isOpen])
 
+  // ── Multi-tab sync: dismiss if user already consented in another tab ─
+  /**
+   * WHAT: Listens for browser `storage` events to synchronize consent acceptance across tabs.
+   * WHY: If a user opens GitRoast in multiple tabs and accepts in Tab A, Tab B's modal should dismiss immediately.
+   * WHERE & WHEN TO USE: Mounted whenever `isOpen === true` in multi-window / multi-tab browser environments.
+   * USE CASES: User opens 2 tabs simultaneously from social media or email links.
+   * WHEN NOT TO USE: When `isOpen === false` (event listener is not needed and skipped).
+   */
+  useEffect(() => {
+    if (!isOpen) return
+    function handleStorage(e) {
+      if (e.key === WELCOME_CONSENT_KEY && e.newValue) {
+        onClose()
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [isOpen, onClose])
+
   // ── Explicit Consent Confirmation (Primary CTA) ────────────────
+  /**
+   * WHAT: Handles confirmation click, guards against double-submission, stores timestamp, and fires welcome toast.
+   * WHY: Protects against double-tap event storms on touchscreens and prevents repeated welcome toasts.
+   * WHERE & WHEN TO USE: Primary "I CAN TAKE IT — LET'S ROAST 🔥" action handler.
+   * USE CASES: First-time visitor onboarding; returning user re-visiting guidelines.
+   * WHEN NOT TO USE: Never bypass the satire disclaimer validation check (`!agreedSatire`).
+   */
   const handleAccept = useCallback(() => {
+    if (isSubmittingRef.current) return
     if (!agreedSatire) {
       toast.warning('Please acknowledge the satire disclaimer to enter the Roast Zone!')
       return
     }
 
+    isSubmittingRef.current = true
     const isFirstTime = !wasAlreadyConsentedRef.current
     try {
       localStorage.setItem(WELCOME_CONSENT_KEY, new Date().toISOString())
@@ -130,7 +167,19 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
     return () => {
       cancelAnimationFrame(focusTimer)
       document.body.style.overflow = prevOverflow
-      if (triggerElementRef.current && typeof triggerElementRef.current.focus === 'function') {
+      /**
+       * WHAT: Restores focus to the triggering element (e.g. navbar "Rules ℹ️" button) if still attached to the DOM.
+       * WHY: Calling `.focus()` on an unmounted or detached DOM element (e.g. if navigation occurred) throws or causes memory leaks.
+       * WHERE & WHEN TO USE: Cleanup phase of modal mount/unmount effect.
+       * USE CASES: Accessibility compliance (WCAG 2.4.3 Focus Order) after modal dismissal.
+       * WHEN NOT TO USE: When triggerElement is null or no longer connected in `document.body`.
+       */
+      if (
+        triggerElementRef.current &&
+        typeof triggerElementRef.current.focus === 'function' &&
+        typeof document !== 'undefined' &&
+        document.body.contains(triggerElementRef.current)
+      ) {
         triggerElementRef.current.focus()
       }
     }
