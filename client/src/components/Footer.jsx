@@ -7,6 +7,13 @@ export default function Footer() {
   const year = new Date().getFullYear()
   const pathname = usePathname() || ''
 
+  // WHY: The 3D solar system viewport (/universe/:username) is a full-screen WebGL scene
+  //      with an interactive bottom ticker and dock at bottom: 0. Hiding the fixed footer
+  //      prevents pointer event blockage on orbital planet selections and HUD controls.
+  if (pathname.startsWith('/universe/') && pathname !== '/universe') {
+    return null
+  }
+
   function isActive(href) {
     if (href === '/') return pathname === '/'
     return pathname === href || pathname.startsWith(`${href}/`)

@@ -43,6 +43,7 @@ export function isPWAInstallable() {
 export default function PWARegister() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
+    if (process.env.NODE_ENV !== 'production') return
 
     // Register service worker after window load to prevent competing with initial paint
     function handleLoad() {
@@ -58,7 +59,11 @@ export default function PWARegister() {
       window.dispatchEvent(new CustomEvent('gitroast-installable', { detail: { available: true } }))
     }
 
-    window.addEventListener('load', handleLoad)
+    if (document.readyState === 'complete') {
+      handleLoad()
+    } else {
+      window.addEventListener('load', handleLoad)
+    }
     window.addEventListener('beforeinstallprompt', handleInstallPrompt)
 
     return () => {

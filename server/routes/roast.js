@@ -149,11 +149,19 @@ router.get("/:username/universe", optionalAuth, verifyCaptcha, async (req, res) 
   }
 
   // Check Redis cache first (TTL: 10 minutes)
-  const cacheKey = `universe:${username.toLowerCase()}`;
+  const isOwnProfileAndPro = Boolean(isPro && authUsername && username.toLowerCase() === authUsername.toLowerCase());
+  const cacheKey = isOwnProfileAndPro
+    ? `universe:${username.toLowerCase()}:private`
+    : `universe:${username.toLowerCase()}:public`;
+
   if (redisService.isConfigured) {
     const cached = await redisService.get(cacheKey).catch(() => null);
     if (cached) {
-      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+      if (isOwnProfileAndPro) {
+        res.setHeader("Cache-Control", "private, no-cache");
+      } else {
+        res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+      }
       return res.status(200).json({ success: true, universe: cached, cached: true });
     }
   }
@@ -170,7 +178,11 @@ router.get("/:username/universe", optionalAuth, verifyCaptcha, async (req, res) 
       redisService.set(cacheKey, universe, 600).catch(() => {});
     }
 
-    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+    if (isOwnProfileAndPro) {
+      res.setHeader("Cache-Control", "private, no-cache");
+    } else {
+      res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+    }
     return res.status(200).json({ success: true, universe });
   } catch (err) {
     if (err.code === "ORGANIZATION_NOT_SUPPORTED") {
@@ -354,12 +366,15 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
 router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) => {
   const { username } = req.params;
   const isPro = req.user?.isPro || false;
-  const rawIntensity = req.query.intensity || "savage";
+  const rawIntensity = req.query.intensity || req.user?.customPreferences?.defaultIntensity || "savage";
   const intensity = ["mild", "savage", "nuclear"].includes(rawIntensity) ? rawIntensity : "savage";
 
   const VALID_PERSONAS = new Set(["classic", "hinglish", "techbro", "ramsay", "shakespearean"]);
   const rawPersona = (req.query.persona || "").toLowerCase().trim();
-  const persona = VALID_PERSONAS.has(rawPersona) ? rawPersona : (req.user?.customPreferences?.defaultPersona || "classic");
+  const userPersona = req.user?.customPreferences?.defaultPersona;
+  const persona = VALID_PERSONAS.has(rawPersona)
+    ? rawPersona
+    : (VALID_PERSONAS.has(userPersona) ? userPersona : "classic");
 
   if (intensity === "nuclear" && !isPro) {
     return res.status(403).json({
@@ -539,6 +554,9 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
       return;
     }
 
+    const isOwnProfile = Boolean(req.user && req.user.username.toLowerCase() === data.username.toLowerCase());
+    const isPrivate = isOwnProfile ? Boolean(req.user?.customPreferences?.hideFromLeaderboard) : false;
+
     const newRoast = await Roast.create({
       username: data.username,
       roastedBy: req.user?._id || null,
@@ -547,7 +565,7 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
       roastText: fullRoast,
       intensity,
       persona,
-      isPrivate: Boolean(req.user?.customPreferences?.hideFromLeaderboard),
+      isPrivate,
       roastSource,
       avatarUrl: data.avatarUrl || `https://avatars.githubusercontent.com/${data.username}?s=120`,
       topLanguage: data._raw?.topLanguage || data.topLanguage || "",
@@ -680,14 +698,17 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
   // WHY: read intensity from query param
   //      validate it — only allow known values
   //      default to 'savage' if missing or invalid
-  const rawIntensity = req.query.intensity || "savage";
+  const rawIntensity = req.query.intensity || req.user?.customPreferences?.defaultIntensity || "savage";
   const intensity = ["mild", "savage", "nuclear"].includes(rawIntensity)
     ? rawIntensity
     : "savage";
 
   const VALID_PERSONAS = new Set(["classic", "hinglish", "techbro", "ramsay", "shakespearean"]);
   const rawPersona = (req.query.persona || "").toLowerCase().trim();
-  const persona = VALID_PERSONAS.has(rawPersona) ? rawPersona : (req.user?.customPreferences?.defaultPersona || "classic");
+  const userPersona = req.user?.customPreferences?.defaultPersona;
+  const persona = VALID_PERSONAS.has(rawPersona)
+    ? rawPersona
+    : (VALID_PERSONAS.has(userPersona) ? userPersona : "classic");
 
   // WHY: Nuclear requires Pro
   //      free users who somehow bypass frontend check are caught here
@@ -784,6 +805,9 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
 
     // ── Save to MongoDB ───────────────────────────────────
     try {
+      const isOwnProfile = Boolean(req.user && req.user.username.toLowerCase() === username.toLowerCase());
+      const isPrivate = isOwnProfile ? Boolean(req.user?.customPreferences?.hideFromLeaderboard) : false;
+
       const savedRoast = await Roast.create({
         username,
         roastedBy: req.user?._id || null,
@@ -793,7 +817,7 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
         roastSource,
         intensity, // WHY: track which intensity was used
         persona, // WHY: track which persona archetype was used
-        isPrivate: Boolean(req.user?.customPreferences?.hideFromLeaderboard),
+        isPrivate,
         avatarUrl: data.avatarUrl || `https://avatars.githubusercontent.com/${username}?s=120`,
         topLanguage: data._raw?.topLanguage || data.topLanguage || "",
         aiModel: roastSource === "ai" ? GEMINI_MODEL : "rules-engine",

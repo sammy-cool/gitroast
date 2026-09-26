@@ -108,10 +108,25 @@ export default function CodeSolarSystem({
 }) {
   const containerRef = useRef(null)
 
+  // Dynamic interaction and playback refs (prevents tearing down Three.js WebGL canvas on prop updates)
+  const selectedPlanetIdRef = useRef(selectedPlanetId)
+  const isCinematicRef = useRef(isCinematic)
+  const speedMultiplierRef = useRef(speedMultiplier)
+  const onSelectPlanetRef = useRef(onSelectPlanet)
+
+  useEffect(() => {
+    selectedPlanetIdRef.current = selectedPlanetId
+    isCinematicRef.current = isCinematic
+    speedMultiplierRef.current = speedMultiplier
+    onSelectPlanetRef.current = onSelectPlanet
+  }, [selectedPlanetId, isCinematic, speedMultiplier, onSelectPlanet])
+
   // Interactive camera control state
   const stateRef = useRef({
     isDragging: false,
+    dragStartPos: { x: 0, y: 0 },
     prevMousePos: { x: 0, y: 0 },
+    hasDragged: false,
     spherical: { radius: 240, theta: Math.PI / 4, phi: Math.PI / 3.2 },
     targetLookAt: new THREE.Vector3(0, 0, 0),
     currentLookAt: new THREE.Vector3(0, 0, 0),
@@ -300,6 +315,8 @@ export default function CodeSolarSystem({
 
     function onPointerDown(e) {
       stateRef.current.isDragging = true
+      stateRef.current.hasDragged = false
+      stateRef.current.dragStartPos = { x: e.clientX, y: e.clientY }
       stateRef.current.prevMousePos = { x: e.clientX, y: e.clientY }
     }
 
@@ -308,13 +325,18 @@ export default function CodeSolarSystem({
         const deltaX = e.clientX - stateRef.current.prevMousePos.x
         const deltaY = e.clientY - stateRef.current.prevMousePos.y
 
+        if (Math.hypot(e.clientX - stateRef.current.dragStartPos.x, e.clientY - stateRef.current.dragStartPos.y) > 6) {
+          stateRef.current.hasDragged = true
+        }
+
         stateRef.current.spherical.theta -= deltaX * 0.006
         stateRef.current.spherical.phi = Math.max(0.1, Math.min(Math.PI / 2.05, stateRef.current.spherical.phi - deltaY * 0.006))
 
         stateRef.current.prevMousePos = { x: e.clientX, y: e.clientY }
       }
+    }
 
-      // Raycast hover check
+    function onCanvasPointerMove(e) {
       const rect = renderer.domElement.getBoundingClientRect()
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
@@ -326,13 +348,10 @@ export default function CodeSolarSystem({
 
     function onPointerUp(e) {
       const wasDragging = stateRef.current.isDragging
+      const hasDragged = stateRef.current.hasDragged
       stateRef.current.isDragging = false
 
-      // Check click selection
-      const deltaX = Math.abs(e.clientX - stateRef.current.prevMousePos.x)
-      const deltaY = Math.abs(e.clientY - stateRef.current.prevMousePos.y)
-
-      if (deltaX < 5 && deltaY < 5 && wasDragging) {
+      if (!hasDragged && wasDragging) {
         const rect = renderer.domElement.getBoundingClientRect()
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
         mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
@@ -342,8 +361,8 @@ export default function CodeSolarSystem({
 
         if (intersects.length > 0) {
           const clickedPlanet = intersects[0].object.userData.planet
-          if (clickedPlanet && onSelectPlanet) {
-            onSelectPlanet(clickedPlanet)
+          if (clickedPlanet && onSelectPlanetRef.current) {
+            onSelectPlanetRef.current(clickedPlanet)
           }
         }
       }
@@ -356,9 +375,16 @@ export default function CodeSolarSystem({
 
     const dom = renderer.domElement
     dom.addEventListener('pointerdown', onPointerDown)
+    dom.addEventListener('pointermove', onCanvasPointerMove)
     window.addEventListener('pointermove', onPointerMove)
     window.addEventListener('pointerup', onPointerUp)
     dom.addEventListener('wheel', onWheel, { passive: false })
+
+    function onContextLost(e) {
+      e.preventDefault()
+      cancelAnimationFrame(animId)
+    }
+    dom.addEventListener('webglcontextlost', onContextLost)
 
     // Window Resize Handler
     function handleResize() {
@@ -387,38 +413,44 @@ export default function CodeSolarSystem({
         const mesh = planetMeshes.get(p.id)
         if (!mesh) return
 
+        const activeSpeed = speedMultiplierRef.current || 1
+
         // Update angle
-        stateRef.current.planetAngles[p.id] += p.orbitSpeed * speedMultiplier
+        stateRef.current.planetAngles[p.id] += p.orbitSpeed * activeSpeed
         const angle = stateRef.current.planetAngles[p.id]
 
         mesh.position.x = Math.cos(angle) * p.orbitDistance
         mesh.position.z = Math.sin(angle) * p.orbitDistance
 
         // Day/night spin
-        mesh.rotation.y += p.rotationSpeed * speedMultiplier
+        mesh.rotation.y += p.rotationSpeed * activeSpeed
 
         // Animate moons
         mesh.children.forEach((child) => {
           if (child.userData?.moonDist) {
-            child.userData.angle += child.userData.moonSpeed * speedMultiplier
+            child.userData.angle += child.userData.moonSpeed * activeSpeed
             child.position.x = Math.cos(child.userData.angle) * child.userData.moonDist
             child.position.z = Math.sin(child.userData.angle) * child.userData.moonDist
           }
         })
       })
 
+      const activeSpeed = speedMultiplierRef.current || 1
+      const activeCinematic = isCinematicRef.current
+      const currentSelectedId = selectedPlanetIdRef.current
+
       // Cinematic Auto-Orbit camera rotation when not user-dragging and not focused on planet
-      if (isCinematic && !stateRef.current.isDragging && !selectedPlanetId) {
-        stateRef.current.spherical.theta += 0.0018 * speedMultiplier
+      if (activeCinematic && !stateRef.current.isDragging && !currentSelectedId) {
+        stateRef.current.spherical.theta += 0.0018 * activeSpeed
       }
 
       // Smooth Camera Positioning & Lerp
       let targetX, targetY, targetZ
       const sph = stateRef.current.spherical
 
-      if (selectedPlanetId && planetMeshes.has(selectedPlanetId)) {
+      if (currentSelectedId && planetMeshes.has(currentSelectedId)) {
         // Focus on selected planet
-        const selMesh = planetMeshes.get(selectedPlanetId)
+        const selMesh = planetMeshes.get(currentSelectedId)
         stateRef.current.targetLookAt.copy(selMesh.position)
 
         targetX = selMesh.position.x + 18
@@ -446,29 +478,31 @@ export default function CodeSolarSystem({
       cancelAnimationFrame(animId)
       window.removeEventListener('resize', handleResize)
       dom.removeEventListener('pointerdown', onPointerDown)
+      dom.removeEventListener('pointermove', onCanvasPointerMove)
       window.removeEventListener('pointermove', onPointerMove)
       window.removeEventListener('pointerup', onPointerUp)
       dom.removeEventListener('wheel', onWheel)
+      dom.removeEventListener('webglcontextlost', onContextLost)
 
       if (renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement)
       }
 
-      // Dispose Geometries and Materials
+      // Dispose Geometries, Materials, and Textures
       scene.traverse((obj) => {
         if (obj.geometry) obj.geometry.dispose()
         if (obj.material) {
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach((m) => m.dispose())
-          } else {
-            obj.material.dispose()
-          }
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
+          mats.forEach((m) => {
+            if (m.map) m.map.dispose()
+            m.dispose()
+          })
         }
       })
 
       renderer.dispose()
     }
-  }, [universeData, isCinematic, speedMultiplier, onSelectPlanet, selectedPlanetId])
+  }, [universeData])
 
   return (
     <div

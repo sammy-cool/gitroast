@@ -152,11 +152,11 @@ userSchema.methods.toSafeObject = function () {
         proPlan: this.isPro && (!this.proPlan || this.proPlan === 'none') ? 'roaster' : (this.proPlan || 'none'),
         proSince: this.proSince,
         badges: this.badges || [],
-        customPreferences: this.customPreferences || {
-            defaultIntensity: 'savage',
-            defaultPersona: 'classic',
-            cardTheme: 'fire',
-            hideFromLeaderboard: false,
+        customPreferences: {
+            defaultIntensity: this.customPreferences?.defaultIntensity || 'savage',
+            defaultPersona: this.customPreferences?.defaultPersona || 'classic',
+            cardTheme: this.customPreferences?.cardTheme || 'fire',
+            hideFromLeaderboard: Boolean(this.customPreferences?.hideFromLeaderboard),
         },
         stats: {
             totalRoasts: this.stats?.totalRoasts || this.roastCount || 0,

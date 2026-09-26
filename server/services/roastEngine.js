@@ -612,7 +612,12 @@ function generateRoast(data, intensity = "savage", persona = "classic") {
   // WHY ghost check: accounts with 0 repos need dedicated roasts instead of template errors
   if (repoAnalysis?.totalOwn === 0) {
     const bank = GHOST_BANK[intensity] || GHOST_BANK.savage;
-    return pick(bank);
+    const ghostRoast = pick(bank);
+    const wrapper = PERSONA_FALLBACK_WRAPPERS[persona];
+    if (wrapper) {
+      return `${pick(wrapper.prefixes)} ${ghostRoast} ${pick(wrapper.suffixes)}`;
+    }
+    return ghostRoast;
   }
 
   const opener = buildOpener(score, intensity);

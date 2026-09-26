@@ -21,6 +21,7 @@ import { getUniverse } from '@/services/roastService'
 import { toast } from '@/utils/toast'
 import { playClick, playSuccess, playCosmicChime, playWarpSpeed } from '@/utils/soundFX'
 import SoundToggle from '@/components/SoundToggle'
+import { useAuth } from '@/context/AuthContext'
 
 // Dynamic import with SSR disabled for Three.js WebGL canvas
 const CodeSolarSystem = dynamic(
@@ -30,6 +31,7 @@ const CodeSolarSystem = dynamic(
 
 export default function UniversePageClient({ username }) {
   const router = useRouter()
+  const { getToken } = useAuth()
   const [universeData, setUniverseData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -40,18 +42,12 @@ export default function UniversePageClient({ username }) {
   const [isWarping, setIsWarping] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
 
-  const hasPlayedWarpRef = useRef(false)
-
   // ── Fetch Universe Data on Mount ──────────────────────────────
   useEffect(() => {
     let cancelled = false
+    const token = getToken ? getToken() : null
 
-    if (!hasPlayedWarpRef.current) {
-      playWarpSpeed()
-      hasPlayedWarpRef.current = true
-    }
-
-    getUniverse(username)
+    getUniverse(username, token)
       .then((data) => {
         if (!cancelled) {
           setUniverseData(data.universe)
@@ -69,7 +65,7 @@ export default function UniversePageClient({ username }) {
     return () => {
       cancelled = true
     }
-  }, [username])
+  }, [username, getToken])
 
   // ── Planet Selection ──────────────────────────────────────────
   const handleSelectPlanet = useCallback((planet) => {

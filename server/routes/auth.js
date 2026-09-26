@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
 const User = require("../models/User");
+const Roast = require("../models/Roast");
 const {
   createToken,
   extractToken,
@@ -248,6 +249,12 @@ router.patch("/preferences", requireAuth, async (req, res) => {
     const VALID_PERSONAS = new Set(["classic", "hinglish", "techbro", "ramsay", "shakespearean"]);
 
     if (defaultIntensity && VALID_INTENSITIES.has(defaultIntensity)) {
+      if (defaultIntensity === "nuclear" && !req.user.isPro) {
+        return res.status(403).json({
+          error: "PRO_REQUIRED",
+          message: "Nuclear intensity preference is reserved for Pro members.",
+        });
+      }
       updates["customPreferences.defaultIntensity"] = defaultIntensity;
     }
     if (defaultPersona && VALID_PERSONAS.has(defaultPersona)) {
@@ -258,6 +265,11 @@ router.patch("/preferences", requireAuth, async (req, res) => {
     }
     if (typeof hideFromLeaderboard === "boolean") {
       updates["customPreferences.hideFromLeaderboard"] = hideFromLeaderboard;
+      // Synchronize existing roasts for this user so leaderboard accurately reflects preference
+      await Roast.updateMany(
+        { username: new RegExp(`^${req.user.username}$`, "i") },
+        { $set: { isPrivate: hideFromLeaderboard } }
+      ).catch((err) => logger.warn("Auth", "Failed updating past roasts privacy", { error: err.message }));
     }
 
     if (Object.keys(updates).length === 0) {

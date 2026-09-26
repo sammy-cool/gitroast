@@ -31,7 +31,7 @@ const PERSONAS = [
 ]
 
 export default function DashboardClient() {
-  const { user, loading: authLoading, isLoggedIn, isPro, proPlan, isHistorian, loginWithGitHub, updatePreferences } = useAuth()
+  const { user, loading: authLoading, isLoggedIn, isPro, proPlan, isHistorian, loginWithGitHub, updatePreferences, getToken } = useAuth()
 
   const [quotaData, setQuotaData] = useState(null)
   const [historyRoasts, setHistoryRoasts] = useState([])
@@ -56,9 +56,10 @@ export default function DashboardClient() {
     if (!user) return
 
     let cancelled = false
+    const token = getToken ? getToken() : null
 
-    // Fetch quota status
-    getRateLimitStatus().then((q) => {
+    // Fetch quota status with user auth token
+    getRateLimitStatus(token).then((q) => {
       if (!cancelled && q) setQuotaData(q)
     }).catch(() => {})
 
@@ -67,7 +68,7 @@ export default function DashboardClient() {
     getRoastHistory(user.username)
       .then((res) => {
         if (!cancelled) {
-          setHistoryRoasts(res?.roasts || [])
+          setHistoryRoasts(res?.history || res?.roasts || [])
         }
       })
       .catch(() => {
@@ -80,7 +81,7 @@ export default function DashboardClient() {
     return () => {
       cancelled = true
     }
-  }, [user])
+  }, [user, getToken])
 
   // ── Persona Preference Change ────────────────────────────────
   const handlePersonaChange = useCallback(async (newPersona) => {
@@ -344,6 +345,7 @@ export default function DashboardClient() {
                 onChange={handleGhostModeToggle}
                 disabled={savingPrefs}
                 className="switch-input"
+                aria-label="Toggle Ghost Mode (Hide from public Wall of Shame leaderboard)"
               />
               <span className="switch-slider" />
             </label>

@@ -770,12 +770,17 @@ export async function getUniverse(username, token = null) {
   if (!cleanUsername) throw new Error("Username is required.");
 
   const headers = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  } else {
+    const captchaToken = await getCaptchaToken("universe").catch(() => null);
+    if (captchaToken) headers["X-Captcha-Token"] = captchaToken;
+  }
 
   const res = await fetch(`${API_BASE}/api/roast/${encodeURIComponent(cleanUsername)}/universe`, {
     method: "GET",
     headers,
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(60000),
   });
 
   const json = await safeParseJson(res);

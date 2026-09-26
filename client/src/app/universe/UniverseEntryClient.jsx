@@ -106,6 +106,7 @@ export default function UniverseEntryClient() {
         const sanitized = raw
             .replace(/^https?:\/\/(?:www\.)?github\.com\//i, '')
             .replace(/^(?:www\.)?github\.com\//i, '')
+            .replace(/^@/, '')
             .replace(/^\/+|\/+$/g, '')
             .toLowerCase()
 

@@ -227,11 +227,11 @@ function analyzeRepos(repos) {
   const noDescription = ownRepos.filter((r) => !r.description).length;
 
   // WHY: total stars across all repos
-  const totalStars = ownRepos.reduce((sum, r) => sum + r.stargazers_count, 0);
+  const totalStars = ownRepos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0);
 
   return {
     totalOwn,
-    totalForks: repos.length - totalOwn,
+    totalForks: safeRepos.length - totalOwn,
     abandonedCount: abandoned.length,
     abandonedPct:
       totalOwn > 0 ? Math.round((abandoned.length / totalOwn) * 100) : 0,
@@ -904,27 +904,31 @@ async function analyzeUniverse(
     coronaColor,
     radius: 14 + Math.round((score / 100) * 8),
     temperature: `${(score * 120 + 3000).toLocaleString()} K`,
-    luminosity: Math.round(profile.followers * 1.5 + profile.public_repos * 2 + 100),
-    totalRepos: profile.public_repos,
-    followers: profile.followers,
-    following: profile.following,
+    luminosity: Math.round((profile.followers || 0) * 1.5 + (profile.public_repos || 0) * 2 + 100),
+    totalRepos: profile.public_repos ?? 0,
+    followers: profile.followers ?? 0,
+    following: profile.following ?? 0,
   };
 
   // ── Celestial Bodies / Orbiting Planets (Top Repositories) ──
   const validRepos = (repos || []).filter((r) => !r.fork);
   const pool = validRepos.length > 0 ? validRepos : (repos || []);
 
-  // Sort by combination of stars and recent activity
+  // Sort by combination of stars and recent activity (safely guarding invalid/empty dates)
   const sortedRepos = [...pool].sort((a, b) => {
     const starDiff = (b.stargazers_count || 0) - (a.stargazers_count || 0);
     if (starDiff !== 0) return starDiff;
-    return new Date(b.pushed_at || 0) - new Date(a.pushed_at || 0);
+    const timeA = a.pushed_at ? new Date(a.pushed_at).getTime() : 0;
+    const timeB = b.pushed_at ? new Date(b.pushed_at).getTime() : 0;
+    return (Number.isFinite(timeB) ? timeB : 0) - (Number.isFinite(timeA) ? timeA : 0);
   }).slice(0, 18);
 
   const now = Date.now();
 
   const planets = sortedRepos.map((repo, idx) => {
-    const pushedTime = new Date(repo.pushed_at || repo.created_at || now).getTime();
+    const rawPushed = repo.pushed_at || repo.created_at;
+    const parsedTime = rawPushed ? new Date(rawPushed).getTime() : now;
+    const pushedTime = Number.isFinite(parsedTime) ? parsedTime : now;
     const daysSincePush = Math.max(0, Math.floor((now - pushedTime) / (1000 * 60 * 60 * 24)));
     const stars = repo.stargazers_count || 0;
     const forks = repo.forks_count || 0;
