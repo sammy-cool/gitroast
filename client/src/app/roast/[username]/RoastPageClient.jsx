@@ -21,8 +21,9 @@
 // ============================================================
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from '@/utils/toast'
+import { playFireSizzle } from '@/utils/soundFX'
 import AnalyzingScreen from '@/components/AnalyzingScreen'
 import dynamic from 'next/dynamic';
 const RoastCard = dynamic(() => import('@/components/RoastCard'));
@@ -39,6 +40,7 @@ export default function RoastPageClient({ username }) {
   const [roastData, setRoastData] = useState(null)
   const [showProModal, setShowProModal] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { getToken, isPro, user } = useAuth()
 
   const idempotencyKey = useRef('')
@@ -71,6 +73,7 @@ export default function RoastPageClient({ username }) {
             if (cancelled) return
             setRoastData(parsed.data)
             setView('result')
+            playFireSizzle()
             return
           } else {
             sessionStorage.removeItem(cacheKey)
@@ -82,10 +85,13 @@ export default function RoastPageClient({ username }) {
 
       try {
         const token = getToken()
-        const intensity = sessionStorage.getItem('gitroast_intensity') || 'savage'
+        const queryIntensity = searchParams.get('intensity')
+        const queryPersona = searchParams.get('persona')
+        const intensity = queryIntensity || sessionStorage.getItem('gitroast_intensity') || 'savage'
+        const persona = queryPersona || sessionStorage.getItem('gitroast_persona') || 'classic'
 
         const [data] = await Promise.all([
-          getRoast(username, idempotencyKey.current, token, intensity),
+          getRoast(username, idempotencyKey.current, token, intensity, persona),
           new Promise(resolve => setTimeout(resolve, MIN_ANALYSIS_TIME)),
         ])
 
@@ -112,6 +118,7 @@ export default function RoastPageClient({ username }) {
         }
         setRoastData(data)
         setView('result')
+        playFireSizzle()
 
         toast.fire(`🔥 @${username}'s roast is ready!`)
 
@@ -201,7 +208,7 @@ export default function RoastPageClient({ username }) {
 
     fetchRoast()
     return () => { cancelled = true }
-  }, [username, router, getToken])
+  }, [username, router, getToken, searchParams])
 
   function handleRoastAnother() {
     sessionStorage.removeItem(`gitroast_roast_${username}`)

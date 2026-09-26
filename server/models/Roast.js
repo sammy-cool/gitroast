@@ -47,6 +47,31 @@ const roastSchema = new mongoose.Schema(
       default: "savage",
     },
 
+    // ── Persona & Tone Archetype ─────────────────────────────
+    // WHAT: Tracks which comedic persona was chosen for this roast generation.
+    // WHY: Enables frontend badges (e.g. 🇮🇳 Hinglish, 👔 Tech Bro) and filtered leaderboard views.
+    // WHERE & WHEN TO USE: Stored on creation across all profile roasts.
+    // USE CASES: Displaying "Desi Tech Lead Roast" on roast cards and personal dashboard.
+    // WHEN NOT TO USE: In generic repository analysis that has dedicated architect tone.
+    persona: {
+      type: String,
+      enum: ["classic", "hinglish", "techbro", "ramsay", "shakespearean"],
+      default: "classic",
+      index: true,
+    },
+
+    // ── Privacy & Leaderboard Visibility ─────────────────────
+    // WHAT: Controls whether this roast appears on public Wall of Shame leaderboards.
+    // WHY: Respects user privacy and Ghost Mode preferences for users who opt out of public ranking.
+    // WHERE & WHEN TO USE: Checked during leaderboard aggregation pipelines.
+    // USE CASES: User toggles "Hide my profile from public Leaderboard" in dashboard.
+    // WHEN NOT TO USE: Do not hide from direct /history/:username URL access if roastId is known.
+    isPrivate: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
     avatarUrl: {
       type: String,
       default: null,
@@ -197,7 +222,9 @@ roastSchema.statics.getLeaderboard = async function (options = {}) {
   const skip = (page - 1) * limit;
 
   const result = await this.aggregate([
-    // WHY $project first: reduces data passed to $group and normalizes username casing
+    // WHY $match first: excludes users who opted into Ghost Mode from Wall of Shame
+    { $match: { isPrivate: { $ne: true } } },
+    // WHY $project next: reduces data passed to $group and normalizes username casing
     //     so duplicate case variants (Alice vs alice) don't split rankings
     { $project: { username: { $toLower: "$username" }, score: 1 } },
     {

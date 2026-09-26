@@ -93,11 +93,20 @@ async function getCaptchaToken(action = "roast") {
 // WHY attach retryAfter to error:
 //   Server sends { retryAfter: 47 } on rate limit (429)
 //   Frontend can show "Try again in 47 seconds" — not hardcoded "60s"
+// ── getRoast ──────────────────────────────────────────────────
+/**
+ * WHAT: Fetches an AI or rule-based roast for a GitHub username with intensity and persona tone styling.
+ * WHY: Supports user choice of intensity (mild, savage, nuclear) and persona (classic, hinglish, techbro, ramsay, shakespearean).
+ * WHERE & WHEN TO USE: In LandingPageClient, RoastPageClient, and dashboard roast actions.
+ * USE CASES: Requesting a Desi Tech Lead roast or Silicon Valley roast.
+ * WHEN NOT TO USE: In batch jobs or non-profile roast endpoints.
+ */
 export async function getRoast(
   username,
   idempotencyKey = null,
   token = null,
   intensity = "savage",
+  persona = "classic",
 ) {
   const headers = { "Content-Type": "application/json" };
 
@@ -110,7 +119,7 @@ export async function getRoast(
 
   if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;
 
-  const url = `${API_BASE}/api/roast/${encodeURIComponent(username)}?intensity=${encodeURIComponent(intensity)}`;
+  const url = `${API_BASE}/api/roast/${encodeURIComponent(username)}?intensity=${encodeURIComponent(intensity)}&persona=${encodeURIComponent(persona)}`;
 
   const res = await fetch(url, {
     method: "GET",
@@ -707,6 +716,38 @@ export async function getRateLimitStatus(token = null) {
   const json = await safeParseJson(res);
   if (!res.ok) {
     const err = new Error(json.message || "Failed to fetch rate limit status");
+    err.code = json.error;
+    err.status = res.status;
+    throw err;
+  }
+
+  return json;
+}
+
+// ── updateUserPreferences ─────────────────────────────────────
+/**
+ * WHAT: Updates the authenticated user's preferences (default persona, intensity, card theme, Ghost Mode privacy).
+ * WHY: Synchronizes user preferences across devices and persists leaderboard privacy choices.
+ * WHERE & WHEN TO USE: In /dashboard user settings panel or landing page persona selector.
+ * USE CASES: User toggles Ghost Mode (hide from leaderboard) or sets default persona to 'hinglish'.
+ * WHEN NOT TO USE: When user is unauthenticated (require token).
+ */
+export async function updateUserPreferences(preferences, token) {
+  if (!token) throw new Error("Authentication required to update preferences.");
+
+  const res = await fetch(`${API_BASE}/api/auth/preferences`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(preferences),
+    signal: AbortSignal.timeout(10000),
+  });
+
+  const json = await safeParseJson(res);
+  if (!res.ok) {
+    const err = new Error(json.message || "Failed to update preferences");
     err.code = json.error;
     err.status = res.status;
     throw err;

@@ -1,0 +1,26 @@
+{
+  "name": "GitRoast — AI GitHub Roaster",
+  "short_name": "GitRoast",
+  "id": "/",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#070707",
+  "theme_color": "#FF4500",
+  "description": "Savage AI code reviews, developer battles, and GitHub Wrapped reports.",
+  "orientation": "portrait-primary",
+  "categories": ["developer", "entertainment", "social", "utilities"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

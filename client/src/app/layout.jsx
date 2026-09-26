@@ -21,6 +21,7 @@ import ToastConfig from "@/components/ToastConfig";
 import Footer from "@/components/Footer";
 import HydrationWrapper from "@/components/HydrationWrapper";
 import GlobalErrorTracker from "@/utils/clientErrorTracker";
+import PWARegister from "@/components/PWARegister";
 import "./globals.css";
 
 // ── Fonts ─────────────────────────────────────────────────────
@@ -106,6 +107,12 @@ export const metadata = {
     images: ["/og-default.png"],
     creator: "@gitroast",
   },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "GitRoast",
+  },
   robots: { index: true, follow: true },
 };
 
@@ -122,6 +129,8 @@ export default function RootLayout({ children }) {
       `}
     >
       <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link
           rel="preconnect"
           href="https://avatars.githubusercontent.com"
@@ -136,6 +145,9 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        {/* PWA Service Worker & Install Prompt Controller */}
+        <PWARegister />
+
         {/* WHAT: Initializes brand toast colors globally — runs once on mount
             WHY first in body: ensures brand colors set before any page renders */}
         <ToastConfig />

@@ -1662,3 +1662,100 @@ describe("Feature #18 — Multi-Tier User Personas & Historian Plan Invariants",
         assert.equal(historianUser.toSafeObject().proPlan, "historian");
     });
 });
+
+describe("Feature #19 — Roast Personas, User Preferences & Ghost Mode Invariants", () => {
+    const { PERSONA_CONFIG } = require("../services/aiService");
+    const { generateRoast } = require("../services/roastEngine");
+    const Roast = require("../models/Roast");
+    const authRoute = require("../routes/auth");
+
+    it("should export all 5 canonical persona archetypes in PERSONA_CONFIG", () => {
+        assert.ok(PERSONA_CONFIG.classic, "Classic persona must exist");
+        assert.ok(PERSONA_CONFIG.hinglish, "Hinglish persona must exist");
+        assert.ok(PERSONA_CONFIG.techbro, "Tech Bro persona must exist");
+        assert.ok(PERSONA_CONFIG.ramsay, "Gordon Ramsay persona must exist");
+        assert.ok(PERSONA_CONFIG.shakespearean, "Shakespearean persona must exist");
+
+        assert.equal(PERSONA_CONFIG.hinglish.name, "Desi Tech Lead");
+        assert.equal(PERSONA_CONFIG.techbro.name, "Silicon Valley Tech Bro");
+        assert.equal(PERSONA_CONFIG.ramsay.name, "Gordon Ramsay of Code");
+        assert.equal(PERSONA_CONFIG.shakespearean.name, "Shakespearean Tragedy");
+    });
+
+    it("should adapt deterministic generator output based on persona", () => {
+        const mockData = {
+            score: 25,
+            grade: "F",
+            _raw: { topLanguage: "JavaScript", totalStars: 0 },
+            repoAnalysis: { totalOwn: 5, abandonedCount: 4, abandonedPct: 80 },
+            commitAnalysis: { qualityScore: 20, shameList: ["fix bug", "wip"] },
+        };
+
+        const classicRoast = generateRoast(mockData, "savage", "classic");
+        const hinglishRoast = generateRoast(mockData, "savage", "hinglish");
+        const techBroRoast = generateRoast(mockData, "savage", "techbro");
+        const ramsayRoast = generateRoast(mockData, "savage", "ramsay");
+        const shakespeareanRoast = generateRoast(mockData, "savage", "shakespearean");
+
+        assert.ok(classicRoast && classicRoast.length > 20);
+        assert.ok(
+            hinglishRoast.includes("bhai") || hinglishRoast.includes("production") || hinglishRoast.includes("salary") || hinglishRoast.includes("onsite"),
+            "Hinglish roast must include authentic Desi Tech Lead slang"
+        );
+        assert.ok(
+            techBroRoast.includes("bro") || techBroRoast.includes("conviction") || techBroRoast.includes("alpha") || techBroRoast.includes("Web3") || techBroRoast.includes("YC"),
+            "Tech Bro roast must include Silicon Valley founder buzzwords"
+        );
+        const ramsayLower = ramsayRoast.toLowerCase();
+        assert.ok(
+            ramsayLower.includes("raw") || ramsayLower.includes("disaster") || ramsayLower.includes("sandwich") || ramsayLower.includes("wake up") || ramsayLower.includes("embarrassment") || ramsayLower.includes("dreadful") || ramsayLower.includes("donkey") || ramsayLower.includes("shut it down"),
+            "Gordon Ramsay roast must include furious culinary outbursts"
+        );
+        assert.ok(
+            shakespeareanRoast.includes("thou") || shakespeareanRoast.includes("thy") || shakespeareanRoast.includes("Alas") || shakespeareanRoast.includes("Hark"),
+            "Shakespearean roast must include Elizabethan tragic phrasing"
+        );
+    });
+
+    it("should reject invalid preferences with 400 INVALID_PREFERENCES", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = {
+            body: { invalidKey: "random_nonsense" },
+            user: { _id: "64b000000000000000000001" },
+        };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const prefLayer = authRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/preferences" && layer.route.methods.patch,
+        );
+        assert.ok(prefLayer, "/preferences PATCH route must exist");
+        const handler = prefLayer.route.stack[prefLayer.route.stack.length - 1].handle;
+        await handler(req, res);
+
+        assert.equal(statusCode, 400);
+        assert.equal(responseData.error, "INVALID_PREFERENCES");
+    });
+
+    it("should initialize Roast with default persona 'classic' and isPrivate false", () => {
+        const roast = new Roast({
+            username: "testuser",
+            score: 50,
+            grade: "C",
+            roastText: "Average code.",
+        });
+
+        assert.equal(roast.persona, "classic");
+        assert.equal(roast.isPrivate, false);
+    });
+});
+

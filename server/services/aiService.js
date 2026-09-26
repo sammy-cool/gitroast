@@ -67,7 +67,53 @@ const INTENSITY_CONFIG = {
   },
 };
 
-function buildRoastPrompt(data, intensity = "savage") {
+// ── Persona & Cultural Tone Config ────────────────────────────
+/**
+ * WHAT: Defines distinct comedic personas, linguistic registers, and cultural roasting styles.
+ * WHY: Empowers users to choose their roasting vibe (Hinglish/Desi Tech Lead, Silicon Valley Tech Bro, Gordon Ramsay, Shakespearean, or Classic).
+ * WHERE & WHEN TO USE: In buildRoastPrompt and downstream fallback generators.
+ * USE CASES: Viral Twitter/LinkedIn shares, regional developer humor, customizable entertainment.
+ * WHEN NOT TO USE: Do not apply raw un-sanitized user strings; default to 'classic' when invalid.
+ */
+const PERSONA_CONFIG = {
+  classic: {
+    name: "Classic Savage",
+    roleModifier: "a sharp, cynical senior software architect with biting dark wit",
+    languageInstruction: "Write in English.",
+    styleGuide: "Dry tech wit, devastating punchlines, brutally honest code review.",
+    badExample: "Your GitHub is a sprawling cemetery of unfinished side projects...",
+  },
+  hinglish: {
+    name: "Desi Tech Lead",
+    roleModifier: "a deeply disappointed, sarcastic Indian Senior Engineering Manager (Desi Tech Lead)",
+    languageInstruction: "Write in authentic, natural Hinglish (Hindi + English mix written in Roman script). Use relatable Indian developer slang naturally like 'bhai', 'jugaad', 'production fat gaya', 'onsite ka sapna', 'LinkedIn influencer', 'kya kar raha hai yaar', 'salary credit hoti hai bas'.",
+    styleGuide: "Authentic Indian tech office comedy. Highly relatable, stinging with frustration and comedic despair.",
+    badExample: "Bhai your code is very bad and you have no stars...",
+  },
+  techbro: {
+    name: "Silicon Valley Tech Bro",
+    roleModifier: "a hyperactive, VC-funded Silicon Valley Web3 & AI startup founder who talks exclusively in buzzwords",
+    languageInstruction: "Write in English drenched in Silicon Valley tech bro lingo: 'not 10x', 'zero alpha', 'negative conviction', 'pivot to autonomous agent swarms', 'touch grass king', 'Web2 CRUD', 'burn rate', 'seed round', 'skill issue'.",
+    styleGuide: "Smug, fast-talking, AI-maximalist founder energy. Treats everything as an investment thesis failure.",
+    badExample: "Your repos don't have enough stars to raise venture capital...",
+  },
+  ramsay: {
+    name: "Gordon Ramsay of Code",
+    roleModifier: "Chef Gordon Ramsay doing a Kitchen Nightmares style inspection of a catastrophic GitHub profile",
+    languageInstruction: "Write in furious, screaming Gordon Ramsay style: ALL CAPS outbursts, 'IT'S RAW!', 'idiot sandwich', 'disaster', 'shut it down', 'embarrassing', 'dreadful'.",
+    styleGuide: "Explosive culinary fury applied to software engineering. High energy and pure shock.",
+    badExample: "This code is not cooked properly and looks quite bad...",
+  },
+  shakespearean: {
+    name: "Shakespearean Tragedy",
+    roleModifier: "William Shakespeare observing an Elizabethan tragedy of catastrophic commits and cursed logic",
+    languageInstruction: "Write in theatrical Early Modern / Elizabethan English: 'thou', 'thee', 'thy', 'doth', 'hath', 'wherefore', 'alas', 'foul specter'.",
+    styleGuide: "Dramatic tragic poetry, eloquent sorrow, mock-heroic tragedy of modern JavaScript.",
+    badExample: "Thou hast 40 repositories and very few stars...",
+  },
+};
+
+function buildRoastPrompt(data, intensity = "savage", persona = "classic") {
   const {
     username,
     score,
@@ -81,6 +127,7 @@ function buildRoastPrompt(data, intensity = "savage") {
   } = data;
 
   const config = INTENSITY_CONFIG[intensity] || INTENSITY_CONFIG.savage;
+  const personaConfig = PERSONA_CONFIG[persona] || PERSONA_CONFIG.classic;
   const worstStat = getWorstStat({
     repoAnalysis,
     commitAnalysis,
@@ -88,9 +135,11 @@ function buildRoastPrompt(data, intensity = "savage") {
     _raw,
   });
 
-  return `You are ${config.role} roasting a developer's GitHub profile at a comedy roast show.
+  return `You are ${personaConfig.roleModifier} acting as ${config.role} roasting a developer's GitHub profile at a comedy roast show.
+Persona Style: ${personaConfig.name}
+${personaConfig.languageInstruction}
 Intensity level: ${intensity.toUpperCase()}
-Style: ${config.style}
+Style: ${config.style} — ${personaConfig.styleGuide}
 Instruction: ${config.instruction}
 
 RULES — follow exactly:
@@ -124,7 +173,7 @@ FOCUS YOUR ROAST ON THIS ANGLE:
 ${worstStat}
 
 BAD EXAMPLE (never write like this):
-"${config.badExample}"
+"${personaConfig.badExample || config.badExample}"
 
 Write ONLY the 3-sentence roast. No quotes. No intro. No explanation. Just the roast.`;
 }
@@ -233,7 +282,14 @@ Sample Commit Messages: ${shameCommits.slice(0, 3).map((m) => `"${m}"`).join(", 
 Write ONLY the 3-sentence architectural roast:`;
 }
 
-async function generateAIRoast(data, intensity = "savage") {
+/**
+ * WHAT: Generates an AI-powered comedic roast using Google Gemini with tone intensity and persona styling.
+ * WHY: Delivers tailored comedic roasts across personas (Hinglish, Tech Bro, Ramsay, Shakespearean, Classic).
+ * WHERE & WHEN TO USE: In /api/roast/:username endpoint for Pro users or AI-enabled tiers.
+ * USE CASES: Generating viral customized developer roasts.
+ * WHEN NOT TO USE: In streaming endpoints (use generateAIRoastStream instead).
+ */
+async function generateAIRoast(data, intensity = "savage", persona = "classic") {
   if (!process.env.GEMINI_API_KEY) {
     logger.warn("AI", "No Gemini API key — using rule engine");
     return null;
@@ -248,7 +304,7 @@ async function generateAIRoast(data, intensity = "savage") {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: buildRoastPrompt(data, intensity) }] }],
+          contents: [{ parts: [{ text: buildRoastPrompt(data, intensity, persona) }] }],
           generationConfig: {
             // maxOutputTokens: 250,
             temperature: config.temperature,
@@ -274,7 +330,7 @@ async function generateAIRoast(data, intensity = "savage") {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                contents: [{ parts: [{ text: buildRoastPrompt(data, intensity) }] }],
+                contents: [{ parts: [{ text: buildRoastPrompt(data, intensity, persona) }] }],
                 generationConfig: {
                   temperature: config.temperature,
                   topP: 0.95,
@@ -316,7 +372,7 @@ async function generateAIRoast(data, intensity = "savage") {
 // ── WHERE & WHEN TO USE: In /api/roast/:username/stream endpoint.
 // ── USE CASES: Real-time live AI typing animation on roast results.
 // ── WHEN NOT TO USE: In batch jobs or image certificate generators.
-async function* generateAIRoastStream(data, intensity = "savage") {
+async function* generateAIRoastStream(data, intensity = "savage", persona = "classic") {
   if (!process.env.GEMINI_API_KEY) {
     logger.warn("AI", "No Gemini API key for stream — fallback requested");
     return;
@@ -330,7 +386,7 @@ async function* generateAIRoastStream(data, intensity = "savage") {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: buildRoastPrompt(data, intensity) }] }],
+        contents: [{ parts: [{ text: buildRoastPrompt(data, intensity, persona) }] }],
         generationConfig: {
           temperature: config.temperature,
           topP: 0.95,
@@ -351,7 +407,7 @@ async function* generateAIRoastStream(data, intensity = "savage") {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: buildRoastPrompt(data, intensity) }] }],
+              contents: [{ parts: [{ text: buildRoastPrompt(data, intensity, persona) }] }],
               generationConfig: {
                 temperature: config.temperature,
                 topP: 0.95,
@@ -677,5 +733,6 @@ module.exports = {
   buildRepoRoastPrompt,
   GEMINI_MODEL,
   resolveGeminiModel,
+  PERSONA_CONFIG,
 };
 

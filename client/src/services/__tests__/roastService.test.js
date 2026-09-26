@@ -37,6 +37,7 @@ import {
   searchLeaderboard,
   getRateLimitStatus,
   dispatchContactMessage,
+  updateUserPreferences,
 } from "../roastService.js";
 
 const originalFetch = global.fetch;
@@ -166,5 +167,58 @@ describe("Client Service Layer — roastService.js", () => {
 
     await getBattleRoast("alice", "bob", "fake-token", false);
     assert.match(capturedUrl, /\/api\/battle\/alice\/vs\/bob$/);
+  });
+
+  it("should append persona and intensity query parameters in getRoast", async () => {
+    let capturedUrl = "";
+    global.fetch = async (url) => {
+      capturedUrl = url;
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ success: true, data: { username: "torvalds", score: 85 } }),
+      };
+    };
+
+    await getRoast("torvalds", "idemp-key-1", null, "nuclear", "hinglish");
+    assert.match(capturedUrl, /\/api\/roast\/torvalds\?intensity=nuclear&persona=hinglish$/);
+  });
+
+  it("should send PATCH /api/auth/preferences with authorization token in updateUserPreferences", async () => {
+    let capturedUrl = "";
+    let capturedMethod = "";
+    let capturedHeaders = {};
+    let capturedBody = "";
+
+    global.fetch = async (url, options) => {
+      capturedUrl = url;
+      capturedMethod = options.method;
+      capturedHeaders = options.headers;
+      capturedBody = options.body;
+      return {
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({
+          success: true,
+          preferences: { defaultPersona: "ramsay", hideFromLeaderboard: true },
+        }),
+      };
+    };
+
+    const res = await updateUserPreferences(
+      { defaultPersona: "ramsay", hideFromLeaderboard: true },
+      "jwt-session-token"
+    );
+
+    assert.match(capturedUrl, /\/api\/auth\/preferences$/);
+    assert.equal(capturedMethod, "PATCH");
+    assert.equal(capturedHeaders["Authorization"], "Bearer jwt-session-token");
+    assert.equal(capturedHeaders["Content-Type"], "application/json");
+    assert.deepEqual(JSON.parse(capturedBody), {
+      defaultPersona: "ramsay",
+      hideFromLeaderboard: true,
+    });
+    assert.equal(res.success, true);
+    assert.equal(res.preferences.defaultPersona, "ramsay");
   });
 });

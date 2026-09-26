@@ -89,6 +89,11 @@ const userSchema = new mongoose.Schema(
                 enum: ['mild', 'savage', 'nuclear'],
                 default: 'savage',
             },
+            defaultPersona: {
+                type: String,
+                enum: ['classic', 'hinglish', 'techbro', 'ramsay', 'shakespearean'],
+                default: 'classic',
+            },
             cardTheme: {
                 type: String,
                 default: 'fire',
@@ -149,6 +154,7 @@ userSchema.methods.toSafeObject = function () {
         badges: this.badges || [],
         customPreferences: this.customPreferences || {
             defaultIntensity: 'savage',
+            defaultPersona: 'classic',
             cardTheme: 'fire',
             hideFromLeaderboard: false,
         },

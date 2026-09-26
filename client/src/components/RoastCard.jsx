@@ -225,6 +225,14 @@ export default function RoastCard({ data, onProClick }) {
               {data.roastSource === 'ai' && (
                 <span className="ai-badge font-mono">⚡ AI Roast</span>
               )}
+              {data.persona && data.persona !== 'classic' && (
+                <span className="persona-badge font-mono">
+                  {data.persona === 'hinglish' && '🇮🇳 Desi Hinglish'}
+                  {data.persona === 'techbro' && '👔 Tech Bro'}
+                  {data.persona === 'ramsay' && '👨‍🍳 Gordon Ramsay'}
+                  {data.persona === 'shakespearean' && '🎭 Shakespearean'}
+                </span>
+              )}
             </div>
             {typingDone && (
               <button
@@ -494,6 +502,15 @@ export default function RoastCard({ data, onProClick }) {
           border-radius:  4px;
           color:          var(--fire-warm);
           letter-spacing: 1px;
+        }
+        .persona-badge {
+          font-size:      9px;
+          padding:        2px 8px;
+          background:     rgba(255, 107, 0, 0.12);
+          border:         1px solid rgba(255, 107, 0, 0.35);
+          border-radius:  4px;
+          color:          var(--fire);
+          letter-spacing: 0.5px;
         }
         .card-brand {
           padding:        8px 1.5rem;

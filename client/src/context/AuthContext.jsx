@@ -38,6 +38,7 @@ import {
     useCallback,
     useMemo,
 } from 'react'
+import { updateUserPreferences } from '@/services/roastService'
 
 const AuthContext = createContext(null)
 
@@ -153,6 +154,24 @@ export function AuthProvider({ children }) {
         window.location.href = `${API_BASE}/api/auth/github`
     }, [])
 
+    // ── Update User Preferences ──────────────────────────────
+    /**
+     * WHAT: Persists updated user preferences (persona, intensity, theme, Ghost Mode) and syncs local state.
+     * WHY: Single point of contact for preference management, updating user state reactively.
+     * WHERE & WHEN TO USE: In /dashboard preferences panel or landing page persona selector.
+     * USE CASES: User toggles Ghost Mode or sets default persona.
+     * WHEN NOT TO USE: When user is not authenticated.
+     */
+    const updatePreferences = useCallback(async (newPreferences) => {
+        const token = getToken()
+        if (!token) return null
+        const data = await updateUserPreferences(newPreferences, token)
+        if (data?.user) {
+            setUser(data.user)
+        }
+        return data
+    }, [getToken])
+
     const value = useMemo(() => ({
         user,
         loading,
@@ -165,7 +184,8 @@ export function AuthProvider({ children }) {
         getToken,
         logout,
         refreshUser,
-    }), [user, loading, loginWithGitHub, loginWithToken, getToken, logout, refreshUser]);
+        updatePreferences,
+    }), [user, loading, loginWithGitHub, loginWithToken, getToken, logout, refreshUser, updatePreferences]);
 
     return (
         <AuthContext.Provider value={value}>

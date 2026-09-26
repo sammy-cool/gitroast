@@ -274,6 +274,10 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
   const rawIntensity = req.query.intensity || "savage";
   const intensity = ["mild", "savage", "nuclear"].includes(rawIntensity) ? rawIntensity : "savage";
 
+  const VALID_PERSONAS = new Set(["classic", "hinglish", "techbro", "ramsay", "shakespearean"]);
+  const rawPersona = (req.query.persona || "").toLowerCase().trim();
+  const persona = VALID_PERSONAS.has(rawPersona) ? rawPersona : (req.user?.customPreferences?.defaultPersona || "classic");
+
   if (intensity === "nuclear" && !isPro) {
     return res.status(403).json({
       error: "PRO_REQUIRED",
@@ -383,7 +387,7 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
 
     if (isPro && process.env.GEMINI_API_KEY) {
       roastSource = "ai";
-      for await (const chunk of generateAIRoastStream(data, intensity)) {
+      for await (const chunk of generateAIRoastStream(data, intensity, persona)) {
         if (clientAborted || res.writableEnded || res.destroyed) break;
         fullRoast += chunk;
         res.write(`event: chunk\ndata: ${JSON.stringify({ text: chunk })}\n\n`);
@@ -392,7 +396,7 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
 
     // Fallback if AI yielded nothing or Free tier
     if (!fullRoast && !clientAborted && !res.writableEnded && !res.destroyed) {
-      fullRoast = generateRoast(data, intensity);
+      fullRoast = generateRoast(data, intensity, persona);
       roastSource = "rules";
       res.write(`event: chunk\ndata: ${JSON.stringify({ text: fullRoast })}\n\n`);
     }
@@ -459,6 +463,8 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
       grade: data.grade,
       roastText: fullRoast,
       intensity,
+      persona,
+      isPrivate: Boolean(req.user?.customPreferences?.hideFromLeaderboard),
       roastSource,
       avatarUrl: data.avatarUrl || `https://avatars.githubusercontent.com/${data.username}?s=120`,
       topLanguage: data._raw?.topLanguage || data.topLanguage || "",
@@ -596,6 +602,10 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
     ? rawIntensity
     : "savage";
 
+  const VALID_PERSONAS = new Set(["classic", "hinglish", "techbro", "ramsay", "shakespearean"]);
+  const rawPersona = (req.query.persona || "").toLowerCase().trim();
+  const persona = VALID_PERSONAS.has(rawPersona) ? rawPersona : (req.user?.customPreferences?.defaultPersona || "classic");
+
   // WHY: Nuclear requires Pro
   //      free users who somehow bypass frontend check are caught here
   if (intensity === "nuclear" && !isPro) {
@@ -652,16 +662,16 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
     let roastSource = "rules";
 
     if (isPro) {
-      // WHY: AI roast for Pro — pass intensity to tune the prompt
-      roast = await generateAIRoast(data, intensity);
+      // WHY: AI roast for Pro — pass intensity and persona to tune the prompt
+      roast = await generateAIRoast(data, intensity, persona);
       if (roast) {
         roastSource = "ai";
       } else {
-        roast = generateRoast(data, intensity);
+        roast = generateRoast(data, intensity, persona);
       }
     } else {
-      // WHY: rule engine for free — pass intensity for tone variation
-      roast = generateRoast(data, intensity);
+      // WHY: rule engine for free — pass intensity and persona for tone variation
+      roast = generateRoast(data, intensity, persona);
     }
 
     if (!roast || roast.trim().length === 0) {
@@ -671,6 +681,7 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
     data.roast = roast;
     data.roastSource = roastSource;
     data.intensity = intensity; // WHY: frontend can show intensity badge
+    data.persona = persona; // WHY: frontend can show persona badge
 
     // ── AI Redemption Plan ─────────────────────────────────────
     // WHAT: Generates 3 humorous, high-impact career/code tips for the user.
@@ -698,6 +709,8 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
         roastText: roast,
         roastSource,
         intensity, // WHY: track which intensity was used
+        persona, // WHY: track which persona archetype was used
+        isPrivate: Boolean(req.user?.customPreferences?.hideFromLeaderboard),
         avatarUrl: data.avatarUrl || `https://avatars.githubusercontent.com/${username}?s=120`,
         topLanguage: data._raw?.topLanguage || data.topLanguage || "",
         aiModel: roastSource === "ai" ? GEMINI_MODEL : "rules-engine",

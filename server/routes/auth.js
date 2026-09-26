@@ -231,6 +231,56 @@ router.get("/me", requireAuth, (req, res) => {
   });
 });
 
+// ─── PATCH /api/auth/preferences ──────────────────────────
+/**
+ * WHAT: Updates the authenticated user's customization preferences (persona, intensity, theme, leaderboard privacy).
+ * WHY: Empowers users to configure their experience and opt into "Ghost Mode" (Wall of Shame leaderboard opt-out).
+ * WHERE & WHEN TO USE: In /dashboard user settings panel or landing page persona preference save.
+ * USE CASES: User sets default persona to 'hinglish', or toggles 'hideFromLeaderboard' to true.
+ * WHEN NOT TO USE: Unauthenticated calls (enforced by requireAuth middleware).
+ */
+router.patch("/preferences", requireAuth, async (req, res) => {
+  try {
+    const { defaultIntensity, defaultPersona, cardTheme, hideFromLeaderboard } = req.body || {};
+
+    const updates = {};
+    const VALID_INTENSITIES = new Set(["mild", "savage", "nuclear"]);
+    const VALID_PERSONAS = new Set(["classic", "hinglish", "techbro", "ramsay", "shakespearean"]);
+
+    if (defaultIntensity && VALID_INTENSITIES.has(defaultIntensity)) {
+      updates["customPreferences.defaultIntensity"] = defaultIntensity;
+    }
+    if (defaultPersona && VALID_PERSONAS.has(defaultPersona)) {
+      updates["customPreferences.defaultPersona"] = defaultPersona;
+    }
+    if (typeof cardTheme === "string" && cardTheme.trim()) {
+      updates["customPreferences.cardTheme"] = cardTheme.trim().slice(0, 30);
+    }
+    if (typeof hideFromLeaderboard === "boolean") {
+      updates["customPreferences.hideFromLeaderboard"] = hideFromLeaderboard;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: "INVALID_PREFERENCES", message: "No valid preferences provided." });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updates },
+      { returnDocument: "after", runValidators: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Preferences updated successfully.",
+      user: updatedUser.toSafeObject(),
+    });
+  } catch (err) {
+    logger.error("Auth", "Preferences update failed", { message: err.message });
+    return res.status(500).json({ error: "SERVER_ERROR", message: "Failed to update preferences." });
+  }
+});
+
 // ─── POST /api/auth/logout ────────────────────────────────
 // WHY: clears session — frontend removes token on its side
 router.post("/logout", (req, res) => {
@@ -238,3 +288,4 @@ router.post("/logout", (req, res) => {
 });
 
 module.exports = router;
+
