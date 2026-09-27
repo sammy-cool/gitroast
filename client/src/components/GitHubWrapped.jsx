@@ -54,7 +54,7 @@ export default function GitHubWrapped({ username, isPro }) {
                     const el = cardRef.current;
                     if (!el) throw new Error("Card capture element not found");
 
-                    el.style.display = "block";
+                    
 
                     const canvas = await html2canvas(el, {
                         scale: 2,
@@ -65,7 +65,7 @@ export default function GitHubWrapped({ username, isPro }) {
                         windowHeight: 900,
                     });
 
-                    el.style.display = "none";
+                    
 
                     // Watermark for free tier
                     if (!isPro) {
@@ -347,7 +347,7 @@ export default function GitHubWrapped({ username, isPro }) {
             {/* Hidden Printable Card for html2canvas */}
             <div
                 ref={cardRef}
-                style={{ display: "none" }}
+                style={{ position: "absolute", left: "-9999px", top: "-9999px" }}
                 aria-hidden="true"
                 className="hidden-card-capture"
             >

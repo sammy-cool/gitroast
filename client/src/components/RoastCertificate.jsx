@@ -81,7 +81,7 @@ export default function RoastCertificate({
                     //   Certificate div is hidden (display:none) by default
                     //   Must be visible for html2canvas to capture it
                     //   We show it, capture, then hide again — imperceptible
-                    el.style.display = "block";
+                    
 
                     const canvas = await html2canvas(el, {
                         scale: 2,
@@ -92,7 +92,7 @@ export default function RoastCertificate({
                         windowHeight: 600,
                     });
 
-                    el.style.display = "none";
+                    
 
                     // WHY watermark on free certificate:
                     //   Consistent with card download policy
@@ -170,7 +170,7 @@ export default function RoastCertificate({
             </button>
 
             {/* Hidden certificate — captured by html2canvas */}
-            <div ref={certRef} style={{ display: "none" }} aria-hidden="true">
+            <div ref={certRef} style={{ position: "absolute", left: "-9999px", top: "-9999px" }} aria-hidden="true">
                 <div className="cert-container">
                     {/* Decorative border */}
                     <div className="cert-border">

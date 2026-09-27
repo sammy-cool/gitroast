@@ -320,6 +320,7 @@ body.loading {
   background: #070707;
   position: relative;
   overflow: hidden;
+  padding-bottom: 6.5rem;
 }
 .loading-glow {
   position: absolute;

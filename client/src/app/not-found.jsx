@@ -41,7 +41,7 @@ export default function NotFound() {
           flex-direction:  column;
           align-items:     center;
           justify-content: center;
-          padding:         2rem 1rem;
+          padding:         2rem 1rem 6.5rem;
           gap:             1.5rem;
           position:        relative;
           overflow:        hidden;
