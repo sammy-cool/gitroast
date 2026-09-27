@@ -28,7 +28,7 @@ function getHeaders(token = null) {
 async function githubFetch(endpoint, token = null) {
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     headers: getHeaders(token),
-    signal: AbortSignal.timeout(10000),
+    signal: AbortSignal.timeout(25000),
   });
 
   if (res.status === 404) {

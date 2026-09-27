@@ -62,7 +62,7 @@ function getHeaders(userToken = null) {
 async function githubFetch(endpoint, userToken = null) {
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     headers: getHeaders(userToken),
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(20000),
   });
 
   // WHY: check rate limit before throwing

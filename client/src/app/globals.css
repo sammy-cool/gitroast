@@ -536,3 +536,13 @@ body.loading {
     display: none;
   }
 }
+
+/* ── Global Links Default ────────────────────────────────── */
+/* WHY: Removes default browser blue links that clash with dark mode */
+a:not([class]) {
+  color: var(--fire);
+  text-decoration: none;
+}
+a:not([class]):hover {
+  text-decoration: underline;
+}
