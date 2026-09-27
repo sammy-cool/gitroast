@@ -32,6 +32,7 @@
   ── WHEN NOT TO USE: ─────────────────────────────────────────────
   Not for background silent polling loops.
 */
+import { useState, useEffect, useCallback } from 'react'
 import { toast } from '@/utils/toast'
 
 const REACTION_CONFIG = [
