@@ -82,6 +82,22 @@ router.post("/create-order", requireAuth, async (req, res) => {
   try {
     const { order, plan } = await createOrder(planId, req.user._id);
 
+    // WHY persist pending payment:
+    //   Locks in the exact planId and amount associated with this razorpayOrderId.
+    //   In /verify, we cross-reference this order record to prevent tier tampering
+    //   (e.g. paying for ₹99 roaster but submitting planId: 'historian').
+    try {
+      await Payment.create({
+        userId: req.user._id,
+        razorpayOrderId: order.id,
+        planId,
+        amount: plan.amount,
+        status: "pending",
+      });
+    } catch (orderRecordErr) {
+      logger.warn("Payment", "Could not record pending payment", { error: orderRecordErr.message });
+    }
+
     return res.status(200).json({
       success: true,
       orderId: order.id,
@@ -138,6 +154,37 @@ router.post("/verify", requireAuth, async (req, res) => {
   }
 
   try {
+    // ── Anti-Tampering Check: Cross-reference Order Record ───────────
+    /* 
+      ── WHAT: ────────────────────────────────────────────────────────
+      Cross-checks the verified Razorpay orderId against the initial order planId.
+      
+      ── WHY: ─────────────────────────────────────────────────────────
+      Prevents client-side payload tampering where a bad actor purchases
+      the Roaster tier (₹99) but sends planId: 'historian' (₹199) to /verify.
+      
+      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+      Inside payment verification before unlocking account entitlements.
+      
+      ── USE CASES: ───────────────────────────────────────────────────
+      Securing tiered subscription checkout systems.
+      
+      ── WHEN NOT TO USE: ─────────────────────────────────────────────
+      Never grant higher subscription tiers without cross-validating the order record.
+    */
+    const pendingOrder = await Payment.findOne({ razorpayOrderId: orderId });
+    if (pendingOrder && pendingOrder.planId !== planId) {
+      logger.warn("Payment", "Plan tampering attempt detected", {
+        userId: req.user._id,
+        orderPlan: pendingOrder.planId,
+        requestedPlan: planId,
+      });
+      return res.status(400).json({
+        error: "PLAN_MISMATCH",
+        message: "Requested plan does not match the payment order.",
+      });
+    }
+
     const existing = await Payment.findOne({ razorpayPaymentId: paymentId });
     if (existing) {
       return res
@@ -145,18 +192,24 @@ router.post("/verify", requireAuth, async (req, res) => {
         .json({ success: true, message: "Already processed.", isPro: true });
     }
 
-    // WHY separate try/catch for Payment.create:
+    // WHY separate try/catch for Payment record update/create:
     //   Payment logging failure should NOT block Pro unlock
     //   User already paid — they must get access regardless
     try {
-      await Payment.create({
-        userId: req.user._id,
-        razorpayOrderId: orderId,
-        razorpayPaymentId: paymentId,
-        planId,
-        amount: PLANS[planId]?.amount || 0,
-        status: "captured",
-      });
+      if (pendingOrder) {
+        pendingOrder.razorpayPaymentId = paymentId;
+        pendingOrder.status = "captured";
+        await pendingOrder.save();
+      } else {
+        await Payment.create({
+          userId: req.user._id,
+          razorpayOrderId: orderId,
+          razorpayPaymentId: paymentId,
+          planId,
+          amount: PLANS[planId]?.amount || 0,
+          status: "captured",
+        });
+      }
     } catch (paymentErr) {
       // WHY: log but don't throw — Pro unlock is more important
       logger.error("Payment", "Verify failed", { message: paymentErr.message });
@@ -258,15 +311,16 @@ router.post("/webhook", async (req, res) => {
       // ── WHEN NOT TO USE: ─────────────────────────────────────────
       // Do not use when processing trusted internal DB transactions where schemas are strictly typed.
       const isValidUserId = userId && mongoose.Types.ObjectId.isValid(userId);
+      let paymentDoc = null;
 
       if (paymentId) {
-        let paymentDoc = await Payment.findOne({
+        paymentDoc = await Payment.findOne({
           razorpayPaymentId: paymentId,
         });
 
         if (!paymentDoc) {
           if (isValidUserId) {
-            await Payment.create({
+            paymentDoc = await Payment.create({
               userId,
               razorpayOrderId: orderId || "webhook_captured",
               razorpayPaymentId: paymentId,
@@ -284,6 +338,7 @@ router.post("/webhook", async (req, res) => {
               existingOrderByOrder.razorpayPaymentId = paymentId;
               existingOrderByOrder.status = "captured";
               await existingOrderByOrder.save();
+              paymentDoc = existingOrderByOrder;
             } else {
               logger.warn("Payment", "Webhook payment received without valid userId or pre-existing order", {
                 paymentId,
@@ -301,8 +356,19 @@ router.post("/webhook", async (req, res) => {
       if (isValidUserId) {
         const user = await User.findById(userId);
         if (user && !user.isPro) {
+          // ── WHAT: ──────────────────────────────────────────────────
+          // Updates User document with Pro status and verified planId.
+          // ── WHY: ───────────────────────────────────────────────────
+          // Fallback order ensures planId from notes is prioritized,
+          // then payment document planId, defaulting to 'roaster'.
+          // ── WHERE & WHEN TO USE: ───────────────────────────────────
+          // In webhook background account elevation.
+          // ── USE CASES: ─────────────────────────────────────────────
+          // Asynchronous Razorpay webhook processing.
+          // ── WHEN NOT TO USE: ───────────────────────────────────────
+          // Do not upgrade if user is already elevated.
           user.isPro = true;
-          user.proPlan = (paymentDoc && paymentDoc.planId) || "roaster";
+          user.proPlan = (paymentDoc && paymentDoc.planId) || planId || "roaster";
           user.proSince = new Date();
           await user.save();
           logger.info("Payment", `Pro unlocked via webhook for user ${userId}`);

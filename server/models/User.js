@@ -131,11 +131,11 @@ userSchema.methods.canRoastToday = function () {
     // Free users: 1 roast per day
     if (!this.lastRoastDate) return true
 
-    const today = new Date()
-    const lastRoast = new Date(this.lastRoastDate)
+    const todayUtc = new Date().toISOString().slice(0, 10)
+    const lastRoastUtc = new Date(this.lastRoastDate).toISOString().slice(0, 10)
 
-    // WHY: compare date strings to check if same calendar day
-    return today.toDateString() !== lastRoast.toDateString()
+    // WHY: compare ISO UTC date strings (YYYY-MM-DD) to enforce standard midnight UTC reset
+    return todayUtc !== lastRoastUtc
 }
 
 // ─── Instance method: safe user object for frontend ───────

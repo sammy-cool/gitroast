@@ -279,7 +279,7 @@ export default function DashboardClient() {
             <p className="quota-hint font-mono">
               {isPro
                 ? 'Unlimited AI burns enabled. No daily cooldowns.'
-                : 'Free users receive 1 roast daily. Resets at midnight UTC.'}
+                : '1 daily AI roast included (resets midnight UTC). GitHub API metadata quota: 5,000 req/hr.'}
             </p>
           </div>
 

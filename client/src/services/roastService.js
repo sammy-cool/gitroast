@@ -487,9 +487,28 @@ export async function getRepoRoast(
 
   const json = await safeParseJson(res);
   if (!res.ok) {
+    /* 
+      ── WHAT: ────────────────────────────────────────────────────────
+      Attaches retryAfter duration and standardized error codes to repository roast errors.
+      
+      ── WHY: ─────────────────────────────────────────────────────────
+      When unauthenticated guests hit GitHub API rate limits or Cloudflare thresholds
+      during deep repository analysis, parsing json.retryAfter allows RepoRoastClient
+      to launch an exact countdown banner rather than a generic failure toast.
+      
+      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+      Inside client API gateway service methods in client/src/services/roastService.js.
+      
+      ── USE CASES: ───────────────────────────────────────────────────
+      Surfacing countdown banner when roasting popular public repositories.
+      
+      ── WHEN NOT TO USE: ─────────────────────────────────────────────
+      When the HTTP status is 200 OK.
+    */
     const err = new Error(json.message || "Failed to fetch repository roast");
     err.code = json.error;
     err.status = res.status;
+    err.retryAfter = json.retryAfter || null;
     throw err;
   }
   return json.data;
@@ -557,6 +576,7 @@ export async function streamRoast(
   intensity = "savage",
   token = null,
   callbacks = {},
+  persona = "classic",
 ) {
   const { onMetadata, onChunk, onDone, onError } = callbacks;
   const headers = { Accept: "text/event-stream" };
@@ -568,7 +588,12 @@ export async function streamRoast(
     if (captchaToken) headers["X-Captcha-Token"] = captchaToken;
   }
 
-  const url = `${API_BASE}/api/roast/${encodeURIComponent(username)}/stream?intensity=${encodeURIComponent(intensity)}`;
+  // ── WHAT: Appends both intensity and comedic persona parameters to the SSE stream URL.
+  // ── WHY: Ensures streaming roasts honor user's chosen comedic persona (Gordon Ramsay, Hinglish, etc.).
+  // ── WHERE & WHEN TO USE: In live typewriter stream requests.
+  // ── USE CASES: Progressive AI roast generation with persona voice styling.
+  // ── WHEN NOT TO USE: Non-streaming REST endpoints.
+  const url = `${API_BASE}/api/roast/${encodeURIComponent(username)}/stream?intensity=${encodeURIComponent(intensity)}&persona=${encodeURIComponent(persona)}`;
 
   try {
     const res = await fetch(url, {

@@ -137,8 +137,19 @@ router.get("/leaderboard/search", async (req, res) => {
       ── WHEN NOT TO USE: ─────────────────────────────────────────────
       Case-sensitive repository path lookups.
     */
+    // ── WHAT: ────────────────────────────────────────────────────
+    // Matches by case-insensitive username regex while strictly excluding Ghost Mode private roasts.
+    // ── WHY: ─────────────────────────────────────────────────────
+    // Respects user privacy preferences configured in /dashboard by preventing
+    // hidden profiles from leaking into public search results.
+    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
+    // Leaderboard search query pipeline.
+    // ── USE CASES: ───────────────────────────────────────────────
+    // Searching the Wall of Shame.
+    // ── WHEN NOT TO USE: ─────────────────────────────────────────
+    // Do not filter out private roasts when fetching authenticated owner's personal history.
     const result = await Roast.aggregate([
-      { $match: { username: { $regex: safeQ, $options: "i" } } },
+      { $match: { username: { $regex: safeQ, $options: "i" }, isPrivate: { $ne: true } } },
       { $project: { username: { $toLower: "$username" }, score: 1 } },
       { $group: { _id: "$username", bestScore: { $min: "$score" }, roastCount: { $sum: 1 } } },
       { $facet: {

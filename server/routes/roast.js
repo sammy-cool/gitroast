@@ -60,6 +60,13 @@ router.get("/stats", async (req, res) => {
 // ─── GET /api/roast/:username/wrapped ─────────────────────
 // WHY: Feature #4 — Spotify-Wrapped style year in review
 router.get("/:username/wrapped", optionalAuth, verifyCaptcha, async (req, res) => {
+  // ── WHAT: Extracts target username from route parameters.
+  // ── WHY: Critical identifier required for GitHub Wrapped year-in-review aggregation.
+  // ── WHERE & WHEN TO USE: First line of any parameterized Express route handler.
+  // ── USE CASES: Fetching /:username/wrapped annual reports.
+  // ── WHEN NOT TO USE: Static routes without URL path variables.
+  const { username } = req.params;
+
   // ── Wrapped Year Boundary Clamping ──────────────────────────
   // ── WHAT: ────────────────────────────────────────────────────
   // Clamps requested Wrapped year within GitHub operational era (2008 to current year).
@@ -96,6 +103,12 @@ router.get("/:username/wrapped", optionalAuth, verifyCaptcha, async (req, res) =
     );
     return res.status(200).json({ success: true, wrapped });
   } catch (err) {
+    if (err.message === "ORGANIZATION_NOT_SUPPORTED") {
+      return res.status(400).json({
+        error: "ORGANIZATION_NOT_SUPPORTED",
+        message: "Organizations cannot be roasted. Enter a personal developer username.",
+      });
+    }
     if (err.message === "USER_NOT_FOUND") {
       return res.status(404).json({
         error: "USER_NOT_FOUND",
@@ -866,6 +879,8 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
       );
     }
 
+    data.isPro = isPro;
+    data.watermark = !isPro;
     const responseData = { success: true, data };
 
     if (idempotencyKey) {

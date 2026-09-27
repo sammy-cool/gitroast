@@ -760,8 +760,10 @@ export default function UniversePageClient({ username }) {
             display: none;
           }
           .universe-hud-dock {
-            bottom: 54px;
+            top: 68px;
+            bottom: auto;
             right: 0.75rem;
+            z-index: 30;
           }
           .planet-inspector-card {
             top: auto;
@@ -770,6 +772,7 @@ export default function UniversePageClient({ username }) {
             right: 0.75rem;
             width: auto;
             max-height: 48vh;
+            z-index: 25;
           }
         }
       `}</style>

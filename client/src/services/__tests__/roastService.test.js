@@ -39,6 +39,7 @@ import {
   dispatchContactMessage,
   updateUserPreferences,
   getUniverse,
+  streamRoast,
 } from "../roastService.js";
 
 const originalFetch = global.fetch;
@@ -244,5 +245,30 @@ describe("Client Service Layer — roastService.js", () => {
     assert.match(capturedUrl, /\/api\/roast\/torvalds\/universe$/);
     assert.equal(res.success, true);
     assert.equal(res.universe.star.spectralClass, "O-Type Blue Hypergiant");
+  });
+
+  it("should append persona and intensity query parameters in streamRoast", async () => {
+    let capturedUrl = "";
+    let capturedHeaders = {};
+
+    global.fetch = async (url, options) => {
+      capturedUrl = url;
+      capturedHeaders = options.headers;
+      return {
+        ok: true,
+        status: 200,
+        body: {
+          getReader: () => ({
+            read: async () => ({ done: true, value: undefined }),
+            releaseLock: () => {},
+          }),
+        },
+      };
+    };
+
+    await streamRoast("torvalds", "savage", "test-token", {}, "ramsay");
+    assert.match(capturedUrl, /\/api\/roast\/torvalds\/stream\?intensity=savage&persona=ramsay$/);
+    assert.equal(capturedHeaders["Authorization"], "Bearer test-token");
+    assert.equal(capturedHeaders["Accept"], "text/event-stream");
   });
 });

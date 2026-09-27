@@ -91,11 +91,11 @@ function createRateLimiter({
 
     // WHY route scope normalization:
     //   1. /api/roast/:username -> normalized to /api/roast/profile so changing usernames doesn't bypass limit
-    //   2. /api/roast/feed & /api/roast/stats keep dedicated keys so ticker polling doesn't drain roast quota
+    //   2. /api/roast/feed, /api/roast/stats & /api/roast/rate-limit-status keep dedicated keys so polling/status doesn't drain roast quota
     //   3. /api/battle/:user1/vs/:user2 -> normalized to /api/battle so changing challenger names doesn't bypass limit
     let routeScope = req.baseUrl || req.path;
     if (req.baseUrl === "/api/roast") {
-      if (req.path === "/feed" || req.path === "/stats") {
+      if (req.path === "/feed" || req.path === "/stats" || req.path === "/rate-limit-status") {
         routeScope = `/api/roast${req.path}`;
       } else {
         routeScope = "/api/roast/profile";

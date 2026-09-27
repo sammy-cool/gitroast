@@ -96,7 +96,7 @@ async function verifyCaptcha(req, res, next) {
       // Google Cloud regional outages or maintenance.
       // ── WHEN NOT TO USE: ─────────────────────────────────────────
       // Strict financial transaction or payment verification gateways.
-      if (googleRes.status && googleRes.status >= 500) {
+      if (googleRes.status && googleRes.status >= 400) {
         logger.warn("Captcha", `Google reCAPTCHA Enterprise returned HTTP ${googleRes.status} — failing open`, {
           status: googleRes.status,
         });

@@ -266,8 +266,9 @@ router.patch("/preferences", requireAuth, async (req, res) => {
     if (typeof hideFromLeaderboard === "boolean") {
       updates["customPreferences.hideFromLeaderboard"] = hideFromLeaderboard;
       // Synchronize existing roasts for this user so leaderboard accurately reflects preference
+      const safeUsername = (req.user.username || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       await Roast.updateMany(
-        { username: new RegExp(`^${req.user.username}$`, "i") },
+        { username: new RegExp(`^${safeUsername}$`, "i") },
         { $set: { isPrivate: hideFromLeaderboard } }
       ).catch((err) => logger.warn("Auth", "Failed updating past roasts privacy", { error: err.message }));
     }
