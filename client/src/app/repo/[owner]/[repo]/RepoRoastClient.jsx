@@ -111,7 +111,7 @@ export default function RepoRoastClient({ owner, repo }) {
         if (err.status === 404 || err.code === 'REPO_NOT_FOUND') {
           toast.error(`Repository "${owner}/${repo}" not found or is private.`)
         } else if (err.status === 429) {
-          toast.rateLimit(60, () => {
+          toast.rateLimit(err.retryAfter || 60, () => {
             const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
             window.location.href = `${apiBase}/api/auth/github`
           })

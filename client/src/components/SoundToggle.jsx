@@ -50,6 +50,7 @@ export default function SoundToggle() {
       className={`sound-toggle-btn ${muted ? 'sound-toggle-btn--muted' : 'sound-toggle-btn--active'}`}
       title={muted ? 'Unmute Sound FX (Audio Muted)' : 'Mute Sound FX (Audio Active)'}
       aria-label={muted ? 'Unmute Sound Effects' : 'Mute Sound Effects'}
+      aria-pressed={!muted}
     >
       <span className="sound-toggle-icon" aria-hidden="true">
         {muted ? '🔇' : '🔊'}

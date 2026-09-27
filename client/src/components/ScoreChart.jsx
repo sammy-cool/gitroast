@@ -1,5 +1,6 @@
-// WHY no 'use client': pure display, no interactivity
-// receives data as props from parent
+'use client';
+// WHAT: Pure SVG trend line chart rendering roast score history
+// WHY 'use client': styled-jsx scoped styling runtime requires client environment
 
 export default function ScoreChart({ history }) {
     // WHY: need at least 2 points to draw a line

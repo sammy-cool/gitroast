@@ -39,17 +39,26 @@ const subscribe = () => () => {}
 export default function PaymentModal({ planId, onClose }) {
     const isClient = useSyncExternalStore(subscribe, () => true, () => false)
 
-    // WHY scroll lock on mount/unmount:
+    // WHY scroll lock and Escape key dismiss on mount/unmount:
     //   Prevents page behind modal from scrolling
+    //   Allows immediate keyboard Escape dismissal for accessibility
     //   Saves previous overflow value and restores it on close
-    //   Handles case where multiple modals stack
     useEffect(() => {
         const prev = document.body.style.overflow
         document.body.style.overflow = 'hidden'
+
+        function handleKeyDown(e) {
+            if (e.key === 'Escape' && typeof onClose === 'function') {
+                onClose()
+            }
+        }
+        window.addEventListener('keydown', handleKeyDown)
+
         return () => {
             document.body.style.overflow = prev
+            window.removeEventListener('keydown', handleKeyDown)
         }
-    }, [])
+    }, [onClose])
 
     if (!isClient || typeof document === 'undefined') return null
 
