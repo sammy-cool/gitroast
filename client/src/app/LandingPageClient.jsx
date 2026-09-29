@@ -543,7 +543,9 @@ export default function LandingPageClient() {
         .landing-nav-right {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
+          min-width: 0;
+          overflow: hidden;
         }
         .nav-dashboard-link {
           font-size: 11px;

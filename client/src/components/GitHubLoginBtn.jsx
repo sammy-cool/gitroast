@@ -80,18 +80,38 @@ export default function GitHubLoginBtn({ variant = 'full' }) {
                 </button>
 
                 <style jsx>{`
+          /* ── WHAT: ─────────────────────────────────────────────────
+             Logged-in user pill in compact navbar — avatar + @name + badge + logout.
+             ── WHY min-width: 0 + overflow: hidden: ─────────────────
+             Without these, long GitHub usernames (e.g. @a-very-long-github-username)
+             push the entire nav off-screen on mobile viewports (<480px),
+             causing horizontal scroll overflow and breaking the layout.
+             ── WHERE & WHEN TO USE: ─────────────────────────────────
+             Any flex child containing dynamic-length text in a constrained row.
+             ── WHEN NOT TO USE: ──────────────────────────────────────
+             Do not apply text-overflow to elements that must show full content. */
           .user-pill {
             display:     flex;
             align-items: center;
-            gap:         8px;
+            gap:         6px;
+            min-width:   0;
+            flex-shrink: 1;
           }
           .user-avatar {
             width:         28px;
             height:        28px;
             border-radius: 50%;
             border:        1px solid var(--border);
+            flex-shrink:   0;
           }
-          .user-name { font-size: 13px; color: var(--text-secondary); }
+          .user-name {
+            font-size:     13px;
+            color:         var(--text-secondary);
+            overflow:      hidden;
+            text-overflow: ellipsis;
+            white-space:   nowrap;
+            max-width:     120px;
+          }
           .pro-badge {
             font-size:     10px;
             padding:       2px 7px;
@@ -99,8 +119,23 @@ export default function GitHubLoginBtn({ variant = 'full' }) {
             border:        1px solid var(--fire);
             border-radius: 4px;
             color:         var(--fire);
+            flex-shrink:   0;
           }
-          .logout-btn { padding: 4px 10px; font-size: 12px; }
+          .logout-btn {
+            padding:     4px 10px;
+            font-size:   12px;
+            flex-shrink: 0;
+          }
+          @media (max-width: 480px) {
+            .user-name {
+              max-width: 72px;
+            }
+          }
+          @media (max-width: 380px) {
+            .user-name {
+              display: none;
+            }
+          }
         `}</style>
             </div>
         )
