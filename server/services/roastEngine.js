@@ -498,9 +498,16 @@ let loadedRuleCount = 0;
 try {
   const externalRules = require("../data/roastRules.json");
   if (externalRules?.rules && Array.isArray(externalRules.rules)) {
+    const VALID_INTENSITIES = new Set(["mild", "savage", "nuclear"]);
+    const VALID_TIERS = new Set(["catastrophic", "rough", "mediocre", "decent", "respectable"]);
+    const VALID_CATEGORIES = new Set(["opener", "abandonment", "commit", "language", "closer"]);
+
     for (const rule of externalRules.rules) {
       const { category, intensity, tier, language, text } = rule;
       if (!text) continue;
+      if (!VALID_CATEGORIES.has(category)) continue;
+      if (intensity && !VALID_INTENSITIES.has(intensity)) continue;
+      if (tier && !VALID_TIERS.has(tier)) continue;
 
       if (category === "opener" && OPENER_BANK[intensity]?.[tier]) {
         if (!OPENER_BANK[intensity][tier].includes(text)) {

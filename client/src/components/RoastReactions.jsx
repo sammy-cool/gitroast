@@ -79,6 +79,7 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
     // ── WHY: ─────────────────────────────────────────────────────
     // Complies with React 19 / Next.js 16 guidelines: adjusting state during render
     // (instead of inside useEffect) avoids cascading renders and re-render thrashing.
+    // Uses value-based comparison to prevent infinite loops when parent passes new object refs.
     //
     // ── WHERE & WHEN TO USE: ─────────────────────────────────────
     // When local state must reflect async changes from parent props.
@@ -89,7 +90,11 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
     // ── WHEN NOT TO USE: ─────────────────────────────────────────
     // Do not call setState unconditionally in render (causes infinite loops).
     const [prevInitial, setPrevInitial] = useState(initialReactions)
-    if (initialReactions && initialReactions !== prevInitial) {
+    const initialChanged = initialReactions &&
+        (prevInitial?.relatable !== initialReactions.relatable ||
+         prevInitial?.destroyed !== initialReactions.destroyed ||
+         prevInitial?.savage !== initialReactions.savage)
+    if (initialChanged) {
         setPrevInitial(initialReactions)
         setCounts({
             relatable: initialReactions.relatable || 0,

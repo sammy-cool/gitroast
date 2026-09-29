@@ -66,9 +66,13 @@ export default function LandingPageClient() {
   const [serverStatus, setServerStatus] = useState("checking"); // "checking" | "online" | "offline"
   const [intensity, setIntensity] = useState(() => {
     if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("gitroast_intensity");
-      if (saved && INTENSITIES.find((i) => i.key === saved)) {
-        return saved;
+      try {
+        const saved = sessionStorage.getItem("gitroast_intensity");
+        if (saved && INTENSITIES.find((i) => i.key === saved)) {
+          return saved;
+        }
+      } catch {
+        // Ignored in strict private browsing environments
       }
     }
     return "savage";
@@ -76,9 +80,13 @@ export default function LandingPageClient() {
 
   const [selectedPersona, setSelectedPersona] = useState(() => {
     if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("gitroast_persona");
-      if (saved && PERSONAS.find((p) => p.key === saved)) {
-        return saved;
+      try {
+        const saved = sessionStorage.getItem("gitroast_persona");
+        if (saved && PERSONAS.find((p) => p.key === saved)) {
+          return saved;
+        }
+      } catch {
+        // Ignored in strict private browsing environments
       }
     }
     return null;
@@ -89,17 +97,21 @@ export default function LandingPageClient() {
 
   const [rateLimitSecs, setRateLimitSecs] = useState(() => {
     if (typeof window !== "undefined") {
-      const rl = sessionStorage.getItem("gitroast_rate_limit");
-      if (rl) {
-        try {
-          const { retryAfter, setAt } = JSON.parse(rl);
-          const elapsed = Math.floor((Date.now() - setAt) / 1000);
-          const remaining = retryAfter - elapsed;
-          if (remaining > 0) return remaining;
-          sessionStorage.removeItem("gitroast_rate_limit");
-        } catch {
-          sessionStorage.removeItem("gitroast_rate_limit");
+      try {
+        const rl = sessionStorage.getItem("gitroast_rate_limit");
+        if (rl) {
+          try {
+            const { retryAfter, setAt } = JSON.parse(rl);
+            const elapsed = Math.floor((Date.now() - setAt) / 1000);
+            const remaining = retryAfter - elapsed;
+            if (remaining > 0) return remaining;
+            sessionStorage.removeItem("gitroast_rate_limit");
+          } catch {
+            sessionStorage.removeItem("gitroast_rate_limit");
+          }
         }
+      } catch {
+        // Ignored in strict private browsing environments
       }
     }
     return null;
@@ -462,7 +474,7 @@ export default function LandingPageClient() {
               className="daily-avatar"
               width={36}
               height={36}
-              loading="lazy"
+              loading="eager"
               crossOrigin="anonymous"
             />
             <div className="daily-author-info">

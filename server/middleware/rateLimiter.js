@@ -55,8 +55,11 @@ setInterval(
       }
     }
     // Defensive capacity guard against memory exhaustion from spoofed IP floods
+    // Use FIFO eviction (oldest entry) instead of clearing entire map
+    // to prevent attackers from wiping rate limit state globally
     if (requestCounts.size >= 50000) {
-      requestCounts.clear();
+      const firstKey = requestCounts.keys().next().value;
+      if (firstKey) requestCounts.delete(firstKey);
     }
   },
   5 * 60 * 1000,

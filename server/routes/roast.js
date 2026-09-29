@@ -319,14 +319,13 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
       // WHAT: Uses MongoDB atomic operators ($inc, $set) to update roast stats.
       // WHY: Prevents ParallelSaveError race conditions when multiple concurrent
       //      requests hit the server, ensuring quotas are strictly enforced.
+      //      In-memory increment removed to avoid quota mismatch if DB write fails.
       // WHERE & WHEN TO USE: Whenever updating usage counters or balances.
       // USE CASES: Enforcing daily rate limits and tracking roast counts.
       // WHEN NOT TO USE: When document-level schema pre-save hooks are mandatory.
-      req.user.roastCount += 1;
-      req.user.lastRoastDate = new Date();
       await User.findByIdAndUpdate(req.user._id, {
         $inc: { roastCount: 1, "stats.totalRoasts": 1 },
-        $set: { lastRoastDate: req.user.lastRoastDate },
+        $set: { lastRoastDate: new Date() },
       }).catch((e) =>
         logger.error("RepoRoast", "User atomic update failed", { message: e.message })
       );
@@ -605,14 +604,13 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
       // WHAT: Uses MongoDB atomic operators ($inc, $set) to update roast stats.
       // WHY: Prevents ParallelSaveError race conditions when multiple concurrent
       //      requests hit the server, ensuring quotas are strictly enforced.
+      //      In-memory increment removed to avoid quota mismatch if DB write fails.
       // WHERE & WHEN TO USE: Whenever updating usage counters or balances.
       // USE CASES: Enforcing daily rate limits and tracking roast counts.
       // WHEN NOT TO USE: When document-level schema pre-save hooks are mandatory.
-      req.user.roastCount += 1;
-      req.user.lastRoastDate = new Date();
       await User.findByIdAndUpdate(req.user._id, {
         $inc: { roastCount: 1, "stats.totalRoasts": 1 },
-        $set: { lastRoastDate: req.user.lastRoastDate },
+        $set: { lastRoastDate: new Date() },
       }).catch((e) =>
         logger.error("RoastStream", "User atomic update failed", { message: e.message }),
       );
@@ -866,14 +864,13 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
       // WHAT: Uses MongoDB atomic operators ($inc, $set) to update roast stats.
       // WHY: Prevents ParallelSaveError race conditions when multiple concurrent
       //      requests hit the server, ensuring quotas are strictly enforced.
+      //      In-memory increment removed to avoid quota mismatch if DB write fails.
       // WHERE & WHEN TO USE: Whenever updating usage counters or balances.
       // USE CASES: Enforcing daily rate limits and tracking roast counts.
       // WHEN NOT TO USE: When document-level schema pre-save hooks are mandatory.
-      req.user.roastCount += 1;
-      req.user.lastRoastDate = new Date();
       await User.findByIdAndUpdate(req.user._id, {
         $inc: { roastCount: 1, "stats.totalRoasts": 1 },
-        $set: { lastRoastDate: req.user.lastRoastDate },
+        $set: { lastRoastDate: new Date() },
       }).catch((e) =>
         logger.error("Roast", "User atomic update failed", { message: e.message }),
       );

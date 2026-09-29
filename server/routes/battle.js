@@ -101,6 +101,7 @@ router.get("/:user1/vs/:user2", optionalAuth, verifyCaptcha, async (req, res) =>
   const norm1 = (user1 || "").toLowerCase();
   const norm2 = (user2 || "").toLowerCase();
   const battlePairKey = [norm1, norm2].sort().join("-vs-");
+  // TODO: Include intensity/persona in cache key if battle feature adds support for them
   const cacheKey = `cache:battle:${battlePairKey}`;
 
   // ── Distributed Battle Cache (60s TTL) ──────────────────────
