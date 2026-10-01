@@ -177,6 +177,7 @@ app.use("/api/history", require("./routes/history"));
 app.use("/api/payment", require("./routes/payment"));
 app.use("/api/battle", battleLimiter, require("./routes/battle"));
 app.use("/api/contact", require("./routes/contact"));
+app.use("/api/recruiter-auth", require("./routes/recruiterAuth"));
 
 // ── Step 9: 404 + global error handlers ──────────────────────
 // WHY LAST: Express reads middleware top to bottom

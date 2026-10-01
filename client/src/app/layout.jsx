@@ -16,6 +16,7 @@
 import Script from "next/script";
 import { Bebas_Neue, Fira_Code, Plus_Jakarta_Sans } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
+import { RecruiterAuthProvider } from "@/context/RecruiterAuthContext";
 import { Suspense } from "react";
 import ToastConfig from "@/components/ToastConfig";
 import Footer from "@/components/Footer";
@@ -158,13 +159,16 @@ export default function RootLayout({ children }) {
 
         {/* WHAT: Provides GitHub OAuth state to entire app
             WHY wraps children: every page can call useAuth() safely */}
+
         <AuthProvider>
+          <RecruiterAuthProvider>
           {/* WHAT: Shows branded loading screen during page hydration
               WHY Suspense: required wrapper for async server components
               WHY fallback null: HydrationWrapper handles the loading UI */}
           <Suspense fallback={null}>
             <HydrationWrapper>{children}</HydrationWrapper>
           </Suspense>
+          </RecruiterAuthProvider>
         </AuthProvider>
 
         {/* WHAT: Fixed bottom footer — brand + links + copyright

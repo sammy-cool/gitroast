@@ -125,4 +125,46 @@ function requirePro(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, optionalAuth, requirePro };
+// ── requireRecruiterAuth ──────────────────────────────────────
+// ── WHAT: Enforces mandatory login for Recruiter accounts.
+// ── WHY: Protects endpoints meant exclusively for recruiters (e.g., getting own profile, accessing candidate pool).
+// ── WHERE & WHEN TO USE: On private endpoints where only a recruiter can act.
+async function requireRecruiterAuth(req, res, next) {
+  const token = extractToken(req);
+
+  if (!token) {
+    return res.status(401).json({
+      error: "UNAUTHORIZED",
+      message: "Login required to access this resource.",
+    });
+  }
+
+  const decoded = verifyToken(token);
+  if (!decoded || !decoded.userId || !mongoose.Types.ObjectId.isValid(decoded.userId)) {
+    return res.status(401).json({
+      error: "TOKEN_INVALID",
+      message: "Session expired or invalid. Please login again.",
+    });
+  }
+
+  try {
+    const Recruiter = require("../models/Recruiter");
+    const recruiter = await Recruiter.findById(decoded.userId);
+    if (!recruiter) {
+      return res.status(401).json({
+        error: "USER_NOT_FOUND",
+        message: "Recruiter account associated with this token was not found.",
+      });
+    }
+    // Attach fresh recruiter document to request pipeline
+    req.recruiter = recruiter;
+    next();
+  } catch {
+    return res.status(500).json({
+      error: "SERVER_ERROR",
+      message: "Authentication validation check failed.",
+    });
+  }
+}
+
+module.exports = { requireAuth, optionalAuth, requirePro, requireRecruiterAuth };

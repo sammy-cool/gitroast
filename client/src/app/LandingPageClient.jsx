@@ -515,7 +515,7 @@ export default function LandingPageClient() {
           <button
             type="button"
             className="google-login-btn font-mono"
-            onClick={() => toast.info('Coming soon!')}
+            onClick={() => router.push('/recruiter/login')}
           >
             <span className="google-icon">G</span>
             Sign in with Google
