@@ -758,3 +758,46 @@ Built solo with passion and fire by **Priyanshu**.
 **[gitroast](https://gitroast-dev.vercel.app/)** · Made with 🔥 in India
 
 </div>
+
+### Recruiter & Talent Dashboard Endpoints
+```http
+POST /api/recruiter-auth/register
+Body: { "name", "email", "password", "company" }
+→ { success: true, token, recruiter: { name, email, company } }
+
+POST /api/recruiter-auth/login
+Body: { "email", "password" }
+→ { success: true, token, recruiter }
+
+GET  /api/recruiter-auth/google          → Initiates Google OAuth for Recruiters
+GET  /api/recruiter-auth/google/callback → Validates Google OAuth, returns JWT
+
+GET  /api/recruiter/dashboard/stats
+Headers: Authorization: Bearer <recruiter_jwt>
+→ { success: true, stats: { savedCount: number, analysisCount: number } }
+
+GET  /api/recruiter/analyze/:username
+Headers: Authorization: Bearer <recruiter_jwt>
+→ { 
+    success: true, 
+    analysis: { 
+      skills: ["React", "Node"], 
+      redFlags: ["Infrequent commits"], 
+      seniority: "Mid-level", 
+      hireabilityScore: 85,
+      rawProfile: {...}
+    } 
+  }
+
+GET  /api/recruiter/candidates/saved
+Headers: Authorization: Bearer <recruiter_jwt>
+→ { success: true, candidates: [ { username, savedAt, notes } ] }
+
+POST /api/recruiter/candidates/saved
+Headers: Authorization: Bearer <recruiter_jwt>
+Body: { "username", "notes" }
+→ { success: true, candidates: [...] }
+```
+
+## 🎨 Design System (Project Luminous)
+GitRoast strictly adheres to the **Project Luminous** aesthetic—a sleek, airy, light-mode interface (`#f8fafc` backgrounds) with brilliant `#00bcd4` (Cyan) and `#FF4500` (Fire Orange) accents, completely eradicating legacy dark mode elements. 
