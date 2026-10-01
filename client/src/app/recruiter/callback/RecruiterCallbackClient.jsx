@@ -27,8 +27,8 @@ export default function RecruiterCallbackClient() {
         }
 
         loginWithToken(token)
-        toast.success('Google account connected! Welcome, Recruiter.')
-        router.replace('/dashboard')
+        toast.success('Google account connected! Welcome to GitRoast Talent.')
+        router.replace('/recruiter/dashboard')
 
     }, [searchParams, loginWithToken, router])
 

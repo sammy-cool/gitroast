@@ -146,50 +146,6 @@ export default function DashboardClient() {
     }
   }, [])
 
-  // ── Unauthenticated State View ────────────────────────────────
-  if (!authLoading && !isLoggedIn) {
-    return (
-      <main className="dashboard-page">
-        <div className="landing-glow animate-glow" />
-        <div className="dashboard-container">
-          <header className="dash-nav">
-            <Link href="/" className="dash-logo font-display">GITROAST 🔥</Link>
-            <div className="dash-nav-right">
-              <SoundToggle />
-              <Link href="/" className="dash-back-btn font-mono">← Home</Link>
-            </div>
-          </header>
-
-          <section className="card unauth-card">
-            <div className="unauth-icon font-display">🔒</div>
-            <h1 className="unauth-title font-display">DEVELOPER VAULT & SETTINGS</h1>
-            <p className="unauth-desc">
-              Connect your GitHub account to access your personal roast history, manage daily AI quota,
-              generate custom README badges, and customize your persona tone.
-            </p>
-            <div className="unauth-perks font-mono">
-              <div className="unauth-perk-item">✓ Dedicated 5,000 req/hr GitHub API Quota</div>
-              <div className="unauth-perk-item">✓ Personal Roast Vault & Certificate Archive</div>
-              <div className="unauth-perk-item">✓ 1-Click Profile README.md Badges</div>
-              <div className="unauth-perk-item">✓ Ghost Mode: Wall of Shame Privacy Toggle</div>
-              <div className="unauth-perk-item">✓ Persona Preference Persistence</div>
-            </div>
-            <button
-              type="button"
-              className="btn btn--fire unauth-login-btn font-mono"
-              onClick={loginWithGitHub}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-              </svg>
-              CONNECT VIA GITHUB ⚡
-            </button>
-          </section>
-        </div>
-      </main>
-    )
-  }
-
   const currentPersona = user?.customPreferences?.defaultPersona || 'classic'
   const isGhostMode = Boolean(user?.customPreferences?.hideFromLeaderboard)
 
@@ -221,7 +177,42 @@ export default function DashboardClient() {
           </div>
         </header>
 
-        {/* ── User Profile Header Card ── */}
+        {/* ── Conditional View: Loading Skeleton vs Unauthenticated Gate vs Authenticated Vault ── */}
+        {authLoading ? (
+          <section className="card unauth-card" style={{ textAlign: 'center', padding: '3.5rem 1.5rem' }}>
+            <div className="unauth-icon font-display" style={{ animation: 'spin 2s linear infinite' }}>⏳</div>
+            <h2 className="unauth-title font-display">ACCESSING DEVELOPER VAULT...</h2>
+            <p className="unauth-desc">Authenticating session and fetching your GitHub metadata.</p>
+          </section>
+        ) : !isLoggedIn ? (
+          <section className="card unauth-card">
+            <div className="unauth-icon font-display">🔒</div>
+            <h1 className="unauth-title font-display">DEVELOPER VAULT & SETTINGS</h1>
+            <p className="unauth-desc">
+              Connect your GitHub account to access your personal roast history, manage daily AI quota,
+              generate custom README badges, and customize your persona tone.
+            </p>
+            <div className="unauth-perks font-mono">
+              <div className="unauth-perk-item">✓ Dedicated 5,000 req/hr GitHub API Quota</div>
+              <div className="unauth-perk-item">✓ Personal Roast Vault & Certificate Archive</div>
+              <div className="unauth-perk-item">✓ 1-Click Profile README.md Badges</div>
+              <div className="unauth-perk-item">✓ Ghost Mode: Wall of Shame Privacy Toggle</div>
+              <div className="unauth-perk-item">✓ Persona Preference Persistence</div>
+            </div>
+            <button
+              type="button"
+              className="btn btn--fire unauth-login-btn font-mono"
+              onClick={loginWithGitHub}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+              </svg>
+              CONNECT VIA GITHUB ⚡
+            </button>
+          </section>
+        ) : (
+          <>
+            {/* ── User Profile Header Card ── */}
         <section className="card user-profile-card">
           <div className="user-profile-left">
             <div className="user-avatar-wrap">
@@ -477,6 +468,8 @@ export default function DashboardClient() {
             <div className="plan-perk-item">✓ Priority queue execution on Render & Vercel</div>
           </div>
         </section>
+        </>
+        )}
       </div>
 
       <style jsx>{`

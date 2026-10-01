@@ -29,5 +29,6 @@ export {
   setDefaultColors,
   setDefaultMessages,
   TOAST_COLORS,
+  normalizeApiError,
   default,
 } from "./toastUtils";

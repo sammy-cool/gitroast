@@ -381,6 +381,25 @@ export const toast = {
   },
 
   /**
+   * ── WHAT: Normalized API Error Dispatcher.
+   * ── WHY: Automatically intercepts technical error codes (404, 429, 502) and maps them to human copy.
+   * ── WHERE & WHEN TO USE: In any catch block handling API dispatches.
+   */
+  apiError(err, context = {}, extra = {}) {
+    const normalized = normalizeApiError(err, context);
+    if (normalized.isRateLimit && extra.onLoginClick) {
+      return this.rateLimit(normalized.retryAfter, extra.onLoginClick);
+    }
+    if (normalized.isProNudge && extra.onProClick) {
+      return this.proNudge(normalized.message, extra.onProClick);
+    }
+    if (normalized.type === "warning") {
+      return this.warning(normalized.message, extra);
+    }
+    return this.error(normalized.message, extra);
+  },
+
+  /**
    * ── WHAT: Dismisses the most recent active toast notification.
    * ── WHY: Allows callers to programmatic clean up toasts upon modal opens or unmounts.
    */
@@ -389,4 +408,65 @@ export const toast = {
   },
 };
 
+/**
+ * ── WHAT: ────────────────────────────────────────────────────
+ * Translates technical error codes and network failures into human-readable developer comedy copy.
+ * ── WHY: ─────────────────────────────────────────────────────
+ * Guarantees that raw backend JSON or technical gateway messages are never dumped directly into UI.
+ */
+export function normalizeApiError(err, context = {}) {
+  const code = (err && (err.code || err.error)) || "";
+  const msg = (err && err.message) || "";
+
+  if (code === "USER_NOT_FOUND" || msg.includes("not found")) {
+    return {
+      message: `GitHub user @${context.username || "this user"} does not exist or has been deleted.`,
+      type: "error",
+      code: "USER_NOT_FOUND",
+    };
+  }
+
+  if (code === "ORGANIZATION_NOT_SUPPORTED" || msg.includes("Organization")) {
+    return {
+      message: `@${context.username || "This entity"} is a GitHub Organization. GitRoast roasts individual developers!`,
+      type: "warning",
+      code: "ORGANIZATION_NOT_SUPPORTED",
+    };
+  }
+
+  if (code === "RATE_LIMIT_EXCEEDED" || (err && err.status === 429)) {
+    return {
+      message: "Hourly rate limit reached! Connect your GitHub account to unlock 5,000 req/hr quota.",
+      type: "warning",
+      code: "RATE_LIMIT_EXCEEDED",
+      isRateLimit: true,
+      retryAfter: (err && err.retryAfter) || 60,
+    };
+  }
+
+  if (code === "NUCLEAR_REQUIRES_PRO" || msg.includes("Nuclear")) {
+    return {
+      message: "Nuclear ☢️ intensity burns are reserved for Pro Roaster & Historian members.",
+      type: "info",
+      code: "NUCLEAR_REQUIRES_PRO",
+      isProNudge: true,
+    };
+  }
+
+  if (code === "GATEWAY_TIMEOUT" || code === "GATEWAY_ERROR" || (err && err.status >= 500)) {
+    return {
+      message: "GitRoast server is warming up. Please hold tight and try again in a few moments...",
+      type: "warning",
+      code: "GATEWAY_TIMEOUT",
+    };
+  }
+
+  return {
+    message: msg && !msg.startsWith("{") ? msg : "An unexpected glitch occurred. Please try again.",
+    type: "error",
+    code: code || "UNKNOWN_ERROR",
+  };
+}
+
 export default toast;
+

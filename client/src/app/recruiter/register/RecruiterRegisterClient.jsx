@@ -21,8 +21,8 @@ export default function RecruiterRegisterClient() {
     setIsLoading(true)
     try {
       await registerWithEmail(name, email, password, company)
-      toast.success('Successfully registered!')
-      router.push('/dashboard') // Or wherever recruiters go
+      toast.success('Successfully registered! Welcome to GitRoast Talent.')
+      router.push('/recruiter/dashboard')
     } catch (err) {
       toast.error(err.message || 'Registration failed')
     } finally {

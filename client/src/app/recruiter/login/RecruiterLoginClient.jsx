@@ -1,25 +1,62 @@
 "use client"
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useRecruiterAuth } from '@/context/RecruiterAuthContext'
 import { toast } from '@/utils/toast'
 
+/**
+ * ── RecruiterLoginClient ──────────────────────────────────────────
+ * ── WHAT: ─────────────────────────────────────────────────────────
+ * Authentication portal for technical recruiters and engineering hiring managers.
+ * Supports both corporate Google OAuth and traditional Email/Password credentials.
+ * 
+ * ── WHY: ──────────────────────────────────────────────────────────
+ * Separate authentication interface prevents recruiter sessions from contaminating
+ * developer GitHub token quotas and routes recruiters directly to Candidate X-Ray.
+ * 
+ * ── WHERE & WHEN TO USE: ──────────────────────────────────────────
+ * Mounted at /recruiter/login. Wrapped in <Suspense> in page.jsx.
+ * 
+ * ── USE CASES: ────────────────────────────────────────────────────
+ * Technical recruiters logging in to search and evaluate candidate profiles.
+ * 
+ * ── WHEN NOT TO USE: ──────────────────────────────────────────────
+ * Do not route developer GitHub users here; developers use GitHub OAuth at /.
+ */
 export default function RecruiterLoginClient() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { loginWithGoogle, loginWithEmail } = useRecruiterAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // ── Consume OAuth Redirect Errors Gracefully ────────────────────
+  // WHY: Ensures raw JSON is never leaked if Google OAuth is unconfigured or cancelled
+  useEffect(() => {
+    const authError = searchParams.get('auth_error')
+    if (!authError) return
+
+    if (authError === 'oauth_unconfigured') {
+      toast.warning('Google Sign-In is temporarily unavailable. Please sign in with your email below!', {
+        duration: 6500,
+      })
+    } else if (authError === 'access_denied') {
+      toast.info('Google sign-in was cancelled.')
+    } else {
+      toast.error('Google authentication failed. Please try email login.')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     try {
       await loginWithEmail(email, password)
-      toast.success('Successfully logged in!')
-      router.push('/dashboard') // Or wherever recruiters go
+      toast.success('Successfully logged in! Welcome to GitRoast Talent.')
+      router.push('/recruiter/dashboard')
     } catch (err) {
       toast.error(err.message || 'Login failed')
     } finally {

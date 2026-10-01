@@ -66,8 +66,13 @@
   --radius-lg: 14px;
   --radius-xl: 20px;
 
+  /* Viewport Clearance & Footer */
+  --footer-height: 56px;
+  --page-bottom-pad: 7rem; /* Guaranteed clearance above fixed bottom footer per Rule 2.3 */
+
   /* Transitions */
   --ease: all 0.18s ease;
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── Reset ───────────────────────────────────────────────── */
@@ -295,7 +300,7 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #444;
+  background: var(--text-muted);
 }
 
 /* ── Selection ───────────────────────────────────────────── */

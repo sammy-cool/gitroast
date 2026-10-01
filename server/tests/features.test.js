@@ -1917,4 +1917,180 @@ describe("Feature #20 — 3D Code Solar System & Universe Engine", () => {
     });
 });
 
+/**
+ * ── FEATURE #21: RECRUITER AUTHENTICATION, AUTHORIZATION & CANDIDATE X-RAY INVARIANTS ──
+ * WHAT: Comprehensive test suite verifying enterprise Recruiter models, Google OAuth error redirection,
+ *       email/password authentication, route guards, and Candidate X-Ray endpoint registration.
+ * WHY: Protects enterprise features from regressions and guarantees zero raw JSON errors leak to browsers.
+ * WHERE & WHEN TO USE: Runs during pre-commit and CI verification trifecta.
+ * USE CASES: Recruiter registration, password verification, OAuth redirection guards, saved candidate flows.
+ * WHEN NOT TO USE: Do not bypass requireRecruiterAuth on endpoints intended for recruiter privacy.
+ */
+describe("Feature #21 — Recruiter Authentication, Authorization & Candidate X-Ray Invariants", () => {
+    const Recruiter = require("../models/Recruiter");
+    const recruiterAuthRoute = require("../routes/recruiterAuth");
+    const recruiterRoute = require("../routes/recruiter");
+    const { requireRecruiterAuth } = require("../middleware/auth");
+    const bcrypt = require("bcryptjs");
+
+    it("should initialize Recruiter model with role recruiter and empty savedCandidates", () => {
+        const recruiter = new Recruiter({
+            email: "hiring@acme.corp",
+            name: "Jane Talent",
+            company: "Acme Corp",
+        });
+
+        assert.equal(recruiter.role, "recruiter");
+        assert.ok(Array.isArray(recruiter.savedCandidates));
+        assert.equal(recruiter.savedCandidates.length, 0);
+
+        const safe = recruiter.toSafeObject();
+        assert.equal(safe.email, "hiring@acme.corp");
+        assert.equal(safe.role, "recruiter");
+        assert.equal(safe.password, undefined, "toSafeObject must never expose password hash");
+    });
+
+    it("should verify Recruiter.comparePassword correctly validates bcrypt hashes", async () => {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash("SuperSecret123!", salt);
+        const recruiter = new Recruiter({
+            email: "test@recruiter.com",
+            name: "Test Recruiter",
+            password: hashedPassword,
+        });
+
+        const isMatch = await recruiter.comparePassword("SuperSecret123!");
+        assert.equal(isMatch, true, "Valid password must return true");
+
+        const isWrong = await recruiter.comparePassword("WrongPassword");
+        assert.equal(isWrong, false, "Invalid password must return false");
+    });
+
+    it("should redirect with auth_error=oauth_unconfigured when GOOGLE_CLIENT_ID is missing on GET /google (Zero-Leak Error Redirection)", () => {
+        const originalGoogleId = process.env.GOOGLE_CLIENT_ID;
+        delete process.env.GOOGLE_CLIENT_ID;
+
+        let redirectedUrl = null;
+        const req = { protocol: "http", get: () => "localhost:5000" };
+        const res = {
+            redirect: (url) => {
+                redirectedUrl = url;
+            },
+        };
+
+        const googleLayer = recruiterAuthRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/google" && layer.route.methods.get,
+        );
+        assert.ok(googleLayer, "GET /google route must exist in recruiterAuth router");
+        const handler = googleLayer.route.stack[googleLayer.route.stack.length - 1].handle;
+        handler(req, res);
+
+        assert.ok(redirectedUrl, "Must redirect to client instead of emitting raw JSON");
+        assert.ok(
+            redirectedUrl.includes("/recruiter/login?auth_error=oauth_unconfigured"),
+            `Redirect URL must contain auth_error=oauth_unconfigured, got: ${redirectedUrl}`,
+        );
+
+        if (originalGoogleId) process.env.GOOGLE_CLIENT_ID = originalGoogleId;
+    });
+
+    it("should reject recruiter registration with 400 when missing required fields", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = { body: { email: "onlyemail@corp.com" } };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const regLayer = recruiterAuthRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/register" && layer.route.methods.post,
+        );
+        assert.ok(regLayer, "POST /register route must exist");
+        const handler = regLayer.route.stack[regLayer.route.stack.length - 1].handle;
+        await handler(req, res);
+
+        assert.equal(statusCode, 400);
+        assert.equal(responseData.error, "Missing required fields");
+    });
+
+    it("should reject recruiter login with 400 when missing email or password", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        const req = { body: {} };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+
+        const loginLayer = recruiterAuthRoute.stack.find(
+            (layer) => layer.route && layer.route.path === "/login" && layer.route.methods.post,
+        );
+        assert.ok(loginLayer, "POST /login route must exist");
+        const handler = loginLayer.route.stack[loginLayer.route.stack.length - 1].handle;
+        await handler(req, res);
+
+        assert.equal(statusCode, 400);
+        assert.equal(responseData.error, "Missing email or password");
+    });
+
+    it("should reject unauthenticated requests to requireRecruiterAuth with 401 UNAUTHORIZED", async () => {
+        let statusCode = 0;
+        let responseData = null;
+        let nextCalled = false;
+        const req = { headers: {} };
+        const res = {
+            status: (code) => {
+                statusCode = code;
+                return res;
+            },
+            json: (data) => {
+                responseData = data;
+                return res;
+            },
+        };
+        const next = () => {
+            nextCalled = true;
+        };
+
+        await requireRecruiterAuth(req, res, next);
+        assert.equal(statusCode, 401);
+        assert.equal(responseData.error, "UNAUTHORIZED");
+        assert.equal(nextCalled, false);
+    });
+
+    it("should mount all recruiter endpoints (/dashboard/stats, /candidates/saved, /analyze/:username)", () => {
+        const statsRoute = recruiterRoute.stack.find(
+            (l) => l.route && l.route.path === "/dashboard/stats" && l.route.methods.get,
+        );
+        const savedGetRoute = recruiterRoute.stack.find(
+            (l) => l.route && l.route.path === "/candidates/saved" && l.route.methods.get,
+        );
+        const savedPostRoute = recruiterRoute.stack.find(
+            (l) => l.route && l.route.path === "/candidates/saved" && l.route.methods.post,
+        );
+        const analyzeRoute = recruiterRoute.stack.find(
+            (l) => l.route && l.route.path === "/analyze/:username" && l.route.methods.get,
+        );
+
+        assert.ok(statsRoute, "GET /dashboard/stats route must exist");
+        assert.ok(savedGetRoute, "GET /candidates/saved route must exist");
+        assert.ok(savedPostRoute, "POST /candidates/saved route must exist");
+        assert.ok(analyzeRoute, "GET /analyze/:username route must exist");
+    });
+});
+
+
 

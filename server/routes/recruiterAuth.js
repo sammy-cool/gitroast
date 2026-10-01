@@ -73,12 +73,16 @@ router.post("/login", async (req, res) => {
 });
 
 // ── GET /google ──────────────────────────────────────────────
-// ── WHAT: Initiates the Google OAuth flow.
-// ── WHY: Enterprise users often prefer single sign-on (SSO) via Google Workspace.
+// ── WHAT: Initiates the Google OAuth flow by redirecting to Google's consent screen.
+// ── WHY: Enterprise users prefer single sign-on (SSO) via corporate Google Workspace.
+// ── WHERE & WHEN TO USE: Triggered when user clicks 'Sign in with Google' on recruiter portal.
+// ── USE CASES: Corporate recruiters accessing Candidate X-Ray via Google OAuth.
+// ── WHEN NOT TO USE: Never emit raw JSON from this endpoint; must always redirect.
 router.get("/google", (req, res) => {
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
   if (!GOOGLE_CLIENT_ID) {
-    return res.status(500).json({ error: "Google OAuth not configured." });
+    logger.warn("RecruiterAuth", "Google OAuth requested but GOOGLE_CLIENT_ID is not configured");
+    return res.redirect(`${CLIENT_URL}/recruiter/login?auth_error=oauth_unconfigured`);
   }
   // WHY: Google requires an exact match for redirect URIs. We read from env to support Render vs Localhost.
   const redirectUri = process.env.GOOGLE_CALLBACK_URL || `${req.protocol}://${req.get("host")}/api/recruiter-auth/google/callback`;
@@ -92,9 +96,15 @@ router.get("/google", (req, res) => {
 // ── GET /google/callback ─────────────────────────────────────
 // ── WHAT: Handles the Google OAuth callback, exchanges code for tokens, and upserts user.
 // ── WHY: Completes the OAuth flow, linking a Google account to a Recruiter profile.
+// ── WHERE & WHEN TO USE: Invoked automatically by Google's OAuth consent redirect.
+// ── USE CASES: Finalizing recruiter authentication and issuing signed JWT.
+// ── WHEN NOT TO USE: Do not send raw HTML; always redirect back to client SPA.
 router.get("/google/callback", async (req, res) => {
   const { code } = req.query;
-  if (!code) return res.status(400).send("No code provided.");
+  if (!code) {
+    logger.warn("RecruiterAuth", "Google OAuth callback received without code");
+    return res.redirect(`${CLIENT_URL}/recruiter/login?auth_error=access_denied`);
+  }
 
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
   const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
@@ -139,7 +149,7 @@ router.get("/google/callback", async (req, res) => {
     res.redirect(`${CLIENT_URL}/recruiter/callback?token=${token}`);
   } catch (err) {
     logger.error("RecruiterAuth", "Google OAuth callback error", { message: err.message });
-    res.redirect(`${CLIENT_URL}/recruiter/login?error=oauth_failed`);
+    res.redirect(`${CLIENT_URL}/recruiter/login?auth_error=oauth_failed`);
   }
 });
 

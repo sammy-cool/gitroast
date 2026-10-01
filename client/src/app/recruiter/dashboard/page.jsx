@@ -1,8 +1,14 @@
 import DashboardClient from './DashboardClient';
 
-/**
- * EDU: Server component that renders the client component for the dashboard
- */
+export const metadata = {
+  title: 'Recruiter Command Center — GitRoast Candidate X-Ray',
+  description: 'Evaluate technical talent by hard commit signals, test suites, and abandonment ratios.',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
+
 export default function DashboardPage() {
   return <DashboardClient />;
 }
