@@ -47,6 +47,13 @@ const recruiterSchema = new mongoose.Schema(
       type: String,
       default: "recruiter",
     },
+    savedCandidates: [
+      {
+        username: { type: String, required: true },
+        savedAt: { type: Date, default: Date.now },
+        notes: { type: String },
+      },
+    ],
   },
   { timestamps: true }
 );

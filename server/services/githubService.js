@@ -1062,5 +1062,5 @@ async function analyzeUniverse(
   };
 }
 
-module.exports = { analyzeProfile, analyzeWrapped, analyzeUniverse };
+module.exports = { analyzeProfile, analyzeWrapped, analyzeUniverse, fetchProfile, fetchRepos };
 

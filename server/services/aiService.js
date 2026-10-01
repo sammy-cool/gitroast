@@ -725,12 +725,74 @@ RULES:
   return fallback.slice(0, 3);
 }
 
+// ── generateHireabilityBrief ──────────────────────────────────
+// ── WHAT: ────────────────────────────────────────────────────
+// Generates a structured JSON hireability brief for recruiters assessing developers.
+// ── WHY: ─────────────────────────────────────────────────────
+// Enables recruiters to quickly evaluate a candidate based on their GitHub footprint.
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// In /api/recruiter/analyze/:username endpoint.
+// ── USE CASES: ───────────────────────────────────────────────
+// Recruiter dashboards analyzing a potential candidate's GitHub footprint.
+async function generateHireabilityBrief(profile, repos) {
+  if (!process.env.GEMINI_API_KEY) {
+    logger.warn("AI", "No Gemini API key for hireability brief");
+    return { error: "AI evaluation unavailable" };
+  }
+
+  const prompt = `You are a Senior Engineering Manager assisting a recruiter in evaluating a candidate's GitHub profile.
+Evaluate the developer based on their profile and repositories data.
+Return a structured JSON object evaluating the developer for hireability.
+
+DATA:
+Profile: ${JSON.stringify({ bio: profile.bio, public_repos: profile.public_repos, followers: profile.followers })}
+Repos Summary: ${JSON.stringify(repos.slice(0, 15).map(r => ({ name: r.name, language: r.language, stars: r.stargazers_count, fork: r.fork }))) }
+
+RULES:
+- Return ONLY valid JSON, no markdown formatting (like \`\`\`json).
+- The JSON should have these keys:
+  - "skills": Array of strings (top technical skills inferred).
+  - "codeQuality": String (brief assessment of code quality based on repos).
+  - "redFlags": Array of strings (any concerning patterns, e.g., low activity, mostly forks).
+  - "seniorityLeaning": String ("Junior", "Mid-Level", or "Senior" with brief justification).
+  - "summary": String (1-2 sentence overall hireability summary).`;
+
+  try {
+    const response = await fetch(
+      `${GEMINI_API_URL}?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.2,
+            topP: 0.95,
+          },
+        }),
+        signal: AbortSignal.timeout(30000),
+      }
+    );
+
+    if (!response.ok) return { error: "AI API error" };
+
+    const json = await response.json();
+    let text = json?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+    text = text.replace(/^```json\s*|```$/g, "").trim();
+    return JSON.parse(text);
+  } catch (err) {
+    logger.error("AI", "Hireability brief generation failed", { message: err.message });
+    return { error: "Evaluation failed" };
+  }
+}
+
 module.exports = {
   generateAIRoast,
   generateAIRoastStream,
   generateAIRepoRoast,
   generateAIRedemptionPlan,
   buildRepoRoastPrompt,
+  generateHireabilityBrief,
   GEMINI_MODEL,
   resolveGeminiModel,
   PERSONA_CONFIG,
