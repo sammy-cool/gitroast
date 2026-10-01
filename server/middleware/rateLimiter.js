@@ -58,8 +58,11 @@ setInterval(
     // Use FIFO eviction (oldest entry) instead of clearing entire map
     // to prevent attackers from wiping rate limit state globally
     if (requestCounts.size >= 50000) {
-      const firstKey = requestCounts.keys().next().value;
-      if (firstKey) requestCounts.delete(firstKey);
+      let count = 0;
+      for (const key of requestCounts.keys()) {
+        requestCounts.delete(key);
+        if (++count > 5000) break;
+      }
     }
   },
   5 * 60 * 1000,
