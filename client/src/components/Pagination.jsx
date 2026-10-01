@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 'use client';
 
 function getPageNumbers(current, total) {
@@ -182,7 +183,7 @@ export default function Pagination({
 
         .lb-page-btn.active {
           background: linear-gradient(135deg, #ff4500 0%, #ff6b00 50%, #ffb700 100%);
-          color: #070707;
+          color: var(--bg-primary, #f8fafc);
           font-weight: 700;
           border: none;
           box-shadow: 0 0 12px rgba(255, 69, 0, 0.4);

@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 'use client'
 
 // WHERE: client/src/components/BattleCard.jsx
@@ -113,7 +114,7 @@ export default function BattleCard({ data }) {
                     const canvas = await html2canvas(element, {
                         scale,
                         useCORS: true,
-                        backgroundColor: '#0F0F0F',
+                        backgroundColor: 'var(--bg-primary, #f8fafc)',
                         logging: false,
                         windowWidth: element.scrollWidth,
                         windowHeight: element.scrollHeight,

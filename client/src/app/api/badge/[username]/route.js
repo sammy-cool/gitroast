@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 // ============================================================
 // GITROAST — Dynamic SVG GitHub README Badge
 // ============================================================
@@ -79,8 +80,8 @@ export async function GET(request, { params }) {
     <rect width="190" height="28" rx="6" fill="#fff" />
   </clipPath>
   <g clip-path="url(#r)">
-    <rect width="70" height="28" fill="#141414" />
-    <rect x="70" width="120" height="28" fill="#0A0A0A" />
+    <rect width="70" height="28" fill="#FFFFFF" />
+    <rect x="70" width="120" height="28" fill="#FAFAFA" />
     <rect x="70" width="120" height="28" fill="${color}" fill-opacity="0.12" />
     <line x1="70" y1="0" x2="70" y2="28" stroke="#262626" stroke-width="1" />
   </g>
@@ -115,13 +116,13 @@ export async function GET(request, { params }) {
       <stop offset="100%" stop-color="#FFB700" />
     </linearGradient>
     <linearGradient id="cardBg" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#141414" />
-      <stop offset="100%" stop-color="#0A0A0A" />
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="100%" stop-color="#FAFAFA" />
     </linearGradient>
   </defs>
 
   <!-- Background Card -->
-  <rect x="1" y="1" width="378" height="110" rx="10" fill="url(#cardBg)" stroke="#222222" stroke-width="1.5" />
+  <rect x="1" y="1" width="378" height="110" rx="10" fill="url(#cardBg)" stroke="#e2e8f0" stroke-width="1.5" />
   
   <!-- Accent Top Border -->
   <path d="M 1 11 A 10 10 0 0 1 11 1 L 369 1 A 10 10 0 0 1 379 11 L 379 3 L 1 3 Z" fill="url(#fireGrad)" />

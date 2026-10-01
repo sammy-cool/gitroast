@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 // ============================================================
 // GITROAST — Battle OG Image Route
 // ============================================================
@@ -88,7 +89,7 @@ export async function GET(request) {
       style={{
         width: "1200px",
         height: "630px",
-        background: "#070707",
+        background: "#FAFAFA",
         display: "flex",
         flexDirection: "column",
         position: "relative",

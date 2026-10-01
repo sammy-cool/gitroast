@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 export default function CommitShame({ commits }) {
     // ── Safe Commits Array Guard ────────────────────────────────
     // ── WHAT: ────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ export default function CommitShame({ commits }) {
           gap:       6px;
         }
         .commit-tag {
-          background:    #111;
+          background:    var(--bg-elevated, #ffffff);
           border:        1px solid #1E1E1E;
           border-radius: var(--radius-sm);
           padding:       4px 10px;

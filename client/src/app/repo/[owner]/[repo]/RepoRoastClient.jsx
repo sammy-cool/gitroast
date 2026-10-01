@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 'use client'
 
 // ============================================================
@@ -233,7 +234,7 @@ export default function RepoRoastClient({ owner, repo }) {
           max-width: 480px;
           padding: 2.5rem 2rem;
           text-align: center;
-          background: #111;
+          background: var(--bg-elevated, #ffffff);
           border: 1px solid var(--border);
           border-radius: var(--radius-lg);
           z-index: 1;

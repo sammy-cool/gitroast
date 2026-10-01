@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 'use client'
 
 // ============================================================
@@ -372,7 +373,7 @@ export default function UniverseEntryClient() {
                 .warp-input {
                     width: 100%;
                     padding: 16px 44px 16px 48px;
-                    background: #0A0A0A;
+                    background: var(--bg-primary, #f8fafc);
                     border: 1px solid #333333;
                     border-radius: 12px;
                     color: #FFFFFF;
@@ -461,8 +462,8 @@ export default function UniverseEntryClient() {
                     gap: 16px;
                 }
                 .system-card {
-                    background: #111111;
-                    border: 1px solid #222222;
+                    background: var(--bg-elevated, #ffffff);
+                    border: 1px solid #e2e8f0;
                     border-radius: 14px;
                     padding: 18px;
                     text-align: left;
@@ -546,7 +547,7 @@ export default function UniverseEntryClient() {
                 }
                 .taxonomy-card {
                     background: rgba(18, 18, 18, 0.7);
-                    border: 1px solid #222222;
+                    border: 1px solid #e2e8f0;
                     border-radius: 12px;
                     padding: 18px;
                     display: flex;

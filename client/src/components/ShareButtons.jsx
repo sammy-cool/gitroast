@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 "use client";
 
 import { useState } from "react";
@@ -100,7 +101,7 @@ export default function ShareButtons({
                     const canvas = await html2canvas(element, {
                         scale,
                         useCORS: true,
-                        backgroundColor: "#0F0F0F",
+                        backgroundColor: "var(--bg-primary, #f8fafc)",
                         logging: false,
                         windowWidth: element.scrollWidth,
                         windowHeight: element.scrollHeight,
@@ -359,8 +360,8 @@ export default function ShareButtons({
           font-size: 10px;
           padding: 2px 8px;
           border-radius: var(--radius-sm);
-          background: #111;
-          border: 1px dashed #222;
+          background: var(--bg-elevated, #ffffff);
+          border: 1px dashed #e2e8f0;
           color: #3a3a3a;
           letter-spacing: 1px;
         }
@@ -387,7 +388,7 @@ export default function ShareButtons({
           transition: var(--ease);
         }
         .btn-twitter:hover {
-          background: #111;
+          background: var(--bg-elevated, #ffffff);
           border-color: #555;
         }
         .secondary-buttons {
@@ -542,7 +543,7 @@ export default function ShareButtons({
           background: #050505;
           padding: 6px 10px;
           border-radius: 4px;
-          border: 1px solid #1A1A1A;
+          border: 1px solid var(--bg-primary, #f8fafc);
           overflow-x: auto;
           white-space: nowrap;
         }

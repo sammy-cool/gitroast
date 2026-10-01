@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 'use client'
 
 // WHY useState + useEffect: we animate lines appearing
@@ -198,7 +199,7 @@ export default function AnalyzingScreen({ username }) {
         }
         .progress-track {
           height:        3px;
-          background:    #111;
+          background:    var(--bg-elevated, #ffffff);
           border-radius: 2px;
           overflow:      hidden;
         }

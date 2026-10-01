@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 'use client';
 
 // ============================================================
@@ -491,7 +492,7 @@ export default function ContactPageClient() {
           font-size: 11px;
           padding: 6px 12px;
           border-radius: var(--radius-sm);
-          background: #111;
+          background: var(--bg-elevated, #ffffff);
           border: 1px solid var(--border);
           color: var(--text-secondary);
           cursor: pointer;

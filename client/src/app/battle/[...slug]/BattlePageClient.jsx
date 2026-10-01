@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -228,7 +229,7 @@ export default function BattlePageClient({ user1, user2 }) {
             display: flex; justify-content: space-between;
             font-size: 12px; color: var(--text-muted); margin-bottom: 6px;
           }
-          .progress-track { height: 3px; background: #111; border-radius: 2px; overflow: hidden; }
+          .progress-track { height: 3px; background: var(--bg-elevated, #ffffff); border-radius: 2px; overflow: hidden; }
           .progress-fill {
             height: 100%; background: var(--fire-grad);
             border-radius: 2px; transition: width 0.5s ease;

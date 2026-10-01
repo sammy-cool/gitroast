@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 "use client";
 
 // ============================================================
@@ -59,7 +60,7 @@ export default function GitHubWrapped({ username, isPro }) {
                     const canvas = await html2canvas(el, {
                         scale: 2,
                         useCORS: true,
-                        backgroundColor: "#0A0A0A",
+                        backgroundColor: "var(--bg-primary, #f8fafc)",
                         logging: false,
                         windowWidth: 700,
                         windowHeight: 900,
@@ -544,7 +545,7 @@ export default function GitHubWrapped({ username, isPro }) {
 
         /* Archetype */
         .archetype-card {
-          background: #141414;
+          background: var(--bg-card, #ffffff);
           border: 1px solid rgba(255, 107, 0, 0.25);
           border-radius: var(--radius-md);
           padding: 16px 18px;
@@ -587,8 +588,8 @@ export default function GitHubWrapped({ username, isPro }) {
           margin-bottom: 18px;
         }
         .stat-card {
-          background: #111;
-          border: 1px solid #222;
+          background: var(--bg-elevated, #ffffff);
+          border: 1px solid #e2e8f0;
           border-radius: var(--radius-md);
           padding: 12px 14px;
           display: flex;
@@ -630,8 +631,8 @@ export default function GitHubWrapped({ username, isPro }) {
 
         /* Monthly Chart */
         .chart-section {
-          background: #111;
-          border: 1px solid #222;
+          background: var(--bg-elevated, #ffffff);
+          border: 1px solid #e2e8f0;
           border-radius: var(--radius-md);
           padding: 12px 14px;
           margin-bottom: 18px;
@@ -738,7 +739,7 @@ export default function GitHubWrapped({ username, isPro }) {
           border: 1px solid #333;
         }
         .btn-twitter:hover {
-          background: #111;
+          background: var(--bg-elevated, #ffffff);
           border-color: #555;
         }
 
@@ -750,7 +751,7 @@ export default function GitHubWrapped({ username, isPro }) {
         }
         .capture-container {
           width: 650px;
-          background: #0a0a0a;
+          background: var(--bg-primary, #f8fafc);
           border: 2px solid #ff4500;
           padding: 36px;
           color: #fff;
@@ -759,7 +760,7 @@ export default function GitHubWrapped({ username, isPro }) {
         .capture-header {
           display: flex;
           justify-content: space-between;
-          border-bottom: 1px solid #222;
+          border-bottom: 1px solid #e2e8f0;
           padding-bottom: 12px;
           margin-bottom: 20px;
         }
@@ -785,7 +786,7 @@ export default function GitHubWrapped({ username, isPro }) {
           margin-bottom: 24px;
         }
         .capture-archetype {
-          background: #141414;
+          background: var(--bg-card, #ffffff);
           border: 1px solid #333;
           border-radius: 8px;
           padding: 16px;
@@ -819,8 +820,8 @@ export default function GitHubWrapped({ username, isPro }) {
           margin-bottom: 20px;
         }
         .capture-stat-box {
-          background: #111;
-          border: 1px solid #222;
+          background: var(--bg-elevated, #ffffff);
+          border: 1px solid #e2e8f0;
           border-radius: 6px;
           padding: 12px;
           text-align: center;
@@ -860,7 +861,7 @@ export default function GitHubWrapped({ username, isPro }) {
           justify-content: space-between;
           font-size: 10px;
           color: #666;
-          border-top: 1px solid #222;
+          border-top: 1px solid #e2e8f0;
           padding-top: 12px;
         }
 

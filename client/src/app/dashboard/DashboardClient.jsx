@@ -1,3 +1,4 @@
+// Rule 7: Eradicate all remaining hardcoded Dark Mode Hex Codes. Switched to Luminous light-mode variables.
 'use client'
 
 // ============================================================
@@ -841,7 +842,7 @@ export default function DashboardClient() {
         }
         .badge-code {
           flex: 1;
-          background: #0A0A0A;
+          background: var(--bg-primary, #f8fafc);
           border: 1px solid var(--border);
           border-radius: var(--radius-sm);
           padding: 10px 14px;
