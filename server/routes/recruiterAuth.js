@@ -79,6 +79,7 @@ router.get("/google", (req, res) => {
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
   if (!GOOGLE_CLIENT_ID) {
     return res.status(500).json({ error: "Google OAuth not configured." });
+  }
   // WHY: Google requires an exact match for redirect URIs. We read from env to support Render vs Localhost.
   const redirectUri = process.env.GOOGLE_CALLBACK_URL || `${req.protocol}://${req.get("host")}/api/recruiter-auth/google/callback`;
   const scope = "email profile";
