@@ -483,13 +483,25 @@ export default function ShareButtons({
           color: var(--text-primary);
           border-color: var(--border-hover);
         }
+        /*
+          ── WHAT: ──────────────────────────────────────────────────────────
+          Project Luminous README Badge Customizer box.
+          ── WHY: ───────────────────────────────────────────────────────────
+          Replaces hardcoded #0D0D0D and #050505 with light elevated card tokens.
+          ── WHERE & WHEN TO USE: ───────────────────────────────────────────
+          Interactive badge studio inside ShareButtons component.
+          ── USE CASES: ─────────────────────────────────────────────────────
+          User clicks "Embed Badge" to copy Markdown or SVG badges for GitHub profiles.
+          ── WHEN NOT TO USE: ───────────────────────────────────────────────
+          Non-interactive displays.
+        */
         .badge-preview-box {
           display: flex;
           flex-direction: column;
           gap: 8px;
           padding: 12px;
-          background: #0D0D0D;
-          border: 1px solid var(--border);
+          background: var(--bg-muted, #f8fafc);
+          border: 1px solid var(--border, #e2e8f0);
           border-radius: var(--radius-md);
         }
         .badge-preview-title {
@@ -508,8 +520,8 @@ export default function ShareButtons({
           gap: 4px;
         }
         .badge-tab-btn {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border);
+          background: var(--bg-card, #ffffff);
+          border: 1px solid var(--border, #e2e8f0);
           color: var(--text-secondary);
           font-size: 10px;
           padding: 3px 8px;
@@ -539,19 +551,19 @@ export default function ShareButtons({
         }
         .badge-code-snippet {
           font-size: 10px;
-          color: var(--text-muted);
-          background: #050505;
+          color: var(--text-primary, #0f172a);
+          background: var(--bg-card, #ffffff);
           padding: 6px 10px;
           border-radius: 4px;
-          border: 1px solid var(--bg-primary, #f8fafc);
+          border: 1px solid var(--border, #e2e8f0);
           overflow-x: auto;
           white-space: nowrap;
         }
         .badge-guide-text {
           font-size: 10px;
-          color: #a0a0a0;
+          color: var(--text-secondary, #475569);
           line-height: 1.4;
-          background: rgba(255, 255, 255, 0.02);
+          background: var(--bg-elevated, #ffffff);
           padding: 6px 8px;
           border-radius: 4px;
           border-left: 2px solid var(--fire);

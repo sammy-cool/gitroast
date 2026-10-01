@@ -83,10 +83,10 @@ export async function GET(request, { params }) {
     <rect width="70" height="28" fill="#FFFFFF" />
     <rect x="70" width="120" height="28" fill="#FAFAFA" />
     <rect x="70" width="120" height="28" fill="${color}" fill-opacity="0.12" />
-    <line x1="70" y1="0" x2="70" y2="28" stroke="#262626" stroke-width="1" />
+    <line x1="70" y1="0" x2="70" y2="28" stroke="#e2e8f0" stroke-width="1" />
   </g>
   <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">
-    <text x="12" y="18" fill="#888888">${labelText}</text>
+    <text x="12" y="18" fill="#64748b">${labelText}</text>
     <text x="80" y="18" fill="${color}">${valueText}</text>
   </g>
 </svg>`.trim();
@@ -107,6 +107,19 @@ export async function GET(request, { params }) {
         : 'Dare to get your GitHub brutally roasted?';
     const safeSnippet = escapeXml(rawSnippet);
 
+    /*
+      ── WHAT: ──────────────────────────────────────────────────────────
+      Project Luminous Card-Style SVG Badge Generator.
+      ── WHY: ───────────────────────────────────────────────────────────
+      Provides crisp high-contrast dark text (#0f172a) on white card backgrounds (#FFFFFF/#FAFAFA)
+      and soft borders (#e2e8f0), preventing unreadable faded text in GitHub READMEs.
+      ── WHERE & WHEN TO USE: ───────────────────────────────────────────
+      GET /api/badge/:username endpoint.
+      ── USE CASES: ─────────────────────────────────────────────────────
+      Embedded dynamic badges in GitHub READMEs and developer portfolio sites.
+      ── WHEN NOT TO USE: ───────────────────────────────────────────────
+      Static image uploads.
+    */
     const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="380" height="112" viewBox="0 0 380 112" role="img" aria-label="${safeUser} roast badge">
   <defs>
@@ -130,21 +143,21 @@ export async function GET(request, { params }) {
   <!-- Logo + User Header -->
   <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
     <text x="18" y="26" font-size="12" font-weight="900" fill="#FF6B00" letter-spacing="1">GITROAST 🔥</text>
-    <text x="18" y="46" font-size="16" font-weight="700" fill="#F5F5F5">@${safeUser}</text>
+    <text x="18" y="46" font-size="16" font-weight="700" fill="#0f172a">@${safeUser}</text>
   </g>
 
   <!-- Score & Grade Block -->
   <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" text-anchor="end">
-    <text x="362" y="44" font-size="32" font-weight="900" fill="${color}">${displayScore}<tspan font-size="13" font-weight="500" fill="#666">/100</tspan></text>
+    <text x="362" y="44" font-size="32" font-weight="900" fill="${color}">${displayScore}<tspan font-size="13" font-weight="500" fill="#94a3b8">/100</tspan></text>
     <rect x="274" y="52" width="88" height="18" rx="4" fill="${color}" fill-opacity="0.12" stroke="${color}" stroke-opacity="0.35" stroke-width="1" />
     <text x="318" y="65" font-size="10" font-weight="700" fill="${color}" text-anchor="middle" letter-spacing="0.5">${displayGrade}</text>
   </g>
 
   <!-- Divider -->
-  <line x1="18" y1="76" x2="362" y2="76" stroke="#1F1F1F" stroke-width="1" />
+  <line x1="18" y1="76" x2="362" y2="76" stroke="#e2e8f0" stroke-width="1" />
 
   <!-- Roast Snippet -->
-  <g font-family="Georgia, serif" font-style="italic" font-size="11" fill="#8E8E8E">
+  <g font-family="Georgia, serif" font-style="italic" font-size="11" fill="#475569">
     <text x="18" y="95">"${safeSnippet}"</text>
   </g>
 </svg>`.trim();

@@ -418,18 +418,31 @@ export default function HistoryPageClient({ username }) {
           align-items:     center;
           gap:             14px;
         }
+        /*
+          ── WHAT: ──────────────────────────────────────────────────────────
+          Project Luminous avatar frame for user profile in history timeline.
+          ── WHY: ───────────────────────────────────────────────────────────
+          Replaces hardcoded dark background #161616 with clean light card background
+          and soft elevation shadow.
+          ── WHERE & WHEN TO USE: ───────────────────────────────────────────
+          History page profile header.
+          ── USE CASES: ─────────────────────────────────────────────────────
+          Viewing historical roasts for any GitHub developer profile.
+          ── WHEN NOT TO USE: ───────────────────────────────────────────────
+          Non-avatar containers.
+        */
         .history-avatar-box {
           width:           52px;
           height:          52px;
           border-radius:   50%;
-          background:      #161616;
+          background:      var(--bg-card, #ffffff);
           border:          2px solid rgba(255, 69, 0, 0.4);
           overflow:        hidden;
           display:         flex;
           align-items:     center;
           justify-content: center;
           flex-shrink:     0;
-          box-shadow:      0 4px 14px rgba(0, 0, 0, 0.4);
+          box-shadow:      var(--shadow-sm);
         }
         .history-avatar-img {
           width:           100%;

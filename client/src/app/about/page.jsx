@@ -433,7 +433,7 @@ export default function AboutPage() {
           color: var(--text-secondary);
         }
         .code-inline {
-          background: rgba(255, 255, 255, 0.06);
+          background: var(--bg-muted, #f1f5f9);
           padding: 2px 6px;
           border-radius: 4px;
           font-family: var(--font-mono, monospace);
@@ -441,6 +441,18 @@ export default function AboutPage() {
           color: var(--fire-warm);
         }
 
+        /*
+          ── WHAT: ──────────────────────────────────────────────────────────
+          Project Luminous step cards, tier rows, and feature boxes.
+          ── WHY: ───────────────────────────────────────────────────────────
+          Replaces hardcoded #0d0d0d and #050505 with light elevated card tokens.
+          ── WHERE & WHEN TO USE: ───────────────────────────────────────────
+          Technical pipeline and methodology section cards on the About page.
+          ── USE CASES: ─────────────────────────────────────────────────────
+          Explaining GitHub AST ingestion, heuristics, and rubric matrix.
+          ── WHEN NOT TO USE: ───────────────────────────────────────────────
+          Non-card surfaces.
+        */
         .pipeline-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
@@ -448,8 +460,9 @@ export default function AboutPage() {
           margin-top: 0.5rem;
         }
         .pipeline-step {
-          background: #0d0d0d;
-          border: 1px solid var(--border);
+          background: var(--bg-card, #ffffff);
+          border: 1px solid var(--border, #e2e8f0);
+          box-shadow: var(--shadow-sm);
           border-radius: var(--radius-md);
           padding: 1.25rem 1rem;
           display: flex;
@@ -478,8 +491,9 @@ export default function AboutPage() {
           margin-top: 0.5rem;
         }
         .tier-row {
-          background: #0d0d0d;
-          border: 1px solid var(--border);
+          background: var(--bg-card, #ffffff);
+          border: 1px solid var(--border, #e2e8f0);
+          box-shadow: var(--shadow-sm);
           border-radius: var(--radius-md);
           padding: 1rem 1.25rem;
           display: flex;
@@ -516,8 +530,9 @@ export default function AboutPage() {
           margin-top: 0.5rem;
         }
         .feature-box {
-          background: #0d0d0d;
-          border: 1px solid var(--border);
+          background: var(--bg-card, #ffffff);
+          border: 1px solid var(--border, #e2e8f0);
+          box-shadow: var(--shadow-sm);
           border-radius: var(--radius-md);
           padding: 1.25rem 1rem;
           display: flex;
@@ -544,8 +559,9 @@ export default function AboutPage() {
           margin-top: 1rem;
         }
         .badge-guide-card {
-          background: #0d0d0d;
-          border: 1px solid var(--border);
+          background: var(--bg-card, #ffffff);
+          border: 1px solid var(--border, #e2e8f0);
+          box-shadow: var(--shadow-sm);
           border-radius: var(--radius-md);
           padding: 1.25rem;
           display: flex;
@@ -563,12 +579,12 @@ export default function AboutPage() {
           line-height: 1.4;
         }
         .code-block {
-          background: #050505;
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--bg-muted, #f8fafc);
+          border: 1px solid var(--border, #e2e8f0);
           padding: 8px 10px;
           border-radius: 6px;
           font-size: 11px;
-          color: #f0f0f0;
+          color: var(--text-primary, #0f172a);
           word-break: break-all;
           margin-top: 4px;
         }
@@ -610,8 +626,9 @@ export default function AboutPage() {
           flex-direction: column;
           align-items: center;
           gap: 12px;
-          background: linear-gradient(135deg, #120800 0%, #0c0c0c 100%);
-          border-color: rgba(255, 69, 0, 0.35);
+          background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+          border: 1px solid rgba(255, 69, 0, 0.25);
+          box-shadow: var(--shadow-md);
         }
         .cta-heading {
           font-size: clamp(28px, 6vw, 38px);

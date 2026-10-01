@@ -126,7 +126,7 @@ export async function GET(request) {
           left: "0",
           right: "0",
           bottom: "0",
-          border: "1px solid #1C1C1C",
+          border: "1px solid #E2E8F0",
           display: "flex",
         }}
       />
@@ -243,7 +243,7 @@ export async function GET(request) {
                   display: "flex",
                   fontSize: "44px",
                   fontWeight: "700",
-                  color: "#F5F5F5",
+                  color: "#0F172A",
                   lineHeight: "1",
                 }}
               >
@@ -253,7 +253,7 @@ export async function GET(request) {
                 style={{
                   display: "flex",
                   fontSize: "16px",
-                  color: "#555555",
+                  color: "#64748B",
                 }}
               >
                 GitHub Roast Report
@@ -287,7 +287,7 @@ export async function GET(request) {
                 style={{
                   display: "flex",
                   fontSize: "14px",
-                  color: "#555555",
+                  color: "#64748B",
                 }}
               >
                 /100 ROAST SCORE
@@ -319,7 +319,8 @@ export async function GET(request) {
             display: "flex",
             flex: "1",
             padding: "22px 26px",
-            background: "#110900",
+            background: "#FFF7ED",
+            border: "1px solid #FED7AA",
             borderLeft: "4px solid #FF4500",
             borderRadius: "0 10px 10px 0",
             alignItems: "center",
@@ -329,7 +330,7 @@ export async function GET(request) {
             style={{
               display: "flex",
               fontSize: "20px",
-              color: "#888888",
+              color: "#374151",
               fontFamily: "Georgia, serif",
               fontStyle: "italic",
               lineHeight: "1.6",
@@ -348,15 +349,15 @@ export async function GET(request) {
           justifyContent: "space-between",
           alignItems: "center",
           padding: "14px 64px",
-          borderTop: "1px solid #1C1C1C",
-          background: "#080808",
+          borderTop: "1px solid #E2E8F0",
+          background: "#F1F5F9",
         }}
       >
         <div
           style={{
             display: "flex",
             fontSize: "13px",
-            color: "#3A3A3A",
+            color: "#64748B",
             letterSpacing: "2px",
           }}
         >
@@ -366,7 +367,7 @@ export async function GET(request) {
           style={{
             display: "flex",
             fontSize: "13px",
-            color: "#3A3A3A",
+            color: "#64748B",
           }}
         >
           Get your GitHub roasted too 🔥

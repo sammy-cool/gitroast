@@ -208,15 +208,28 @@ export default function ProModal({ onClose }) {
                     </div>
 
                     <style jsx>{`
+            /*
+              ── WHAT: ──────────────────────────────────────────────────────────
+              Project Luminous modal overlay and backdrop scrim.
+              ── WHY: ───────────────────────────────────────────────────────────
+              Soft scrim (rgba(15, 23, 42, 0.6)) with 8px blur provides focus and optical depth.
+              ── WHERE & WHEN TO USE: ───────────────────────────────────────────
+              Pro membership selection modal.
+              ── USE CASES: ─────────────────────────────────────────────────────
+              User clicks Nuclear intensity lock, Pro badges, or upgrade CTAs.
+              ── WHEN NOT TO USE: ───────────────────────────────────────────────
+              Non-blocking inline elements.
+            */
             .modal-overlay {
               position:        fixed;
               inset:           0;
-              background:      rgba(0, 0, 0, 0.88);
+              background:      rgba(15, 23, 42, 0.6);
               display:         flex;
               align-items:     center;
               justify-content: center;
               padding:         1rem;
-              backdrop-filter: blur(6px);
+              backdrop-filter: blur(8px);
+              -webkit-backdrop-filter: blur(8px);
               z-index:         9998;
               overflow-y:      auto;
             }
@@ -230,6 +243,7 @@ export default function ProModal({ onClose }) {
               gap:            1.5rem;
               max-height:     90dvh;
               overflow-y:     auto;
+              box-shadow:     0 25px 50px -12px rgba(0, 0, 0, 0.25);
               animation:      fadeIn 0.2s ease forwards;
               margin:         auto;
             }

@@ -69,14 +69,27 @@ export default function PaymentModal({ planId, onClose }) {
                 //   This component has no JSX siblings — styled-jsx
                 //   needs a sibling <style jsx> tag in same render tree
                 //   Inline styles are always reliable for a wrapper like this
+                /*
+                  ── WHAT: ──────────────────────────────────────────────────────────
+                  Project Luminous modal overlay and backdrop scrim.
+                  ── WHY: ───────────────────────────────────────────────────────────
+                  Soft scrim (rgba(15, 23, 42, 0.6)) with 8px blur prevents dark visual jarring.
+                  ── WHERE & WHEN TO USE: ───────────────────────────────────────────
+                  Mounted via portal directly to document.body for Razorpay checkout.
+                  ── USE CASES: ─────────────────────────────────────────────────────
+                  User checkout session for Roaster or Historian subscriptions.
+                  ── WHEN NOT TO USE: ───────────────────────────────────────────────
+                  Standard page-level routes.
+                */
                 position: 'fixed',
                 inset: '0',
-                background: 'rgba(0, 0, 0, 0.88)',
+                background: 'rgba(15, 23, 42, 0.6)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 padding: '1rem',
-                backdropFilter: 'blur(6px)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
                 zIndex: 9999,
                 overflowY: 'auto',
             }}
@@ -89,9 +102,10 @@ export default function PaymentModal({ planId, onClose }) {
                 style={{
                     width: '100%',
                     maxWidth: '560px',
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-lg)',
+                    background: 'var(--bg-card, #FFFFFF)',
+                    border: '1px solid var(--border, #E2E8F0)',
+                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                    borderRadius: 'var(--radius-lg, 16px)',
                     overflow: 'hidden',
                     // WHY animation via inline style:
                     //   Can't use CSS class without styled-jsx here

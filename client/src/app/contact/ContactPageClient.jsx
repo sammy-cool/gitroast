@@ -508,20 +508,34 @@ export default function ContactPageClient() {
           color: var(--fire-warm);
         }
 
+        /*
+          ── WHAT: ──────────────────────────────────────────────────────────
+          Project Luminous form input and textarea styling.
+          ── WHY: ───────────────────────────────────────────────────────────
+          Replaces hardcoded dark background #0d0d0d with crisp white var(--bg-card, #ffffff)
+          and clean border styling matching Project Luminous design system.
+          ── WHERE & WHEN TO USE: ───────────────────────────────────────────
+          Support and contact inquiry inputs in ContactPageClient.
+          ── USE CASES: ─────────────────────────────────────────────────────
+          User fills out email, subject, category, and message on /contact page.
+          ── WHEN NOT TO USE: ───────────────────────────────────────────────
+          Non-form displays.
+        */
         .form-input,
         .form-textarea {
-          background: #0d0d0d;
-          border: 1px solid var(--border);
+          background: var(--bg-card, #ffffff);
+          border: 1px solid var(--border, #e2e8f0);
           border-radius: var(--radius-sm);
           padding: 10px 12px;
           color: var(--text-primary);
           font-size: 12px;
           outline: none;
-          transition: border-color 0.15s;
+          transition: border-color 0.15s, box-shadow 0.15s;
         }
         .form-input:focus,
         .form-textarea:focus {
           border-color: var(--fire);
+          box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.1);
         }
         .form-textarea {
           resize: vertical;

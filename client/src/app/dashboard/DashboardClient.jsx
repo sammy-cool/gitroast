@@ -565,9 +565,9 @@ export default function DashboardClient() {
           font-weight: 700;
           padding: 2px 6px;
           border-radius: 4px;
-          background: #262626;
-          color: #FFF;
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          background: var(--bg-muted, #e2e8f0);
+          color: var(--text-secondary, #475569);
+          border: 1px solid var(--border, #cbd5e1);
           letter-spacing: 0.5px;
         }
         .user-badge-tier--roaster {
@@ -761,7 +761,7 @@ export default function DashboardClient() {
           position: absolute;
           cursor: pointer;
           inset: 0;
-          background-color: #262626;
+          background-color: var(--border, #cbd5e1);
           transition: 0.25s;
           border-radius: 24px;
         }

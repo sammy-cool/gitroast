@@ -451,12 +451,24 @@ export default function GitHubWrapped({ username, isPro }) {
           transform: translateY(-1px);
         }
 
-        /* Modal Backdrop */
+        /*
+          ── WHAT: ──────────────────────────────────────────────────────────
+          Project Luminous GitHub Wrapped modal overlay and surface styles.
+          ── WHY: ───────────────────────────────────────────────────────────
+          Replaces dark mode #0d0d0d with light tokens and readable high-contrast typography.
+          ── WHERE & WHEN TO USE: ───────────────────────────────────────────
+          GitHub Wrapped annual/historical summary modal.
+          ── USE CASES: ─────────────────────────────────────────────────────
+          User clicks "Wrapped 🎁" button on roast profile or history.
+          ── WHEN NOT TO USE: ───────────────────────────────────────────────
+          Inline page cards.
+        */
         .wrapped-backdrop {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.82);
+          background: rgba(15, 23, 42, 0.6);
           backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           z-index: 9999;
           display: flex;
           align-items: center;
@@ -470,10 +482,10 @@ export default function GitHubWrapped({ username, isPro }) {
           max-width: 580px;
           max-height: 90vh;
           overflow-y: auto;
-          background: #0d0d0d;
-          border: 1px solid rgba(255, 107, 0, 0.3);
-          border-radius: var(--radius-lg, 12px);
-          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 32px rgba(255, 69, 0, 0.15);
+          background: var(--bg-card, #ffffff);
+          border: 1px solid var(--border, #e2e8f0);
+          border-radius: var(--radius-lg, 16px);
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
           position: relative;
           padding: 28px;
         }
@@ -533,7 +545,7 @@ export default function GitHubWrapped({ username, isPro }) {
           font-size: 32px;
           line-height: 1.1;
           letter-spacing: 1px;
-          background: linear-gradient(135deg, #fff 0%, #ffb700 100%);
+          background: linear-gradient(135deg, var(--text-primary, #0f172a) 0%, #ff6b00 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
@@ -571,7 +583,7 @@ export default function GitHubWrapped({ username, isPro }) {
         .archetype-name {
           font-size: 22px;
           line-height: 1.1;
-          color: #fff;
+          color: var(--text-primary, #0f172a);
           margin-bottom: 4px;
         }
         .archetype-desc {
@@ -605,7 +617,7 @@ export default function GitHubWrapped({ username, isPro }) {
         .stat-num {
           font-size: 24px;
           line-height: 1.1;
-          color: #fff;
+          color: var(--text-primary, #0f172a);
         }
         .stat-sub {
           font-size: 10px;
@@ -666,7 +678,7 @@ export default function GitHubWrapped({ username, isPro }) {
         }
         .bar {
           width: 100%;
-          background: #2a2a2a;
+          background: var(--border, #e2e8f0);
           border-radius: 2px;
           transition: height 0.3s ease;
         }
@@ -707,7 +719,7 @@ export default function GitHubWrapped({ username, isPro }) {
         }
         .grade-value {
           font-size: 32px;
-          color: #fff;
+          color: var(--text-primary, #0f172a);
           line-height: 1;
         }
         .score-value {
@@ -734,13 +746,13 @@ export default function GitHubWrapped({ username, isPro }) {
           text-align: center;
         }
         .btn-twitter {
-          background: #000;
+          background: #0f172a;
           color: #fff;
-          border: 1px solid #333;
+          border: 1px solid #1e293b;
         }
         .btn-twitter:hover {
-          background: var(--bg-elevated, #ffffff);
-          border-color: #555;
+          background: #1e293b;
+          border-color: #334155;
         }
 
         /* Capture Styles (Hidden div) */
@@ -751,10 +763,10 @@ export default function GitHubWrapped({ username, isPro }) {
         }
         .capture-container {
           width: 650px;
-          background: var(--bg-primary, #f8fafc);
+          background: #ffffff;
           border: 2px solid #ff4500;
           padding: 36px;
-          color: #fff;
+          color: #0f172a;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
         .capture-header {
@@ -782,12 +794,12 @@ export default function GitHubWrapped({ username, isPro }) {
         }
         .capture-sub {
           font-size: 12px;
-          color: #888;
+          color: #64748b;
           margin-bottom: 24px;
         }
         .capture-archetype {
           background: var(--bg-card, #ffffff);
-          border: 1px solid #333;
+          border: 1px solid #e2e8f0;
           border-radius: 8px;
           padding: 16px;
           display: flex;
@@ -805,12 +817,12 @@ export default function GitHubWrapped({ username, isPro }) {
         }
         .capture-arch-title {
           font-size: 26px;
-          color: #fff;
+          color: #0f172a;
           margin: 2px 0 4px;
         }
         .capture-arch-desc {
           font-size: 11px;
-          color: #aaa;
+          color: #475569;
           line-height: 1.4;
         }
         .capture-stats-grid {
@@ -820,7 +832,7 @@ export default function GitHubWrapped({ username, isPro }) {
           margin-bottom: 20px;
         }
         .capture-stat-box {
-          background: var(--bg-elevated, #ffffff);
+          background: var(--bg-elevated, #f8fafc);
           border: 1px solid #e2e8f0;
           border-radius: 6px;
           padding: 12px;
@@ -828,13 +840,13 @@ export default function GitHubWrapped({ username, isPro }) {
         }
         .cs-label {
           font-size: 9px;
-          color: #888;
+          color: #64748b;
           display: block;
           margin-bottom: 4px;
         }
         .cs-val {
           font-size: 24px;
-          color: #fff;
+          color: #0f172a;
         }
         .cs-danger {
           color: #ff4500;
@@ -851,7 +863,7 @@ export default function GitHubWrapped({ username, isPro }) {
         }
         .capture-quote {
           font-size: 12px;
-          color: #ccc;
+          color: #334155;
           line-height: 1.5;
           font-style: italic;
           text-align: center;
@@ -860,7 +872,7 @@ export default function GitHubWrapped({ username, isPro }) {
           display: flex;
           justify-content: space-between;
           font-size: 10px;
-          color: #666;
+          color: #94a3b8;
           border-top: 1px solid #e2e8f0;
           padding-top: 12px;
         }

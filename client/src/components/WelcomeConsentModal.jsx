@@ -329,12 +329,25 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
       </div>
 
       <style jsx>{`
+        /*
+          ── WHAT: ──────────────────────────────────────────────────────────
+          Project Luminous modal overlay and backdrop scrim.
+          ── WHY: ───────────────────────────────────────────────────────────
+          Soft charcoal-blue scrim (rgba(15, 23, 42, 0.6)) with 8px blur provides
+          focus and optical depth without oppressive pitch-black darkness.
+          ── WHERE & WHEN TO USE: ───────────────────────────────────────────
+          All floating modal portals mounted into document.body.
+          ── USE CASES: ─────────────────────────────────────────────────────
+          First-visit onboarding consent, rule modals, payment checkout dialogs.
+          ── WHEN NOT TO USE: ───────────────────────────────────────────────
+          Inline cards or non-modal drawers.
+        */
         .welcome-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.82);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+          background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -343,15 +356,22 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           animation: welcomeFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
+        /*
+          ── WHAT: ──────────────────────────────────────────────────────────
+          Elevated modal container with Project Luminous light tokens.
+          ── WHY: ───────────────────────────────────────────────────────────
+          Replaces hardcoded #121212 with dynamic var(--bg-card, #FFFFFF) and
+          subtle elevation shadows (--shadow-floating) for crisp readability.
+        */
         .welcome-box {
           position: relative;
           width: 100%;
           max-width: 540px;
-          background: #121212;
-          border: 1px solid rgba(255, 69, 0, 0.35);
+          background: var(--bg-card, #FFFFFF);
+          border: 1px solid var(--border, #E2E8F0);
           box-shadow:
-            0 20px 50px rgba(0, 0, 0, 0.8),
-            0 0 40px rgba(255, 69, 0, 0.15);
+            0 20px 40px -15px rgba(0, 0, 0, 0.15),
+            0 0 0 1px rgba(0, 0, 0, 0.05);
           border-radius: var(--radius-lg, 16px);
           padding: 2rem 1.75rem 1.75rem;
           display: flex;
@@ -370,9 +390,9 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           position: absolute;
           top: 1rem;
           right: 1rem;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border);
-          color: var(--text-secondary);
+          background: var(--bg-muted, #F1F5F9);
+          border: 1px solid var(--border, #E2E8F0);
+          color: var(--text-secondary, #64748B);
           width: 32px;
           height: 32px;
           border-radius: 8px;
@@ -419,12 +439,19 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           font-size: 12px;
         }
 
+        /*
+          ── WHAT: ──────────────────────────────────────────────────────────
+          High-contrast gradient text title.
+          ── WHY: ───────────────────────────────────────────────────────────
+          Starts with var(--text-primary, #0F172A) instead of #FFFFFF so that the
+          headline remains punchy, clear, and visible against white backgrounds.
+        */
         .welcome-title {
           font-size: 32px;
           letter-spacing: 1.5px;
           line-height: 1;
           margin: 4px 0 0;
-          background: linear-gradient(135deg, #FFFFFF 20%, #FF6B00 70%, #FF4500 100%);
+          background: linear-gradient(135deg, var(--text-primary, #0F172A) 20%, #FF6B00 70%, #FF4500 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
@@ -447,15 +474,15 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           display: flex;
           align-items: flex-start;
           gap: 12px;
-          background: rgba(255, 255, 255, 0.025);
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          background: var(--bg-muted, #F8FAFC);
+          border: 1px solid var(--border, #E2E8F0);
           border-radius: var(--radius-md, 12px);
           padding: 10px 14px;
           transition: border-color 0.2s ease, background 0.2s ease;
         }
         .welcome-item:hover {
-          border-color: rgba(255, 107, 0, 0.3);
-          background: rgba(255, 69, 0, 0.03);
+          border-color: rgba(255, 107, 0, 0.35);
+          background: rgba(255, 69, 0, 0.04);
         }
 
         .welcome-icon {
