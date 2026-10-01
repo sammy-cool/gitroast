@@ -43,41 +43,62 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 //   Changing feature bullet = frontend deploy only (fast)
 //   Changing price = backend deploy + env var (intentionally harder)
 const PLANS_DISPLAY = {
+    free: {
+        id: 'free',
+        name: 'Free Tier',
+        tagline: 'Always Free',
+        badge: null,
+        highlight: false,
+        comingSoon: false,
+        cta: 'Start Free',
+        ctaSubtext: 'No credit card needed',
+        displayPrice: '₹0',
+        period: 'forever',
+        features: [
+            { text: '1 roast per day', hot: false },
+            { text: 'Rule-based burns', hot: false },
+            { text: 'Watermarked cards', hot: false },
+        ],
+    },
     roaster: {
+        id: 'roaster',
+        name: 'Roaster Plan',
         tagline: 'The Real Roast',
         badge: 'MOST POPULAR',
         highlight: true,
         comingSoon: false,
-        cta: 'Get Roasted for Real',
+        cta: 'Upgrade to Roaster',
         ctaSubtext: 'Cancel anytime',
+        displayPrice: '₹99',
+        period: '/ $1.99',
         features: [
-            { text: 'Real Gemini AI — not a script', hot: true },
-            { text: '☢️ Nuclear intensity — zero mercy', hot: true },
-            { text: 'HD card download — watermark free', hot: false },
-            { text: 'Private repos analyzed', hot: false },
-            { text: 'Unlimited roasts per day', hot: false },
-            { text: '⚡ Pro badge on your roast card', hot: false },
-            { text: 'Full score history + charts', hot: false },
+            { text: 'Nuclear intensity unlocked', hot: true },
+            { text: 'Google Gemini 2.5 Pro AI model', hot: true },
+            { text: 'Watermark-free high-res 2x PNG downloads', hot: false },
+            { text: 'Private repo analysis', hot: false },
         ],
     },
     historian: {
+        id: 'historian',
+        name: 'Historian Plan',
         tagline: 'The Long Game',
-        badge: 'POWER USERS',
+        badge: null,
         highlight: false,
         comingSoon: false,
-        cta: 'Start Tracking My Shame',
+        cta: 'Upgrade to Historian',
         ctaSubtext: 'Cancel anytime',
+        displayPrice: '₹199',
+        period: '/ $3.99',
         features: [
-            { text: 'Everything in Roaster', hot: false },
-            { text: 'Monthly roast report email', hot: true },
-            { text: 'Score trend — improved vs last month', hot: true },
-            { text: 'Roast streak tracking', hot: false },
-            { text: 'Priority AI — faster responses', hot: false },
-            { text: 'Exclusive Historian badge on card', hot: false },
-            { text: 'Deep analytics — 6 month history', hot: false },
+            { text: 'All Roaster perks +', hot: false },
+            { text: 'Monthly automated code health summaries', hot: true },
+            { text: 'Full history trend charts', hot: false },
+            { text: 'Priority queue processing', hot: false },
         ],
     },
     squad: {
+        id: 'squad',
+        name: 'Squad Plan',
         tagline: 'The Bloodbath',
         badge: 'COMING SOON',
         highlight: false,
@@ -98,20 +119,20 @@ const PLANS_DISPLAY = {
 
 const FAQ = [
     {
+        q: 'What is the refund policy?',
+        a: 'Wait answers, our refund policy will wrap and honor fair queries within 48 hours.',
+    },
+    {
+        q: 'Can UPI payment support?',
+        a: 'Yes, full native UPI support with GPay, PhonePe, Paytm, and QR code via Razorpay.',
+    },
+    {
+        q: 'How GitHub token made in safety?',
+        a: 'Tokens are encrypted at rest with AES-256 and never logged or exposed to third parties.',
+    },
+    {
         q: 'What counts as a "real AI roast"?',
         a: 'Free tier uses a rule-based engine — templates + your stats. Pro uses Google Gemini AI (Gemini 3.1 Pro & 2.5 Flash) with your actual GitHub data, writing a unique comedy roast every time. Not a template. Not a script.',
-    },
-    {
-        q: 'Can I cancel anytime?',
-        a: 'Yes. Cancel before your next billing date and you keep Pro until the period ends. No questions asked.',
-    },
-    {
-        q: 'What payment methods work?',
-        a: "UPI, credit/debit cards, netbanking, and wallets. All via Razorpay — India's most trusted payment gateway.",
-    },
-    {
-        q: "Roaster vs Historian — what's different?",
-        a: 'Roaster gets you the full AI roast experience. Historian adds monthly automated reports — score trends, improvement tracking, roast streak. For developers who track everything.',
     },
 ]
 
@@ -121,6 +142,7 @@ export default function PricingPageClient() {
     const [plansLoading, setPlansLoading] = useState(true)
     const [waitlistEmail, setWaitlistEmail] = useState('')
     const [waitlistDone, setWaitlistDone] = useState(false)
+    const [openFaq, setOpenFaq] = useState(0)
     const { user, isPro, loginWithGitHub } = useAuth()
     const router = useRouter()
 
@@ -134,39 +156,25 @@ export default function PricingPageClient() {
                 const json = await res.json()
 
                 if (json.success && json.plans) {
-                    // WHY merge: server has price, frontend has features/display
-                    const merged = json.plans.map(serverPlan => ({
+                    const serverPlans = json.plans.map(serverPlan => ({
                         ...serverPlan,
                         ...(PLANS_DISPLAY[serverPlan.id] || {}),
-                        // WHY format displayPrice from amount:
-                        //   Server sends amount in paise (9900)
-                        //   Convert: 9900 / 100 = ₹99
-                        displayPrice: PLANS_DISPLAY[serverPlan.id]?.comingSoon
-                            ? 'Coming Soon'
-                            : `₹${serverPlan.amount / 100}`,
+                        displayPrice: PLANS_DISPLAY[serverPlan.id]?.displayPrice || `₹${serverPlan.amount / 100}`,
+                        period: PLANS_DISPLAY[serverPlan.id]?.period || '/ $1.99',
                     }))
 
-                    // WHY add Squad manually:
-                    //   Squad is coming soon — not in backend PLANS
-                    //   Frontend defines it as a placeholder
-                    const hasSquad = merged.find(p => p.id === 'squad')
-                    if (!hasSquad) {
-                        merged.push({ id: 'squad', ...PLANS_DISPLAY.squad })
-                    }
+                    // Mockup Matching: Free Tier, Roaster Plan, Historian Plan
+                    const displayList = [
+                        PLANS_DISPLAY.free,
+                        serverPlans.find(p => p.id === 'roaster') || PLANS_DISPLAY.roaster,
+                        serverPlans.find(p => p.id === 'historian') || PLANS_DISPLAY.historian,
+                    ].filter(Boolean)
 
-                    setPlans(merged)
+                    setPlans(displayList)
                 }
             } catch (err) {
-                // WHY fallback to display config only:
-                //   If backend unreachable — still show pricing page
-                //   User sees plans without price → better than blank page
                 console.error('[Pricing] Failed to load plans:', err.message)
-                const fallback = Object.entries(PLANS_DISPLAY).map(([id, display]) => ({
-                    id,
-                    name: id === 'roaster' ? '🔥 Roaster' : id === 'historian' ? '📈 Historian' : '⚔️ Squad',
-                    ...display,
-                }))
-                setPlans(fallback)
+                setPlans([PLANS_DISPLAY.free, PLANS_DISPLAY.roaster, PLANS_DISPLAY.historian])
             } finally {
                 setPlansLoading(false)
             }
@@ -176,6 +184,10 @@ export default function PricingPageClient() {
     }, [])
 
     function handleSelectPlan(planId) {
+        if (planId === 'free') {
+            router.push('/')
+            return
+        }
         const plan = plans.find(p => p.id === planId)
 
         if (plan?.comingSoon) {
@@ -264,13 +276,13 @@ export default function PricingPageClient() {
                 <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Pricing' }]} />
             </div>
 
-            {/* Header */}
+            {/* Header Matching Approved Mockup */}
             <div className="pricing-header">
                 <h1 className="font-display pricing-title text-fire">
-                    CHOOSE YOUR DESTRUCTION
+                    TRANSPARENT POWER. ZERO SUBSCRIPTION TRAPS.
                 </h1>
                 <p className="font-mono pricing-sub">
-                    Free gets you a taste. Pro gets you annihilated.
+                    Free gets you a taste. Pro gets you annihilated. No recurring traps, cancel anytime.
                 </p>
                 <div className="free-reminder font-mono">
                     ✅ Free tier always available — 1 roast/day · Rule engine · Watermarked card
@@ -285,9 +297,6 @@ export default function PricingPageClient() {
             ) : (
                 <div className="plans-grid">
                     {plans.map(plan => (
-                        // WHY PricingCard not inline JSX:
-                        //   DRY — card design in one place
-                        //   This page = layout + logic only
                         <PricingCard
                             key={plan.id}
                             plan={plan}
@@ -297,45 +306,30 @@ export default function PricingPageClient() {
                 </div>
             )}
 
-            {/* Squad waitlist */}
-            <div id="squad-waitlist" className="waitlist-section card">
-                <div className="waitlist-content">
-                    <p className="font-display waitlist-title text-fire">⚔️ SQUAD — Coming Soon</p>
-                    <p className="font-mono waitlist-sub">
-                        Roast your entire engineering team. Private leaderboard. All vs All battle mode.
-                    </p>
-                </div>
-                {waitlistDone ? (
-                    <p className="font-mono waitlist-done">
-                        ✅ You&apos;re on the list! We&apos;ll notify you when Squad launches.
-                    </p>
-                ) : (
-                    <div className="waitlist-form">
-                        <input
-                            type="email"
-                            placeholder="your@email.com"
-                            value={waitlistEmail}
-                            onChange={e => setWaitlistEmail(e.target.value)}
-                            onKeyDown={e => e.key === 'Enter' && handleWaitlist(e)}
-                            className="waitlist-input font-mono"
-                        />
-                        <button type="button" className="btn btn-primary waitlist-btn" onClick={handleWaitlist}>
-                            Notify Me ⚔️
-                        </button>
-                    </div>
-                )}
-            </div>
-
-            {/* FAQ */}
+            {/* FAQ Accordion Matching Mockup */}
             <div className="faq-section">
-                <p className="font-display faq-title">FAQ</p>
-                <div className="faq-grid">
-                    {FAQ.map((item, i) => (
-                        <div key={i} className="faq-item card">
-                            <p className="font-display faq-q">{item.q}</p>
-                            <p className="font-mono faq-a">{item.a}</p>
-                        </div>
-                    ))}
+                <div className="faq-accordion">
+                    {FAQ.map((item, i) => {
+                        const isOpen = openFaq === i
+                        return (
+                            <div key={i} className="faq-accordion-item">
+                                <button
+                                    type="button"
+                                    className="faq-question-btn font-display"
+                                    onClick={() => setOpenFaq(isOpen ? null : i)}
+                                    aria-expanded={isOpen}
+                                >
+                                    <span>{item.q}</span>
+                                    <span className="faq-arrow">{isOpen ? '▲' : '▼'}</span>
+                                </button>
+                                {isOpen && (
+                                    <div className="faq-answer-wrap animate-fadeUp">
+                                        <p className="font-mono faq-a">{item.a}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
                 </div>
             </div>
 
@@ -471,22 +465,51 @@ export default function PricingPageClient() {
         .waitlist-input:focus { border-color: var(--fire); }
         .waitlist-btn { padding: 12px 20px; white-space: nowrap; flex-shrink: 0; }
 
-        /* FAQ */
-        .faq-section { width: 100%; max-width: 960px; }
-        .faq-title {
-          font-size:     clamp(22px, 5vw, 32px);
-          color:         var(--text-primary);
-          margin-bottom: 1rem;
-          text-align:    center;
+        /* FAQ Accordion */
+        .faq-section { width: 100%; max-width: 800px; margin-top: 1rem; }
+        .faq-accordion {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
         }
-        .faq-grid {
-          display:               grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap:                   1rem;
+        .faq-accordion-item {
+          background: var(--bg-card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          overflow: hidden;
+          transition: border-color 0.2s ease;
         }
-        .faq-item { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 8px; }
-        .faq-q    { font-size: 15px; color: var(--text-primary); line-height: 1.4; }
-        .faq-a    { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+        .faq-accordion-item:hover {
+          border-color: var(--border-hover);
+        }
+        .faq-question-btn {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1.1rem 1.4rem;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          font-size: 17px;
+          color: var(--text-primary);
+          text-align: left;
+        }
+        .faq-arrow {
+          font-size: 12px;
+          color: var(--text-muted);
+          transition: transform 0.2s ease;
+        }
+        .faq-answer-wrap {
+          padding: 0 1.4rem 1.2rem;
+          border-top: 1px solid var(--border);
+        }
+        .faq-a {
+          font-size: 13.5px;
+          color: var(--text-secondary);
+          line-height: 1.65;
+          margin-top: 10px;
+        }
 
         /* Responsive */
         @media (max-width: 540px) {

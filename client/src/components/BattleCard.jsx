@@ -220,8 +220,8 @@ export default function BattleCard({ data }) {
             <div className="players-row">
 
                 {/* Player 1 */}
-                <div className={`player-block ${isUser1Winner ? 'player-block--loser' : ''}`}>
-                    {isUser1Winner && <div className="shame-crown font-mono">💀 MOST ROASTABLE</div>}
+                <div className={`player-block ${isUser1Winner ? 'player-block--winner' : 'player-block--loser'}`}>
+                    {isUser1Winner && <div className="winner-crown-banner font-mono">👑 WINNER: MOST BATTLE-TESTED</div>}
                     <div className="player-avatar-box" style={{ borderColor: score1Color }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -258,19 +258,29 @@ export default function BattleCard({ data }) {
                     </Link>
                 </div>
 
-                {/* VS divider */}
+                {/* VS divider with metallic badge & duel differential bar */}
                 <div className="vs-col">
-                    <div className="vs-text font-display text-fire">VS</div>
+                    <div className="vs-badge font-display">VS</div>
+                    <div className="diff-bar-wrap" title={`Duel Split: @${user1} (${score1}) vs @${user2} (${score2})`}>
+                        <div
+                            className="diff-bar-fill-1"
+                            style={{ width: `${Math.round(((score1 || 50) / ((score1 || 50) + (score2 || 50) || 1)) * 100)}%` }}
+                        />
+                        <div
+                            className="diff-bar-fill-2"
+                            style={{ width: `${100 - Math.round(((score1 || 50) / ((score1 || 50) + (score2 || 50) || 1)) * 100)}%` }}
+                        />
+                    </div>
                     {winner && (
-                        <div className="winner-arrow font-mono">
-                            {isUser1Winner ? '←' : '→'}
+                        <div className="winner-indicator font-mono">
+                            {isUser1Winner ? `← @${user1} WINS` : `@${user2} WINS →`}
                         </div>
                     )}
                 </div>
 
                 {/* Player 2 */}
-                <div className={`player-block ${!isUser1Winner && winner ? 'player-block--loser' : ''}`}>
-                    {!isUser1Winner && winner && <div className="shame-crown font-mono">💀 MOST ROASTABLE</div>}
+                <div className={`player-block ${!isUser1Winner && winner ? 'player-block--winner' : 'player-block--loser'}`}>
+                    {!isUser1Winner && winner && <div className="winner-crown-banner font-mono">👑 WINNER: MOST BATTLE-TESTED</div>}
                     <div className="player-avatar-box" style={{ borderColor: score2Color }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -583,17 +593,63 @@ export default function BattleCard({ data }) {
           border-color: var(--fire);
         }
 
-        /* VS divider */
-        .vs-col {
-          display:        flex;
-          flex-direction: column;
-          align-items:    center;
-          justify-content:center;
-          padding:        0 0.75rem;
-          gap:            8px;
+        /* Winner Crown Banner */
+        .winner-crown-banner {
+          font-size: 10px;
+          font-weight: 800;
+          color: #b45309;
+          background: rgba(245, 158, 11, 0.12);
+          border: 1px solid rgba(245, 158, 11, 0.35);
+          padding: 3px 8px;
+          border-radius: 9999px;
+          letter-spacing: 0.5px;
+          margin-bottom: 4px;
         }
-        .vs-text       { font-size: 28px; }
-        .winner-arrow  { font-size: 24px; color: var(--bad); }
+
+        /* VS divider with Metallic Badge & Duel Bar */
+        .vs-col {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 0 0.85rem;
+          gap: 6px;
+        }
+        .vs-badge {
+          font-size: 26px;
+          line-height: 1;
+          letter-spacing: 1px;
+          padding: 6px 14px;
+          background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+          color: #ffffff;
+          border-radius: var(--radius-sm, 6px);
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .diff-bar-wrap {
+          width: 64px;
+          height: 6px;
+          border-radius: 9999px;
+          overflow: hidden;
+          display: flex;
+          background: #e2e8f0;
+          margin-top: 4px;
+        }
+        .diff-bar-fill-1 {
+          background: var(--fire, #ff4500);
+          height: 100%;
+        }
+        .diff-bar-fill-2 {
+          background: #0284c7;
+          height: 100%;
+        }
+        .winner-indicator {
+          font-size: 9px;
+          font-weight: 700;
+          color: var(--fire, #ff4500);
+          letter-spacing: 0.5px;
+          white-space: nowrap;
+        }
 
         /* Tale of the Tape */
         .tape-section {

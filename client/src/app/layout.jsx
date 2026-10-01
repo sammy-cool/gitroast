@@ -19,6 +19,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { RecruiterAuthProvider } from "@/context/RecruiterAuthContext";
 import { Suspense } from "react";
 import ToastConfig from "@/components/ToastConfig";
+import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import HydrationWrapper from "@/components/HydrationWrapper";
 import GlobalErrorTracker from "@/utils/clientErrorTracker";
@@ -162,6 +163,8 @@ export default function RootLayout({ children }) {
 
         <AuthProvider>
           <RecruiterAuthProvider>
+          {/* WHAT: Persistent top navigation bar across all views (Rule 1.1 + Luminous UX) */}
+          <Navbar />
           {/* WHAT: Shows branded loading screen during page hydration
               WHY Suspense: required wrapper for async server components
               WHY fallback null: HydrationWrapper handles the loading UI */}

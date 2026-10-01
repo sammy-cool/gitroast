@@ -286,16 +286,6 @@ export default function LeaderboardClient() {
 
   return (
     <main className="lb-page">
-      {/* ── Top Navigation ── */}
-      <nav className="lb-nav" aria-label="Breadcrumb navigation">
-        <Link href="/" className="font-display nav-logo text-fire" title="GitRoast Home">
-          GITROAST 🔥
-        </Link>
-        <Link href="/" className="btn btn-ghost nav-back">
-          ← Home
-        </Link>
-      </nav>
-
       {/* ── Breadcrumb ── */}
       <div className="breadcrumb-wrap">
         <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Wall of Shame' }]} />

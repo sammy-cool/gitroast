@@ -123,19 +123,15 @@ export default function BattleEntryClient() {
         <main className="battle-entry">
             <div className="battle-glow" />
 
-            {/* Top Navigation */}
-            <nav className="battle-top-nav" aria-label="Battle Navigation">
-                <Link
-                    href="/"
-                    className="btn btn-ghost back-btn"
-                    aria-label="Back to GitRoast Home"
-                >
-                    ← Home
-                </Link>
+            {/* Top Navigation Action Row */}
+            <div className="battle-top-bar" aria-label="Battle Quick Actions">
+                <div className="battle-breadcrumb-wrap">
+                    <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Battle Arena' }]} />
+                </div>
                 <div className="battle-nav-actions">
                     <button
                         type="button"
-                        className="btn btn-ghost random-btn"
+                        className="btn btn-ghost random-btn font-mono"
                         onClick={handleRandomBattle}
                         title="Pick random famous rivalry"
                     >
@@ -144,7 +140,7 @@ export default function BattleEntryClient() {
                     {user?.username && (
                         <button
                             type="button"
-                            className="btn btn-outline fill-me-btn"
+                            className="btn btn-outline fill-me-btn font-mono"
                             onClick={handleFillMyself}
                             title={`Set @${user.username} as Player 1`}
                         >
@@ -152,10 +148,6 @@ export default function BattleEntryClient() {
                         </button>
                     )}
                 </div>
-            </nav>
-
-            <div className="battle-breadcrumb-wrap">
-                <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Battle Arena' }]} />
             </div>
 
             {/* Header */}

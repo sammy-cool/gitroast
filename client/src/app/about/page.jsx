@@ -148,69 +148,97 @@ export default function AboutPage() {
         <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "About" }]} />
       </div>
 
-      {/* ── Hero ── */}
+      {/* ── Hero Matching Approved Mockup ── */}
       <header className="about-hero">
-        <span className="badge font-mono">MISSION & ARCHITECTURE</span>
-        <h1 className="font-display hero-title text-fire">
-          HUMBLING DEVELOPERS, ONE COMMIT AT A TIME
+        <h1 className="font-display hero-title">
+          ABOUT GITROAST
         </h1>
         <p className="hero-lead font-mono">
-          GitRoast is the comedy forensic lab for developers. We turn your
-          GitHub activity—and inactivity—into savagely entertaining roasts.
+          Why we build software that roasts your code with brutal honesty
         </p>
       </header>
 
-      {/* ── Philosophy & Story ── */}
-      <section className="card content-card">
-        <h2 className="font-display section-title text-fire">THE PHILOSOPHY</h2>
+      {/* ── The Origin Story (Mockup Matching) ── */}
+      <section className="card content-card origin-story-card">
+        <h2 className="font-display section-title">The Origin Story</h2>
         <p className="section-text">
-          Developer portfolios on LinkedIn are full of buzzwords: &ldquo;Passionate
-          10x Architect,&rdquo; &ldquo;Full-Stack Evangelist,&rdquo; and &ldquo;AI Pioneer.&rdquo;
+          A 3 AM force push into production inspired my first roast. I was inspired to build an automated
+          reality check for developers. We said to eliminate artificial sycophancy of traditional tech reviews:
+          we are too automated towards false praise.
         </p>
         <p className="section-text">
-          GitHub, however, does not lie. Your git log knows you spent six hours
-          debugging a missing semicolon. Your commit history remembers the repo
-          named <code className="code-inline">nextjs-billion-dollar-startup</code>{" "}
-          that was abandoned after 2 commits on a Sunday afternoon.
-        </p>
-        <p className="section-text">
-          GitRoast exists to celebrate that messy, human reality with sharp
-          wit, brutal accuracy, and deep respect for the craft of coding.
+          This is for authentic human-crafted product design over generic AI visuals and meaningless LinkedIn accolades.
         </p>
       </section>
 
-      {/* ── How it works pipeline ── */}
-      <section className="card content-card">
-        <h2 className="font-display section-title text-fire">HOW IT WORKS</h2>
-        <div className="pipeline-grid">
-          <div className="pipeline-step">
-            <span className="step-num font-mono">01</span>
-            <h3 className="step-title font-display">FORENSIC EXTRACTION</h3>
-            <p className="step-desc font-mono">
-              We query the GitHub REST API for your repos, recent push dates,
-              language breakdowns, star counts, and commit message hygiene.
+      {/* ── Engineering Philosophy (Mockup Matching 3 Cards) ── */}
+      <section className="philosophy-section">
+        <h2 className="font-display philosophy-main-title">Engineering Philosophy</h2>
+        <div className="philosophy-grid">
+          <div className="card philosophy-card">
+            <h3 className="font-display philosophy-card-title">Empirical GitHub Signals</h3>
+            <p className="philosophy-card-text">
+              Empirical GitHub signals measured and combined to build an automated reality check for developers.
             </p>
           </div>
-          <div className="pipeline-step">
-            <span className="step-num font-mono">02</span>
-            <h3 className="step-title font-display">SHAME INDEX SCORING</h3>
-            <p className="step-desc font-mono">
-              Our deterministic scoring engine computes a composite score (0–100)
-              penalizing graveyard ratios, low stars, and abandoned experiments.
+          <div className="card philosophy-card">
+            <h3 className="font-display philosophy-card-title">Zero AI Sycophancy</h3>
+            <p className="philosophy-card-text">
+              Zero AI sycophancy or fake compliments. Inno-solutions for authentic and honest code reviews.
             </p>
           </div>
-          <div className="pipeline-step">
-            <span className="step-num font-mono">03</span>
-            <h3 className="step-title font-display">AI SYNTHESIS</h3>
-            <p className="step-desc font-mono">
-              Google Gemini Flash crafts personalized comedic insults based on
-              your exact stack tropes (Python indents, Rust borrow checkers, JavaScript framework churn).
+          <div className="card philosophy-card">
+            <h3 className="font-display philosophy-card-title">Humor with Technical Empathy</h3>
+            <p className="philosophy-card-text">
+              We are practitioners of humor with technical empathy. Brutal honesty delivered with care.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ── Scoring Guide ── */}
+      {/* ── Tech Stack & Architecture (Mockup Matching Pills) ── */}
+      <section className="tech-stack-section">
+        <h2 className="font-display tech-stack-title">Tech Stack & Architecture</h2>
+        <div className="tech-stack-pills">
+          <span className="tech-pill font-mono"><span>▲</span> Next.js 16</span>
+          <span className="tech-pill font-mono"><span>🟢</span> Node.js</span>
+          <span className="tech-pill font-mono"><span>⚡</span> Express</span>
+          <span className="tech-pill font-mono"><span>🍃</span> MongoDB</span>
+          <span className="tech-pill font-mono"><span>✨</span> Google Gemini</span>
+          <span className="tech-pill font-mono"><span>🔴</span> Upstash Redis</span>
+          <span className="tech-pill font-mono"><span>📦</span> customizable-toast-notification</span>
+        </div>
+      </section>
+
+      {/* ── Creator Profile Card (Mockup Matching) ── */}
+      <section className="card creator-card">
+        <div className="creator-avatar-wrap">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://avatars.githubusercontent.com/priyanshuchaudhary?s=160"
+            alt="Creator Avatar"
+            className="creator-avatar-img"
+            crossOrigin="anonymous"
+            loading="eager"
+          />
+        </div>
+        <div className="creator-info">
+          <h3 className="font-display creator-title">Creator</h3>
+          <a
+            href="https://github.com/priyanshuchaudhary"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="creator-handle font-mono"
+          >
+            🐙 github.com/priyanshuchaudhary
+          </a>
+          <p className="creator-bio">
+            Hi! I build developer tools with a focus on code forensics, high-fidelity UI/UX, and authentic comedic reality checks. Made with passion for developers worldwide. 👋
+          </p>
+        </div>
+      </section>
+
+      {/* ── The Scoring Guide ── */}
       <section className="card content-card">
         <h2 className="font-display section-title text-fire">THE SCORING GUIDE</h2>
         <p className="section-sub font-mono">
@@ -432,6 +460,134 @@ export default function AboutPage() {
           line-height: 1.7;
           color: var(--text-secondary);
         }
+
+        /* ── Origin Story Card ── */
+        .origin-story-card {
+          background: #FEF9F3;
+          border: 1px solid #FED7AA;
+          border-radius: var(--radius-lg);
+        }
+
+        /* ── Philosophy Grid ── */
+        .philosophy-section {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .philosophy-main-title {
+          font-size: 26px;
+          color: var(--text-primary);
+        }
+        .philosophy-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          gap: 1rem;
+        }
+        .philosophy-card {
+          padding: 1.5rem;
+          background: #FEFBF6;
+          border: 1px solid #FDE68A;
+          border-radius: var(--radius-md);
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .philosophy-card-title {
+          font-size: 18px;
+          color: var(--text-primary);
+        }
+        .philosophy-card-text {
+          font-size: 13.5px;
+          color: var(--text-secondary);
+          line-height: 1.6;
+        }
+
+        /* ── Tech Stack Pills ── */
+        .tech-stack-section {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .tech-stack-title {
+          font-size: 24px;
+          color: var(--text-primary);
+        }
+        .tech-stack-pills {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .tech-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          background: #FFFFFF;
+          border: 1px solid var(--border);
+          border-radius: 9999px;
+          font-size: 13px;
+          color: var(--text-primary);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+
+        /* ── Creator Profile Card ── */
+        .creator-card {
+          width: 100%;
+          padding: 1.5rem 1.75rem;
+          background: #FEFBF6;
+          border: 1px solid #FDE68A;
+          border-radius: var(--radius-lg);
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+        }
+        .creator-avatar-wrap {
+          width: 80px;
+          height: 80px;
+          border-radius: 12px;
+          overflow: hidden;
+          flex-shrink: 0;
+          border: 2px solid #F97316;
+        }
+        .creator-avatar-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .creator-info {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .creator-title {
+          font-size: 22px;
+          color: var(--text-primary);
+          margin: 0;
+        }
+        .creator-handle {
+          font-size: 13px;
+          color: #EA580C;
+          text-decoration: none;
+          font-weight: 600;
+        }
+        .creator-handle:hover {
+          text-decoration: underline;
+        }
+        .creator-bio {
+          font-size: 13.5px;
+          color: var(--text-secondary);
+          line-height: 1.55;
+          margin: 4px 0 0;
+        }
+        @media (max-width: 600px) {
+          .creator-card {
+            flex-direction: column;
+            text-align: center;
+          }
+        }
+
         .code-inline {
           background: var(--bg-muted, #f1f5f9);
           padding: 2px 6px;

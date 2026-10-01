@@ -83,11 +83,23 @@ export default function PricingCard({ plan, onSelect }) {
 
     const buttonBackground = isHistorianUpgrade
         ? 'var(--fire-grad)'
-        : plan.highlight
-            ? 'var(--fire-grad)'
-            : isComingSoon
-                ? 'transparent'
-                : color
+        : plan.id === 'free'
+            ? 'transparent'
+            : plan.highlight
+                ? 'var(--fire-grad)'
+                : isComingSoon
+                    ? 'transparent'
+                    : 'var(--bg-card)'
+
+    const buttonTextColor = plan.highlight || isHistorianUpgrade
+        ? '#fff'
+        : isComingSoon
+            ? 'var(--text-secondary)'
+            : 'var(--text-primary)'
+
+    const buttonBorder = plan.highlight || isHistorianUpgrade
+        ? 'none'
+        : '1px solid var(--border)'
 
     return (
         <div className={`pricing-card card ${plan.highlight ? 'pricing-card--highlight' : ''} ${isComingSoon ? 'pricing-card--soon' : ''}`}>
@@ -123,7 +135,9 @@ export default function PricingCard({ plan, onSelect }) {
                     </div>
                 )}
 
-                <p className="plan-currency font-mono">Indian Rupees (INR)</p>
+                <p className="plan-currency font-mono">
+                    {plan.id === 'free' ? '100% Free Forever' : 'Indian Rupees (INR)'}
+                </p>
             </div>
 
             {/* Feature list */}
@@ -148,11 +162,11 @@ export default function PricingCard({ plan, onSelect }) {
             {/* CTA button */}
             <button
                 type="button"
-                className="btn plan-cta"
+                className="btn plan-cta font-mono"
                 style={{
                     background: buttonBackground,
-                    color: isComingSoon ? 'var(--text-secondary)' : '#fff',
-                    border: isComingSoon ? '1px solid var(--border)' : 'none',
+                    color: buttonTextColor,
+                    border: buttonBorder,
                 }}
                 onClick={() => onSelect(plan.id)}
                 disabled={isCtaDisabled}
@@ -165,9 +179,14 @@ export default function PricingCard({ plan, onSelect }) {
             )}
 
             {/* Payment methods */}
-            {!isComingSoon && (
+            {!isComingSoon && plan.id !== 'free' && (
                 <p className="plan-methods font-mono">
                     Card · UPI · NetBanking · Wallet via Razorpay
+                </p>
+            )}
+            {plan.id === 'free' && (
+                <p className="plan-methods font-mono">
+                    No payment info required · Instant access
                 </p>
             )}
 

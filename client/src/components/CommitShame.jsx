@@ -20,43 +20,57 @@ export default function CommitShame({ commits }) {
     return (
         <div className="commit-shame">
             <p className="shame-label font-mono">
-                🏆 Hall of Shame — Recent Commits
+                Commit Shame List
             </p>
 
             <div className="commit-list">
                 {commits.map((msg, i) => (
                     <span key={i} className="commit-tag font-mono">
-                        &ldquo;{msg}&rdquo;
+                        {msg}
                     </span>
                 ))}
             </div>
 
             <style jsx>{`
+        /* 
+          ── WHAT: ────────────────────────────────────────────────────────
+          Commit Shame List container styled according to approved mockup.
+          ── WHY: ─────────────────────────────────────────────────────────
+          Matches storage/assets/roast_result_mockup_1790869183501.jpg.
+          ── WHERE & WHEN TO USE: ─────────────────────────────────────────
+          Rendered inside RoastCard to highlight questionable commit messages.
+          ── USE CASES: ───────────────────────────────────────────────────
+          Highlighting 'wip', 'final fix 2', 'force push 3am' commit tags.
+          ── WHEN NOT TO USE: ─────────────────────────────────────────────
+          Do not render when commits array is empty.
+        */
         .commit-shame {
-          padding:       1rem 1.25rem;
-          background:    #080808;
-          border-bottom: 1px solid var(--border);
+          padding:       1.25rem 1.5rem;
+          background:    var(--bg-card, #FFFFFF);
+          border-bottom: 1px solid var(--border, #E5E7EB);
         }
         .shame-label {
-          color:          var(--text-muted);
-          font-size:      9px;
-          text-transform: uppercase;
-          letter-spacing: 1.5px;
+          color:          var(--text-primary, #111827);
+          font-size:      14px;
+          font-weight:    700;
+          letter-spacing: 0.3px;
           margin-bottom:  10px;
         }
         .commit-list {
           display:   flex;
           flex-wrap: wrap;
-          gap:       6px;
+          gap:       8px;
         }
         .commit-tag {
-          background:    var(--bg-elevated, #ffffff);
-          border:        1px solid #1E1E1E;
-          border-radius: var(--radius-sm);
-          padding:       4px 10px;
-          color:         var(--bad);
+          background:    #DC2626;
+          border:        none;
+          border-radius: 9999px;
+          padding:       5px 14px;
+          color:         #FFFFFF;
           font-size:     12px;
-          line-height:   1.5;
+          font-weight:   600;
+          line-height:   1.4;
+          box-shadow:    0 2px 6px rgba(220, 38, 38, 0.25);
         }
       `}</style>
         </div>

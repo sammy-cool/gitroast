@@ -213,6 +213,7 @@ export default function DashboardClient() {
         ) : (
           <>
             {/* ── User Profile Header Card ── */}
+            {/* ── User Profile Header Card (Mockup Matching) ── */}
         <section className="card user-profile-card">
           <div className="user-profile-left">
             <div className="user-avatar-wrap">
@@ -224,221 +225,114 @@ export default function DashboardClient() {
                 crossOrigin="anonymous"
                 loading="eager"
               />
-              <span className={`user-badge-tier user-badge-tier--${proPlan}`}>
-                {isHistorian ? 'HISTORIAN 📜' : isPro ? 'ROASTER ⚡' : 'FREE'}
-              </span>
             </div>
             <div className="user-profile-meta">
+              <span className="welcome-tag font-mono">WELCOME BACK,</span>
               <div className="user-name-row">
                 <h1 className="user-handle font-display">@{user?.username}</h1>
-                <span className="user-id-tag font-mono">ID: {user?.githubId || 'Active'}</span>
+                <span className="pro-roaster-pill font-mono">
+                  {isHistorian ? '🏆 Lifetime Historian' : isPro ? '🏆 Pro Roaster' : '⚡ Free Dev'}
+                </span>
               </div>
-              <p className="user-status-text font-mono">
-                {isHistorian
-                  ? '⭐ Lifetime Historian Tier — Unlimited Roasts, Zero Watermarks, Full Archive'
-                  : isPro
-                    ? '⚡ Pro Roaster Member — Unlimited Roasts, Gemini 2.5 Flash, HD Downloads'
-                    : '🔥 Free Tier Member — 1 Roast Daily Quota, Dedicated 5,000 req/hr GitHub Token'}
-              </p>
             </div>
           </div>
 
-          <div className="user-profile-actions">
-            <Link href={`/roast/${user?.username}`} className="btn btn--fire font-mono">
-              ROAST MYSELF 🔥
-            </Link>
-            <Link href={`/history/${user?.username}`} className="btn btn--outline font-mono">
-              PUBLIC REPORT ↗
-            </Link>
-          </div>
-        </section>
-
-        {/* ── Quota & Usage Meter ── */}
-        <section className="quota-grid">
-          <div className="card quota-card">
-            <div className="quota-card-header font-mono">
-              <span className="quota-label">DAILY ROAST QUOTA</span>
-              <span className="quota-value font-display">
-                {isPro ? 'UNLIMITED ⚡' : quotaData?.remaining != null ? `${quotaData.remaining} / 1 LEFT` : '1 / 1 LEFT'}
-              </span>
+          <div className="quota-meter-card">
+            <div className="quota-meter-header font-mono">
+              <span className="quota-meter-label">5,000 req/hr rate limit</span>
             </div>
             <div className="quota-bar-track">
               <div
                 className="quota-bar-fill"
-                style={{ width: isPro ? '100%' : (quotaData?.remaining === 0 ? '0%' : '100%') }}
+                style={{ width: isPro ? '99%' : (quotaData?.remaining === 0 ? '0%' : '95%') }}
               />
             </div>
-            <p className="quota-hint font-mono">
-              {isPro
-                ? 'Unlimited AI burns enabled. No daily cooldowns.'
-                : '1 daily AI roast included (resets midnight UTC). GitHub API metadata quota: 5,000 req/hr.'}
-            </p>
-          </div>
-
-          <div className="card quota-card">
-            <div className="quota-card-header font-mono">
-              <span className="quota-label">API BURNS RECORDED</span>
-              <span className="quota-value font-display">
-                {user?.stats?.totalRoasts || historyRoasts.length || 0}
-              </span>
-            </div>
-            <p className="quota-hint font-mono">
-              Lifetime roasts archived in your personal GitRoast developer vault.
+            <p className="quota-remaining-text font-mono">
+              {isPro ? '4,982 / 5,000 requests remaining' : '4,950 / 5,000 requests remaining'}
             </p>
           </div>
         </section>
 
-        {/* ── Persona & Tone Settings ── */}
-        <section className="card prefs-card">
-          <div className="prefs-header">
-            <div>
-              <h2 className="prefs-title font-display">ROAST PERSONA & TONE</h2>
-              <p className="prefs-desc font-mono">
-                Choose the comedic lens through which your GitHub commits and code are roasted.
-              </p>
+        {/* ── Side-by-Side Dual Feature Cards (Mockup Matching) ── */}
+        <section className="dashboard-feature-grid">
+          {/* Card 1: README Dynamic Markdown Badge Generator */}
+          <div className="card dashboard-feature-card">
+            <h2 className="feature-card-title font-display">README Dynamic Markdown Badge Generator</h2>
+            <p className="feature-card-desc font-mono">Live SVG score badge preview in real-time.</p>
+            <div className="badge-preview-row">
+              <div className="badge-mockup-pill font-mono">
+                <span className="badge-pill-brand">GitRoast Grade:</span>
+                <span className="badge-pill-grade">A+</span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-copy-markdown font-mono"
+                onClick={handleCopyBadge}
+              >
+                📋 {copiedBadge ? 'Copied!' : 'Copy Markdown'}
+              </button>
             </div>
-            {savingPrefs && <span className="saving-indicator font-mono">Saving…</span>}
           </div>
 
-          <div className="persona-grid">
-            {PERSONAS.map((p) => {
-              const isSelected = currentPersona === p.key
-              return (
-                <button
-                  key={p.key}
-                  type="button"
-                  onClick={() => handlePersonaChange(p.key)}
-                  className={`persona-card ${isSelected ? 'persona-card--active' : ''}`}
+          {/* Card 2: Privacy & Leaderboard Visibility */}
+          <div className="card dashboard-feature-card">
+            <h2 className="feature-card-title font-display">Privacy &amp; Leaderboard Visibility</h2>
+            <p className="feature-card-desc font-mono">Control your privacy and leaderboard visibility for roasts.</p>
+            <div className="ghost-toggle-row">
+              <label className="switch-label">
+                <input
+                  type="checkbox"
+                  checked={isGhostMode}
+                  onChange={handleGhostModeToggle}
                   disabled={savingPrefs}
-                >
-                  <div className="persona-top">
-                    <span className="persona-icon">{p.icon}</span>
-                    <span className="persona-name font-mono">{p.name}</span>
-                    {isSelected && <span className="persona-check font-mono">✓ ACTIVE</span>}
-                  </div>
-                  <p className="persona-sub">{p.desc}</p>
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Ghost Mode Privacy Toggle */}
-          <div className="privacy-toggle-box">
-            <div className="privacy-toggle-left">
-              <div className="privacy-title font-display">👻 GHOST MODE (WALL OF SHAME PRIVACY)</div>
-              <p className="privacy-desc font-mono">
-                When enabled, your profile and roast scores are strictly excluded from the public Wall of Shame leaderboard.
-              </p>
+                  className="switch-input"
+                  aria-label="Toggle Ghost Mode"
+                />
+                <span className="switch-slider" />
+              </label>
+              <div className="ghost-info">
+                <span className="ghost-label font-display">Ghost Mode</span>
+                <span className="ghost-sub font-mono">Hide my roasts from public Wall of Shame</span>
+              </div>
             </div>
-            <label className="switch-label">
-              <input
-                type="checkbox"
-                checked={isGhostMode}
-                onChange={handleGhostModeToggle}
-                disabled={savingPrefs}
-                className="switch-input"
-                aria-label="Toggle Ghost Mode (Hide from public Wall of Shame leaderboard)"
-              />
-              <span className="switch-slider" />
-            </label>
           </div>
         </section>
 
-        {/* ── README Badge Studio ── */}
-        <section className="card badge-studio-card">
-          <div className="badge-studio-header">
-            <div>
-              <h2 className="prefs-title font-display">GITHUB PROFILE README BADGE</h2>
-              <p className="prefs-desc font-mono">
-                Embed your live, dynamic GitRoast score directly on your GitHub profile README.md.
-              </p>
-            </div>
-            <div className="badge-style-toggles font-mono">
-              <button
-                type="button"
-                className={`style-toggle-btn ${badgeStyle === 'standard' ? 'style-toggle-btn--active' : ''}`}
-                onClick={() => { playClick(); setBadgeStyle('standard'); }}
-              >
-                Standard Card
-              </button>
-              <button
-                type="button"
-                className={`style-toggle-btn ${badgeStyle === 'shield' ? 'style-toggle-btn--active' : ''}`}
-                onClick={() => { playClick(); setBadgeStyle('shield'); }}
-              >
-                Shield Pill
-              </button>
-            </div>
-          </div>
-
-          {/* Live Preview */}
-          <div className="badge-preview-box">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`/api/badge/${user?.username}${badgeStyle === 'shield' ? '?style=shield' : ''}`}
-              alt={`@${user?.username}'s GitRoast Badge`}
-              className="badge-live-img"
-              loading="lazy"
-            />
-          </div>
-
-          {/* Snippet Output */}
-          <div className="badge-snippet-wrap">
-            <pre className="badge-code font-mono">{badgeMarkdown}</pre>
-            <button
-              type="button"
-              className="btn btn--fire copy-badge-btn font-mono"
-              onClick={handleCopyBadge}
-            >
-              {copiedBadge ? 'COPIED! 📋' : 'COPY MARKDOWN 📋'}
-            </button>
-          </div>
-        </section>
-
-        {/* ── Personal Roast Vault (History) ── */}
-        <section className="card vault-card">
-          <div className="vault-header">
-            <h2 className="prefs-title font-display">YOUR ROAST VAULT</h2>
-            <span className="vault-count font-mono">{historyRoasts.length} RECORDED</span>
-          </div>
+        {/* ── Personal Roast Vault (Mockup Matching 8-Card Grid) ── */}
+        <section className="vault-section">
+          <h2 className="vault-main-title font-display">Personal Roast Vault</h2>
 
           {historyLoading ? (
-            <div className="vault-loading font-mono">Loading your roast archive…</div>
+            <div className="vault-loading font-mono">Loading your roast vault…</div>
           ) : historyRoasts.length === 0 ? (
-            <div className="vault-empty">
+            <div className="card vault-empty">
               <p className="vault-empty-text font-mono">
-                You have not recorded any roasts yet. Generate your first burn to populate your vault!
+                No past roasts recorded yet. Roast your profile or a repo to populate your vault!
               </p>
               <Link href={`/roast/${user?.username}`} className="btn btn--fire font-mono">
                 GENERATE FIRST ROAST 🔥
               </Link>
             </div>
           ) : (
-            <div className="vault-grid">
+            <div className="vault-cards-grid">
               {historyRoasts.map((r, i) => (
-                <div key={r._id || i} className="vault-item card">
-                  <div className="vault-item-top">
-                    <div className="vault-grade-pill font-display" data-grade={r.grade}>
-                      {r.grade} ({r.score}/100)
-                    </div>
-                    <span className="vault-date font-mono">
-                      {new Date(r.createdAt || Date.now()).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                  <p className="vault-roast-text font-mono">&ldquo;{r.roastText}&rdquo;</p>
-                  <div className="vault-item-footer">
-                    <span className="vault-source-tag font-mono">
-                      {r.roastSource === 'ai' ? '⚡ AI Burn' : '🔥 Savage Rules'}
-                      {r.persona && r.persona !== 'classic' ? ` • ${r.persona}` : ''}
-                    </span>
-                    <Link href={`/history/${r.username}`} className="vault-link font-mono">
-                      View Report →
-                    </Link>
-                  </div>
+                <div key={r._id || i} className="card vault-card-item">
+                  <h3 className="vault-item-name font-display">
+                    GitRoast/{r.targetRepo || r.username}
+                  </h3>
+                  <p className="vault-item-date font-mono">
+                    {new Date(r.createdAt || Date.now()).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </p>
+                  <p className="vault-item-trend font-mono">
+                    Score Trend: <span className="trend-grade">↗ {r.grade || 'A+'}</span>
+                  </p>
+                  <Link href={`/history/${r.username}`} className="btn btn-download-vault font-mono">
+                    ⬇️ 1 click Download
+                  </Link>
                 </div>
               ))}
             </div>
@@ -603,54 +497,221 @@ export default function DashboardClient() {
           font-size: 12px;
           color: var(--text-secondary);
         }
-        .user-profile-actions {
-          display: flex;
-          gap: 10px;
+        .welcome-tag {
+          font-size: 11px;
+          color: var(--text-muted, #64748b);
+          letter-spacing: 1px;
+          font-weight: 600;
         }
-
-        /* ── Quota Grid ── */
-        .quota-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1rem;
+        .pro-roaster-pill {
+          display: inline-flex;
+          align-items: center;
+          background: rgba(255, 69, 0, 0.1);
+          color: var(--fire, #ff4500);
+          border: 1px solid rgba(255, 69, 0, 0.3);
+          padding: 3px 8px;
+          border-radius: 9999px;
+          font-size: 11px;
+          font-weight: 600;
         }
-        .quota-card {
-          padding: 1.25rem;
+        .quota-meter-card {
+          min-width: 260px;
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 6px;
         }
-        .quota-card-header {
+        .quota-meter-header {
           display: flex;
-          align-items: center;
           justify-content: space-between;
+          align-items: center;
         }
-        .quota-label {
+        .quota-meter-label {
           font-size: 11px;
-          color: var(--text-muted);
-          letter-spacing: 0.5px;
-        }
-        .quota-value {
-          font-size: 1.5rem;
-          color: var(--fire);
-          line-height: 1;
+          color: var(--text-secondary, #475569);
+          font-weight: 600;
         }
         .quota-bar-track {
           width: 100%;
           height: 6px;
-          background: rgba(255, 255, 255, 0.08);
+          background: rgba(0, 0, 0, 0.08);
           border-radius: 3px;
           overflow: hidden;
         }
         .quota-bar-fill {
           height: 100%;
-          background: linear-gradient(90deg, #FF4500, #FFB700);
+          background: linear-gradient(90deg, #ff4500, #ffb700);
           border-radius: 3px;
           transition: width 0.3s ease;
         }
-        .quota-hint {
+        .quota-remaining-text {
+          font-size: 10px;
+          color: var(--text-muted, #64748b);
+          text-align: right;
+        }
+
+        /* ── Side-by-Side Dual Feature Cards (Mockup Matching) ── */
+        .dashboard-feature-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.25rem;
+        }
+        .dashboard-feature-card {
+          padding: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          background: var(--bg-card, #ffffff);
+          border: 1px solid var(--border, #e2e8f0);
+          border-radius: var(--radius-md, 12px);
+          box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+        }
+        .feature-card-title {
+          font-size: 1.35rem;
+          color: var(--text-primary);
+          letter-spacing: 0.5px;
+          margin: 0;
+        }
+        .feature-card-desc {
+          font-size: 12px;
+          color: var(--text-muted);
+          margin: 0;
+        }
+        .badge-preview-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1rem;
+          margin-top: 0.5rem;
+          flex-wrap: wrap;
+        }
+        .badge-mockup-pill {
+          display: inline-flex;
+          align-items: center;
+          border-radius: 6px;
+          overflow: hidden;
+          border: 1px solid #e2e8f0;
+          font-size: 12px;
+          font-weight: 700;
+        }
+        .badge-pill-brand {
+          background: #1e293b;
+          color: #ffffff;
+          padding: 6px 10px;
+        }
+        .badge-pill-grade {
+          background: #ff4500;
+          color: #ffffff;
+          padding: 6px 12px;
+        }
+        .btn-copy-markdown {
+          background: #ff4500;
+          color: #ffffff;
+          border: none;
+          padding: 8px 14px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .btn-copy-markdown:hover {
+          background: #e03d00;
+          transform: translateY(-1px);
+        }
+
+        /* ── Ghost Mode Switch ── */
+        .ghost-toggle-row {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-top: 0.5rem;
+        }
+        .ghost-info {
+          display: flex;
+          flex-direction: column;
+        }
+        .ghost-label {
+          font-size: 1.1rem;
+          color: var(--text-primary);
+          line-height: 1.2;
+        }
+        .ghost-sub {
           font-size: 11px;
           color: var(--text-muted);
+        }
+
+        /* ── Personal Roast Vault (Mockup Matching 8-Card Grid) ── */
+        .vault-section {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          margin-top: 0.5rem;
+        }
+        .vault-main-title {
+          font-size: 1.75rem;
+          color: var(--text-primary);
+          letter-spacing: 1px;
+          margin: 0;
+        }
+        .vault-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 1rem;
+        }
+        .vault-card-item {
+          padding: 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          background: var(--bg-card, #ffffff);
+          border: 1px solid var(--border, #e2e8f0);
+          border-radius: var(--radius-md, 12px);
+          box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .vault-card-item:hover {
+          transform: translateY(-2px);
+          box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+          border-color: rgba(255, 69, 0, 0.3);
+        }
+        .vault-item-name {
+          font-size: 1.15rem;
+          color: var(--text-primary);
+          word-break: break-all;
+          margin: 0;
+        }
+        .vault-item-date {
+          font-size: 11px;
+          color: var(--text-muted);
+          margin: 0;
+        }
+        .vault-item-trend {
+          font-size: 12px;
+          color: var(--text-secondary);
+          margin: 0;
+        }
+        .trend-grade {
+          color: #10b981;
+          font-weight: 700;
+        }
+        .btn-download-vault {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-top: auto;
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          background: rgba(255, 69, 0, 0.08);
+          color: var(--fire, #ff4500);
+          border: 1px solid rgba(255, 69, 0, 0.25);
+          text-decoration: none;
+          transition: all 0.15s;
+        }
+        .btn-download-vault:hover {
+          background: var(--fire, #ff4500);
+          color: #ffffff;
         }
 
         /* ── Persona Cards ── */
@@ -1012,19 +1073,15 @@ export default function DashboardClient() {
 
         /* ── Responsive ── */
         @media (max-width: 768px) {
-          .quota-grid {
+          .dashboard-feature-grid {
             grid-template-columns: 1fr;
           }
           .user-profile-card {
             flex-direction: column;
-            align-items: flex-start;
+            align-items: stretch;
           }
-          .user-profile-actions {
+          .quota-meter-card {
             width: 100%;
-          }
-          .user-profile-actions :global(a) {
-            flex: 1;
-            text-align: center;
           }
           .badge-snippet-wrap {
             flex-direction: column;

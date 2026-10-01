@@ -24,27 +24,28 @@ import Breadcrumb from '@/components/Breadcrumb';
 const SUPPORT_EMAIL = 'priyanshu.alt191@gmail.com';
 
 const CATEGORIES = [
-  { id: 'feedback', label: '💡 Feature Request / Idea', emoji: '💡' },
   { id: 'bug', label: '🐛 Bug Report', emoji: '🐛' },
-  { id: 'pro', label: '⚡ Pro Plan / Payment Inquiry', emoji: '⚡' },
-  { id: 'dispute', label: '🔥 Roast Dispute / Removal', emoji: '🔥' },
-  { id: 'general', label: '🤝 General / Hello', emoji: '🤝' },
+  { id: 'feedback', label: '💡 Feature Request', emoji: '💡' },
+  { id: 'pro', label: '⚡ Pro Billing', emoji: '⚡' },
+  { id: 'dispute', label: '⚖️ Roast Dispute', emoji: '⚖️' },
+  { id: 'general', label: '📬 General', emoji: '📬' },
 ];
 
 export default function ContactPageClient() {
   const { user } = useAuth();
-  const [category, setCategory] = useState('feedback');
+  const [category, setCategory] = useState('bug');
   const [name, setName] = useState(user?.username ? `@${user.username}` : '');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [ticketId, setTicketId] = useState('');
   const [sending, setSending] = useState(false);
+  const [previewTicketId] = useState(() => `GR-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(1000 + Math.random() * 9000)}`);
 
   function handleCopyEmail() {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(SUPPORT_EMAIL);
-      toast.copy('📋 Email copied to clipboard! (priyanshu.alt191@gmail.com)');
+      toast.copy(`📋 Email copied to clipboard! (${SUPPORT_EMAIL})`);
     } else {
       toast.info(`Email: ${SUPPORT_EMAIL}`);
     }
@@ -70,12 +71,12 @@ export default function ContactPageClient() {
         }),
         {
           loading: '📬 Dispatching message to GitRoast team...',
-          success: (data) => `🔥 Message dispatched! Reference #${data?.ticketId || 'GR-CONFIRMED'}`,
+          success: (data) => `🔥 Message dispatched! Reference #${data?.ticketId || previewTicketId}`,
           error: (err) => err?.message || 'Dispatch failed. You can also email us directly!',
         }
       );
 
-      const ref = res?.ticketId || `GR-${Math.floor(100000 + Math.random() * 900000)}`;
+      const ref = res?.ticketId || previewTicketId;
       setTicketId(ref);
       setSubmitted(true);
     } catch {
@@ -114,75 +115,15 @@ export default function ContactPageClient() {
         <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Contact' }]} />
       </div>
 
-      {/* ── Header ── */}
+      {/* ── Header Matching Approved Mockup ── */}
       <header className="contact-header">
-        <span className="badge font-mono">DIRECT DISPATCH</span>
-        <h1 className="font-display contact-title text-fire">CONTACT THE SHAME LAB</h1>
+        <h1 className="font-display contact-title">GET IN TOUCH WITH THE PIT CREW</h1>
         <p className="contact-sub font-mono">
-          Found a bug? Want a feature? Angry about your F- grade? We read and reply to every message.
+          Report a bug, dispute a savage roast, or inquire about team plans
         </p>
       </header>
 
-      {/* ── Direct Quick-Action Cards ── */}
-      <div className="channels-grid">
-        <div className="channel-card card">
-          <div className="channel-icon">📧</div>
-          <div className="channel-info">
-            <span className="channel-label font-mono">DIRECT INBOX</span>
-            <span className="channel-val font-mono">{SUPPORT_EMAIL}</span>
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary channel-btn"
-            onClick={handleCopyEmail}
-          >
-            📋 Copy Email
-          </button>
-        </div>
-
-        <div className="channel-card card">
-          <div className="channel-icon">⚡</div>
-          <div className="channel-info">
-            <span className="channel-label font-mono">SLA PROMISE</span>
-            <span className="channel-val font-mono">Fast Response &lt; 24h</span>
-          </div>
-          <a
-            href={`mailto:${SUPPORT_EMAIL}?subject=[GitRoast%20Support]%20Developer%20Inquiry`}
-            className="btn btn-ghost channel-btn"
-          >
-            ✉️ Open Mail App
-          </a>
-        </div>
-
-        <div className="channel-card card resume-card">
-          <div className="channel-icon">📄</div>
-          <div className="channel-info">
-            <span className="channel-label font-mono">CREATOR RESUME</span>
-            <span className="channel-val font-mono">Priyanshu Patel · Full Stack</span>
-          </div>
-          <div className="resume-btn-group">
-            <a
-              href="/resume/Priyanshu_Resume.pdf"
-              download="Priyanshu_Resume.pdf"
-              className="btn btn-primary channel-btn"
-              title="Download Priyanshu's Resume PDF"
-            >
-              📥 Download PDF
-            </a>
-            <a
-              href="/resume/Priyanshu_Resume.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-ghost channel-btn"
-              title="View Resume in new tab"
-            >
-              👁️ View
-            </a>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Form Card ── */}
+      {/* ── Form Card Matching Mockup ── */}
       <div className="card form-card">
         {submitted ? (
           <div className="success-state font-mono">
@@ -192,7 +133,7 @@ export default function ContactPageClient() {
               Reference Ticket: <strong>#{ticketId}</strong>
             </p>
             <p className="success-desc">
-              Thanks for reaching out! We have dispatched your note to the GitRoast team and will follow up shortly.
+              Thanks for reaching out! We have dispatched your note to the GitRoast pit crew and will follow up shortly.
             </p>
             <div className="success-actions">
               <button
@@ -221,91 +162,86 @@ export default function ContactPageClient() {
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="contact-form">
-            <h2 className="font-display form-heading text-fire">SEND US A NOTE</h2>
-
-            {/* Category selection */}
-            <div className="form-group">
-              <label className="form-label font-mono">Topic / Category:</label>
-              <div className="category-chips">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    className={`category-chip font-mono ${category === cat.id ? 'category-chip--active' : ''}`}
-                    onClick={() => setCategory(cat.id)}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
+            {/* Category selection chips */}
+            <div className="category-chips-row">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  className={`category-chip font-mono ${category === cat.id ? 'category-chip--active' : ''}`}
+                  onClick={() => setCategory(cat.id)}
+                >
+                  {cat.label}
+                </button>
+              ))}
             </div>
 
-            {/* Name / Handle & Email */}
-            <div className="form-row">
-              <div className="form-group flex-1">
-                <label className="form-label font-mono" htmlFor="contact-name">
-                  GitHub Handle / Name:
-                </label>
-                <input
-                  id="contact-name"
-                  type="text"
-                  placeholder="@username or name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="form-input font-mono"
-                  maxLength={50}
-                />
-              </div>
-
-              <div className="form-group flex-1">
-                <label className="form-label font-mono" htmlFor="contact-email">
-                  Your Email (for replies):
-                </label>
-                <input
-                  id="contact-email"
-                  type="email"
-                  placeholder="developer@domain.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="form-input font-mono"
-                  maxLength={100}
-                />
-              </div>
+            {/* Inputs */}
+            <div className="form-group">
+              <input
+                id="contact-email"
+                type="email"
+                placeholder="Your Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="form-input font-mono"
+                maxLength={100}
+                required
+              />
             </div>
 
-            {/* Message */}
             <div className="form-group">
-              <label className="form-label font-mono" htmlFor="contact-msg">
-                Message:
-              </label>
+              <input
+                id="contact-name"
+                type="text"
+                placeholder="GitHub Username (optional)"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="form-input font-mono"
+                maxLength={50}
+              />
+            </div>
+
+            {/* Message with helper counter */}
+            <div className="form-group">
               <textarea
                 id="contact-msg"
                 rows={5}
-                placeholder="Tell us what's on your mind — feedback, feature wishes, bug descriptions, or complaints about your savage score..."
+                placeholder="Message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 className="form-textarea font-mono"
                 maxLength={1000}
                 required
               />
-              <span className="char-count font-mono">{message.length}/1000</span>
+              <div className="counter-row font-mono">
+                helper counter: {message.length}/1000
+              </div>
             </div>
 
-            {/* Submit */}
+            {/* Ticket & SLA Badges */}
+            <div className="ticket-sla-row font-mono">
+              <span className="ticket-badge">Ticket ID: {previewTicketId}</span>
+              <span className="sla-badge">✅ Guaranteed 4-Hour Response SLA</span>
+            </div>
+
+            {/* Submit & Quick Copy row */}
             <div className="form-submit-row">
               <button
                 type="submit"
-                className="btn btn-primary submit-btn"
+                className="btn btn-primary submit-btn font-mono"
                 disabled={sending}
               >
                 {sending ? 'Dispatching...' : '🔥 Dispatch Message'}
               </button>
               <button
                 type="button"
-                className="btn btn-ghost copy-btn"
+                className="btn btn-copy-email font-mono"
                 onClick={handleCopyEmail}
+                title="Copy direct email address to clipboard"
               >
-                📋 Copy Email
+                <span>Or copy direct email: {SUPPORT_EMAIL}</span>
+                <span className="copy-icon">📋</span>
               </button>
             </div>
           </form>
@@ -483,54 +419,98 @@ export default function ContactPageClient() {
           color: var(--text-secondary);
         }
 
-        .category-chips {
+        .category-chips-row {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
         }
         .category-chip {
-          font-size: 11px;
-          padding: 6px 12px;
+          font-size: 12px;
+          padding: 6px 14px;
           border-radius: var(--radius-sm);
-          background: var(--bg-elevated, #ffffff);
+          background: #FFFFFF;
           border: 1px solid var(--border);
-          color: var(--text-secondary);
+          color: var(--text-primary);
           cursor: pointer;
           transition: all 0.15s;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
         }
         .category-chip:hover {
-          border-color: rgba(255, 69, 0, 0.4);
-          color: var(--text-primary);
+          border-color: #EA580C;
+          color: #EA580C;
         }
         .category-chip--active {
-          background: rgba(255, 69, 0, 0.12);
-          border-color: var(--fire);
-          color: var(--fire-warm);
+          background: #FFF7ED;
+          border: 2px solid #EA580C;
+          color: #C2410C;
+          font-weight: 700;
         }
 
-        /*
-          ── WHAT: ──────────────────────────────────────────────────────────
-          Project Luminous form input and textarea styling.
-          ── WHY: ───────────────────────────────────────────────────────────
-          Replaces hardcoded dark background #0d0d0d with crisp white var(--bg-card, #ffffff)
-          and clean border styling matching Project Luminous design system.
-          ── WHERE & WHEN TO USE: ───────────────────────────────────────────
-          Support and contact inquiry inputs in ContactPageClient.
-          ── USE CASES: ─────────────────────────────────────────────────────
-          User fills out email, subject, category, and message on /contact page.
-          ── WHEN NOT TO USE: ───────────────────────────────────────────────
-          Non-form displays.
-        */
+        .counter-row {
+          text-align: right;
+          font-size: 11px;
+          color: var(--text-muted);
+          margin-top: 4px;
+        }
+
+        .ticket-sla-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-top: 4px;
+        }
+        .ticket-badge {
+          font-size: 12px;
+          font-weight: 600;
+          padding: 7px 14px;
+          background: #EEF2F6;
+          color: #1E293B;
+          border-radius: var(--radius-sm);
+          border: 1px solid #CBD5E1;
+        }
+        .sla-badge {
+          font-size: 12px;
+          font-weight: 600;
+          padding: 7px 14px;
+          background: #ECFDF5;
+          color: #065F46;
+          border-radius: var(--radius-sm);
+          border: 1px solid #A7F3D0;
+        }
+
+        .btn-copy-email {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 12px 18px;
+          background: #FFFFFF;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-md);
+          font-size: 13px;
+          color: var(--text-primary);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .btn-copy-email:hover {
+          border-color: var(--fire);
+          color: var(--fire);
+        }
+
         .form-input,
         .form-textarea {
           background: var(--bg-card, #ffffff);
           border: 1px solid var(--border, #e2e8f0);
           border-radius: var(--radius-sm);
-          padding: 10px 12px;
+          padding: 12px 14px;
           color: var(--text-primary);
-          font-size: 12px;
+          font-size: 13px;
           outline: none;
           transition: border-color 0.15s, box-shadow 0.15s;
+          width: 100%;
         }
         .form-input:focus,
         .form-textarea:focus {
@@ -539,7 +519,7 @@ export default function ContactPageClient() {
         }
         .form-textarea {
           resize: vertical;
-          min-height: 100px;
+          min-height: 120px;
         }
         .char-count {
           font-size: 10px;

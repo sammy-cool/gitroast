@@ -134,12 +134,27 @@ export default function RoastCard({ data, onProClick }) {
         data.score < 85 ? 'Decent — but still roastable' :
           'Respectable — we had to dig for this roast'
 
+  const PERSONA_LABELS = {
+    classic: 'Cynical Lead',
+    hinglish: 'Desi Tech Lead',
+    techbro: 'Silicon Valley Bro',
+    ramsay: 'Chef Ramsay',
+    shakespearean: 'Shakespeare',
+  };
+  const personaLabel = PERSONA_LABELS[data.persona] || 'Desi Tech Lead';
+
+  const tabloidHeadline = data.headline ||
+    (data.shameCommits?.[0] ? `COMMIT CRIME: "${data.shameCommits[0].toUpperCase()}"` :
+     data.score < 40 ? 'MASSIVE NODE_MODULES IN MAIN BRANCH' :
+     data.score < 70 ? 'SPAGHETTI ARCHITECTURE DETECTED' :
+     'SUSPICIOUSLY COMPETENT BUT ROASTABLE');
+
   return (
     <div className="roast-card card">
 
       <div id="roast-card-capture">
 
-        {/* ── Header ── */}
+        {/* ── Header Matching Approved Mockup ── */}
         <div className="card-header">
           <div className="profile-info">
             <div className="avatar-box">
@@ -164,26 +179,39 @@ export default function RoastCard({ data, onProClick }) {
             <div>
               <p className="profile-name">@{data.username}</p>
               <p className="profile-meta font-mono">
-                Member since {data.joinYear} · {data.totalRepos} repos
+                {data.followersCount ? `${data.followersCount} Followers` : `${data.totalRepos || 0} Repos`} · Joined {data.joinYear || 'GitHub'}
               </p>
             </div>
           </div>
 
-          <div
-            className="score-block"
-            title={`Roast Score: ${data.score}/100 — ${scoreExplain}`}
-          >
-            <div className="score-number font-display" style={{ color: scoreColor }}>
-              {data.score}
-            </div>
-            <div className="score-label font-mono">/100 ROAST SCORE</div>
-            <div className="score-hint font-mono">
-              {data.score < 50 ? 'lower = more roastable' : 'higher = better dev'}
-            </div>
-            <div className="grade-badge font-mono" style={{ color: 'var(--bad)' }}>
-              GRADE: {data.grade}
-            </div>
+          {/* Stamped crimson grade seal pill */}
+          <div className="stamped-grade-pill font-mono" title={`Grade: ${data.grade} (${data.score}/100)`}>
+            <span className="stamped-letter font-display">{data.grade}</span>
+            <span className="stamped-fire">🔥</span>
           </div>
+
+          {/* Voice narration button */}
+          <button
+            type="button"
+            className={`voice-roast-btn font-mono ${isPlayingAudio ? 'voice-roast-btn--active' : ''}`}
+            onClick={handleVoiceRoast}
+            title={isPlayingAudio ? 'Stop reading' : `Play roast narration with ${personaLabel} voice`}
+          >
+            {isPlayingAudio ? (
+              <>
+                <span className="voice-pulse" /> Stop Voice
+              </>
+            ) : (
+              <>🔊 Play Narration ({personaLabel})</>
+            )}
+          </button>
+        </div>
+
+        {/* ── Bold Tabloid Headline (Mockup Matching) ── */}
+        <div className="tabloid-headline-wrap">
+          <h2 className="tabloid-headline font-display">
+            {tabloidHeadline}
+          </h2>
         </div>
 
         {/* ── Stats ── */}
@@ -225,31 +253,7 @@ export default function RoastCard({ data, onProClick }) {
               {data.roastSource === 'ai' && (
                 <span className="ai-badge font-mono">⚡ AI Roast</span>
               )}
-              {data.persona && data.persona !== 'classic' && (
-                <span className="persona-badge font-mono">
-                  {data.persona === 'hinglish' && '🇮🇳 Desi Hinglish'}
-                  {data.persona === 'techbro' && '👔 Tech Bro'}
-                  {data.persona === 'ramsay' && '👨‍🍳 Gordon Ramsay'}
-                  {data.persona === 'shakespearean' && '🎭 Shakespearean'}
-                </span>
-              )}
             </div>
-            {typingDone && (
-              <button
-                type="button"
-                className={`voice-roast-btn font-mono ${isPlayingAudio ? 'voice-roast-btn--active' : ''}`}
-                onClick={handleVoiceRoast}
-                title={isPlayingAudio ? 'Stop reading' : 'Read roast aloud with sarcastic voice'}
-              >
-                {isPlayingAudio ? (
-                  <>
-                    <span className="voice-pulse" /> Stop Voice
-                  </>
-                ) : (
-                  <>🔊 Voice Roast</>
-                )}
-              </button>
-            )}
           </div>
           <p className="roast-text">
             &ldquo;{displayedText}
@@ -259,24 +263,20 @@ export default function RoastCard({ data, onProClick }) {
           </p>
         </div>
 
-        {/* ── AI Redemption Plan ── */}
-        {/* WHAT: Displays 3 actionable, humorous tips to help developer recover from the roast */}
-        {/* WHY: Delivers immense value beyond humor — elevates roast into an actionable improvement roadmap */}
-        {/* WHERE & WHEN TO USE: Rendered after typing completes when redemptionPlan is present */}
-        {/* USE CASES: Pro AI roasts, viral portfolio improvements, team code quality initiatives */}
-        {/* WHEN NOT TO USE: Never render while typing is in progress or when plan is empty */}
+        {/* ── 3-Step Redemption Plan (Mockup Matching Interactive Checklist) ── */}
         {typingDone && data?.redemptionPlan && data.redemptionPlan.length > 0 && (
           <div className="redemption-container">
-            <div className="redemption-header font-mono">
-              <span className="redemption-badge">🛠️ ARCHITECT REDEMPTION PLAN</span>
-              <span className="redemption-pill">AI ACTION ITEMS</span>
-            </div>
-            <div className="redemption-list">
+            <h3 className="redemption-title font-mono">3-Step Redemption Plan</h3>
+            <div className="redemption-checklist">
               {data.redemptionPlan.map((item, idx) => (
-                <div key={idx} className="redemption-row">
-                  <span className="redemption-index font-mono">0{idx + 1}</span>
-                  <span className="redemption-text">{item}</span>
-                </div>
+                <label key={idx} className="redemption-item">
+                  <input
+                    type="checkbox"
+                    defaultChecked={idx === 0}
+                    className="redemption-checkbox"
+                  />
+                  <span className="redemption-text font-mono">{item}</span>
+                </label>
               ))}
             </div>
           </div>
@@ -357,8 +357,8 @@ export default function RoastCard({ data, onProClick }) {
           display:         flex;
           justify-content: space-between;
           align-items:     center;
-          gap:             1rem;
-          flex-wrap:       wrap;
+          gap:             0.75rem;
+          flex-wrap:       nowrap;
         }
         .profile-info {
           display:     flex;
@@ -394,15 +394,50 @@ export default function RoastCard({ data, onProClick }) {
           color:           var(--fire);
         }
         .profile-name {
-          font-weight:   600;
+          font-weight:   700;
           font-size:     15px;
           margin:        0;
           overflow:      hidden;
           text-overflow: ellipsis;
           white-space:   nowrap;
-          max-width:     200px;
+          max-width:     180px;
+          color:         var(--text-primary);
         }
         .profile-meta { color: var(--text-secondary); font-size: 11px; margin: 2px 0 0; }
+
+        .stamped-grade-pill {
+          background:    #DC2626;
+          color:         #FFFFFF;
+          padding:       4px 14px;
+          border-radius: 9999px;
+          display:       inline-flex;
+          align-items:   center;
+          gap:           6px;
+          box-shadow:    0 2px 8px rgba(220, 38, 38, 0.3);
+          flex-shrink:   0;
+        }
+        .stamped-letter {
+          font-size:   20px;
+          font-weight: 700;
+          line-height: 1;
+        }
+        .stamped-fire {
+          font-size: 14px;
+        }
+
+        .tabloid-headline-wrap {
+          padding:    1.25rem 1.5rem 0.5rem;
+          background: var(--bg-card);
+        }
+        .tabloid-headline {
+          font-size:      clamp(24px, 5.5vw, 36px);
+          line-height:    1.08;
+          letter-spacing: 0.5px;
+          color:          var(--text-primary, #111827);
+          margin:         0;
+          text-transform: uppercase;
+          font-weight:    900;
+        }
 
         .score-block  { text-align: right; flex-shrink: 0; cursor: help; }
         .score-number { font-size: clamp(36px, 8vw, 52px); line-height: 1; }
@@ -420,11 +455,10 @@ export default function RoastCard({ data, onProClick }) {
         }
 
         .roast-text-block {
-          padding:       1.4rem 1.5rem;
+          padding:       1.2rem 1.5rem;
           border-bottom: 1px solid var(--border);
-          border-left:   3px solid var(--fire);
-          background:    var(--bg-elevated);
-          min-height:    120px;
+          background:    var(--bg-card);
+          min-height:    100px;
         }
         .roast-text-header {
           display:         flex;
@@ -523,57 +557,39 @@ export default function RoastCard({ data, onProClick }) {
         }
 
         .redemption-container {
-          padding: 1.2rem 1.5rem;
+          padding:       1.25rem 1.5rem;
           border-bottom: 1px solid var(--border);
-          background: var(--bg-elevated);
+          background:    var(--bg-card);
         }
-        .redemption-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 12px;
-          gap: 8px;
+        .redemption-title {
+          font-size:      14px;
+          font-weight:    700;
+          color:          var(--text-primary);
+          margin-bottom:  12px;
+          letter-spacing: 0.3px;
         }
-        .redemption-badge {
-          font-size: 11px;
-          color: #ffaa55;
-          letter-spacing: 1px;
-          font-weight: 700;
-        }
-        .redemption-pill {
-          font-size: 9px;
-          padding: 2px 7px;
-          background: rgba(255, 69, 0, 0.12);
-          border: 1px solid rgba(255, 69, 0, 0.3);
-          border-radius: 4px;
-          color: var(--fire);
-          letter-spacing: 0.8px;
-        }
-        .redemption-list {
-          display: flex;
+        .redemption-checklist {
+          display:        flex;
           flex-direction: column;
-          gap: 8px;
+          gap:            10px;
         }
-        .redemption-row {
-          display: flex;
-          align-items: flex-start;
-          gap: 10px;
-          padding: 8px 10px;
-          background: var(--bg-primary);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
+        .redemption-item {
+          display:     flex;
+          align-items: center;
+          gap:         10px;
+          cursor:      pointer;
+          user-select: none;
         }
-        .redemption-index {
-          font-size: 11px;
-          color: var(--fire-warm);
-          font-weight: 700;
-          line-height: 1.4;
-          flex-shrink: 0;
+        .redemption-checkbox {
+          width:        16px;
+          height:       16px;
+          accent-color: #2563EB;
+          cursor:       pointer;
         }
         .redemption-text {
-          font-size: 12px;
+          font-size:   13px;
           line-height: 1.45;
-          color: var(--text-primary);
+          color:       var(--text-primary);
         }
 
         .bio-contrast-box {

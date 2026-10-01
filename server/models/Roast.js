@@ -224,13 +224,25 @@ roastSchema.statics.getLeaderboard = async function (options = {}) {
   const result = await this.aggregate([
     // WHY $match first: excludes users who opted into Ghost Mode from Wall of Shame
     { $match: { isPrivate: { $ne: true } } },
-    // WHY $project next: reduces data passed to $group and normalizes username casing
-    //     so duplicate case variants (Alice vs alice) don't split rankings
-    { $project: { username: { $toLower: "$username" }, score: 1 } },
+    // WHY $sort before $group: ensures $first captures metrics from the most savage roast
+    { $sort: { score: 1 } },
+    // WHY $project: extracts topLanguage, grade, and worst commit shame for high-density UI
+    {
+      $project: {
+        username: { $toLower: "$username" },
+        score: 1,
+        grade: 1,
+        topLanguage: 1,
+        worstCommit: { $arrayElemAt: ["$shameCommits", 0] },
+      },
+    },
     {
       $group: {
         _id: "$username",
         bestScore: { $min: "$score" },
+        grade: { $first: "$grade" },
+        topLanguage: { $first: "$topLanguage" },
+        worstCommit: { $first: "$worstCommit" },
         roastCount: { $sum: 1 },
       },
     },
