@@ -233,7 +233,7 @@ export default function LiveRoastFeed() {
           display:         inline-flex;
           align-items:     center;
           justify-content: center;
-          background:      #1a1a1a;
+          background:      var(--bg-input);
           flex-shrink:     0;
         }
         .feed-avatar {
