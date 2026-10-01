@@ -352,9 +352,9 @@ function generateBioContrast(profile, repoAnalysis, commitAnalysis) {
   const bio = (profile.bio || "").trim();
   const lowerBio = bio.toLowerCase();
 
-  let claimed = bio;
-  let reality = "";
-  let verdict = "";
+  let claimed;
+  let reality;
+  let verdict;
 
   if (!bio) {
     claimed = "Stealth Mode Stealth Engineer";
@@ -556,7 +556,7 @@ async function analyzeWrapped(
   });
 
   // Most abandoned repo created in targetYear (or overall if none in targetYear)
-  let mostAbandonedRepo = null;
+  let mostAbandonedRepo;
   if (reposCreatedInYear.length > 0) {
     const sorted = [...reposCreatedInYear].sort((a, b) => {
       const lifeA = new Date(a.pushed_at) - new Date(a.created_at);
@@ -678,7 +678,7 @@ async function analyzeWrapped(
   ).sort();
 
   let bestStreak = 0;
-  let currentStreak = 0;
+  let currentStreak;
   let bestStreakEnd = null;
 
   if (uniqueDays.length > 0) {
@@ -726,9 +726,9 @@ async function analyzeWrapped(
   const repoAnalysis = analyzeRepos(repos || []);
 
   // Archetype determination
-  let archetype = "";
-  let archetypeEmoji = "⚡";
-  let archetypeDesc = "";
+  let archetype;
+  let archetypeEmoji;
+  let archetypeDesc;
 
   if (totalCommits === 0 && reposCreatedInYear.length === 0) {
     archetype = "The Ghost";
@@ -859,10 +859,10 @@ async function analyzeUniverse(
   const grade = getGrade(score);
 
   // ── Star Classification (The Developer) ──────────────────────
-  let spectralClass = "G-Type Yellow Solar";
-  let starColor = "#FFB700";
-  let coronaColor = "rgba(255, 183, 0, 0.4)";
-  let starTitle = "Main Sequence Solar Engine";
+  let spectralClass;
+  let starColor;
+  let coronaColor;
+  let starTitle;
 
   if (score >= 85) {
     spectralClass = "O-Type Blue Hypergiant";

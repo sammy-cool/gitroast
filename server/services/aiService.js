@@ -433,7 +433,7 @@ async function* generateAIRoastStream(data, intensity = "savage", persona = "cla
                       const parsed = JSON.parse(line.slice(6));
                       const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
                       if (text) yield text;
-                    } catch {}
+                    } catch (_e) { /* ignore */ }
                   }
                 }
               }
@@ -442,7 +442,7 @@ async function* generateAIRoastStream(data, intensity = "savage", persona = "cla
                   const parsed = JSON.parse(fbBuffer.slice(6));
                   const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
                   if (text) yield text;
-                } catch {}
+                } catch (_e) { /* ignore */ }
               }
             } finally {
               fallbackReader.releaseLock();

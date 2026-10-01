@@ -5,8 +5,6 @@ const User = require("../models/User");
 const Roast = require("../models/Roast");
 const {
   createToken,
-  extractToken,
-  verifyToken,
 } = require("../services/tokenService");
 const { requireAuth } = require("../middleware/auth");
 const { authLimiter } = require("../middleware/rateLimiter");

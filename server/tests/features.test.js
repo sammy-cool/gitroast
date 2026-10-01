@@ -811,7 +811,6 @@ describe("Feature #6 — Battle Reactions & Persistence", () => {
 
 describe("Feature #7 — Dynamic Logger & Telemetry Engine", () => {
     const {
-        logger,
         logRequest,
         sanitizeMeta,
         getDynamicLoggerStats,
@@ -883,7 +882,6 @@ describe("Feature #7 — Dynamic Logger & Telemetry Engine", () => {
 
     it("should NEVER suppress error responses (>= 400) even for suppressed paths", (t, done) => {
         const testPath = "/health"; // Statically suppressed path
-        let loggedLevel = null;
 
         const req = {
             method: "GET",

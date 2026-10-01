@@ -137,7 +137,7 @@ async function analyzeRepository(owner, repoName, userToken = null, isPro = fals
   else if (score < 25) grade = "F-";
 
   // Build rule-based roast text
-  let ruleRoast = "";
+  let ruleRoast;
   if (!hasTests && commitQuality < 50) {
     ruleRoast = `${repoName} runs on pure faith and zero unit tests. With commit messages like "${commitMessages[0] || 'fix bug'}", even ChatGPT refuses to debug this.`;
   } else if (monthsInactive >= 6) {

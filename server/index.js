@@ -24,7 +24,6 @@ const cookieParser = require("cookie-parser");
 const { errorHandler, notFoundHandler } = require("./middleware/errorHandler");
 const {
   roastLimiter,
-  authLimiter,
   battleLimiter, // WHY: battle = 2x GitHub API + AI — needs strict limit
   generalLimiter,
 } = require("./middleware/rateLimiter");
@@ -167,7 +166,6 @@ app.use("/api", generalLimiter);
 // ── Step 7: Routes with specific rate limiters ────────────────
 // WHY route-specific limiters:
 //   /roast  — most expensive (GitHub API calls per request) → strictest
-//   /auth   — authLimiter is applied inside routes/auth.js directly to /github and /github/callback
 //             so that GET /me session restores aren't throttled by general navigation.
 //   /battle — expensive (2x GitHub API + AI) → handled inside battle route
 //   others  — covered by generalLimiter above

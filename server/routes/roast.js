@@ -40,7 +40,7 @@ router.get("/feed", async (req, res) => {
       .lean();
 
     return res.status(200).json({ success: true, feed });
-  } catch (err) {
+  } catch (_err) {
     return res.status(200).json({ success: true, feed: [] });
   }
 });
