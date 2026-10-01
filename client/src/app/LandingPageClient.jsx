@@ -246,9 +246,7 @@ export default function LandingPageClient() {
   const selectedIntensity = INTENSITIES.find((i) => i.key === intensity);
 
   return (
-    <main className="landing-page">
-      <div className="landing-glow animate-glow" />
-
+    <main className="landing-page split-layout">
       {/* ── Top Nav: in normal flow to prevent mobile collision ── */}
       <nav className="landing-nav" aria-label="Main Navigation">
         <div className="landing-nav-left">
@@ -318,74 +316,6 @@ export default function LandingPageClient() {
         </div>
       )}
 
-      {/* ── Brand Logo Header ── */}
-      <div className="landing-logo">
-        <h1 className="font-display text-fire">GITROAST 🔥</h1>
-        <p className="landing-tagline">
-          Get your GitHub{" "}
-          <span style={{ color: "var(--fire)" }}>brutally roasted.</span> Share
-          the pain.
-        </p>
-      </div>
-
-      {/* Intensity selector */}
-      <div className="intensity-wrap">
-        <p className="intensity-label font-mono">Choose your intensity:</p>
-        <div className="intensity-options">
-          {INTENSITIES.map((opt) => (
-            <button
-              type="button"
-              key={opt.key}
-              className={`intensity-btn font-mono ${intensity === opt.key ? "intensity-btn--active" : ""} ${opt.isPro ? "intensity-btn--pro" : ""}`}
-              style={{
-                "--intensity-color": opt.color,
-                borderColor: intensity === opt.key ? opt.color : undefined,
-              }}
-              onClick={() => handleIntensitySelect(opt.key)}
-              title={opt.isPro ? `${opt.label} — Pro only` : opt.description}
-            >
-              <span className="intensity-emoji">{opt.emoji}</span>
-              <span className="intensity-name">{opt.label}</span>
-              {opt.isPro && (
-                <span className={`intensity-pro-tag ${user?.isPro ? "intensity-pro-tag--unlocked" : ""}`}>
-                  {user?.isPro ? "PRO ✓" : "PRO"}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-        <p className="intensity-desc font-mono">
-          {selectedIntensity.emoji} {selectedIntensity.description}
-        </p>
-      </div>
-
-      {/* ── Roast Persona / Tone Selector ── */}
-      <div className="persona-wrap">
-        <p className="persona-label font-mono">🎭 Roast Persona:</p>
-        <div className="persona-options">
-          {PERSONAS.map((p) => (
-            <button
-              type="button"
-              key={p.key}
-              className={`persona-btn font-mono ${persona === p.key ? "persona-btn--active" : ""}`}
-              onClick={() => handlePersonaSelect(p.key)}
-              title={p.desc}
-            >
-              <span className="persona-emoji">{p.emoji}</span>
-              <span className="persona-name">{p.label}</span>
-            </button>
-          ))}
-        </div>
-        <p className="persona-desc font-mono">
-          {PERSONAS.find((p) => p.key === persona)?.desc}
-        </p>
-      </div>
-
-      {/* Live roast feed — placed right above the username input */}
-      <LiveRoastFeed />
-
-      <UsernameInput onSubmit={handleRoast} />
-
       {/* Rate limit banner */}
       {rateLimitSecs && (
         <RateLimitBanner
@@ -397,103 +327,200 @@ export default function LandingPageClient() {
         />
       )}
 
-      {/* Social proof count */}
-      {totalRoasts && (
-        <p className="landing-social-proof font-mono">
-          <span style={{ color: "var(--fire)" }}>
-            {totalRoasts.toLocaleString()}
-          </span>{" "}
-          devs roasted and counting
-        </p>
-      )}
-
-      {/* CTA buttons */}
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
-        <Link href="/pricing" className="btn btn-outline">
-          ⚡ Pricing
-        </Link>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={() => setShowProModal(true)}
-        >
-          What&apos;s in Pro?
-        </button>
-      </div>
-
-      {/* ── Exploratory Navigation Links ── */}
-      {/* WHAT: Direct entry points to Wall of Shame, Developer Battles, and the 3D Code Solar System */}
-      {/* WHY: Exposes secondary viral features directly below the primary roast input */}
-      {/* WHERE & WHEN TO USE: Landing page central column */}
-      {/* USE CASES: Visitors who want to browse before roasting themselves */}
-      {/* WHEN NOT TO USE: Inside individual roast result pages */}
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
-        <Link href="/leaderboard" className="btn btn-ghost">
-          🏆 Wall of Shame
-        </Link>
-        <Link href="/battle" className="btn btn-ghost">
-          ⚔️ Roast Battle
-        </Link>
-        <Link href="/universe" className="btn btn-ghost" style={{ color: "#00E5FF", borderColor: "rgba(0, 229, 255, 0.3)" }}>
-          🌌 3D Universe
-        </Link>
-      </div>
-
-      {/* ── Community Roast of the Day ── */}
-      <div className="sample-roast card">
-        <div className="daily-header">
-          <p className="sample-roast-label font-mono">🔥 ROAST OF THE DAY</p>
-          {dailyRoast && (
-            // ── Comprehensive Burn Counter ───────────────────────────
-            // ── WHAT: ────────────────────────────────────────────────
-            // Aggregates total community engagements across all three supported
-            // reaction types: savage (🔥), destroyed (💀), and relatable (😂).
-            //
-            // ── WHY: ─────────────────────────────────────────────────
-            // Previously omitted 'relatable', artificially deflating community interaction metrics.
-            //
-            // ── WHERE & WHEN TO USE: ─────────────────────────────────
-            // High-visibility social proof badges and highlight cards.
-            //
-            // ── USE CASES: ───────────────────────────────────────────
-            // Hero section "Roast of the Day" burn tally badge.
-            //
-            // ── WHEN NOT TO USE: ─────────────────────────────────────
-            // Do not use when filtering exclusively for destructive/negative sentiment.
-            <span className="daily-badge font-mono">
-              🔥 {(dailyRoast.reactions?.savage || 0) + (dailyRoast.reactions?.destroyed || 0) + (dailyRoast.reactions?.relatable || 0)} BURNS
-            </span>
-          )}
-        </div>
-        {dailyRoast && (
-          <div className="daily-author-row">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={dailyRoast.avatarUrl || `https://avatars.githubusercontent.com/${dailyRoast.username}?s=96`}
-              alt={`@${dailyRoast.username}`}
-              className="daily-avatar"
-              width={36}
-              height={36}
-              loading="eager"
-              crossOrigin="anonymous"
-            />
-            <div className="daily-author-info">
-              <Link
-                href={`/history/${dailyRoast.username}`}
-                className="daily-username font-mono"
-                title={`View @${dailyRoast.username}'s roast history`}
-              >
-                @{dailyRoast.username}
-              </Link>
-              <span className="daily-stats font-mono">
-                Score: {dailyRoast.score}/100 · Grade {dailyRoast.grade}
-              </span>
-            </div>
+      <div className="split-container">
+        {/* LEFT SIDE: For Developers */}
+        <div className="dev-panel">
+          {/* ── Brand Logo Header ── */}
+          <div className="landing-logo">
+            <h1 className="font-display text-fire">GITROAST 🔥</h1>
+            <p className="landing-tagline">
+              Get your GitHub{" "}
+              <span style={{ color: "var(--fire)" }}>brutally roasted.</span> Share
+              the pain.
+            </p>
           </div>
-        )}
-        <p className="sample-roast-text">
-          &ldquo;{dailyRoast?.roastText || "This is not a developer portfolio. It is a detailed public record of every time enthusiasm lasted one weekend."}&rdquo;
-        </p>
+
+          {/* Intensity selector */}
+          <div className="intensity-wrap">
+            <p className="intensity-label font-mono">Choose your intensity:</p>
+            <div className="intensity-options">
+              {INTENSITIES.map((opt) => (
+                <button
+                  type="button"
+                  key={opt.key}
+                  className={`intensity-btn font-mono ${intensity === opt.key ? "intensity-btn--active" : ""} ${opt.isPro ? "intensity-btn--pro" : ""}`}
+                  style={{
+                    "--intensity-color": opt.color,
+                    borderColor: intensity === opt.key ? opt.color : undefined,
+                  }}
+                  onClick={() => handleIntensitySelect(opt.key)}
+                  title={opt.isPro ? `${opt.label} — Pro only` : opt.description}
+                >
+                  <span className="intensity-emoji">{opt.emoji}</span>
+                  <span className="intensity-name">{opt.label}</span>
+                  {opt.isPro && (
+                    <span className={`intensity-pro-tag ${user?.isPro ? "intensity-pro-tag--unlocked" : ""}`}>
+                      {user?.isPro ? "PRO ✓" : "PRO"}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <p className="intensity-desc font-mono">
+              {selectedIntensity.emoji} {selectedIntensity.description}
+            </p>
+          </div>
+
+          {/* ── Roast Persona / Tone Selector ── */}
+          <div className="persona-wrap">
+            <p className="persona-label font-mono">🎭 Roast Persona:</p>
+            <div className="persona-options">
+              {PERSONAS.map((p) => (
+                <button
+                  type="button"
+                  key={p.key}
+                  className={`persona-btn font-mono ${persona === p.key ? "persona-btn--active" : ""}`}
+                  onClick={() => handlePersonaSelect(p.key)}
+                  title={p.desc}
+                >
+                  <span className="persona-emoji">{p.emoji}</span>
+                  <span className="persona-name">{p.label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="persona-desc font-mono">
+              {PERSONAS.find((p) => p.key === persona)?.desc}
+            </p>
+          </div>
+
+          {/* Live roast feed — placed right above the username input */}
+          <LiveRoastFeed />
+
+          <UsernameInput onSubmit={handleRoast} />
+
+          {/* Social proof count */}
+          {totalRoasts && (
+            <p className="landing-social-proof font-mono">
+              <span style={{ color: "var(--fire)" }}>
+                {totalRoasts.toLocaleString()}
+              </span>{" "}
+              devs roasted and counting
+            </p>
+          )}
+
+          {/* CTA buttons */}
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+            <Link href="/pricing" className="btn btn-outline">
+              ⚡ Pricing
+            </Link>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setShowProModal(true)}
+            >
+              What&apos;s in Pro?
+            </button>
+          </div>
+
+          {/* ── Exploratory Navigation Links ── */}
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
+            <Link href="/leaderboard" className="btn btn-ghost">
+              🏆 Wall of Shame
+            </Link>
+            <Link href="/battle" className="btn btn-ghost">
+              ⚔️ Roast Battle
+            </Link>
+            <Link href="/universe" className="btn btn-ghost" style={{ color: "#00E5FF", borderColor: "rgba(0, 229, 255, 0.3)" }}>
+              🌌 3D Universe
+            </Link>
+          </div>
+
+          {/* ── Community Roast of the Day ── */}
+          <div className="sample-roast card">
+            <div className="daily-header">
+              <p className="sample-roast-label font-mono">🔥 ROAST OF THE DAY</p>
+              {dailyRoast && (
+                <span className="daily-badge font-mono">
+                  🔥 {(dailyRoast.reactions?.savage || 0) + (dailyRoast.reactions?.destroyed || 0) + (dailyRoast.reactions?.relatable || 0)} BURNS
+                </span>
+              )}
+            </div>
+            {dailyRoast && (
+              <div className="daily-author-row">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={dailyRoast.avatarUrl || `https://avatars.githubusercontent.com/${dailyRoast.username}?s=96`}
+                  alt={`@${dailyRoast.username}`}
+                  className="daily-avatar"
+                  width={36}
+                  height={36}
+                  loading="eager"
+                  crossOrigin="anonymous"
+                />
+                <div className="daily-author-info">
+                  <Link
+                    href={`/history/${dailyRoast.username}`}
+                    className="daily-username font-mono"
+                    title={`View @${dailyRoast.username}'s roast history`}
+                  >
+                    @{dailyRoast.username}
+                  </Link>
+                  <span className="daily-stats font-mono">
+                    Score: {dailyRoast.score}/100 · Grade {dailyRoast.grade}
+                  </span>
+                </div>
+              </div>
+            )}
+            <p className="sample-roast-text">
+              &ldquo;{dailyRoast?.roastText || "This is not a developer portfolio. It is a detailed public record of every time enthusiasm lasted one weekend."}&rdquo;
+            </p>
+          </div>
+        </div>
+
+        {/* RIGHT SIDE: For Recruiters */}
+        <div className="recruiter-panel">
+          <div className="recruiter-header">
+            <h2 className="font-display text-cyan">FOR RECRUITERS 💼</h2>
+            <p className="recruiter-tagline">
+              Cut through the BS. See their real code quality.
+            </p>
+          </div>
+
+          <div className="recruiter-benefits">
+            <ul className="benefit-list">
+              <li>
+                <span className="benefit-icon">🔍</span>
+                <div className="benefit-text">
+                  <strong>Candidate X-Ray</strong>
+                  <span>Analyze millions of lines of code in seconds.</span>
+                </div>
+              </li>
+              <li>
+                <span className="benefit-icon">📊</span>
+                <div className="benefit-text">
+                  <strong>Hireability Scores</strong>
+                  <span>Get an objective rating based on actual commits.</span>
+                </div>
+              </li>
+              <li>
+                <span className="benefit-icon">⚡</span>
+                <div className="benefit-text">
+                  <strong>Tech Stack Verification</strong>
+                  <span>Stop guessing if they really know React.</span>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <button
+            type="button"
+            className="google-login-btn font-mono"
+            onClick={() => toast.info('Coming soon!')}
+          >
+            <span className="google-icon">G</span>
+            Sign in with Google
+          </button>
+        </div>
       </div>
 
       {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
@@ -516,12 +543,148 @@ export default function LandingPageClient() {
           position: relative;
           overflow-x: hidden;
           gap: 1.25rem;
+          background-color: var(--bg-primary, #f9fafb);
+        }
+
+        .split-container {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 3rem;
+          width: 100%;
+          max-width: 1100px;
+          margin: 0 auto;
+          align-items: flex-start;
+        }
+
+        @media (max-width: 900px) {
+          .split-container {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+          }
+        }
+
+        .dev-panel, .recruiter-panel {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1.25rem;
+          width: 100%;
+          padding: 2rem;
+          border-radius: var(--radius-lg, 16px);
+        }
+
+        .dev-panel {
+          background: rgba(255, 69, 0, 0.03);
+          border: 1px solid rgba(255, 69, 0, 0.1);
+        }
+
+        .recruiter-panel {
+          background: rgba(0, 229, 255, 0.03);
+          border: 1px solid rgba(0, 229, 255, 0.1);
+        }
+
+        .text-cyan {
+          color: #00E5FF;
+        }
+
+        .recruiter-header {
+          text-align: center;
+        }
+
+        .recruiter-header h2 {
+          font-size: clamp(36px, 8vw, 64px);
+          letter-spacing: 2px;
+          line-height: 1;
+          margin-bottom: 0.5rem;
+          text-shadow: 0 0 20px rgba(0, 229, 255, 0.2);
+        }
+
+        .recruiter-tagline {
+          color: var(--text-secondary);
+          font-size: 16px;
+        }
+
+        .recruiter-benefits {
+          width: 100%;
+          max-width: 400px;
+          margin-top: 1rem;
+        }
+
+        .benefit-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+        }
+
+        .benefit-list li {
+          display: flex;
+          align-items: flex-start;
+          gap: 1rem;
+          padding: 1rem;
+          background: rgba(255, 255, 255, 0.5);
+          border: 1px solid rgba(0, 0, 0, 0.05);
+          border-radius: 12px;
+          backdrop-filter: blur(8px);
+        }
+
+        .benefit-icon {
+          font-size: 24px;
+        }
+
+        .benefit-text {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .benefit-text strong {
+          color: var(--text-primary);
+          font-size: 15px;
+        }
+
+        .benefit-text span {
+          color: var(--text-secondary);
+          font-size: 13px;
+        }
+
+        .google-login-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          width: 100%;
+          max-width: 300px;
+          padding: 12px 24px;
+          margin-top: 1rem;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          color: #1e293b;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .google-login-btn:hover {
+          background: #f8fafc;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .google-icon {
+          font-weight: bold;
+          color: #4285F4;
+          font-size: 18px;
         }
 
         /* ── Top Nav in normal document flow ── */
         .landing-nav {
           width: 100%;
-          max-width: 640px;
+          max-width: 1100px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -534,7 +697,7 @@ export default function LandingPageClient() {
           gap: 8px;
         }
         .nav-guide-btn {
-          background: rgba(255, 255, 255, 0.04);
+          background: rgba(0, 0, 0, 0.04);
           border: 1px solid var(--border);
           color: var(--text-secondary);
           font-size: 10px;
@@ -642,7 +805,7 @@ export default function LandingPageClient() {
         /* ── Broadcast Banner ── */
         .broadcast-banner {
           width: 100%;
-          max-width: 640px;
+          max-width: 1100px;
           margin: 0;
           padding: 0.65rem 0.9rem;
           background: rgba(255, 69, 0, 0.08);
@@ -683,14 +846,14 @@ export default function LandingPageClient() {
           padding: 0;
           font: inherit;
           font-size: inherit;
-          color: #fff;
+          color: var(--fire);
           font-weight: 600;
           text-decoration: underline;
           cursor: pointer;
           transition: color 0.15s ease;
         }
         .broadcast-login-link:hover {
-          color: var(--fire);
+          color: #ff6b00;
         }
         .broadcast-close-btn {
           background: transparent;
@@ -707,22 +870,12 @@ export default function LandingPageClient() {
           color: var(--text-primary);
         }
 
-        .landing-glow {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(
-            ellipse 80% 40% at 50% 100%,
-            rgba(255, 69, 0, 0.2) 0%,
-            transparent 100%
-          );
-          pointer-events: none;
-        }
         .landing-logo {
           text-align: center;
           margin-top: 0.5rem;
         }
         .landing-logo h1 {
-          font-size: clamp(52px, 13vw, 96px);
+          font-size: clamp(52px, 10vw, 96px);
           letter-spacing: 4px;
           line-height: 1;
           user-select: none;
@@ -876,6 +1029,8 @@ export default function LandingPageClient() {
           color: var(--text-secondary);
           font-size: 13px;
         }
+        
+        /* Updated Sample Roast for Light Mode */
         .sample-roast {
           width: 100%;
           max-width: 480px;
@@ -885,7 +1040,10 @@ export default function LandingPageClient() {
           display: flex;
           flex-direction: column;
           gap: 10px;
-          background: linear-gradient(135deg, #110900 0%, #0D0D0D 100%);
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(0, 0, 0, 0.05);
+          box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
         }
         .daily-header {
           display: flex;
@@ -945,8 +1103,6 @@ export default function LandingPageClient() {
         }
 
         /* ── Mobile Viewport Optimization (<600px) ── */
-        /* WHAT: Streamlined vertical layout ensuring Username Input is immediately prominent above the fold */
-        /* WHY: Eliminates excess vertical padding and shrinks button heights on compact mobile displays */
         @media (max-width: 600px) {
           .landing-page {
             padding-top: 0.75rem;

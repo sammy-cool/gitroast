@@ -47,16 +47,16 @@ import {
 } from "customizable-toast-notification";
 
 // ── GitRoast Theme Color Constants ────────────────────────────
-// WHAT: Brand-aligned color palette matching GitRoast CSS design tokens.
-// WHY: Centralizes visual identity across all notification states.
+// WHAT: Brand-aligned color palette matching Project Luminous design tokens.
+// WHY: Centralizes visual identity across all notification states in light mode.
 export const TOAST_COLORS = {
-  success: "#00E676", // Emerald glow (--good)
-  error: "#FF3D3D",   // Crimson flame (--bad)
-  warning: "#FFB700", // Warm amber gold (--warn)
-  info: "#FF6B00",    // GitRoast signature fire orange (--fire-mid)
-  fire: "#FF4500",    // Blaze red-orange (--fire-dark)
-  darkBg: "#141414",  // Obsidian charcoal card background (--bg-card)
-  textLight: "#FFFFFF", // High-contrast text
+  success: "#10B981", // Modern Emerald Green
+  error: "#EF4444",   // Modern Rose Red
+  warning: "#F59E0B", // Modern Amber Gold
+  info: "#3B82F6",    // Modern Sky Blue
+  fire: "#FF4500",    // Signature Luminous Fire Orange
+  lightBg: "#FFFFFF", // Premium Frosted White
+  textDark: "#111827", // High-contrast crisp text
 };
 
 // ── GitRoast Master Default Configuration ─────────────────────
@@ -67,8 +67,8 @@ const BASE_DEFAULTS = {
   borderRadius: "12px",
   animationDuration: "0.35s",
   animationEasing: "cubic-bezier(0.16, 1, 0.3, 1)",
-  backgroundColor: TOAST_COLORS.darkBg,
-  textColor: TOAST_COLORS.textLight,
+  backgroundColor: TOAST_COLORS.lightBg,
+  textColor: TOAST_COLORS.textDark,
   progressPosition: "bottom",
   progressHeight: "3px",
   pauseOnHover: true,

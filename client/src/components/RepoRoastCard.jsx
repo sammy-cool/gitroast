@@ -323,14 +323,14 @@ export default function RepoRoastCard({ data, onProClick }) {
         .repo-card {
           width: 100%;
           max-width: 640px;
-          background: #0d0d0d;
+          background: var(--bg-card);
           border: 1px solid var(--border);
           border-radius: var(--radius-lg);
           overflow: hidden;
         }
         .card-header {
           padding: 1.5rem;
-          background: linear-gradient(160deg, #121212 0%, #190a02 100%);
+          background: var(--bg-elevated);
           border-bottom: 1px solid var(--border);
           display: flex;
           justify-content: space-between;
@@ -375,10 +375,10 @@ export default function RepoRoastCard({ data, onProClick }) {
         }
         .score-block {
           text-align: right;
-          background: rgba(0, 0, 0, 0.4);
+          background: var(--bg-elevated);
           padding: 0.5rem 1rem;
           border-radius: var(--radius-md);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          border: 1px solid var(--border);
         }
         .score-number {
           font-size: 2.2rem;
@@ -399,12 +399,12 @@ export default function RepoRoastCard({ data, onProClick }) {
           flex-wrap: wrap;
           gap: 8px;
           padding: 0.85rem 1.5rem;
-          background: #080808;
+          background: var(--bg-primary);
           border-bottom: 1px solid var(--border);
         }
         .stat-pill {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: var(--bg-primary);
+          border: 1px solid var(--border);
           border-radius: 6px;
           padding: 4px 10px;
           font-size: 0.75rem;
@@ -452,7 +452,7 @@ export default function RepoRoastCard({ data, onProClick }) {
           align-items: center;
           gap: 10px;
           font-size: 0.82rem;
-          background: rgba(255, 255, 255, 0.02);
+          background: var(--bg-primary);
           padding: 6px 10px;
           border-radius: 6px;
         }
@@ -528,7 +528,7 @@ export default function RepoRoastCard({ data, onProClick }) {
         .roast-text {
           font-size: 1.05rem;
           line-height: 1.6;
-          color: #f0f0f0;
+          color: var(--text-primary);
           font-style: italic;
         }
         .typing-cursor {
@@ -542,7 +542,7 @@ export default function RepoRoastCard({ data, onProClick }) {
         .redemption-container {
           padding: 1.2rem 1.5rem;
           border-top: 1px solid var(--border);
-          background: linear-gradient(180deg, rgba(24, 12, 4, 0.45) 0%, rgba(10, 10, 10, 0.6) 100%);
+          background: var(--bg-elevated);
         }
         .redemption-header {
           display: flex;
@@ -576,8 +576,8 @@ export default function RepoRoastCard({ data, onProClick }) {
           align-items: flex-start;
           gap: 10px;
           padding: 8px 10px;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: var(--bg-primary);
+          border: 1px solid var(--border);
           border-radius: var(--radius-sm);
         }
         .redemption-index {
@@ -599,7 +599,7 @@ export default function RepoRoastCard({ data, onProClick }) {
           align-items: center;
           padding: 1rem 1.5rem;
           border-top: 1px solid var(--border);
-          background: #080808;
+          background: var(--bg-primary);
           flex-wrap: wrap;
           gap: 10px;
         }
@@ -630,7 +630,7 @@ export default function RepoRoastCard({ data, onProClick }) {
           Do not use raw unbounded :global(.action-btn) without parent scoping.
         */
         .share-actions :global(.action-btn) {
-          background: rgba(255, 255, 255, 0.05);
+          background: var(--bg-primary);
           border: 1px solid var(--border);
           color: var(--text-primary);
           padding: 6px 14px;

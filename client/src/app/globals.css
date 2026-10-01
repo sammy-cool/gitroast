@@ -13,36 +13,44 @@
 /* ── CSS Variables (Design Tokens) ──────────────────────── */
 :root {
   /* Backgrounds */
-  --bg-primary: #070707;
-  --bg-card: #0f0f0f;
-  --bg-elevated: #141414;
-  --bg-input: #0a0a0a;
+  --bg-primary: #FAFAFA;
+  --bg-card: #FFFFFF;
+  --bg-elevated: #FFFFFF;
+  --bg-input: #F3F4F6;
 
   /* Borders */
-  --border: #1c1c1c;
-  --border-hover: #2e2e2e;
-  --border-focus: rgba(255, 69, 0, 0.5);
+  --border: #E5E7EB;
+  --border-hover: #D1D5DB;
+  --border-focus: rgba(255, 69, 0, 0.4);
 
-  /* Brand — Fire */
-  --fire: #ff4500;
-  --fire-mid: #ff6b00;
-  --fire-warm: #ffb700;
-  --fire-grad: linear-gradient(135deg, #ff4500 0%, #ff6b00 50%, #ffb700 100%);
+  /* Brand — Fire (For Developers) */
+  --fire: #FF4500;
+  --fire-mid: #FF6B00;
+  --fire-warm: #FFB700;
+  --fire-grad: linear-gradient(135deg, #FF4500 0%, #FF6B00 50%, #FFB700 100%);
+
+  /* Brand — Ice/Trust (For Recruiters) */
+  --recruiter-cyan: #06B6D4;
+  --recruiter-blue: #2563EB;
+  --recruiter-grad: linear-gradient(135deg, #06B6D4 0%, #2563EB 100%);
+  --recruiter-border: rgba(37, 99, 235, 0.2);
+  --recruiter-glow: rgba(37, 99, 235, 0.1);
+
+  /* Shadows */
+  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.04);
+  --shadow-deep: 0 12px 40px rgba(0, 0, 0, 0.08);
 
   /* Semantic */
-  --bad: #ff3d3d;
-  --good: #00e676;
-  --warn: #ffb700;
-  --info: #ff6b00;
+  --bad: #EF4444;
+  --good: #10B981;
+  --warn: #F59E0B;
+  --info: #3B82F6;
 
-  /* ── Text Color Hierarchy (WCAG AA Compliant) ── */
-  /* WHAT: Strict foreground contrast tokens for OLED black backgrounds (#070707) */
-  /* WHY: Upgraded from #777777 (4.48:1) to #a3a3a3 (8.1:1) and #3a3a3a (1.8:1) to #737373 (4.6:1) */
-  /*      ensuring all subtitles, meta stats, and timestamps remain readable under direct sunlight */
-  --text-primary: #f5f5f5;
-  --text-secondary: #a3a3a3;
-  --text-muted: #737373;
-  --text-ghost: #383838;
+  /* ── Text Color Hierarchy ── */
+  --text-primary: #111827;
+  --text-secondary: #4B5563;
+  --text-muted: #9CA3AF;
+  --text-ghost: #D1D5DB;
 
   /* WHY font variables reference next/font CSS variables:
      layout.jsx sets --font-display-loaded, --font-mono-loaded,
@@ -177,7 +185,13 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
   overflow: hidden;
+  transition: box-shadow var(--ease), border-color var(--ease);
+}
+.card:hover {
+  box-shadow: var(--shadow-deep);
+  border-color: var(--border-hover);
 }
 
 /* ── Animations ──────────────────────────────────────────── */
@@ -317,7 +331,7 @@ body.loading {
   align-items: center;
   justify-content: center;
   gap: 1.5rem;
-  background: #070707;
+  background: var(--bg-primary);
   position: relative;
   overflow: hidden;
   padding-bottom: 6.5rem;
@@ -417,7 +431,7 @@ body.loading {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(7, 7, 7, 0.95);
+  background: rgba(255, 255, 255, 0.85);
   border-top: 1px solid var(--border);
   backdrop-filter: blur(8px);
   z-index: 50;
@@ -546,4 +560,11 @@ a:not([class]) {
 }
 a:not([class]):hover {
   text-decoration: underline;
+}
+
+/* ── Toast Notification Luminous Overrides ── */
+div[id^="toast-container-"] > div {
+  box-shadow: var(--shadow-deep) !important;
+  border: 1px solid var(--border) !important;
+  backdrop-filter: blur(8px) !important;
 }

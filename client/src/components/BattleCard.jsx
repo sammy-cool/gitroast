@@ -459,7 +459,7 @@ export default function BattleCard({ data }) {
         /* Header */
         .battle-card-header {
           padding:       1rem 1.5rem;
-          background:    linear-gradient(160deg, #111 0%, #180800 100%);
+          background:    var(--bg-elevated);
           border-bottom: 1px solid var(--border);
           display:       flex;
           justify-content: space-between;
@@ -520,7 +520,7 @@ export default function BattleCard({ data }) {
           width:           56px;
           height:          56px;
           border-radius:   50%;
-          background:      #161616;
+          background:      var(--bg-card);
           border:          2px solid;
           overflow:        hidden;
           display:         flex;
@@ -598,7 +598,7 @@ export default function BattleCard({ data }) {
         .tape-section {
           padding: 1rem 1.25rem;
           border-bottom: 1px solid var(--border);
-          background: rgba(0, 0, 0, 0.3);
+          background: var(--bg-elevated);
         }
         .tape-header {
           font-size: 10px;
@@ -618,11 +618,11 @@ export default function BattleCard({ data }) {
           justify-content: space-between;
           padding: 4px 8px;
           border-radius: var(--radius-sm);
-          background: rgba(255, 255, 255, 0.02);
+          background: var(--bg-primary);
           font-size: 11px;
         }
         .tape-row:hover {
-          background: rgba(255, 255, 255, 0.04);
+          background: var(--bg-primary);
         }
         .tape-val {
           flex: 1;
@@ -652,7 +652,7 @@ export default function BattleCard({ data }) {
           padding:       1.25rem 1.5rem;
           border-bottom: 1px solid var(--border);
           border-left:   3px solid var(--fire);
-          background:    linear-gradient(135deg, #110900 0%, #0F0F0F 100%);
+          background:    var(--bg-elevated);
         }
         .verdict-label {
           font-size:      9px;
@@ -681,7 +681,7 @@ export default function BattleCard({ data }) {
         .battle-reactions-wrap {
           padding: 0.75rem 1.25rem;
           border-bottom: 1px solid var(--border);
-          background: rgba(0, 0, 0, 0.2);
+          background: var(--bg-elevated);
         }
         .battle-share {
           padding:  1rem 1.5rem;
@@ -698,7 +698,7 @@ export default function BattleCard({ data }) {
           justify-content: center;
           gap: 12px;
           font-size: 11px;
-          border-top: 1px solid rgba(255, 255, 255, 0.05);
+          border-top: 1px solid var(--border);
         }
         .battle-nav-footer :global(.nav-action-link) {
           color: var(--text-muted);

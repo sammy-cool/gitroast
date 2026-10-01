@@ -352,7 +352,7 @@ export default function RoastCard({ data, onProClick }) {
 
         .card-header {
           padding:         1.25rem 1.5rem;
-          background:      linear-gradient(160deg, #111 0%, #180800 100%);
+          background:      var(--bg-elevated);
           border-bottom:   1px solid var(--border);
           display:         flex;
           justify-content: space-between;
@@ -370,7 +370,7 @@ export default function RoastCard({ data, onProClick }) {
           width:           46px;
           height:          46px;
           border-radius:   50%;
-          background:      #161616;
+          background:      var(--bg-card);
           border:          2px solid rgba(255, 69, 0, 0.4);
           overflow:        hidden;
           display:         flex;
@@ -423,7 +423,7 @@ export default function RoastCard({ data, onProClick }) {
           padding:       1.4rem 1.5rem;
           border-bottom: 1px solid var(--border);
           border-left:   3px solid var(--fire);
-          background:    linear-gradient(135deg, #110900 0%, #0F0F0F 100%);
+          background:    var(--bg-elevated);
           min-height:    120px;
         }
         .roast-text-header {
@@ -518,14 +518,14 @@ export default function RoastCard({ data, onProClick }) {
           color:          var(--fire);
           text-align:     right;
           letter-spacing: 1px;
-          background:     #080808;
+          background:     var(--bg-primary);
           border-top:     1px solid var(--border);
         }
 
         .redemption-container {
           padding: 1.2rem 1.5rem;
           border-bottom: 1px solid var(--border);
-          background: linear-gradient(180deg, rgba(24, 12, 4, 0.5) 0%, rgba(10, 10, 10, 0.6) 100%);
+          background: var(--bg-elevated);
         }
         .redemption-header {
           display: flex;
@@ -559,8 +559,8 @@ export default function RoastCard({ data, onProClick }) {
           align-items: flex-start;
           gap: 10px;
           padding: 8px 10px;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: var(--bg-primary);
+          border: 1px solid var(--border);
           border-radius: var(--radius-sm);
         }
         .redemption-index {
@@ -579,7 +579,7 @@ export default function RoastCard({ data, onProClick }) {
         .bio-contrast-box {
           padding:       1.2rem 1.5rem;
           border-bottom: 1px solid var(--border);
-          background:    rgba(0, 0, 0, 0.35);
+          background:    var(--bg-elevated);
         }
         .bio-contrast-header {
           display:         flex;
@@ -608,7 +608,7 @@ export default function RoastCard({ data, onProClick }) {
           padding:       10px 12px;
           border-radius: var(--radius-sm);
           border:        1px solid var(--border);
-          background:    rgba(255, 255, 255, 0.02);
+          background: var(--bg-primary);
         }
         .bio-claimed {
           border-left: 2px solid #ffb700;
@@ -639,7 +639,7 @@ export default function RoastCard({ data, onProClick }) {
         /* ── Nuclear Mode Pro Conversion Teaser ── */
         .nuclear-teaser-card {
           margin-top: 1rem;
-          background: #0d0a08;
+          background: var(--bg-card);
           border: 1px solid rgba(255, 69, 0, 0.35);
           border-radius: var(--radius-md);
           overflow: hidden;
@@ -689,7 +689,7 @@ export default function RoastCard({ data, onProClick }) {
         .nuclear-glass-overlay {
           position: absolute;
           inset: 0;
-          background: rgba(13, 10, 8, 0.65);
+          background: var(--bg-elevated);
           backdrop-filter: blur(4px);
           display: flex;
           flex-direction: column;
