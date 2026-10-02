@@ -10,10 +10,13 @@ import SoundToggle from '@/components/SoundToggle';
 /**
  * ── WHAT: ────────────────────────────────────────────────────
  * Master navigation and layout shell for the GitRoast Recruiter & Talent Portal.
+ * Replicates the verified master Figma design in storage/figma/slices/Recruiter talent workspace — desktop.png
+ * and storage/figma/slices/Recruiter candidate profile — desktop.png.
  * 
  * ── WHY: ─────────────────────────────────────────────────────
- * Provides a dedicated corporate talent interface featuring calm Sky Blue tones,
- * responsive mobile navigation, and strict 7rem bottom clearance above the fixed site footer.
+ * Provides a dedicated corporate talent interface featuring obsidian navigation,
+ * warm editorial paper backgrounds, responsive mobile collapse, and strict 7.5rem bottom clearance
+ * above the fixed site footer.
  * 
  * ── WHERE & WHEN TO USE: ─────────────────────────────────────
  * Wraps all routes under /recruiter/dashboard/*.
@@ -40,9 +43,10 @@ export default function RecruiterDashboardLayout({ children }) {
   };
 
   const navLinks = [
-    { href: '/recruiter/dashboard', label: 'Candidate Search', icon: '🔍' },
-    { href: '/recruiter/dashboard/compare', label: 'Candidate Duel', icon: '⚔️' },
-    { href: '/recruiter/dashboard/saved', label: 'Saved Candidates', icon: '⭐' },
+    { href: '/recruiter/dashboard', label: 'Talent', icon: '👤' },
+    { href: '/recruiter/dashboard/saved', label: 'Saved talent', icon: '⭐' },
+    { href: '/recruiter/dashboard/compare', label: 'Compare', icon: '⚔️' },
+    { href: '/about', label: 'Methodology', icon: '📖' },
   ];
 
   return (
@@ -51,14 +55,12 @@ export default function RecruiterDashboardLayout({ children }) {
       <aside className="recruiter-sidebar">
         <div className="sidebar-brand-row">
           <Link href="/recruiter/dashboard" className="sidebar-logo font-display">
-            GITROAST <span className="logo-talent">TALENT ⚡</span>
+            GITROAST <span className="logo-burn">🔥</span>
           </Link>
           <div className="mobile-header-tools">
             <SoundToggle />
           </div>
         </div>
-
-        <p className="sidebar-tagline font-mono">Candidate X-Ray · Code Signal Over Hype</p>
 
         <nav className="sidebar-nav">
           {navLinks.map((link) => {
@@ -75,6 +77,12 @@ export default function RecruiterDashboardLayout({ children }) {
             );
           })}
         </nav>
+
+        {/* Sidebar Pro Tier Box */}
+        <div className="sidebar-pro-box">
+          <span className="sidebar-pro-badge font-mono">PRO ROASTER</span>
+          <p className="sidebar-pro-sub font-mono">18 of 30 roasts left this month</p>
+        </div>
 
         <div className="sidebar-footer">
           {recruiterUser && (
@@ -113,7 +121,7 @@ export default function RecruiterDashboardLayout({ children }) {
         </div>
       </aside>
 
-      {/* ── Main Content Area with Strict 7rem Bottom Footer Clearance ── */}
+      {/* ── Main Content Area with Strict 7.5rem Bottom Footer Clearance ── */}
       <main className="recruiter-main">
         <div className="recruiter-content-wrap">
           {children}
@@ -124,23 +132,23 @@ export default function RecruiterDashboardLayout({ children }) {
         .recruiter-shell {
           display: flex;
           min-height: 100vh;
-          background: var(--bg-primary, #FAFAFA);
-          color: var(--text-primary, #0F172A);
+          background: #F7F5F0;
+          color: #171717;
         }
 
         /* ── Sidebar ── */
         .recruiter-sidebar {
-          width: 280px;
-          background: var(--bg-card, #FFFFFF);
-          border-right: 1px solid var(--border, #E2E8F0);
+          width: 250px;
+          background: #171717;
+          color: #ffffff;
+          border-right: 1px solid rgba(255, 255, 255, 0.1);
           display: flex;
           flex-direction: column;
-          padding: 2rem 1.5rem;
+          padding: 2rem 1.25rem;
           flex-shrink: 0;
           position: sticky;
           top: 0;
           height: 100vh;
-          box-shadow: 2px 0 12px rgba(15, 23, 42, 0.03);
           z-index: 20;
         }
 
@@ -148,69 +156,97 @@ export default function RecruiterDashboardLayout({ children }) {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          padding-bottom: 1.25rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          margin-bottom: 1.5rem;
         }
 
         .sidebar-logo {
-          font-size: 1.75rem;
+          font-size: 1.6rem;
           font-weight: 700;
-          color: var(--text-primary, #0F172A);
+          color: #ffffff;
           text-decoration: none;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.05em;
         }
 
-        .logo-talent {
-          color: var(--recruiter-blue, #0284C7);
-          font-size: 1.5rem;
+        .logo-burn {
+          color: #EA580C;
         }
 
         .mobile-header-tools {
           display: none;
         }
 
-        .sidebar-tagline {
-          font-size: 11px;
-          color: var(--text-muted, #64748B);
-          margin-top: 4px;
-          margin-bottom: 2rem;
-        }
-
         .sidebar-nav {
           display: flex;
           flex-direction: column;
-          gap: 0.5rem;
+          gap: 0.35rem;
         }
 
         .sidebar-link {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 10px 14px;
-          border-radius: var(--radius-md, 10px);
+          padding: 9px 12px;
+          border-radius: 8px;
           font-size: 13px;
           font-weight: 600;
           text-decoration: none;
-          color: var(--text-secondary, #334155);
+          color: rgba(255, 255, 255, 0.7);
           transition: all 0.15s ease;
         }
 
         .sidebar-link:hover {
-          background: var(--recruiter-subtle, #F0F9FF);
-          color: var(--recruiter-blue, #0284C7);
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
         }
 
         .sidebar-link--active {
-          background: var(--recruiter-subtle, #F0F9FF);
-          color: var(--recruiter-blue, #0284C7);
-          border: 1px solid var(--recruiter-border, #BAE6FD);
+          background: #EA580C;
+          color: #ffffff;
+          font-weight: 700;
+        }
+
+        .link-icon {
+          font-size: 14px;
+        }
+
+        .link-label {
+          letter-spacing: 0.02em;
+        }
+
+        /* ── Sidebar Pro Box ── */
+        .sidebar-pro-box {
+          margin-top: auto;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 12px;
+          margin-bottom: 1.5rem;
+        }
+
+        .sidebar-pro-badge {
+          font-size: 10px;
+          font-weight: 700;
+          color: #EA580C;
+          letter-spacing: 0.08em;
+          display: block;
+          margin-bottom: 4px;
+        }
+
+        .sidebar-pro-sub {
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.7);
+          margin: 0;
+          line-height: 1.35;
         }
 
         .sidebar-footer {
-          margin-top: auto;
           display: flex;
           flex-direction: column;
-          gap: 1.25rem;
-          padding-top: 1.5rem;
-          border-top: 1px solid var(--border, #E2E8F0);
+          gap: 1rem;
+          padding-top: 1rem;
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .recruiter-user-pill {
@@ -220,11 +256,12 @@ export default function RecruiterDashboardLayout({ children }) {
         }
 
         .user-avatar-wrap {
-          width: 38px;
-          height: 38px;
+          width: 36px;
+          height: 36px;
           border-radius: 50%;
           overflow: hidden;
-          background: var(--recruiter-border, #BAE6FD);
+          background: rgba(255, 255, 255, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -238,8 +275,9 @@ export default function RecruiterDashboardLayout({ children }) {
         }
 
         .user-avatar-fallback {
-          font-size: 1.2rem;
-          color: var(--recruiter-blue, #0284C7);
+          font-size: 1rem;
+          font-weight: 700;
+          color: #ffffff;
         }
 
         .user-meta {
@@ -249,9 +287,9 @@ export default function RecruiterDashboardLayout({ children }) {
         }
 
         .user-name {
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 600;
-          color: var(--text-primary, #0F172A);
+          color: #ffffff;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -259,7 +297,7 @@ export default function RecruiterDashboardLayout({ children }) {
 
         .user-company {
           font-size: 11px;
-          color: var(--text-muted, #64748B);
+          color: rgba(255, 255, 255, 0.5);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -274,25 +312,26 @@ export default function RecruiterDashboardLayout({ children }) {
 
         .switch-dev-btn {
           font-size: 11px;
-          color: var(--fire, #FF4500);
+          color: #FF8A4C;
           text-decoration: none;
-          padding: 6px 10px;
-          border-radius: var(--radius-sm, 6px);
-          background: rgba(255, 69, 0, 0.06);
+          padding: 4px 8px;
+          border-radius: 6px;
+          background: rgba(234, 88, 12, 0.15);
+          border: 1px solid rgba(234, 88, 12, 0.25);
           transition: background 0.15s;
         }
 
         .switch-dev-btn:hover {
-          background: rgba(255, 69, 0, 0.12);
+          background: rgba(234, 88, 12, 0.25);
         }
 
         .logout-btn {
           background: transparent;
           border: none;
-          color: var(--bad, #EF4444);
+          color: #F87171;
           font-size: 11px;
           cursor: pointer;
-          padding: 6px 8px;
+          padding: 4px 6px;
         }
 
         .logout-btn:hover {
@@ -305,11 +344,11 @@ export default function RecruiterDashboardLayout({ children }) {
           display: flex;
           flex-direction: column;
           overflow-y: auto;
-          padding: 2.5rem 2rem 7.5rem; /* Strict 7.5rem bottom clearance per Rule 2.3 */
+          padding: 2.5rem 2.5rem 7.5rem; /* Strict 7.5rem bottom clearance per Rule 2.3 */
         }
 
         .recruiter-content-wrap {
-          max-width: 1080px;
+          max-width: 1240px;
           width: 100%;
           margin: 0 auto;
         }
@@ -327,26 +366,26 @@ export default function RecruiterDashboardLayout({ children }) {
             padding: 1rem 1.5rem;
             box-shadow: none;
             border-right: none;
-            border-bottom: 1px solid var(--border, #E2E8F0);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
           }
 
           .mobile-header-tools {
             display: block;
           }
 
-          .sidebar-tagline {
+          .sidebar-pro-box {
             display: none;
           }
 
           .sidebar-nav {
             flex-direction: row;
-            margin-top: 1rem;
+            margin-top: 0.5rem;
             overflow-x: auto;
             padding-bottom: 4px;
           }
 
           .sidebar-footer {
-            display: none; /* Hide on mobile sidebar; actions placed in user profile */
+            display: none;
           }
 
           .recruiter-main {

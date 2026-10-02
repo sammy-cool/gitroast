@@ -50,7 +50,8 @@ export default function SavedClient() {
   return (
     <div className="saved-page">
       <header className="saved-header">
-        <h1 className="saved-title font-display">BOOKMARKED CANDIDATES</h1>
+        <span className="saved-eyebrow font-mono">RECRUITER VAULT • SHORTLISTS</span>
+        <h1 className="saved-title font-serif">Bookmarked Candidates</h1>
         <p className="saved-desc">
           Manage your shortlist of evaluated developer candidates and private interview notes.
         </p>
@@ -136,10 +137,18 @@ export default function SavedClient() {
           gap: 6px;
         }
 
+        .saved-eyebrow {
+          font-size: 11px;
+          font-weight: 700;
+          color: #EA580C;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+
         .saved-title {
           font-size: 2.25rem;
-          color: var(--text-primary, #0F172A);
-          letter-spacing: 0.5px;
+          color: #171717;
+          line-height: 1.15;
           margin: 0;
         }
 
