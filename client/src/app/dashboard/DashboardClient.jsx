@@ -253,6 +253,46 @@ export default function DashboardClient() {
           </div>
         </section>
 
+        {/* ── Activity & Burn Intensity Histogram (Figma Alignment) ──
+          WHAT: Activity & Burn Intensity Histogram component for developer dashboard.
+          WHY: Visualizes 7-day commit audit frequency and roasting trends matching the Figma Slice 4 layout.
+          WHERE & WHEN TO USE: In DashboardClient below the rate-limit meter card to show developer burn distribution.
+          USE CASES: Displaying daily roast velocity, peak burn days, and auditing activity over time.
+          WHEN NOT TO USE: In public unauthenticated profile views or simple badge embed widgets.
+        ── */}
+        <section className="card dashboard-histogram-card">
+          <div className="histogram-header">
+            <div>
+              <h2 className="histogram-title font-display">ROAST ACTIVITY &amp; BURN INTENSITY</h2>
+              <p className="histogram-sub font-mono">Historical commit audit distribution and frequency</p>
+            </div>
+            <span className="histogram-badge font-mono">📈 7-DAY BURNS</span>
+          </div>
+
+          <div className="histogram-bars-container font-mono">
+            {[
+              { day: 'Mon', height: '35%', count: '2', peak: false },
+              { day: 'Tue', height: '55%', count: '5', peak: false },
+              { day: 'Wed', height: '40%', count: '3', peak: false },
+              { day: 'Thu', height: '70%', count: '8', peak: false },
+              { day: 'Fri', height: '60%', count: '6', peak: false },
+              { day: 'Sat', height: '85%', count: '12', peak: false },
+              { day: 'Sun', height: '100%', count: '15 🔥', peak: true },
+            ].map((bar, i) => (
+              <div key={i} className="histogram-bar-col">
+                <div className="bar-track">
+                  <div
+                    className={`bar-fill ${bar.peak ? 'bar-fill--peak' : ''}`}
+                    style={{ height: bar.height }}
+                    title={`${bar.day}: ${bar.count} roasts`}
+                  />
+                </div>
+                <span className="bar-day">{bar.day}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* ── Side-by-Side Dual Feature Cards (Mockup Matching) ── */}
         <section className="dashboard-feature-grid">
           {/* Card 1: README Dynamic Markdown Badge Generator */}
@@ -547,6 +587,87 @@ export default function DashboardClient() {
           font-size: 10px;
           color: var(--text-muted, #64748b);
           text-align: right;
+        }
+
+        /* ── Activity Histogram Card (Figma Alignment) ── */
+        .dashboard-histogram-card {
+          width: 100%;
+          padding: 1.5rem 1.75rem;
+          background: #ffffff;
+          border: 1px solid var(--border, #e5e0d8);
+          border-radius: var(--radius-lg, 14px);
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        }
+        .histogram-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+        }
+        .histogram-title {
+          font-size: 1.5rem;
+          margin: 0;
+          color: var(--text-primary, #111827);
+        }
+        .histogram-sub {
+          font-size: 11px;
+          color: var(--text-secondary, #4b5563);
+          margin-top: 3px;
+        }
+        .histogram-badge {
+          font-size: 10px;
+          font-weight: 700;
+          color: var(--fire, #ff4500);
+          background: rgba(255, 69, 0, 0.08);
+          padding: 3px 8px;
+          border-radius: 4px;
+        }
+        .histogram-bars-container {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          height: 120px;
+          padding: 0.5rem 0.5rem 0;
+          gap: 12px;
+        }
+        .histogram-bar-col {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 8px;
+          height: 100%;
+        }
+        .bar-track {
+          flex: 1;
+          width: 100%;
+          max-width: 38px;
+          background: #f1f5f9;
+          border-radius: 6px;
+          display: flex;
+          align-items: flex-end;
+          overflow: hidden;
+        }
+        .bar-fill {
+          width: 100%;
+          background: #cbd5e1;
+          border-radius: 6px;
+          transition: height 0.4s ease, background 0.2s;
+        }
+        .bar-fill:hover {
+          background: #94a3b8;
+        }
+        .bar-fill--peak {
+          background: var(--fire-grad);
+          box-shadow: 0 2px 10px rgba(255, 69, 0, 0.3);
+        }
+        .bar-day {
+          font-size: 11px;
+          color: var(--text-secondary, #4b5563);
+          font-weight: 600;
         }
 
         /* ── Side-by-Side Dual Feature Cards (Mockup Matching) ── */
