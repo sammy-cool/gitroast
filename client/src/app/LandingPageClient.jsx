@@ -1,5 +1,38 @@
 "use client";
 
+// ============================================================
+// GITROAST — Next-Gen Landing Page Client (Project Luminous & Figma Alignment)
+// ============================================================
+// ── WHAT: ────────────────────────────────────────────────────
+// Master interactive landing page component for GitRoast.
+// Implements the approved Figma design system layout:
+//   1. Dual Hero: High-impact editorial copy + Floating interactive roast card.
+//   2. Black Live Ticker: Real-time community roast feed band.
+//   3. Recent Savage Burns: 3-card showcase (with central featured obsidian card).
+//   4. Community & Social: Wall of Shame & Battle arena launch banner.
+//   5. Transparent Pricing Grid: Free vs Roaster vs Historian tier overview.
+//   6. Interactive FAQ Accordion: Two-column collapsible knowledge base.
+//   7. Recruiter Portal Gateway: Candidate X-Ray quick search and metrics.
+//
+// ── WHY: ─────────────────────────────────────────────────────
+// Aligns 100% with the user's Figma canvas (Ja03bGrZxXUVD1fCYxGOMZ, node-id=3-32450)
+// providing a cohesive, human-crafted, warm sand luminous visual experience
+// with high conversion, clear navigation, and zero layout shift.
+//
+// ── WHERE & WHEN TO USE: ─────────────────────────────────────
+// Rendered on the root route `/` via `client/src/app/page.jsx`.
+//
+// ── USE CASES: ───────────────────────────────────────────────
+// - Developer first-visit roast generation (username or repo input).
+// - Burn intensity and persona tone personalization.
+// - Real-time viral live roast discovery.
+// - Recruiter talent intelligence candidate audits.
+// - Pro subscription upgrades and FAQ discovery.
+//
+// ── WHEN NOT TO USE: ─────────────────────────────────────────
+// Do not render inside internal iframe embeds or headless crawler routes.
+// ============================================================
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,10 +42,8 @@ import dynamic from 'next/dynamic';
 const ProModal = dynamic(() => import('@/components/ProModal'), { ssr: false });
 const WelcomeConsentModal = dynamic(() => import('@/components/WelcomeConsentModal'), { ssr: false });
 import { WELCOME_CONSENT_KEY } from "@/utils/welcomeConstants";
-import GitHubLoginBtn from "@/components/GitHubLoginBtn";
 import RateLimitBanner from "@/components/RateLimitBanner";
 import LiveRoastFeed from "@/components/LiveRoastFeed";
-import SoundToggle from "@/components/SoundToggle";
 import { playClick, playFireSizzle } from "@/utils/soundFX";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -56,6 +87,57 @@ const INTENSITIES = [
   },
 ];
 
+const RECENT_BURNS = [
+  {
+    username: "dan_abramov",
+    score: 74,
+    grade: "B+",
+    featured: false,
+    quote: "You write React components like someone being charged by the hook count. 14 useState hooks for a toggle button.",
+    topLang: "TypeScript",
+  },
+  {
+    username: "torvalds",
+    score: 24,
+    grade: "F 🔥",
+    featured: true,
+    shameTags: ["#wip", "#force-push", "#fix-3am"],
+    quote: "This repository is a digital crime scene of 3 AM force pushes and zero documentation. We are genuinely terrified.",
+    topLang: "C",
+  },
+  {
+    username: "devjane",
+    score: 81,
+    grade: "A-",
+    featured: false,
+    quote: "Suspiciously clean. We had to dig through your 2021 tutorial forks just to find an embarrassing commit message.",
+    topLang: "Rust",
+  },
+];
+
+const FAQS = [
+  {
+    q: "Does GitRoast roast private repositories?",
+    a: "No. By default, GitRoast only inspects public repositories using GitHub's public REST API. If you log in with GitHub and hold a Pro membership, you can optionally analyze your own private repositories.",
+  },
+  {
+    q: "Can organizations or companies be roasted?",
+    a: "GitRoast is built specifically for individual developers. Attempting to roast an organization account will return a friendly error directing you to individual contributors.",
+  },
+  {
+    q: "How does the AI work?",
+    a: "We extract statistical signals from your GitHub profile (commit frequencies, star-to-repo ratios, commit message patterns, language distributions, and graveyard streaks) and pass this structured snapshot to Google Gemini AI to assemble a savage, context-aware roast.",
+  },
+  {
+    q: "What if Gemini AI or GitHub API is down?",
+    a: "GitRoast operates on a zero-crash, defensive programming philosophy. If the Gemini AI API experiences high load or rate limits, our deterministic rule-based roast engine immediately takes over without failing the request.",
+  },
+  {
+    q: "How can I add the GitRoast badge to my GitHub profile README?",
+    a: "Every roast page and history page features a 1-click '🛡️ Copy GitHub README Badge' button! You can choose between a fiery dark card style (320×78px) or a sleek shield/pill style. Paste the Markdown snippet into your GitHub profile README.md and it will dynamically update with your score!",
+  },
+];
+
 export default function LandingPageClient() {
   const { user, loginWithGitHub, loading: authLoading } = useAuth();
   const [showProModal, setShowProModal] = useState(false);
@@ -63,7 +145,12 @@ export default function LandingPageClient() {
   const [totalRoasts, setTotalRoasts] = useState(null);
   const [dailyRoast, setDailyRoast] = useState(null);
   const [broadcastDismissed, setBroadcastDismissed] = useState(false);
-  const [serverStatus, setServerStatus] = useState("checking"); // "checking" | "online" | "offline"
+  const [, setServerStatus] = useState("checking");
+  const [openFaq, setOpenFaq] = useState(null);
+  const [candidateSearch, setCandidateSearch] = useState('');
+  const [mobileTab, setMobileTab] = useState('dev'); // 'dev' | 'recruiter'
+  const router = useRouter();
+
   const [intensity, setIntensity] = useState(() => {
     if (typeof window !== "undefined") {
       try {
@@ -72,7 +159,7 @@ export default function LandingPageClient() {
           return saved;
         }
       } catch {
-        // Ignored in strict private browsing environments
+        // Ignored in strict private browsing
       }
     }
     return "savage";
@@ -86,13 +173,12 @@ export default function LandingPageClient() {
           return saved;
         }
       } catch {
-        // Ignored in strict private browsing environments
+        // Ignored in strict private browsing
       }
     }
     return null;
   });
 
-  // Derived persona: user-selected > account default > 'classic'
   const persona = selectedPersona || user?.customPreferences?.defaultPersona || "classic";
 
   const [rateLimitSecs, setRateLimitSecs] = useState(() => {
@@ -111,27 +197,13 @@ export default function LandingPageClient() {
           }
         }
       } catch {
-        // Ignored in strict private browsing environments
+        // Ignored in strict private browsing
       }
     }
     return null;
   });
-  const router = useRouter();
 
-  /* 
-    ── WHAT: ────────────────────────────────────────────────────────
-    First-time visitor welcome & satirical consent modal onboarding check.
-    ── WHY: ─────────────────────────────────────────────────────────
-    Ensures new users understand GitRoast's public data safety & comedic
-    satire. Uses a soft 350ms timeout to allow initial SSR hydration and
-    hero paints to settle without incurring any Core Web Vitals (LCP) penalty.
-    ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-    Fires exclusively on initial client-side landing page mount.
-    ── USE CASES: ───────────────────────────────────────────────────
-    First-time visitors on any device/viewport.
-    ── WHEN NOT TO USE: ─────────────────────────────────────────────
-    Returning visitors who have already established consent in localStorage.
-  */
+  // Welcome modal trigger for first-time visitors
   useEffect(() => {
     try {
       if (typeof window !== "undefined") {
@@ -144,13 +216,11 @@ export default function LandingPageClient() {
         }
       }
     } catch {
-      // Ignored in strict private browsing environments
+      // Ignored in strict private browsing
     }
   }, []);
 
-  // WHY health poll: powers the glowing status indicator dot
-  //     Checks immediately on mount, then every 30s
-  //     Aligned with LiveRoastFeed polling interval for efficiency
+  // Health poll on mount
   useEffect(() => {
     async function initHealth() {
       const ok = await checkHealth();
@@ -161,13 +231,7 @@ export default function LandingPageClient() {
     return () => clearInterval(interval);
   }, []);
 
-  /**
-   * WHAT: Evaluates whether an unauthenticated guest visitor should receive a GitHub login nudge toast, debounced by 5000ms.
-   * WHY: Alerts unauthenticated visitors to log in for dedicated 5,000 req/hr rate limits; 5000ms debounce avoids colliding with the 4000ms welcome toast.
-   * WHERE & WHEN TO USE: Landing page effect triggered after auth loading completes and when welcome modal is closed and consent granted.
-   * USE CASES: First-time or returning guest visitors exploring the landing page without an active session.
-   * WHEN NOT TO USE: When user is authenticated (`user !== null`), when auth is still verifying (`authLoading === true`), or when welcome modal is open.
-   */
+  // Rate limit broadcast nudge for unauthenticated visitors
   useEffect(() => {
     if (authLoading) return;
     if (
@@ -195,6 +259,7 @@ export default function LandingPageClient() {
     }
   }, [authLoading, user, loginWithGitHub, showWelcomeModal]);
 
+  // Load stats & roast of the day
   useEffect(() => {
     getRoastStats().then((total) => {
       if (total > 0) setTotalRoasts(total);
@@ -243,27 +308,6 @@ export default function LandingPageClient() {
     }
   }
 
-  const selectedIntensity = INTENSITIES.find((i) => i.key === intensity);
-  const [candidateSearch, setCandidateSearch] = useState('');
-  const [mobileTab, setMobileTab] = useState('dev'); // 'dev' | 'recruiter'
-
-  /* 
-    ── WHAT: ────────────────────────────────────────────────────────
-    Candidate X-Ray search submit handler for recruiter panel.
-    
-    ── WHY: ─────────────────────────────────────────────────────────
-    Allows recruiters to immediately analyze any GitHub candidate
-    directly from the homepage hero without prior navigation.
-    
-    ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-    In the recruiter panel quick-audit form on landing page.
-    
-    ── USE CASES: ───────────────────────────────────────────────────
-    Typing 'torvalds' -> redirects to /recruiter/dashboard/analyze/torvalds.
-    
-    ── WHEN NOT TO USE: ─────────────────────────────────────────────
-    When user is submitting a developer roast (use handleRoast).
-  */
   function handleCandidateSubmit(e) {
     e.preventDefault();
     const clean = (candidateSearch || '')
@@ -278,15 +322,16 @@ export default function LandingPageClient() {
     router.push(`/recruiter/dashboard/analyze/${clean}`);
   }
 
+  function toggleFaq(index) {
+    playClick();
+    setOpenFaq((prev) => (prev === index ? null : index));
+  }
+
+  const selectedIntensity = INTENSITIES.find((i) => i.key === intensity);
+
   return (
     <main className="landing-page">
-      {/* Ambient gradient glow backdrop */}
-      <div className="landing-ambient-glow" aria-hidden="true">
-        <div className="glow-dev" />
-        <div className="glow-recruiter" />
-      </div>
-
-      {/* ── Broadcast Notice: non-intrusive alert pill for rate-limited public API ── */}
+      {/* ── Broadcast Notice: Rate limit alert strip ── */}
       {!authLoading && !user && !broadcastDismissed && (
         <div className="broadcast-banner font-mono" role="status">
           <div className="broadcast-left">
@@ -326,7 +371,7 @@ export default function LandingPageClient() {
         />
       )}
 
-      {/* ── Mobile Viewport Segmented Switcher (<900px) ── */}
+      {/* ── Mobile Viewport Switcher (<900px) ── */}
       <div className="mobile-tab-switch font-mono">
         <button
           type="button"
@@ -344,275 +389,398 @@ export default function LandingPageClient() {
         </button>
       </div>
 
-      {/* ── 50/50 Dual-Panel Split Grid Container (Mockup Matching) ── */}
-      <div className="split-grid-container">
+      {/* ══════════════════════════════════════════════════════════════
+          1. HERO SECTION (Figma Dual Split Alignment)
+          ══════════════════════════════════════════════════════════════ */}
+      <section className="hero-section">
+        <div className="hero-container">
+          {/* Left Column: Bold Headline & Social Proof */}
+          <div className={`hero-copy-col ${mobileTab === 'recruiter' ? 'col--hidden-mobile' : ''}`}>
+            <div className="hero-badge font-mono">
+              <span className="badge-pulse-dot" />
+              <span>LIVE GITHUB DEV FORENSICS</span>
+            </div>
 
-        {/* ── LEFT PANEL: For Developers ── */}
-        <div className={`split-panel dev-panel ${mobileTab === 'recruiter' ? 'panel--hidden-mobile' : ''}`}>
-          {/* Developer Badge */}
-          <div className="panel-badge-wrap">
-            <span className="panel-badge dev-badge font-mono">⚡ FOR DEVELOPERS</span>
-            <button
-              type="button"
-              className="satire-rules-btn font-mono"
-              onClick={() => setShowWelcomeModal(true)}
-              title="How GitRoast works & Satire Rules"
-            >
-              Rules ℹ️
-            </button>
-          </div>
-
-          {/* Hero Headline */}
-          <div className="panel-hero">
-            <h1 className="hero-title font-display text-fire">
-              GET YOUR CODE ROASTED
+            <h1 className="hero-main-title font-display">
+              TURN PUBLIC COMMITS INTO <span className="text-fire">BRUTAL REALITY.</span>
             </h1>
-            <p className="hero-subtitle">
-              Brutal code reviews powered by empirical GitHub commits. No sycophancy, no mercy.
+
+            <p className="hero-desc font-body">
+              Real GitHub commits analyzed, architectural sins exposed, and developer egos dismantled.
+              No AI sycophancy. Zero mercy.
             </p>
-          </div>
 
-          {/* Intensity Selector Pills */}
-          <div className="selector-group">
-            <p className="selector-header font-mono">CHOOSE BURN INTENSITY:</p>
-            <div className="intensity-pills">
-              {INTENSITIES.map((opt) => (
-                <button
-                  type="button"
-                  key={opt.key}
-                  className={`intensity-pill font-mono ${intensity === opt.key ? 'intensity-pill--active' : ''} ${opt.isPro ? 'intensity-pill--pro' : ''}`}
-                  style={{
-                    '--accent-color': opt.color,
-                  }}
-                  onClick={() => handleIntensitySelect(opt.key)}
-                  title={opt.isPro ? `${opt.label} — Pro only` : opt.description}
-                >
-                  <span className="pill-emoji">{opt.emoji}</span>
-                  <span className="pill-label">{opt.label}</span>
-                  {opt.isPro && (
-                    <span className={`pill-pro-tag ${user?.isPro ? 'pill-pro-tag--unlocked' : ''}`}>
-                      {user?.isPro ? 'PRO ✓' : 'PRO'}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-            <p className="selector-hint font-mono">
-              {selectedIntensity.emoji} {selectedIntensity.description}
-            </p>
-          </div>
-
-          {/* Persona Selector Chips */}
-          <div className="selector-group">
-            <p className="selector-header font-mono">🎭 SELECT ROAST PERSONA:</p>
-            <div className="persona-chips">
-              {PERSONAS.map((p) => (
-                <button
-                  type="button"
-                  key={p.key}
-                  className={`persona-chip font-mono ${persona === p.key ? 'persona-chip--active' : ''}`}
-                  onClick={() => handlePersonaSelect(p.key)}
-                  title={p.desc}
-                >
-                  <span className="chip-emoji">{p.emoji}</span>
-                  <span className="chip-label">{p.label}</span>
-                </button>
-              ))}
-            </div>
-            <p className="selector-hint font-mono">
-              {PERSONAS.find((p) => p.key === persona)?.desc}
-            </p>
-          </div>
-
-          {/* Live Roast Feed ticker */}
-          <div className="feed-container">
-            <LiveRoastFeed />
-          </div>
-
-          {/* Roast Input Box */}
-          <div className="input-container">
-            <UsernameInput onSubmit={handleRoast} />
-          </div>
-
-          {/* Social Proof */}
-          {totalRoasts && (
-            <p className="social-proof-line font-mono">
-              <span className="highlight-num">{totalRoasts.toLocaleString()}</span> devs roasted and counting
-            </p>
-          )}
-
-          {/* Developer Navigation CTAs */}
-          <div className="quick-actions-row">
-            <Link href="/pricing" className="action-pill-btn font-mono">
-              ⚡ Pricing &amp; Perks
-            </Link>
-            <button
-              type="button"
-              className="action-pill-btn font-mono"
-              onClick={() => setShowProModal(true)}
-            >
-              What&apos;s in Pro?
-            </button>
-            <Link href="/leaderboard" className="action-pill-btn font-mono">
-              🏆 Wall of Shame
-            </Link>
-            <Link href="/battle" className="action-pill-btn font-mono">
-              ⚔️ Battle
-            </Link>
-            <Link href="/universe" className="action-pill-btn action-pill-btn--universe font-mono">
-              🌌 3D Universe
-            </Link>
-          </div>
-
-          {/* Community Roast of the Day */}
-          <div className="sample-roast-card">
-            <div className="sample-card-header">
-              <span className="sample-header-tag font-mono">🔥 ROAST OF THE DAY</span>
-              {dailyRoast && (
-                <span className="sample-burn-count font-mono">
-                  🔥 {(dailyRoast.reactions?.savage || 0) + (dailyRoast.reactions?.destroyed || 0) + (dailyRoast.reactions?.relatable || 0)} BURNS
-                </span>
-              )}
-            </div>
-            {dailyRoast && (
-              <div className="sample-author-row">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={dailyRoast.avatarUrl || `https://avatars.githubusercontent.com/${dailyRoast.username}?s=96`}
-                  alt={`@${dailyRoast.username}`}
-                  className="sample-avatar"
-                  width={34}
-                  height={34}
-                  loading="eager"
-                  crossOrigin="anonymous"
-                />
-                <div className="sample-author-meta">
-                  <Link
-                    href={`/history/${dailyRoast.username}`}
-                    className="sample-author-handle font-mono"
-                    title={`View @${dailyRoast.username}'s roast history`}
-                  >
-                    @{dailyRoast.username}
-                  </Link>
-                  <span className="sample-score-pill font-mono">
-                    Score: {dailyRoast.score}/100 · Grade {dailyRoast.grade}
-                  </span>
-                </div>
+            {/* Social Proof Metric Chips */}
+            <div className="hero-metrics-row font-mono">
+              <div className="metric-chip">
+                <span className="metric-val">{totalRoasts ? `${totalRoasts.toLocaleString()}+` : '42,890+'}</span>
+                <span className="metric-label">Devs Roasted</span>
               </div>
-            )}
-            <p className="sample-quote font-mono">
-              &ldquo;{dailyRoast?.roastText || "This is not a developer portfolio. It is a detailed public record of every time enthusiasm lasted one weekend."}&rdquo;
-            </p>
-          </div>
-        </div>
+              <div className="metric-chip">
+                <span className="metric-val">4.9 / 5</span>
+                <span className="metric-label">Savage Rating</span>
+              </div>
+              <div className="metric-chip">
+                <span className="metric-val">180k+</span>
+                <span className="metric-label">Repos Abandoned</span>
+              </div>
+            </div>
 
-        {/* ── RIGHT PANEL: For Recruiters ── */}
-        <div className={`split-panel recruiter-panel ${mobileTab === 'dev' ? 'panel--hidden-mobile' : ''}`}>
-          {/* Recruiter Badge */}
-          <div className="panel-badge-wrap">
-            <span className="panel-badge recruiter-badge font-mono">💼 ENTERPRISE TALENT INTELLIGENCE</span>
-          </div>
-
-          {/* Recruiter Hero Headline */}
-          <div className="panel-hero">
-            <h2 className="hero-title font-display text-recruiter">
-              SPOT REAL ENGINEERING TALENT
-            </h2>
-            <p className="hero-subtitle">
-              Cut through resume fluff. Uncover real code hygiene, abandonment velocity, and architecture depth directly from commit logs.
-            </p>
-          </div>
-
-          {/* Candidate X-Ray Quick Search Box */}
-          <form className="candidate-search-card" onSubmit={handleCandidateSubmit}>
-            <p className="search-card-header font-mono">🔍 AUDIT A CANDIDATE INSTANTLY:</p>
-            <div className="search-input-box">
-              <span className="search-prefix font-mono">@</span>
-              <input
-                type="text"
-                className="search-input font-mono"
-                placeholder="candidate GitHub handle... e.g. torvalds"
-                value={candidateSearch}
-                onChange={(e) => setCandidateSearch(e.target.value)}
-                autoComplete="off"
-                spellCheck={false}
-              />
-              <button type="submit" className="search-submit-btn font-mono">
-                Analyze ↗
+            {/* Quick Exploration Navigation Pills */}
+            <div className="hero-pills-row font-mono">
+              <Link href="/pricing" className="hero-nav-pill">
+                ⚡ Pricing &amp; Perks
+              </Link>
+              <Link href="/leaderboard" className="hero-nav-pill">
+                🏆 Wall of Shame
+              </Link>
+              <Link href="/battle" className="hero-nav-pill">
+                ⚔️ Battle
+              </Link>
+              <Link href="/universe" className="hero-nav-pill hero-nav-pill--universe">
+                🌌 3D Universe
+              </Link>
+              <button
+                type="button"
+                className="hero-nav-pill hero-nav-pill--rules"
+                onClick={() => setShowWelcomeModal(true)}
+              >
+                Rules ℹ️
               </button>
             </div>
-            <p className="search-help-text font-mono">
-              Instant forensic audit of commit hygiene, test presence, and code health.
-            </p>
-          </form>
+          </div>
 
-          {/* Three Tactile Signal Preview Cards (Mockup Matching) */}
-          <div className="signals-preview-group">
-            <div className="signal-preview-card">
-              <div className="signal-card-header">
-                <span className="signal-icon">💀</span>
-                <span className="signal-title font-mono">Abandonment Rate</span>
-                <span className="signal-metric-pill metric--good font-mono">12% Low</span>
+          {/* Right Column: Floating Interactive Roast Card */}
+          <div className={`hero-card-col ${mobileTab === 'recruiter' ? 'col--hidden-mobile' : ''}`}>
+            <div className="floating-roast-card">
+              <div className="roast-card-header font-mono">
+                <span className="card-header-icon">🔥</span>
+                <span className="card-header-title">ROAST MY GITHUB</span>
+                <span className="card-header-badge font-mono">INSTANT</span>
               </div>
-              <p className="signal-description">
-                Detect ghost commits, abandoned side-projects, and tutorial forks before making an offer.
-              </p>
-            </div>
 
-            <div className="signal-preview-card">
-              <div className="signal-card-header">
-                <span className="signal-icon">📊</span>
-                <span className="signal-title font-mono">Commit Hygiene</span>
-                <span className="signal-metric-pill metric--high font-mono">94% High</span>
+              {/* Username / Repo Input Component */}
+              <div className="input-wrap">
+                <UsernameInput onSubmit={handleRoast} />
               </div>
-              <p className="signal-description">
-                Empirical signal on message clarity, squash consistency, and branch sanity.
-              </p>
-            </div>
 
-            <div className="signal-preview-card">
-              <div className="signal-card-header">
-                <span className="signal-icon">⚡</span>
-                <span className="signal-title font-mono">Architecture Depth</span>
-                <span className="signal-metric-pill metric--verified font-mono">A+ Verified</span>
+              {/* Intensity Selector */}
+              <div className="selector-block">
+                <span className="selector-title font-mono">BURN INTENSITY:</span>
+                <div className="intensity-pills-wrap">
+                  {INTENSITIES.map((opt) => (
+                    <button
+                      type="button"
+                      key={opt.key}
+                      className={`intensity-pill font-mono ${intensity === opt.key ? 'intensity-pill--active' : ''} ${opt.isPro ? 'intensity-pill--pro' : ''}`}
+                      onClick={() => handleIntensitySelect(opt.key)}
+                      title={opt.isPro ? `${opt.label} — Pro only` : opt.description}
+                    >
+                      <span>{opt.emoji}</span>
+                      <span>{opt.label}</span>
+                      {opt.isPro && (
+                        <span className={`pill-pro-tag ${user?.isPro ? 'pill-pro-tag--unlocked' : ''}`}>
+                          {user?.isPro ? 'PRO ✓' : 'PRO'}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                <p className="selector-caption font-mono">
+                  {selectedIntensity.emoji} {selectedIntensity.description}
+                </p>
               </div>
-              <p className="signal-description">
-                Verify microservices, test presence, and real-world system complexity vs toy projects.
-              </p>
+
+              {/* Persona Selector */}
+              <div className="selector-block">
+                <span className="selector-title font-mono">ROAST PERSONA:</span>
+                <div className="persona-chips-wrap">
+                  {PERSONAS.map((p) => (
+                    <button
+                      type="button"
+                      key={p.key}
+                      className={`persona-chip font-mono ${persona === p.key ? 'persona-chip--active' : ''}`}
+                      onClick={() => handlePersonaSelect(p.key)}
+                      title={p.desc}
+                    >
+                      <span>{p.emoji}</span>
+                      <span>{p.label}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="selector-caption font-mono">
+                  {PERSONAS.find((p) => p.key === persona)?.desc}
+                </p>
+              </div>
+
+              {/* Recruiter Switch Gateway */}
+              <div className="recruiter-hint-row">
+                <Link href="/recruiter/login" className="recruiter-hint-link font-mono">
+                  💼 Looking to hire? Try Candidate X-Ray →
+                </Link>
+              </div>
+
+              {/* Trust Footnote */}
+              <div className="card-trust-footer font-mono">
+                🔒 100% Read-Only Public API · Free &amp; Instant · 5,000 req/hr with GitHub Auth
+              </div>
             </div>
           </div>
 
-          {/* Recruiter Authentication & Portal CTAs */}
-          <div className="recruiter-ctas-wrap">
-            <button
-              type="button"
-              className="google-sso-btn font-mono"
-              onClick={() => router.push('/recruiter/login')}
-            >
-              <svg className="google-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-              </svg>
-              Sign in with Google
-            </button>
+          {/* Recruiter Viewport Panel (Displayed when recruiter tab active on mobile) */}
+          <div className={`recruiter-mobile-panel ${mobileTab === 'dev' ? 'panel--hidden-mobile' : ''}`}>
+            <div className="recruiter-panel-card">
+              <span className="recruiter-badge font-mono">💼 ENTERPRISE TALENT INTELLIGENCE</span>
+              <h2 className="recruiter-hero-title font-display text-recruiter">
+                SPOT REAL ENGINEERING TALENT
+              </h2>
+              <p className="recruiter-hero-desc">
+                Cut through resume fluff. Uncover real code hygiene, abandonment velocity, and architecture depth directly from commit logs.
+              </p>
 
-            <Link href="/recruiter/dashboard" className="recruiter-portal-btn font-mono">
-              Recruiter Portal &amp; Saved Talent →
-            </Link>
+              {/* Quick Candidate Audit Form */}
+              <form className="recruiter-search-form" onSubmit={handleCandidateSubmit}>
+                <div className="search-input-box">
+                  <span className="search-prefix font-mono">@</span>
+                  <input
+                    type="text"
+                    className="search-input font-mono"
+                    placeholder="candidate GitHub handle... e.g. torvalds"
+                    value={candidateSearch}
+                    onChange={(e) => setCandidateSearch(e.target.value)}
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                  <button type="submit" className="search-submit-btn font-mono">
+                    Analyze ↗
+                  </button>
+                </div>
+              </form>
+
+              {/* Recruiter Login */}
+              <div className="recruiter-login-actions">
+                <Link href="/recruiter/login" className="btn-recruiter-login font-mono">
+                  Sign in to Recruiter Portal 💼
+                </Link>
+              </div>
+            </div>
           </div>
+        </div>
+      </section>
 
-          {/* Recruiter Trust Note */}
-          <p className="recruiter-trust-note font-mono">
-            🛡️ Used by technical hiring managers, engineering directors &amp; lead architects.
+      {/* ══════════════════════════════════════════════════════════════
+          2. BLACK LIVE ROAST TICKER BAND (Figma Alignment)
+          ══════════════════════════════════════════════════════════════ */}
+      <section className="live-ticker-band">
+        <div className="ticker-inner">
+          <div className="ticker-label font-mono">
+            <span className="ticker-dot animate-pulse" />
+            <span>LIVE BURNS:</span>
+          </div>
+          <div className="ticker-content">
+            <LiveRoastFeed />
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          3. RECENT SAVAGE BURNS SHOWCASE (Figma 3-Card Grid)
+          ══════════════════════════════════════════════════════════════ */}
+      <section className="burns-showcase-section">
+        <div className="section-header">
+          <h2 className="section-title font-display">RECENT SAVAGE BURNS</h2>
+          <p className="section-subtitle font-mono">
+            Real profiles roasted in the last 15 minutes. Pure unfiltered truth.
           </p>
         </div>
 
-      </div>
+        <div className="burns-grid">
+          {RECENT_BURNS.map((item, idx) => (
+            <div
+              key={idx}
+              className={`burn-card ${item.featured ? 'burn-card--featured' : 'burn-card--light'}`}
+            >
+              <div className="burn-card-top">
+                <div className="burn-author-info">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://avatars.githubusercontent.com/${item.username}?s=96`}
+                    alt={`@${item.username}`}
+                    className="burn-avatar"
+                    width={42}
+                    height={42}
+                    crossOrigin="anonymous"
+                    loading="lazy"
+                  />
+                  <div>
+                    <h3 className="burn-handle font-mono">@{item.username}</h3>
+                    <span className="burn-lang font-mono">{item.topLang}</span>
+                  </div>
+                </div>
+                <div className="burn-grade-badge font-mono">
+                  {item.grade}
+                </div>
+              </div>
 
+              {item.shameTags && (
+                <div className="burn-tags-row font-mono">
+                  {item.shameTags.map((t, i) => (
+                    <span key={i} className="burn-tag-pill">{t}</span>
+                  ))}
+                </div>
+              )}
+
+              <p className="burn-quote font-mono">
+                &ldquo;{item.quote}&rdquo;
+              </p>
+
+              <div className="burn-card-bottom">
+                <span className="burn-score-pill font-mono">
+                  Score: {item.score}/100
+                </span>
+                <Link href={`/history/${item.username}`} className="burn-view-link font-mono">
+                  View Roast ↗
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          4. COMMUNITY & SOCIAL BANNER (Figma Pastel Blue Alignment)
+          ══════════════════════════════════════════════════════════════ */}
+      <section className="community-banner-section">
+        <div className="community-card">
+          <div className="community-content">
+            <span className="community-badge font-mono">🏆 COMMUNITY &amp; COMPETITION</span>
+            <h2 className="community-title font-display">
+              JOIN 40,000+ DEVELOPERS ON THE WALL OF SHAME
+            </h2>
+            <p className="community-desc">
+              Compare your commit crimes with top open source contributors or duel your coworkers in Head-to-Head Roast Battles.
+            </p>
+            <div className="community-actions font-mono">
+              <Link href="/leaderboard" className="btn btn-community-primary">
+                🏆 Explore Wall of Shame
+              </Link>
+              <Link href="/battle" className="btn btn-community-secondary">
+                ⚔️ Start a Roast Battle
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          5. PRICING & PRO OVERVIEW (Figma 3-Tier Grid Alignment)
+          ══════════════════════════════════════════════════════════════ */}
+      <section className="pricing-preview-section">
+        <div className="section-header">
+          <h2 className="section-title font-display">TRANSPARENT POWER. ZERO SUBSCRIPTION TRAPS.</h2>
+          <p className="section-subtitle font-mono">
+            Pay once or stay free forever. No recurring credit card traps.
+          </p>
+        </div>
+
+        <div className="pricing-grid">
+          {/* Free Tier */}
+          <div className="pricing-plan-card">
+            <h3 className="plan-name font-display">FREE TIER</h3>
+            <div className="plan-price font-display">₹0 <span className="price-sub font-mono">forever</span></div>
+            <p className="plan-desc font-mono">Standard code burns and public wall ranking.</p>
+            <ul className="plan-features font-mono">
+              <li>✓ Public GitHub profile roasts</li>
+              <li>✓ Deterministic comedy rule engine</li>
+              <li>✓ Global Wall of Shame ranking</li>
+              <li>✓ 60 req/hr IP rate limit</li>
+            </ul>
+            <button
+              type="button"
+              className="plan-btn font-mono"
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+            >
+              Get Roasted Free 🔥
+            </button>
+          </div>
+
+          {/* Roaster Plan (Featured) */}
+          <div className="pricing-plan-card pricing-plan-card--featured">
+            <div className="plan-popular-tag font-mono">MOST POPULAR</div>
+            <h3 className="plan-name font-display text-fire">ROASTER PLAN</h3>
+            <div className="plan-price font-display">₹99 <span className="price-sub font-mono">/ $1.99</span></div>
+            <p className="plan-desc font-mono">Unlimited Gemini AI burns and Nuclear mode.</p>
+            <ul className="plan-features font-mono">
+              <li>✓ Unlimited Gemini 2.5 Flash burns</li>
+              <li>✓ Nuclear ☢️ Intensity mode unlocked</li>
+              <li>✓ Zero watermarks on 2× HD downloads</li>
+              <li>✓ 5,000 req/hr dedicated quota</li>
+            </ul>
+            <Link href="/pricing" className="plan-btn plan-btn--fire font-mono">
+              Upgrade to Roaster ⚡
+            </Link>
+          </div>
+
+          {/* Historian Plan */}
+          <div className="pricing-plan-card">
+            <h3 className="plan-name font-display">HISTORIAN PLAN</h3>
+            <div className="plan-price font-display">₹199 <span className="price-sub font-mono">/ $3.99</span></div>
+            <p className="plan-desc font-mono">Lifetime trend analysis and private repo audits.</p>
+            <ul className="plan-features font-mono">
+              <li>✓ All Roaster plan benefits</li>
+              <li>✓ Deep private repository reviews</li>
+              <li>✓ Monthly GitHub audit reports</li>
+              <li>✓ Permanent lifetime score tracking</li>
+            </ul>
+            <Link href="/pricing" className="plan-btn font-mono">
+              Upgrade to Historian 📜
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          6. INTERACTIVE FAQ ACCORDION (Figma Two-Column Alignment)
+          ══════════════════════════════════════════════════════════════ */}
+      <section className="faq-section">
+        <div className="faq-container">
+          <div className="faq-left-col">
+            <span className="faq-badge font-mono">KNOWLEDGE BASE</span>
+            <h2 className="faq-title font-display">FREQUENTLY ASKED QUESTIONS</h2>
+            <p className="faq-sub font-body">
+              Everything you need to know about roast accuracy, data privacy, and Pro benefits.
+            </p>
+            <Link href="/contact" className="faq-contact-link font-mono">
+              Need more help? Contact pit crew ↗
+            </Link>
+          </div>
+
+          <div className="faq-right-col">
+            {FAQS.map((faq, idx) => (
+              <div
+                key={idx}
+                className={`faq-accordion-item ${openFaq === idx ? 'faq-item--open' : ''}`}
+                onClick={() => toggleFaq(idx)}
+              >
+                <div className="faq-question-row font-mono">
+                  <span className="faq-q-text">{faq.q}</span>
+                  <span className="faq-chevron">{openFaq === idx ? '▲' : '▼'}</span>
+                </div>
+                {openFaq === idx && (
+                  <p className="faq-a-text font-body animate-fadeUp">
+                    {faq.a}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Modals */}
       {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
-
       {showWelcomeModal && (
         <WelcomeConsentModal
           isOpen={showWelcomeModal}
@@ -620,47 +788,20 @@ export default function LandingPageClient() {
         />
       )}
 
+      {/* ══════════════════════════════════════════════════════════════
+          STYLES (Project Luminous Warm Sand & Figma Geometry)
+          ══════════════════════════════════════════════════════════════ */}
       <style jsx>{`
         .landing-page {
-          min-height: calc(100vh - 60px);
+          min-height: 100vh;
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: flex-start;
-          padding: 1.5rem 1.25rem 7rem;
+          background-color: var(--bg-primary, #F7F5F0);
+          color: var(--text-primary, #111827);
+          padding-bottom: 7.5rem;
           position: relative;
           overflow-x: hidden;
-          gap: 1.5rem;
-          background-color: var(--bg-primary, #f8fafc);
-        }
-
-        /* Ambient Glow Background */
-        .landing-ambient-glow {
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          z-index: 0;
-          overflow: hidden;
-        }
-
-        .glow-dev {
-          position: absolute;
-          top: -10%;
-          left: 10%;
-          width: 500px;
-          height: 500px;
-          background: radial-gradient(circle, rgba(255, 69, 0, 0.07) 0%, transparent 70%);
-          filter: blur(60px);
-        }
-
-        .glow-recruiter {
-          position: absolute;
-          top: -10%;
-          right: 10%;
-          width: 500px;
-          height: 500px;
-          background: radial-gradient(circle, rgba(2, 132, 199, 0.08) 0%, transparent 70%);
-          filter: blur(60px);
         }
 
         /* ── Broadcast Banner ── */
@@ -668,24 +809,22 @@ export default function LandingPageClient() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
           width: 100%;
-          max-width: 1240px;
-          background: rgba(255, 183, 0, 0.09);
-          border: 1px solid rgba(255, 183, 0, 0.3);
+          max-width: 1200px;
+          margin: 0.75rem 1.25rem 0;
+          padding: 8px 16px;
+          background: rgba(255, 183, 0, 0.12);
+          border: 1px solid rgba(255, 183, 0, 0.35);
           border-radius: var(--radius-md, 10px);
-          padding: 7px 14px;
           font-size: 12px;
           z-index: 10;
         }
-
         .broadcast-left {
           display: flex;
           align-items: center;
           gap: 10px;
           flex-wrap: wrap;
         }
-
         .broadcast-pill {
           background: #ffb700;
           color: #000;
@@ -693,13 +832,10 @@ export default function LandingPageClient() {
           font-size: 10px;
           padding: 2px 6px;
           border-radius: 4px;
-          letter-spacing: 0.5px;
         }
-
         .broadcast-text {
           color: var(--text-primary, #111827);
         }
-
         .broadcast-login-link {
           background: none;
           border: none;
@@ -707,37 +843,33 @@ export default function LandingPageClient() {
           color: var(--fire, #ff4500);
           text-decoration: underline;
           cursor: pointer;
-          font-family: inherit;
-          font-size: inherit;
           font-weight: 700;
         }
-
         .broadcast-close-btn {
           background: none;
           border: none;
           color: var(--text-muted, #9ca3af);
           font-size: 13px;
           cursor: pointer;
-          padding: 2px 6px;
         }
 
         /* ── Mobile Tab Switcher (<900px) ── */
         .mobile-tab-switch {
           display: none;
-          width: 100%;
-          max-width: 440px;
+          width: 90%;
+          max-width: 400px;
+          margin: 1rem auto 0;
           background: var(--bg-card, #ffffff);
-          border: 1px solid var(--border, #e5e7eb);
+          border: 1px solid var(--border, #e5e0d8);
           border-radius: 9999px;
           padding: 4px;
           gap: 4px;
           box-shadow: var(--shadow-soft, 0 2px 8px rgba(0, 0, 0, 0.04));
           z-index: 10;
         }
-
         .tab-switch-btn {
           flex: 1;
-          padding: 8px 14px;
+          padding: 8px 12px;
           border-radius: 9999px;
           border: none;
           background: transparent;
@@ -747,612 +879,772 @@ export default function LandingPageClient() {
           cursor: pointer;
           transition: all 0.18s ease;
         }
-
         .tab-switch-btn--active-dev {
           background: var(--fire-grad);
           color: #ffffff;
-          box-shadow: 0 2px 10px rgba(255, 69, 0, 0.3);
         }
-
         .tab-switch-btn--active-recruiter {
           background: linear-gradient(135deg, #0284c7 0%, #00bcd4 100%);
           color: #ffffff;
-          box-shadow: 0 2px 10px rgba(2, 132, 199, 0.3);
         }
 
-        /* ── 50/50 Dual-Panel Split Grid Container ── */
-        .split-grid-container {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 1.75rem;
+        /* ── 1. Hero Section ── */
+        .hero-section {
           width: 100%;
           max-width: 1240px;
+          padding: 2.5rem 1.5rem 2rem;
           margin: 0 auto;
-          align-items: stretch;
-          z-index: 5;
+        }
+        .hero-container {
+          display: grid;
+          grid-template-columns: 1.15fr 0.85fr;
+          gap: 2.5rem;
+          align-items: center;
         }
 
-        .split-panel {
+        /* Left Column */
+        .hero-copy-col {
           display: flex;
           flex-direction: column;
           gap: 1.25rem;
-          padding: 2rem 2.25rem;
-          background: var(--bg-card, #ffffff);
-          border: 1px solid var(--border, #e5e7eb);
-          border-radius: var(--radius-xl, 20px);
-          box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.05);
-          transition: box-shadow 0.2s, border-color 0.2s;
         }
-
-        .split-panel:hover {
-          box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.08);
-        }
-
-        .dev-panel {
-          border-top: 3px solid #ff4500;
-        }
-
-        .recruiter-panel {
-          border-top: 3px solid #0284c7;
-        }
-
-        /* Panel Badges */
-        .panel-badge-wrap {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          width: 100%;
-        }
-
-        .panel-badge {
+        .hero-badge {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          padding: 4px 10px;
+          gap: 8px;
+          align-self: flex-start;
+          padding: 4px 12px;
+          background: #ffffff;
+          border: 1px solid var(--border, #e5e0d8);
           border-radius: 9999px;
           font-size: 11px;
+          font-weight: 600;
+          color: var(--text-secondary, #4b5563);
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .badge-pulse-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #10b981;
+          box-shadow: 0 0 8px #10b981;
+        }
+        .hero-main-title {
+          font-size: clamp(2.8rem, 5.5vw, 4.2rem);
+          line-height: 1.02;
+          letter-spacing: 0.5px;
+          color: var(--text-primary, #111827);
+          margin: 0;
+        }
+        .hero-desc {
+          font-size: 16px;
+          color: var(--text-secondary, #4b5563);
+          line-height: 1.6;
+          max-width: 580px;
+          margin: 0;
+        }
+
+        /* Hero Metrics Row */
+        .hero-metrics-row {
+          display: flex;
+          gap: 1.25rem;
+          padding: 1rem 0;
+          flex-wrap: wrap;
+        }
+        .metric-chip {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          padding: 8px 14px;
+          background: #ffffff;
+          border: 1px solid var(--border, #e5e0d8);
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+        }
+        .metric-val {
+          font-size: 1.2rem;
           font-weight: 700;
+          color: var(--fire, #ff4500);
+        }
+        .metric-label {
+          font-size: 11px;
+          color: var(--text-muted, #9ca3af);
+        }
+
+        /* Quick Pills */
+        .hero-pills-row {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .hero-nav-pill {
+          padding: 6px 12px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          background: #ffffff;
+          color: var(--text-secondary, #4b5563);
+          border: 1px solid var(--border, #e5e0d8);
+          text-decoration: none;
+          transition: all 0.15s ease;
+        }
+        .hero-nav-pill:hover {
+          border-color: var(--fire, #ff4500);
+          color: var(--fire, #ff4500);
+          transform: translateY(-1px);
+        }
+        .hero-nav-pill--universe {
+          border-color: #3b82f6;
+          color: #2563eb;
+        }
+        .hero-nav-pill--rules {
+          cursor: pointer;
+        }
+
+        /* Right Column: Floating Roast Card */
+        .hero-card-col {
+          display: flex;
+          justify-content: center;
+        }
+        .floating-roast-card {
+          width: 100%;
+          max-width: 460px;
+          background: var(--bg-card, #ffffff);
+          border: 1px solid var(--border, #e5e0d8);
+          border-radius: 16px;
+          padding: 1.75rem;
+          box-shadow: 0 12px 36px -6px rgba(0, 0, 0, 0.08);
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+          position: relative;
+        }
+        .roast-card-header {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .card-header-icon {
+          font-size: 1.2rem;
+        }
+        .card-header-title {
+          font-size: 13px;
+          font-weight: 700;
+          color: var(--text-primary, #111827);
           letter-spacing: 0.5px;
         }
-
-        .dev-badge {
-          background: rgba(255, 69, 0, 0.08);
-          border: 1px solid rgba(255, 69, 0, 0.25);
-          color: #ff4500;
-        }
-
-        .recruiter-badge {
-          background: rgba(2, 132, 199, 0.08);
-          border: 1px solid rgba(2, 132, 199, 0.25);
-          color: #0284c7;
-        }
-
-        .satire-rules-btn {
-          background: var(--bg-input, #f3f4f6);
-          border: 1px solid var(--border, #e5e7eb);
-          color: var(--text-secondary, #4b5563);
-          font-size: 11px;
-          padding: 3px 8px;
-          border-radius: var(--radius-sm, 6px);
-          cursor: pointer;
-          transition: all 0.15s;
-        }
-
-        .satire-rules-btn:hover {
+        .card-header-badge {
+          margin-left: auto;
+          font-size: 9px;
+          font-weight: 700;
+          padding: 2px 6px;
+          border-radius: 4px;
+          background: rgba(255, 69, 0, 0.1);
           color: var(--fire, #ff4500);
-          border-color: rgba(255, 69, 0, 0.4);
         }
-
-        /* Panel Hero Typography */
-        .panel-hero {
-          display: flex;
-          flex-direction: column;
-          gap: 0.35rem;
-        }
-
-        .hero-title {
-          font-size: clamp(2.2rem, 3.8vw, 3.4rem);
-          line-height: 0.95;
-          letter-spacing: 1px;
-          margin: 0;
-        }
-
-        .text-recruiter {
-          background: linear-gradient(135deg, #0284c7 0%, #00bcd4 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
-        .hero-subtitle {
-          color: var(--text-secondary, #4b5563);
-          font-size: 14px;
-          line-height: 1.5;
-          margin: 0;
-        }
-
-        /* Selectors (Intensity & Persona) */
-        .selector-group {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
+        .input-wrap {
           width: 100%;
         }
 
-        .selector-header {
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--text-secondary, #4b5563);
-          letter-spacing: 0.5px;
-        }
-
-        .intensity-pills {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
-        }
-
-        .intensity-pill {
+        /* Selector Blocks */
+        .selector-block {
           display: flex;
           flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 2px;
-          padding: 8px 6px;
-          border-radius: var(--radius-md, 10px);
-          background: var(--bg-card, #ffffff);
-          border: 1px solid var(--border, #e5e7eb);
-          cursor: pointer;
-          transition: all 0.18s ease;
-          position: relative;
+          gap: 6px;
         }
-
-        .intensity-pill:hover {
-          border-color: var(--accent-color, #ff4500);
-          transform: translateY(-1px);
-        }
-
-        .intensity-pill--active {
-          border-color: var(--accent-color, #ff4500) !important;
-          background: rgba(255, 69, 0, 0.05);
-          box-shadow: 0 0 14px rgba(255, 69, 0, 0.18);
-        }
-
-        .pill-emoji {
-          font-size: 18px;
-        }
-
-        .pill-label {
-          font-size: 12px;
+        .selector-title {
+          font-size: 10px;
           font-weight: 700;
-          color: var(--text-primary, #111827);
+          color: var(--text-muted, #9ca3af);
+          letter-spacing: 0.5px;
         }
-
+        .intensity-pills-wrap, .persona-chips-wrap {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .intensity-pill, .persona-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 5px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          background: #f8fafc;
+          border: 1px solid var(--border, #e5e0d8);
+          color: var(--text-secondary, #4b5563);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .intensity-pill:hover, .persona-chip:hover {
+          border-color: var(--fire, #ff4500);
+        }
+        .intensity-pill--active, .persona-chip--active {
+          background: rgba(255, 69, 0, 0.08);
+          border-color: var(--fire, #ff4500);
+          color: var(--fire, #ff4500);
+        }
         .pill-pro-tag {
           font-size: 9px;
           padding: 1px 4px;
           border-radius: 3px;
-          background: #ff3d3d;
-          color: #fff;
-          font-weight: 800;
-          letter-spacing: 0.5px;
+          background: #ef4444;
+          color: #ffffff;
         }
-
         .pill-pro-tag--unlocked {
           background: #10b981;
         }
-
-        .selector-hint {
-          font-size: 11px;
+        .selector-caption {
+          font-size: 10px;
           color: var(--text-muted, #9ca3af);
-          margin-top: 2px;
+          margin: 0;
         }
-
-        /* Persona Chips */
-        .persona-chips {
-          display: flex;
-          gap: 6px;
-          flex-wrap: wrap;
+        .recruiter-hint-row {
+          padding-top: 4px;
+          border-top: 1px dashed var(--border, #e5e0d8);
         }
-
-        .persona-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          padding: 5px 9px;
-          border-radius: 9999px;
-          background: var(--bg-card, #ffffff);
-          border: 1px solid var(--border, #e5e7eb);
+        .recruiter-hint-link {
           font-size: 11px;
-          color: var(--text-secondary, #4b5563);
-          cursor: pointer;
-          transition: all 0.15s ease;
+          color: #0284c7;
+          text-decoration: none;
+          font-weight: 600;
         }
-
-        .persona-chip:hover {
-          border-color: var(--fire, #ff4500);
-          color: var(--fire, #ff4500);
+        .recruiter-hint-link:hover {
+          text-decoration: underline;
         }
-
-        .persona-chip--active {
-          background: rgba(255, 69, 0, 0.08);
-          border-color: var(--fire, #ff4500);
-          color: var(--fire, #ff4500);
-          font-weight: 700;
-        }
-
-        /* Feed & Input */
-        .feed-container {
-          width: 100%;
-        }
-
-        .input-container {
-          width: 100%;
-        }
-
-        .social-proof-line {
-          font-size: 12px;
-          color: var(--text-secondary, #4b5563);
+        .card-trust-footer {
+          font-size: 10px;
+          color: var(--text-muted, #9ca3af);
           text-align: center;
         }
 
-        .highlight-num {
-          color: var(--fire, #ff4500);
-          font-weight: 700;
+        /* Recruiter Mobile Viewport Panel */
+        .recruiter-mobile-panel {
+          display: none;
         }
-
-        /* Quick Action Pills */
-        .quick-actions-row {
-          display: flex;
-          gap: 6px;
-          flex-wrap: wrap;
-          justify-content: center;
-        }
-
-        .action-pill-btn {
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--text-secondary, #4b5563);
-          background: var(--bg-input, #f3f4f6);
-          border: 1px solid var(--border, #e5e7eb);
-          border-radius: var(--radius-sm, 6px);
-          padding: 5px 9px;
-          text-decoration: none;
-          cursor: pointer;
-          transition: all 0.15s ease;
-        }
-
-        .action-pill-btn:hover {
-          border-color: var(--border-hover, #d1d5db);
-          color: var(--fire, #ff4500);
+        .recruiter-panel-card {
           background: #ffffff;
-        }
-
-        .action-pill-btn--universe {
-          color: #0284c7;
-          border-color: rgba(2, 132, 199, 0.25);
-        }
-
-        /* Sample Roast of the Day Card */
-        .sample-roast-card {
+          border: 1px solid rgba(2, 132, 199, 0.25);
+          border-radius: 16px;
+          padding: 1.75rem;
           display: flex;
           flex-direction: column;
-          gap: 8px;
-          padding: 12px 16px;
-          background: #ffffff;
-          border: 1px solid var(--border, #e5e7eb);
-          border-radius: var(--radius-lg, 14px);
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-          margin-top: auto;
+          gap: 1rem;
+          box-shadow: 0 8px 30px rgba(2, 132, 199, 0.06);
         }
-
-        .sample-card-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
+        .recruiter-badge {
           font-size: 10px;
-        }
-
-        .sample-header-tag {
-          color: var(--fire, #ff4500);
-          font-weight: 700;
-          letter-spacing: 0.5px;
-        }
-
-        .sample-burn-count {
-          color: var(--text-muted, #9ca3af);
-        }
-
-        .sample-author-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .sample-avatar {
-          border-radius: 50%;
-          border: 1px solid var(--border, #e5e7eb);
-        }
-
-        .sample-author-meta {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .sample-author-handle {
-          font-size: 13px;
-          font-weight: 700;
-          color: var(--text-primary, #111827);
-          text-decoration: none;
-        }
-
-        .sample-author-handle:hover {
-          color: var(--fire, #ff4500);
-        }
-
-        .sample-score-pill {
-          font-size: 11px;
-          color: var(--text-secondary, #4b5563);
-        }
-
-        .sample-quote {
-          font-size: 12px;
-          font-style: italic;
-          color: var(--text-secondary, #4b5563);
-          line-height: 1.5;
-          margin: 0;
-        }
-
-        /* ── Recruiter Panel Styles ── */
-        .candidate-search-card {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          padding: 16px;
-          background: rgba(2, 132, 199, 0.04);
-          border: 1px solid rgba(2, 132, 199, 0.2);
-          border-radius: var(--radius-lg, 14px);
-        }
-
-        .search-card-header {
-          font-size: 11px;
           font-weight: 700;
           color: #0284c7;
-          letter-spacing: 0.5px;
+        }
+        .recruiter-hero-title {
+          font-size: 2rem;
+          color: #0284c7;
           margin: 0;
         }
-
+        .recruiter-hero-desc {
+          font-size: 13px;
+          color: var(--text-secondary, #4b5563);
+          margin: 0;
+        }
         .search-input-box {
           display: flex;
           align-items: center;
-          background: #ffffff;
-          border: 1px solid var(--border, #e5e7eb);
-          border-radius: var(--radius-md, 10px);
-          overflow: hidden;
-          transition: border-color 0.18s;
+          border: 1px solid #bae6fd;
+          border-radius: 8px;
+          padding: 4px 6px;
+          background: #f0f9ff;
         }
-
-        .search-input-box:focus-within {
-          border-color: #0284c7;
-          box-shadow: 0 0 10px rgba(2, 132, 199, 0.15);
-        }
-
         .search-prefix {
-          padding: 0 12px;
-          color: var(--text-muted, #9ca3af);
-          font-size: 14px;
+          padding: 0 8px;
+          color: #0284c7;
           font-weight: 700;
         }
-
         .search-input {
           flex: 1;
           border: none;
           background: transparent;
-          padding: 12px 4px;
           font-size: 13px;
-          color: var(--text-primary, #111827);
           outline: none;
-          min-width: 0;
         }
-
         .search-submit-btn {
           background: #0284c7;
           color: #ffffff;
           border: none;
-          padding: 12px 16px;
+          padding: 8px 14px;
+          border-radius: 6px;
           font-size: 12px;
-          font-weight: 700;
-          cursor: pointer;
-          transition: background 0.15s;
-          white-space: nowrap;
-        }
-
-        .search-submit-btn:hover {
-          background: #0369a1;
-        }
-
-        .search-help-text {
-          font-size: 11px;
-          color: var(--text-muted, #9ca3af);
-          margin: 0;
-        }
-
-        /* Signal Preview Cards (Exact 3 Cards from Mockup) */
-        .signals-preview-group {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .signal-preview-card {
-          padding: 12px 14px;
-          background: #ffffff;
-          border: 1px solid var(--border, #e5e7eb);
-          border-radius: var(--radius-md, 10px);
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-          transition: transform 0.15s, border-color 0.15s;
-        }
-
-        .signal-preview-card:hover {
-          border-color: rgba(2, 132, 199, 0.3);
-          transform: translateX(2px);
-        }
-
-        .signal-card-header {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 4px;
-        }
-
-        .signal-icon {
-          font-size: 16px;
-        }
-
-        .signal-title {
-          font-size: 12px;
-          font-weight: 700;
-          color: var(--text-primary, #111827);
-          flex: 1;
-        }
-
-        .signal-metric-pill {
-          font-size: 10px;
-          font-weight: 700;
-          padding: 2px 7px;
-          border-radius: 9999px;
-        }
-
-        .metric--good {
-          background: rgba(16, 185, 129, 0.1);
-          color: #059669;
-          border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-
-        .metric--high {
-          background: rgba(2, 132, 199, 0.1);
-          color: #0284c7;
-          border: 1px solid rgba(2, 132, 199, 0.3);
-        }
-
-        .metric--verified {
-          background: rgba(139, 92, 246, 0.1);
-          color: #7c3aed;
-          border: 1px solid rgba(139, 92, 246, 0.3);
-        }
-
-        .signal-description {
-          font-size: 12px;
-          color: var(--text-secondary, #4b5563);
-          line-height: 1.4;
-          margin: 0;
-        }
-
-        /* Recruiter CTAs */
-        .recruiter-ctas-wrap {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          width: 100%;
-          margin-top: auto;
-        }
-
-        .google-sso-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          width: 100%;
-          padding: 13px 20px;
-          background: #ffffff;
-          border: 1px solid var(--border, #e5e7eb);
-          border-radius: var(--radius-md, 10px);
-          color: #1e293b;
-          font-size: 13px;
           font-weight: 600;
           cursor: pointer;
-          transition: all 0.18s ease;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+        }
+        .btn-recruiter-login {
+          display: block;
+          text-align: center;
+          background: #0284c7;
+          color: #ffffff;
+          padding: 10px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          text-decoration: none;
         }
 
-        .google-sso-btn:hover {
-          background: #f8fafc;
-          border-color: #cbd5e1;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-          transform: translateY(-1px);
+        /* ── 2. Black Live Roast Ticker Band ── */
+        .live-ticker-band {
+          width: 100%;
+          background: #111827;
+          border-top: 1px solid #1f2937;
+          border-bottom: 1px solid #1f2937;
+          padding: 8px 1.5rem;
+          margin: 1.5rem 0;
         }
-
-        .recruiter-portal-btn {
+        .ticker-inner {
+          max-width: 1240px;
+          margin: 0 auto;
           display: flex;
           align-items: center;
-          justify-content: center;
-          width: 100%;
-          padding: 12px 20px;
-          background: linear-gradient(135deg, #0284c7 0%, #00bcd4 100%);
-          border: none;
-          border-radius: var(--radius-md, 10px);
-          color: #ffffff;
-          font-size: 13px;
-          font-weight: 700;
-          text-decoration: none;
-          cursor: pointer;
-          transition: all 0.18s ease;
-          box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+          gap: 12px;
         }
-
-        .recruiter-portal-btn:hover {
-          opacity: 0.94;
-          transform: translateY(-1px);
-          box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
-        }
-
-        .recruiter-trust-note {
+        .ticker-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
           font-size: 11px;
-          color: var(--text-muted, #9ca3af);
+          font-weight: 700;
+          color: #ff4500;
+          white-space: nowrap;
+        }
+        .ticker-dot {
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: #ef4444;
+        }
+        .ticker-content {
+          flex: 1;
+          overflow: hidden;
+        }
+
+        /* ── 3. Recent Savage Burns Showcase ── */
+        .burns-showcase-section {
+          width: 100%;
+          max-width: 1240px;
+          padding: 2.5rem 1.5rem;
+        }
+        .section-header {
           text-align: center;
+          margin-bottom: 2rem;
+        }
+        .section-title {
+          font-size: clamp(2rem, 4vw, 2.8rem);
+          color: var(--text-primary, #111827);
+          letter-spacing: 0.5px;
           margin: 0;
         }
+        .section-subtitle {
+          font-size: 13px;
+          color: var(--text-secondary, #4b5563);
+          margin-top: 6px;
+        }
+        .burns-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.5rem;
+        }
+        .burn-card {
+          padding: 1.5rem;
+          border-radius: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .burn-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        }
+        .burn-card--light {
+          background: #ffffff;
+          border: 1px solid var(--border, #e5e0d8);
+          color: var(--text-primary, #111827);
+        }
+        .burn-card--featured {
+          background: #111827;
+          border: 2px solid #ff4500;
+          color: #ffffff;
+          box-shadow: 0 8px 30px rgba(255, 69, 0, 0.15);
+        }
+        .burn-card-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .burn-author-info {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .burn-avatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          border: 2px solid var(--border, #e5e0d8);
+          object-fit: cover;
+        }
+        .burn-card--featured .burn-avatar {
+          border-color: #ff4500;
+        }
+        .burn-handle {
+          font-size: 13px;
+          font-weight: 700;
+          margin: 0;
+        }
+        .burn-lang {
+          font-size: 11px;
+          color: var(--text-muted, #9ca3af);
+        }
+        .burn-grade-badge {
+          font-size: 1.2rem;
+          font-weight: 700;
+          padding: 3px 8px;
+          border-radius: 6px;
+          background: rgba(255, 69, 0, 0.1);
+          color: var(--fire, #ff4500);
+          border: 1px solid rgba(255, 69, 0, 0.25);
+        }
+        .burn-tags-row {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .burn-tag-pill {
+          background: #dc2626;
+          color: #ffffff;
+          font-size: 10px;
+          font-weight: 600;
+          padding: 2px 8px;
+          border-radius: 9999px;
+        }
+        .burn-quote {
+          font-size: 12.5px;
+          line-height: 1.5;
+          margin: 0;
+          flex: 1;
+        }
+        .burn-card--light .burn-quote {
+          color: var(--text-secondary, #4b5563);
+        }
+        .burn-card--featured .burn-quote {
+          color: #e5e7eb;
+        }
+        .burn-card-bottom {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 8px;
+          border-top: 1px solid rgba(0,0,0,0.06);
+        }
+        .burn-card--featured .burn-card-bottom {
+          border-top-color: rgba(255,255,255,0.1);
+        }
+        .burn-score-pill {
+          font-size: 11px;
+          color: var(--text-muted, #9ca3af);
+        }
+        .burn-view-link {
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--fire, #ff4500);
+          text-decoration: none;
+        }
+        .burn-view-link:hover {
+          text-decoration: underline;
+        }
 
-        /* ── Responsive Viewports ── */
+        /* ── 4. Community & Social Banner ── */
+        .community-banner-section {
+          width: 100%;
+          max-width: 1240px;
+          padding: 1rem 1.5rem 2.5rem;
+        }
+        .community-card {
+          background: #eef5ff;
+          border: 1px solid #bae6fd;
+          border-radius: 16px;
+          padding: 2.5rem 2rem;
+          text-align: center;
+          box-shadow: 0 4px 20px rgba(2, 132, 199, 0.05);
+        }
+        .community-content {
+          max-width: 680px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 10px;
+        }
+        .community-badge {
+          font-size: 11px;
+          font-weight: 700;
+          color: #0284c7;
+          letter-spacing: 0.5px;
+        }
+        .community-title {
+          font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+          color: #0f172a;
+          margin: 0;
+          line-height: 1.1;
+        }
+        .community-desc {
+          font-size: 14px;
+          color: #475569;
+          margin: 0;
+          line-height: 1.5;
+        }
+        .community-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 10px;
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+        .btn-community-primary {
+          background: #0284c7;
+          color: #ffffff;
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          text-decoration: none;
+          transition: background 0.15s;
+        }
+        .btn-community-primary:hover {
+          background: #0369a1;
+        }
+        .btn-community-secondary {
+          background: #ffffff;
+          color: #0f172a;
+          border: 1px solid #cbd5e1;
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          text-decoration: none;
+          transition: all 0.15s;
+        }
+        .btn-community-secondary:hover {
+          border-color: #0284c7;
+          color: #0284c7;
+        }
+
+        /* ── 5. Pricing Preview Grid ── */
+        .pricing-preview-section {
+          width: 100%;
+          max-width: 1240px;
+          padding: 2.5rem 1.5rem;
+        }
+        .pricing-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.5rem;
+          align-items: stretch;
+        }
+        .pricing-plan-card {
+          background: #ffffff;
+          border: 1px solid var(--border, #e5e0d8);
+          border-radius: 14px;
+          padding: 2rem 1.75rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          position: relative;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        }
+        .pricing-plan-card--featured {
+          border: 2px solid #ff4500;
+          box-shadow: 0 8px 30px rgba(255, 69, 0, 0.12);
+        }
+        .plan-popular-tag {
+          position: absolute;
+          top: -12px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #ff4500;
+          color: #ffffff;
+          font-size: 10px;
+          font-weight: 700;
+          padding: 3px 10px;
+          border-radius: 9999px;
+        }
+        .plan-name {
+          font-size: 1.6rem;
+          margin: 0;
+          color: var(--text-primary, #111827);
+        }
+        .plan-price {
+          font-size: 2.4rem;
+          font-weight: 700;
+          color: var(--text-primary, #111827);
+          line-height: 1;
+        }
+        .price-sub {
+          font-size: 12px;
+          color: var(--text-muted, #9ca3af);
+          font-weight: 400;
+        }
+        .plan-desc {
+          font-size: 12px;
+          color: var(--text-secondary, #4b5563);
+          margin: 0;
+        }
+        .plan-features {
+          list-style: none;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          font-size: 12px;
+          color: var(--text-secondary, #4b5563);
+          margin: 0.5rem 0 auto;
+          padding: 0;
+        }
+        .plan-btn {
+          margin-top: 1rem;
+          padding: 10px;
+          text-align: center;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          text-decoration: none;
+          border: 1px solid var(--border, #e5e0d8);
+          background: #f8fafc;
+          color: var(--text-primary, #111827);
+          cursor: pointer;
+          transition: all 0.15s;
+        }
+        .plan-btn:hover {
+          border-color: var(--fire, #ff4500);
+          color: var(--fire, #ff4500);
+        }
+        .plan-btn--fire {
+          background: var(--fire-grad);
+          color: #ffffff;
+          border: none;
+        }
+        .plan-btn--fire:hover {
+          opacity: 0.95;
+          transform: translateY(-1px);
+        }
+
+        /* ── 6. FAQ Section ── */
+        .faq-section {
+          width: 100%;
+          max-width: 1240px;
+          padding: 2.5rem 1.5rem 4rem;
+        }
+        .faq-container {
+          display: grid;
+          grid-template-columns: 0.9fr 1.1fr;
+          gap: 3rem;
+          align-items: flex-start;
+        }
+        .faq-left-col {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .faq-badge {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--fire, #ff4500);
+          letter-spacing: 0.5px;
+        }
+        .faq-title {
+          font-size: clamp(2rem, 3.5vw, 2.8rem);
+          color: var(--text-primary, #111827);
+          line-height: 1.05;
+          margin: 0;
+        }
+        .faq-sub {
+          font-size: 14px;
+          color: var(--text-secondary, #4b5563);
+          line-height: 1.6;
+          margin: 0;
+        }
+        .faq-contact-link {
+          font-size: 12px;
+          color: var(--fire, #ff4500);
+          text-decoration: none;
+          font-weight: 600;
+          margin-top: 8px;
+        }
+        .faq-contact-link:hover {
+          text-decoration: underline;
+        }
+        .faq-right-col {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        .faq-accordion-item {
+          background: #ffffff;
+          border: 1px solid var(--border, #e5e0d8);
+          border-radius: 10px;
+          padding: 14px 18px;
+          cursor: pointer;
+          transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .faq-accordion-item:hover {
+          border-color: #cbd5e1;
+        }
+        .faq-item--open {
+          border-color: rgba(255, 69, 0, 0.35);
+          box-shadow: 0 4px 14px rgba(255, 69, 0, 0.05);
+        }
+        .faq-question-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          font-size: 13.5px;
+          font-weight: 600;
+          color: var(--text-primary, #111827);
+        }
+        .faq-chevron {
+          font-size: 10px;
+          color: var(--text-muted, #9ca3af);
+        }
+        .faq-a-text {
+          font-size: 13px;
+          color: var(--text-secondary, #4b5563);
+          line-height: 1.6;
+          margin: 10px 0 0;
+          padding-top: 8px;
+          border-top: 1px solid #f1f5f9;
+        }
+
+        /* ── Responsive Adaptations ── */
         @media (max-width: 900px) {
           .mobile-tab-switch {
             display: flex;
           }
-
-          .split-grid-container {
-            grid-template-columns: 1fr;
-            gap: 1.25rem;
-          }
-
-          .panel--hidden-mobile {
+          .col--hidden-mobile {
             display: none !important;
           }
-
-          .split-panel {
-            padding: 1.5rem 1.25rem;
+          .hero-container {
+            grid-template-columns: 1fr;
+            gap: 1.75rem;
           }
-        }
-
-        @media (max-width: 480px) {
-          .landing-page {
-            padding: 1rem 0.85rem 7rem;
+          .recruiter-mobile-panel {
+            display: block;
           }
-
-          .hero-title {
-            font-size: 2.1rem;
+          .burns-grid, .pricing-grid {
+            grid-template-columns: 1fr;
           }
-
-          .intensity-pills {
-            grid-template-columns: repeat(3, 1fr);
-            gap: 4px;
-          }
-
-          .intensity-pill {
-            padding: 6px 2px;
-          }
-
-          .pill-label {
-            font-size: 11px;
+          .faq-container {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
           }
         }
       `}</style>

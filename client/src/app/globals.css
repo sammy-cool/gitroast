@@ -13,15 +13,18 @@
 /* ── CSS Variables (Design Tokens) ──────────────────────── */
 :root {
   /* Backgrounds */
-  --bg-primary: #FAFAFA;
+  --bg-primary: #F7F5F0; /* Figma Luminous Warm Sand */
   --bg-card: #FFFFFF;
   --bg-elevated: #FFFFFF;
-  --bg-input: #F3F4F6;
+  --bg-input: #F3EFEA;
+  --bg-dark: #111827;
+  --bg-dark-card: #181F2E;
 
   /* Borders */
-  --border: #E5E7EB;
-  --border-hover: #D1D5DB;
+  --border: #E5E0D8;
+  --border-hover: #D1CAC0;
   --border-focus: rgba(255, 69, 0, 0.4);
+  --border-dark: #273142;
 
   /* Brand — Fire (For Developers) */
   --fire: #FF4500;
@@ -45,6 +48,16 @@
   --good: #10B981;
   --warn: #F59E0B;
   --info: #3B82F6;
+
+  /* Soft Pastel Status Chips (Figma Alignment) */
+  --chip-peach: #FFF0EB;
+  --chip-peach-text: #DC2626;
+  --chip-mint: #EBF8F2;
+  --chip-mint-text: #059669;
+  --chip-blue: #EEF5FF;
+  --chip-blue-text: #2563EB;
+  --chip-amber: #FEF9E7;
+  --chip-amber-text: #D97706;
 
   /* ── Text Color Hierarchy ── */
   --text-primary: #111827;
