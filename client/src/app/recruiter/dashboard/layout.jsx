@@ -41,6 +41,7 @@ export default function RecruiterDashboardLayout({ children }) {
 
   const navLinks = [
     { href: '/recruiter/dashboard', label: 'Candidate Search', icon: '🔍' },
+    { href: '/recruiter/dashboard/compare', label: 'Candidate Duel', icon: '⚔️' },
     { href: '/recruiter/dashboard/saved', label: 'Saved Candidates', icon: '⭐' },
   ];
 
