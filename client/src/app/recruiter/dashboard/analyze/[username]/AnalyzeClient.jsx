@@ -23,6 +23,7 @@ export default function AnalyzeClient({ username }) {
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState('');
   const [isSaved, setIsSaved] = useState(false);
+  const [copiedBrief, setCopiedBrief] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +62,42 @@ export default function AnalyzeClient({ username }) {
       toast.apiError(err, { username });
     } finally {
       setSaving(false);
+    }
+  };
+
+  /**
+   * ── handleCopyBriefMarkdown (Rule 7 Pedagogical Annotation) ──
+   * WHAT: Copies structured ATS & Notion-ready Markdown summarizing candidate hireability signals.
+   * WHY: Enables technical recruiters to instantly paste high-signal candidate data into internal ATS (Greenhouse, Lever) or Slack.
+   * WHERE & WHEN TO USE: In AnalyzeClient header action row.
+   * USE CASES: Sharing candidate dossiers with hiring managers or engineering leads.
+   * WHEN NOT TO USE: In unauthenticated public views.
+   */
+  const handleCopyBriefMarkdown = () => {
+    playClick();
+    const briefSkills = (data?.skills || []).map((s) => `- ${s}`).join('\n') || '- Active GitHub open-source developer';
+    const briefFlags = (data?.redFlags || []).map((rf) => `- ${rf}`).join('\n') || '- None detected';
+
+    const briefMarkdown = `# Candidate Technical X-Ray: @${username}
+**Engineering Level**: ${data?.level || 'Mid-Level Engineer'}
+**Summary**: ${data?.summary || 'Technical evaluation based on public GitHub repository signals.'}
+
+### Verified Technical Strengths:
+${briefSkills}
+
+### Objective Red Flags / Technical Debt:
+${briefFlags}
+
+### Candidate Reference:
+- Public Profile: https://gitroast.dev/history/${username}
+- Evaluated by: GitRoast Recruiter Intelligence (Gemini AI & AST Engine)
+`;
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(briefMarkdown).then(() => {
+        setCopiedBrief(true);
+        toast.copy('📋 Formatted candidate brief copied for Notion, Slack, or ATS!');
+        setTimeout(() => setCopiedBrief(false), 2500);
+      });
     }
   };
 
@@ -220,8 +257,24 @@ export default function AnalyzeClient({ username }) {
 
         <div className="header-action-row">
           <Link href={`/history/${username}`} target="_blank" className="btn btn-outline font-mono">
-            View Public Roast Report ↗
+            View Public Roast ↗
           </Link>
+          <button
+            type="button"
+            onClick={handleCopyBriefMarkdown}
+            className="btn btn-outline font-mono"
+            title="Copy formatted markdown candidate brief for Notion, Slack, or ATS"
+          >
+            {copiedBrief ? '✓ Copied Brief!' : '📋 Copy ATS Brief'}
+          </button>
+          <button
+            type="button"
+            onClick={() => typeof window !== 'undefined' && window.print()}
+            className="btn btn-outline font-mono"
+            title="Print or export candidate brief as PDF"
+          >
+            🖨️ Export PDF
+          </button>
           <button
             type="button"
             onClick={handleSave}
@@ -575,6 +628,18 @@ export default function AnalyzeClient({ username }) {
           }
           .header-action-row {
             justify-content: center;
+          }
+        }
+
+        @media print {
+          .header-action-row,
+          .notes-card {
+            display: none !important;
+          }
+          .candidate-header-card,
+          .brief-card {
+            box-shadow: none !important;
+            border: 1px solid #CBD5E1 !important;
           }
         }
       `}</style>
