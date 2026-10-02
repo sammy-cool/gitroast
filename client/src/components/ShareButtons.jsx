@@ -8,6 +8,7 @@ import { trackShare } from "@/services/roastService";
 import dynamic from 'next/dynamic';
 const RoastCertificate = dynamic(() => import('./RoastCertificate'), { ssr: false });
 const GitHubWrapped = dynamic(() => import('./GitHubWrapped'), { ssr: false });
+const StoryCardModal = dynamic(() => import('./StoryCardModal'), { ssr: false });
 
 export default function ShareButtons({
     username,
@@ -17,11 +18,18 @@ export default function ShareButtons({
     onProClick,
     score,
     grade,
+    headline,
+    shameCommits = [],
+    topLanguage,
+    totalRepos,
+    abandonedRepos,
+    totalStars,
 }) {
     const [copied, setCopied] = useState(false);
     const [copiedText, setCopiedText] = useState(false);
     const [copiedBadge, setCopiedBadge] = useState(false);
     const [showBadgePreview, setShowBadgePreview] = useState(false);
+    const [showStoryModal, setShowStoryModal] = useState(false);
     const [badgeStyle, setBadgeStyle] = useState("card");
     const [downloading, setDownloading] = useState(false);
 
@@ -229,7 +237,7 @@ export default function ShareButtons({
                 </button>
             </div>
 
-            {/* Certificate & Wrapped — WHY here: natural grouping with other downloads */}
+            {/* Certificate, Wrapped & 9:16 Story — WHY here: natural grouping with other downloads */}
             <div className="extras-row">
                 <RoastCertificate
                     username={username}
@@ -242,7 +250,32 @@ export default function ShareButtons({
                     username={username}
                     isPro={isPro}
                 />
+                <button
+                    type="button"
+                    className="btn btn-story-modal font-mono"
+                    onClick={() => setShowStoryModal(true)}
+                    title="Export 9:16 vertical card with viral stickers for Instagram Stories, TikTok, or LinkedIn"
+                >
+                    📱 Story (9:16)
+                </button>
             </div>
+
+            {/* 9:16 Story Modal Generator */}
+            <StoryCardModal
+                isOpen={showStoryModal}
+                onClose={() => setShowStoryModal(false)}
+                username={username}
+                score={score}
+                grade={grade}
+                headline={headline}
+                roastText={roastText}
+                shameCommits={shameCommits}
+                topLanguage={topLanguage}
+                totalRepos={totalRepos}
+                abandonedRepos={abandonedRepos}
+                totalStars={totalStars}
+                isPro={isPro}
+            />
 
             {/* ── 3D Code Solar System Cosmic Visualizer ── */}
             {/* WHAT: Interactive WebGL launch button transporting user to real-time 3D planetary galaxy */}
@@ -572,6 +605,27 @@ export default function ShareButtons({
         .extras-row {
           display: flex;
           gap: 8px;
+        }
+
+        .btn-story-modal {
+          flex: 1;
+          padding: 10px;
+          border-radius: var(--radius-md);
+          background: #ffffff;
+          border: 1px dashed var(--border-hover, #cbd5e1);
+          color: var(--text-secondary, #475569);
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.18s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        }
+        .btn-story-modal:hover {
+          border-color: var(--fire, #ff4500);
+          color: var(--fire, #ff4500);
+          background: rgba(255, 69, 0, 0.04);
         }
 
         :global(.universe-link-wrapper) {

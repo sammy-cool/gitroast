@@ -344,6 +344,12 @@ export default function RoastCard({ data, onProClick }) {
           onProClick={onProClick}
           score={data.score}
           grade={data.grade}
+          headline={tabloidHeadline}
+          shameCommits={data.shameCommits}
+          topLanguage={data.topLanguage}
+          totalRepos={data.totalRepos}
+          abandonedRepos={data.abandonedRepos}
+          totalStars={data.totalStars}
         />
       )}
 
