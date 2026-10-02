@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from '@/utils/toast'
 import { useAuth } from '@/context/AuthContext'
 import Breadcrumb from '@/components/Breadcrumb'
+import { getRecentBattles } from '@/services/roastService'
 
 const FEATURED_RIVALRIES = [
     {
@@ -49,7 +50,22 @@ export default function BattleEntryClient() {
     const { user } = useAuth()
     const [user1, setUser1] = useState('')
     const [user2, setUser2] = useState('')
+    const [recentBattles, setRecentBattles] = useState([])
     const router = useRouter()
+
+    useEffect(() => {
+        let mounted = true
+        getRecentBattles(1, 6)
+            .then(battles => {
+                if (mounted && Array.isArray(battles)) {
+                    setRecentBattles(battles)
+                }
+            })
+            .catch(() => {})
+        return () => {
+            mounted = false
+        }
+    }, [])
 
     /* 
       ── WHAT: ────────────────────────────────────────────────────────
@@ -274,6 +290,52 @@ export default function BattleEntryClient() {
                     ))}
                 </div>
             </section>
+
+            {/* ── Community Battle Showdowns Feed (Rule 7 Pedagogical Annotation) ──
+              WHAT: Live carousel of recent developer showdown battles and rematch verdicts.
+              WHY: Gives social proof and virality to the arena, letting visitors explore real community face-offs.
+              WHERE & WHEN TO USE: In BattleEntryClient between Featured Rivalries and Arena Rules.
+              USE CASES: Browsing recent community duels, seeing how others got roasted, and clicking to spectate.
+              WHEN NOT TO USE: In single-user profile roasts or offline export cards.
+            ── */}
+            {recentBattles.length > 0 && (
+                <section className="community-battles-section font-mono" aria-labelledby="community-heading">
+                    <div className="community-header">
+                        <h2 id="community-heading" className="featured-title font-mono">
+                            ⚡ RECENT COMMUNITY SHOWDOWNS
+                        </h2>
+                        <span className="live-indicator">
+                            <span className="live-dot" /> LIVE DUELS
+                        </span>
+                    </div>
+
+                    <div className="community-battles-grid">
+                        {recentBattles.map((b, i) => (
+                            <Link
+                                key={b._id || i}
+                                href={`/battle/${b.user1}/vs/${b.user2}`}
+                                className="community-battle-card card"
+                            >
+                                <div className="battle-card-top">
+                                    <span className="player-tag">@{b.user1}</span>
+                                    <span className="vs-mini font-display">VS</span>
+                                    <span className="player-tag">@{b.user2}</span>
+                                </div>
+                                <div className="battle-card-verdict">
+                                    <span className="winner-pill font-mono">
+                                        👑 Winner: @{b.winner} ({b.winner === b.user1 ? b.score1 : b.score2}/100)
+                                    </span>
+                                </div>
+                                {b.battleRoast && (
+                                    <p className="battle-card-quote">
+                                        &ldquo;{b.battleRoast.slice(0, 90)}...&rdquo;
+                                    </p>
+                                )}
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* ── Arena Rules / How It Works ── */}
             <section className="rules-section" aria-labelledby="rules-heading">
@@ -578,6 +640,103 @@ export default function BattleEntryClient() {
           font-size:  10px;
           color:      var(--fire);
           margin-top: 2px;
+        }
+
+        /* Community Battles Section */
+        .community-battles-section {
+          width:     100%;
+          max-width: 800px;
+          display:   flex;
+          flex-direction: column;
+          gap:       12px;
+        }
+        .community-header {
+          display:         flex;
+          justify-content: space-between;
+          align-items:     center;
+        }
+        .live-indicator {
+          font-size:   10px;
+          font-weight: 700;
+          color:       #10B981;
+          display:     flex;
+          align-items: center;
+          gap:         6px;
+          background:  rgba(16, 185, 129, 0.08);
+          border:      1px solid rgba(16, 185, 129, 0.2);
+          padding:     2px 8px;
+          border-radius: 9999px;
+        }
+        .live-dot {
+          width:         6px;
+          height:        6px;
+          border-radius: 50%;
+          background:    #10B981;
+          animation:     pulseLive 1.5s infinite;
+        }
+        @keyframes pulseLive {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50%      { opacity: 0.4; transform: scale(1.3); }
+        }
+        .community-battles-grid {
+          display:               grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap:                   10px;
+          width:                 100%;
+        }
+        .community-battle-card {
+          background:      #FFFFFF;
+          border:          1px solid var(--border);
+          border-radius:   var(--radius-md);
+          padding:         12px 14px;
+          display:         flex;
+          flex-direction:  column;
+          gap:             8px;
+          text-decoration: none;
+          transition:      all 0.18s ease;
+        }
+        .community-battle-card:hover {
+          border-color: var(--fire);
+          transform:    translateY(-2px);
+          box-shadow:   0 6px 20px rgba(255, 69, 0, 0.1);
+        }
+        .battle-card-top {
+          display:     flex;
+          align-items: center;
+          gap:         6px;
+          font-size:   13px;
+          font-weight: 700;
+          color:       var(--text-primary);
+        }
+        .vs-mini {
+          font-size: 14px;
+          color:     var(--fire);
+        }
+        .player-tag {
+          overflow:      hidden;
+          text-overflow: ellipsis;
+          white-space:   nowrap;
+        }
+        .battle-card-verdict {
+          display: flex;
+        }
+        .winner-pill {
+          font-size:     10px;
+          font-weight:   600;
+          color:         #0284C7;
+          background:    #F0F9FF;
+          border:        1px solid #BAE6FD;
+          padding:       2px 6px;
+          border-radius: 4px;
+          overflow:      hidden;
+          text-overflow: ellipsis;
+          white-space:   nowrap;
+        }
+        .battle-card-quote {
+          font-size:   11px;
+          color:       var(--text-secondary);
+          line-height: 1.4;
+          margin:      0;
         }
 
         /* Rules section */

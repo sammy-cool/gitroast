@@ -316,6 +316,28 @@ export async function reactToBattle(battleId, type) {
   }
 }
 
+/**
+ * ── getRecentBattles ──────────────────────────────────────────
+ * WHAT: Fetches recently completed developer showdown battles from GET /api/battle.
+ * WHY: Powers the community showdown feed and live battle spectator carousel.
+ * WHERE & WHEN TO USE: BattleEntryClient component.
+ * USE CASES: Browsing recent community duels and popular rivalry rematches.
+ * WHEN NOT TO USE: In single-user profile flows.
+ */
+export async function getRecentBattles(page = 1, limit = 6) {
+  try {
+    const res = await fetch(`${API_BASE}/api/battle?page=${page}&limit=${limit}`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!res.ok) return [];
+    const json = await safeParseJson(res);
+    return json.battles || [];
+  } catch {
+    return [];
+  }
+}
+
 // ── getWrapped ────────────────────────────────────────────────
 // WHAT: Fetches GitHub Wrapped year-in-review roast
 export async function getWrapped(username, year = 2025, token = null) {
