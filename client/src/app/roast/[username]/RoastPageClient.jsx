@@ -325,11 +325,11 @@ export default function RoastPageClient({ username }) {
             justify-content: space-between;
             align-items:     center;
             width:           100%;
-            max-width:       580px;
+            max-width:       1140px;
           }
           .breadcrumb-wrap {
             width:      100%;
-            max-width:  580px;
+            max-width:  1140px;
             margin-top: -0.5rem;
           }
           .nav-logo      { font-size: 22px; }
@@ -337,7 +337,7 @@ export default function RoastPageClient({ username }) {
             text-decoration: none;
             color:           inherit;
             width:           100%;
-            max-width:       580px;
+            max-width:       1140px;
             display:         block;
             transition:      transform 0.18s ease;
           }
@@ -346,7 +346,7 @@ export default function RoastPageClient({ username }) {
           }
           .upsell-card {
             width:           100%;
-            max-width:       580px;
+            max-width:       1140px;
             padding:         1rem 1.5rem;
             display:         flex;
             justify-content: space-between;

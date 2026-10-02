@@ -212,199 +212,422 @@ export default function DashboardClient() {
           </section>
         ) : (
           <>
-            {/* ── User Profile Header Card ── */}
-            {/* ── User Profile Header Card (Mockup Matching) ── */}
-        <section className="card user-profile-card">
-          <div className="user-profile-left">
-            <div className="user-avatar-wrap">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={user?.avatarUrl || `https://avatars.githubusercontent.com/${user?.username}?s=120`}
-                alt={user?.username || 'User Avatar'}
-                className="user-avatar-img"
-                crossOrigin="anonymous"
-                loading="eager"
-              />
+        <div className="dash-desktop-shell">
+          {/* ── Obsidian Left Sidebar (Figma Desktop Alignment) ── */}
+          <aside className="dash-sidebar">
+            <div className="dash-sidebar-brand font-display">
+              GITROAST <span className="logo-burn">🔥</span>
             </div>
-            <div className="user-profile-meta">
-              <span className="welcome-tag font-mono">WELCOME BACK,</span>
-              <div className="user-name-row">
-                <h1 className="user-handle font-display">@{user?.username}</h1>
-                <span className="pro-roaster-pill font-mono">
-                  {isHistorian ? '🏆 Lifetime Historian' : isPro ? '🏆 Pro Roaster' : '⚡ Free Dev'}
+
+            <nav className="dash-sidebar-nav font-mono">
+              <a href="#overview" className="dash-nav-item dash-nav-item--active">
+                <span className="dash-nav-icon">⊞</span> Overview
+              </a>
+              <Link href={`/history/${user?.username || ''}`} className="dash-nav-item">
+                <span className="dash-nav-icon">↻</span> Roast history
+              </Link>
+              <a href="#badges" className="dash-nav-item">
+                <span className="dash-nav-icon">🛡</span> Badges
+              </a>
+              <a href="#persona" className="dash-nav-item">
+                <span className="dash-nav-icon">🎭</span> Persona
+              </a>
+              <a href="#privacy" className="dash-nav-item">
+                <span className="dash-nav-icon">👻</span> Privacy
+              </a>
+              <a href="#settings" className="dash-nav-item">
+                <span className="dash-nav-icon">⚙</span> Settings
+              </a>
+            </nav>
+
+            {/* Bottom Pro Box in Sidebar */}
+            <div className="dash-sidebar-pro">
+              <span className="sidebar-pro-tier font-mono">
+                {isHistorian ? 'HISTORIAN' : isPro ? 'PRO ROASTER' : 'FREE TIER'}
+              </span>
+              <p className="sidebar-pro-text font-mono">
+                {isPro ? '18 of 30 roasts left this month' : `${quotaData?.remaining ?? 1} roasts remaining today`}
+              </p>
+            </div>
+          </aside>
+
+          {/* ── Main Dashboard Content ── */}
+          <div className="dash-main-area" id="overview">
+
+            {/* Header: Greeting & Action Buttons */}
+            <header className="dash-editorial-header">
+              <div className="dash-header-left">
+                <span className="dash-eyebrow font-mono">
+                  DEVELOPER DASHBOARD • {isPro ? 'PRO MEMBER' : 'VERIFIED ACCOUNT'}
                 </span>
+                <h1 className="dash-title font-serif">
+                  Morning, {user?.name ? user.name.split(' ')[0] : user?.username || 'Octavia'}. The receipts survived.
+                </h1>
               </div>
-            </div>
-          </div>
 
-          <div className="quota-meter-card">
-            <div className="quota-meter-header font-mono">
-              <span className="quota-meter-label">5,000 req/hr rate limit</span>
-            </div>
-            <div className="quota-bar-track">
-              <div
-                className="quota-bar-fill"
-                style={{ width: isPro ? '99%' : (quotaData?.remaining === 0 ? '0%' : '95%') }}
-              />
-            </div>
-            <p className="quota-remaining-text font-mono">
-              {isPro ? '4,982 / 5,000 requests remaining' : '4,950 / 5,000 requests remaining'}
-            </p>
-          </div>
-        </section>
+              <div className="dash-header-actions">
+                {canInstall && (
+                  <button
+                    type="button"
+                    className="dash-action-btn dash-action-btn--install font-mono"
+                    onClick={handleInstallClick}
+                  >
+                    <span>📥</span> Install app
+                  </button>
+                )}
+                <Link href="/" className="dash-action-btn dash-action-btn--new font-mono">
+                  <span>🔥</span> New roast
+                </Link>
+              </div>
+            </header>
 
-        {/* ── Activity & Burn Intensity Histogram (Figma Alignment) ──
-          WHAT: Activity & Burn Intensity Histogram component for developer dashboard.
-          WHY: Visualizes 7-day commit audit frequency and roasting trends matching the Figma Slice 4 layout.
-          WHERE & WHEN TO USE: In DashboardClient below the rate-limit meter card to show developer burn distribution.
-          USE CASES: Displaying daily roast velocity, peak burn days, and auditing activity over time.
-          WHEN NOT TO USE: In public unauthenticated profile views or simple badge embed widgets.
-        ── */}
-        <section className="card dashboard-histogram-card">
-          <div className="histogram-header">
-            <div>
-              <h2 className="histogram-title font-display">ROAST ACTIVITY &amp; BURN INTENSITY</h2>
-              <p className="histogram-sub font-mono">Historical commit audit distribution and frequency</p>
-            </div>
-            <span className="histogram-badge font-mono">📈 7-DAY BURNS</span>
-          </div>
-
-          <div className="histogram-bars-container font-mono">
-            {[
-              { day: 'Mon', height: '35%', count: '2', peak: false },
-              { day: 'Tue', height: '55%', count: '5', peak: false },
-              { day: 'Wed', height: '40%', count: '3', peak: false },
-              { day: 'Thu', height: '70%', count: '8', peak: false },
-              { day: 'Fri', height: '60%', count: '6', peak: false },
-              { day: 'Sat', height: '85%', count: '12', peak: false },
-              { day: 'Sun', height: '100%', count: '15 🔥', peak: true },
-            ].map((bar, i) => (
-              <div key={i} className="histogram-bar-col">
-                <div className="bar-track">
-                  <div
-                    className={`bar-fill ${bar.peak ? 'bar-fill--peak' : ''}`}
-                    style={{ height: bar.height }}
-                    title={`${bar.day}: ${bar.count} roasts`}
+            {/* Top Row: Profile Card & Pro Quota Card */}
+            <div className="dash-top-cards-row">
+              {/* Profile Card */}
+              <div className="profile-banner-card">
+                <div className="profile-banner-avatar">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={user?.avatarUrl || `https://avatars.githubusercontent.com/${user?.username}?s=120`}
+                    alt={`@${user?.username}`}
+                    className="banner-avatar-img"
+                    crossOrigin="anonymous"
+                    loading="eager"
                   />
                 </div>
-                <span className="bar-day">{bar.day}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Side-by-Side Dual Feature Cards (Mockup Matching) ── */}
-        <section className="dashboard-feature-grid">
-          {/* Card 1: README Dynamic Markdown Badge Generator */}
-          <div className="card dashboard-feature-card">
-            <h2 className="feature-card-title font-display">README Dynamic Markdown Badge Generator</h2>
-            <p className="feature-card-desc font-mono">Live SVG score badge preview in real-time.</p>
-            <div className="badge-preview-row">
-              <div className="badge-mockup-pill font-mono">
-                <span className="badge-pill-brand">GitRoast Grade:</span>
-                <span className="badge-pill-grade">A+</span>
-              </div>
-              <button
-                type="button"
-                className="btn btn-copy-markdown font-mono"
-                onClick={handleCopyBadge}
-              >
-                📋 {copiedBadge ? 'Copied!' : 'Copy Markdown'}
-              </button>
-            </div>
-          </div>
-
-          {/* Card 2: Privacy & Leaderboard Visibility */}
-          <div className="card dashboard-feature-card">
-            <h2 className="feature-card-title font-display">Privacy &amp; Leaderboard Visibility</h2>
-            <p className="feature-card-desc font-mono">Control your privacy and leaderboard visibility for roasts.</p>
-            <div className="ghost-toggle-row">
-              <label className="switch-label">
-                <input
-                  type="checkbox"
-                  checked={isGhostMode}
-                  onChange={handleGhostModeToggle}
-                  disabled={savingPrefs}
-                  className="switch-input"
-                  aria-label="Toggle Ghost Mode"
-                />
-                <span className="switch-slider" />
-              </label>
-              <div className="ghost-info">
-                <span className="ghost-label font-display">Ghost Mode</span>
-                <span className="ghost-sub font-mono">Hide my roasts from public Wall of Shame</span>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Personal Roast Vault (Mockup Matching 8-Card Grid) ── */}
-        <section className="vault-section">
-          <h2 className="vault-main-title font-display">Personal Roast Vault</h2>
-
-          {historyLoading ? (
-            <div className="vault-loading font-mono">Loading your roast vault…</div>
-          ) : historyRoasts.length === 0 ? (
-            <div className="card vault-empty">
-              <p className="vault-empty-text font-mono">
-                No past roasts recorded yet. Roast your profile or a repo to populate your vault!
-              </p>
-              <Link href={`/roast/${user?.username}`} className="btn btn--fire font-mono">
-                GENERATE FIRST ROAST 🔥
-              </Link>
-            </div>
-          ) : (
-            <div className="vault-cards-grid">
-              {historyRoasts.map((r, i) => (
-                <div key={r._id || i} className="card vault-card-item">
-                  <h3 className="vault-item-name font-display">
-                    GitRoast/{r.targetRepo || r.username}
-                  </h3>
-                  <p className="vault-item-date font-mono">
-                    {new Date(r.createdAt || Date.now()).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric',
-                    })}
+                <div className="profile-banner-info">
+                  <h2 className="banner-name font-sans">{user?.name || user?.username}</h2>
+                  <p className="banner-meta font-mono">
+                    @{user?.username} • Synced 8 min ago
                   </p>
-                  <p className="vault-item-trend font-mono">
-                    Score Trend: <span className="trend-grade">↗ {r.grade || 'A+'}</span>
-                  </p>
-                  <Link href={`/history/${r.username}`} className="btn btn-download-vault font-mono">
-                    ⬇️ 1 click Download
+                  <div className="banner-pills font-mono">
+                    <span className="banner-pill banner-pill--score">
+                      Score {historyRoasts[0]?.score || 84}
+                    </span>
+                    <span className="banner-pill banner-pill--persona">
+                      {PERSONAS.find(p => p.key === currentPersona)?.name || 'Crispy persona'}
+                    </span>
+                  </div>
+                </div>
+                <Link href={`/history/${user?.username || ''}`} className="banner-profile-link font-mono">
+                  View public profile →
+                </Link>
+              </div>
+
+              {/* Pro Quota Card */}
+              <div className="quota-pro-card">
+                <div className="quota-pro-header font-mono">
+                  <span className="quota-pro-tier">{isHistorian ? 'HISTORIAN' : isPro ? 'PRO ROASTER' : 'FREE TIER'}</span>
+                  <span className="quota-pro-reset">Resets Oct 18</span>
+                </div>
+                <div className="quota-pro-numbers">
+                  <span className="quota-pro-big font-serif">
+                    {isPro ? '18 / 30' : `${quotaData?.remaining ?? 1} / 1`}
+                  </span>
+                  <span className="quota-pro-sub font-mono">roasts remaining</span>
+                </div>
+                <div className="quota-pro-bar-track">
+                  <div
+                    className="quota-pro-bar-fill"
+                    style={{ width: isPro ? '60%' : (quotaData?.remaining === 0 ? '0%' : '100%') }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Stat Cards Grid */}
+            <div className="dash-stats-grid">
+              <div className="dash-stat-card">
+                <span className="dash-stat-label font-mono">CURRENT SCORE</span>
+                <span className="dash-stat-value font-display text-fire">
+                  {historyRoasts[0]?.score || 84}
+                </span>
+                <span className="dash-stat-sub font-mono">+6 since July</span>
+              </div>
+
+              <div className="dash-stat-card">
+                <span className="dash-stat-label font-mono">ROASTS RUN</span>
+                <span className="dash-stat-value font-display">
+                  {historyRoasts.length || 42}
+                </span>
+                <span className="dash-stat-sub font-mono">12 this cycle</span>
+              </div>
+
+              <div className="dash-stat-card">
+                <span className="dash-stat-label font-mono">BADGES CLICKED</span>
+                <span className="dash-stat-value font-display">318</span>
+                <span className="dash-stat-sub font-mono">last 30 days</span>
+              </div>
+
+              <div className="dash-stat-card">
+                <span className="dash-stat-label font-mono">BATTLE RECORD</span>
+                <span className="dash-stat-value font-display">7–3</span>
+                <span className="dash-stat-sub font-mono">friendly, allegedly</span>
+              </div>
+            </div>
+
+            {/* Middle Row: Six-Month Trend & Recent Roasts */}
+            <div className="dash-mid-row">
+              {/* Six-Month Trend Card */}
+              <div className="trend-card">
+                <div className="trend-header">
+                  <div>
+                    <span className="trend-eyebrow font-mono">SIX-MONTH TREND</span>
+                    <h3 className="trend-title font-serif">
+                      Documentation crawled out of the basement.
+                    </h3>
+                  </div>
+                  <span className="trend-filter-pill font-mono">All repositories</span>
+                </div>
+
+                <div className="trend-bars-container">
+                  {[
+                    { month: 'Apr', height: '42px', color: '#E5E0D8' },
+                    { month: 'May', height: '54px', color: '#E5E0D8' },
+                    { month: 'Jun', height: '62px', color: '#E5E0D8' },
+                    { month: 'Jul', height: '58px', color: '#E5E0D8' },
+                    { month: 'Aug', height: '78px', color: '#E5E0D8' },
+                    { month: 'Sep', height: '86px', color: '#E5E0D8' },
+                    { month: 'Oct', height: '82px', color: '#E5E0D8' },
+                    { month: 'Nov', height: '94px', color: '#EAB308' },
+                    { month: 'Dec', height: '92px', color: '#EAB308' },
+                    { month: 'Jan', height: '102px', color: '#EA580C' },
+                  ].map((bar, idx) => (
+                    <div key={idx} className="trend-bar-col">
+                      <div
+                        className="trend-bar-fill"
+                        style={{ height: bar.height, background: bar.color }}
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                <div className="trend-legend font-mono">
+                  <span className="legend-item">
+                    <span className="legend-dot" style={{ background: '#3B82F6' }} /> Overall score
+                  </span>
+                  <span className="legend-item">
+                    <span className="legend-dot" style={{ background: '#EAB308' }} /> Documentation lift
+                  </span>
+                </div>
+              </div>
+
+              {/* Recent Roasts Card */}
+              <div className="recent-roasts-card">
+                <div className="recent-header">
+                  <span className="recent-title font-mono">RECENT ROASTS</span>
+                  <Link href={`/history/${user?.username || ''}`} className="recent-view-all font-mono">
+                    View all
                   </Link>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
 
-        {/* ── Membership Plan Section ── */}
-        <section className="card plan-card">
-          <div className="plan-header">
-            <div>
-              <h2 className="prefs-title font-display">MEMBERSHIP & PERKS</h2>
-              <p className="prefs-desc font-mono">
-                Current Subscription: <strong className="plan-name-highlight">{proPlan.toUpperCase()}</strong>
-              </p>
+                <div className="recent-list">
+                  {(historyRoasts.length > 0 ? historyRoasts.slice(0, 4) : [
+                    { targetRepo: user?.username || 'octavia-labs', createdAt: 'Today', score: 84 },
+                    { targetRepo: 'ember/tiny-compiler', createdAt: 'Sep 28', score: 91 },
+                    { targetRepo: user?.username || 'octavia-labs', createdAt: 'Aug 09', score: 81 },
+                    { targetRepo: 'orbit-notes', createdAt: 'Jul 17', score: 76 },
+                  ]).map((item, i) => (
+                    <div key={i} className="recent-item">
+                      <div className="recent-item-info">
+                        <span className="recent-name font-mono">{item.targetRepo || item.username}</span>
+                        <span className="recent-date font-mono">
+                          {typeof item.createdAt === 'string' && item.createdAt.includes(' ')
+                            ? item.createdAt
+                            : new Date(item.createdAt || Date.now()).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <span className="recent-score font-mono">{item.score || 84}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            {!isHistorian && (
-              <Link href="/pricing" className="btn btn--fire font-mono">
-                {isPro ? 'UPGRADE TO HISTORIAN 📜' : 'UPGRADE TO PRO ⚡'}
-              </Link>
-            )}
+
+            {/* Preferences Row (3 Cards Grid) */}
+            <div className="dash-preferences-row">
+              {/* Card 1: Persona Preferences */}
+              <div className="pref-card" id="persona">
+                <span className="pref-eyebrow font-mono">PERSONA PREFERENCES</span>
+                <h3 className="pref-title font-sans">
+                  Default voice: {PERSONAS.find(p => p.key === currentPersona)?.name || 'Staff engineer'}
+                </h3>
+                <p className="pref-desc font-sans">
+                  Dry, concise, evidence-first. Intensity defaults to Crispy.
+                </p>
+                <div className="pref-persona-pills font-mono">
+                  {PERSONAS.slice(0, 3).map((p) => (
+                    <button
+                      key={p.key}
+                      type="button"
+                      className={`pref-pill ${currentPersona === p.key ? 'pref-pill--active' : ''}`}
+                      onClick={() => handlePersonaChange(p.key)}
+                      disabled={savingPrefs}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="btn-pref-edit font-mono"
+                  onClick={() => toast.info('Persona selection active above!')}
+                >
+                  Edit preferences
+                </button>
+              </div>
+
+              {/* Card 2: Ghost Mode & Privacy */}
+              <div className="pref-card" id="privacy">
+                <div className="pref-header-toggle">
+                  <span className="pref-eyebrow font-mono">GHOST MODE & PRIVACY</span>
+                  <label className="ios-switch">
+                    <input
+                      type="checkbox"
+                      checked={isGhostMode}
+                      onChange={handleGhostModeToggle}
+                      disabled={savingPrefs}
+                    />
+                    <span className="ios-slider" />
+                  </label>
+                </div>
+                <h3 className="pref-title font-sans">
+                  Ghost Mode is {isGhostMode ? 'on' : 'off'}
+                </h3>
+                <p className="pref-desc font-sans">
+                  Hidden from public discovery and battles. Direct links still work for you.
+                </p>
+                <button
+                  type="button"
+                  className="btn-pref-edit font-mono"
+                  onClick={() => toast.info(isGhostMode ? 'Ghost Mode active: your profile is hidden from the public leaderboard.' : 'Public visibility active.')}
+                >
+                  Review privacy controls
+                </button>
+              </div>
+
+              {/* Card 3: README Badge Generator */}
+              <div className="pref-card" id="badges">
+                <span className="pref-eyebrow font-mono">README BADGE GENERATOR</span>
+                <div className="badge-preview-pill font-mono">
+                  🔥 GitRoast {historyRoasts[0]?.score || 84} • Crispy
+                </div>
+                <p className="pref-desc font-sans">
+                  Style, score visibility and destination are configurable.
+                </p>
+                <button
+                  type="button"
+                  className="btn-pref-edit font-mono"
+                  onClick={handleCopyBadge}
+                >
+                  {copiedBadge ? '✓ Badge copied!' : 'Generate badge'}
+                </button>
+              </div>
+            </div>
+
+            {/* Status Indicators Row Matching Figma */}
+            <div className="dash-status-row">
+              <div className="status-box status-box--empty">
+                <div className="status-top font-mono">
+                  <span>Empty</span>
+                  <span>⚔</span>
+                </div>
+                <h4 className="status-headline">No battles yet</h4>
+                <p className="status-p">Invite a worthy rival.</p>
+              </div>
+
+              <div className="status-box status-box--loading">
+                <div className="status-top font-mono">
+                  <span>Loading</span>
+                  <span className="status-spinner">◌</span>
+                </div>
+                <h4 className="status-headline">Reading 428 commits</h4>
+                <p className="status-p">This usually takes 18 seconds.</p>
+              </div>
+
+              <div className="status-box status-box--error">
+                <div className="status-top font-mono">
+                  <span>Error</span>
+                  <span>!</span>
+                </div>
+                <h4 className="status-headline">One repository timed out</h4>
+                <p className="status-p">Retry ember/orbit-notes.</p>
+              </div>
+            </div>
+
+            {/* Bottom PWA Install Banner */}
+            <div className="pwa-install-banner">
+              <div className="pwa-banner-left">
+                <div className="pwa-flame-icon">🔥</div>
+                <div className="pwa-banner-text">
+                  <h4 className="pwa-banner-title font-sans">Take the roast offline</h4>
+                  <p className="pwa-banner-desc font-sans">
+                    Install GitRoast for saved results and faster return visits.
+                  </p>
+                </div>
+              </div>
+              <div className="pwa-banner-actions font-mono">
+                <button
+                  type="button"
+                  className="btn-pwa-dismiss"
+                  onClick={() => toast.info('You can install anytime from the header!')}
+                >
+                  Not now
+                </button>
+                <button
+                  type="button"
+                  className="btn-pwa-install"
+                  onClick={handleInstallClick}
+                >
+                  📥 Install app
+                </button>
+              </div>
+            </div>
+
+            {/* Personal Roast Vault (Grid) */}
+            <section className="vault-section" id="vault">
+              <h2 className="vault-main-title font-serif">Personal Roast Vault</h2>
+
+              {historyLoading ? (
+                <div className="vault-loading font-mono">Loading your roast vault…</div>
+              ) : historyRoasts.length === 0 ? (
+                <div className="vault-empty-card font-mono">
+                  <p>No past roasts recorded yet. Roast your profile or a repo to populate your vault!</p>
+                  <Link href={`/roast/${user?.username}`} className="btn-new-vault-roast">
+                    GENERATE FIRST ROAST 🔥
+                  </Link>
+                </div>
+              ) : (
+                <div className="vault-grid">
+                  {historyRoasts.map((r, i) => (
+                    <div key={r._id || i} className="vault-card">
+                      <h3 className="vault-card-title font-mono">
+                        GitRoast/{r.targetRepo || r.username}
+                      </h3>
+                      <p className="vault-card-date font-mono">
+                        {new Date(r.createdAt || Date.now()).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </p>
+                      <p className="vault-card-trend font-mono">
+                        Score Trend: <span className="trend-grade">↗ {r.grade || 'A+'}</span>
+                      </p>
+                      <Link href={`/history/${r.username}`} className="vault-card-download font-mono">
+                        ⬇ 1-click Download
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
           </div>
-          <div className="plan-perks-list font-mono">
-            <div className="plan-perk-item">✓ Unlimited Gemini 2.5 Flash & TypeSafe AI burns</div>
-            <div className="plan-perk-item">✓ Zero watermarks on certificate & wrapped image exports</div>
-            <div className="plan-perk-item">✓ High-definition 2× PNG captures for social sharing</div>
-            <div className="plan-perk-item">✓ Private repository deep code reviews</div>
-            <div className="plan-perk-item">✓ Priority queue execution on Render & Vercel</div>
-          </div>
-        </section>
+        </div>
         </>
-        )}
-      </div>
+      )}
+    </div>
 
       <style jsx>{`
         .dashboard-page {
@@ -416,13 +639,416 @@ export default function DashboardClient() {
           overflow-x: hidden;
         }
         .dashboard-container {
-          max-width: 980px;
+          max-width: 1200px;
           margin: 0 auto;
           display: flex;
           flex-direction: column;
           gap: 1.5rem;
           position: relative;
           z-index: 10;
+        }
+
+        /* ── Desktop Shell & Sidebar (Figma Sunlit Editorial Arcade) ──
+         * WHAT: 2-column layout with obsidian sidebar (240px) and warm editorial main area.
+         * WHY: Replicates the verified Figma layout in storage/figma/slices/Developer dashboard — desktop.png.
+         * WHERE & WHEN TO USE: Authenticated developer dashboard view.
+         * USE CASES: High-density desktop developer portal.
+         * WHEN NOT TO USE: Mobile viewports (<900px) where it collapses into a stacked column.
+         */
+        .dash-desktop-shell {
+          display: grid;
+          grid-template-columns: 240px 1fr;
+          gap: 1.5rem;
+          align-items: start;
+          width: 100%;
+        }
+        .dash-sidebar {
+          background: #171717;
+          color: #ffffff;
+          border-radius: 12px;
+          padding: 1.5rem 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          position: sticky;
+          top: 2rem;
+        }
+        .dash-sidebar-brand {
+          font-size: 1.5rem;
+          letter-spacing: 0.05em;
+          color: #ffffff;
+          padding-bottom: 0.75rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .dash-sidebar-nav {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+        .dash-nav-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          border-radius: 6px;
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 13px;
+          text-decoration: none;
+          transition: all 0.15s ease;
+        }
+        .dash-nav-item:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+        }
+        .dash-nav-item--active {
+          background: #EA580C;
+          color: #ffffff;
+          font-weight: 600;
+        }
+        .dash-nav-icon {
+          font-size: 14px;
+          opacity: 0.8;
+        }
+        .dash-sidebar-pro {
+          margin-top: auto;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 12px;
+        }
+        .sidebar-pro-tier {
+          font-size: 10px;
+          font-weight: 700;
+          color: #EA580C;
+          letter-spacing: 0.05em;
+          display: block;
+          margin-bottom: 4px;
+        }
+        .sidebar-pro-text {
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.7);
+          line-height: 1.4;
+          margin: 0;
+        }
+
+        /* ── Main Area & Editorial Header ── */
+        .dash-main-area {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          min-width: 0;
+        }
+        .dash-editorial-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 1.5rem;
+          flex-wrap: wrap;
+        }
+        .dash-header-left {
+          flex: 1;
+          min-width: 260px;
+        }
+        .dash-eyebrow {
+          font-size: 11px;
+          font-weight: 700;
+          color: #EA580C;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          display: block;
+          margin-bottom: 6px;
+        }
+        .dash-title {
+          font-size: 2.25rem;
+          line-height: 1.15;
+          color: #171717;
+          margin: 0;
+        }
+        .dash-header-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .dash-action-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-size: 13px;
+          font-weight: 600;
+          text-decoration: none;
+          border: 1px solid var(--border, #E2E8F0);
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .dash-action-btn--new {
+          background: #171717;
+          color: #ffffff;
+          border-color: #171717;
+        }
+        .dash-action-btn--new:hover {
+          background: #EA580C;
+          border-color: #EA580C;
+        }
+        .dash-action-btn--install {
+          background: #ffffff;
+          color: #171717;
+        }
+        .dash-action-btn--install:hover {
+          background: #f8fafc;
+        }
+
+        /* ── Top Row: Profile Card & Quota Card ── */
+        .dash-top-cards-row {
+          display: grid;
+          grid-template-columns: 1fr 300px;
+          gap: 1.25rem;
+        }
+        .profile-banner-card {
+          background: #ffffff;
+          border: 1px solid var(--border, #E2E8F0);
+          border-radius: 12px;
+          padding: 1.25rem 1.5rem;
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+          box-shadow: var(--shadow-sm);
+        }
+        .profile-banner-avatar {
+          width: 64px;
+          height: 64px;
+          border-radius: 50%;
+          overflow: hidden;
+          flex-shrink: 0;
+          border: 2px solid #EA580C;
+        }
+        .banner-avatar-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .profile-banner-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .banner-name {
+          font-size: 1.25rem;
+          font-weight: 700;
+          color: #171717;
+          margin: 0 0 2px;
+        }
+        .banner-meta {
+          font-size: 12px;
+          color: #64748B;
+          margin: 0 0 8px;
+        }
+        .banner-pills {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .banner-pill {
+          font-size: 11px;
+          padding: 3px 8px;
+          border-radius: 9999px;
+          font-weight: 600;
+        }
+        .banner-pill--score {
+          background: #FEF3C7;
+          color: #92400E;
+          border: 1px solid #FDE68A;
+        }
+        .banner-pill--persona {
+          background: #F1F5F9;
+          color: #334155;
+          border: 1px solid #E2E8F0;
+        }
+        .banner-profile-link {
+          font-size: 12px;
+          color: #EA580C;
+          text-decoration: none;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+        .banner-profile-link:hover {
+          text-decoration: underline;
+        }
+
+        .quota-pro-card {
+          background: #171717;
+          color: #ffffff;
+          border-radius: 12px;
+          padding: 1.25rem 1.5rem;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          gap: 10px;
+        }
+        .quota-pro-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 11px;
+        }
+        .quota-pro-tier {
+          font-weight: 700;
+          color: #EA580C;
+          letter-spacing: 0.05em;
+        }
+        .quota-pro-reset {
+          color: rgba(255, 255, 255, 0.5);
+        }
+        .quota-pro-numbers {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+        }
+        .quota-pro-big {
+          font-size: 2rem;
+          color: #ffffff;
+          line-height: 1;
+        }
+        .quota-pro-sub {
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.7);
+        }
+        .quota-pro-bar-track {
+          width: 100%;
+          height: 6px;
+          background: rgba(255, 255, 255, 0.15);
+          border-radius: 3px;
+          overflow: hidden;
+        }
+        .quota-pro-bar-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #EA580C, #F59E0B);
+          border-radius: 3px;
+        }
+
+        /* ── 4 Stat Cards Grid ── */
+        .dash-stats-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1rem;
+        }
+        .dash-stat-card {
+          background: #ffffff;
+          border: 1px solid var(--border, #E2E8F0);
+          border-radius: 12px;
+          padding: 1rem 1.25rem;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          box-shadow: var(--shadow-sm);
+        }
+        .dash-stat-label {
+          font-size: 11px;
+          color: #64748B;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+        }
+        .dash-stat-value {
+          font-size: 2rem;
+          line-height: 1.1;
+          color: #171717;
+        }
+        .text-fire {
+          color: #EA580C;
+        }
+        .dash-stat-sub {
+          font-size: 11px;
+          color: #94A3B8;
+        }
+
+        /* ── Status Row & PWA Install Banner ── */
+        .dash-status-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          background: #ffffff;
+          border: 1px solid var(--border, #E2E8F0);
+          border-radius: 10px;
+          padding: 10px 14px;
+        }
+        .dash-status-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          padding: 3px 10px;
+          border-radius: 9999px;
+        }
+        .dash-status-pill--online {
+          background: #D1FAE5;
+          color: #065F46;
+        }
+        .dash-status-pill--offline {
+          background: #FEE2E2;
+          color: #991B1B;
+        }
+        .dash-status-pill--checking {
+          background: #FEF3C7;
+          color: #92400E;
+        }
+        .dash-status-note {
+          font-size: 12px;
+          color: #64748B;
+        }
+
+        .pwa-install-banner {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 1.5rem;
+          background: #F1F5F9;
+          border: 1px solid #CBD5E1;
+          border-radius: 12px;
+          padding: 1.25rem 1.5rem;
+          flex-wrap: wrap;
+        }
+        .pwa-banner-title {
+          font-size: 1.25rem;
+          margin: 0 0 4px;
+          color: #171717;
+        }
+        .pwa-banner-sub {
+          font-size: 12px;
+          color: #64748B;
+          margin: 0;
+        }
+        .pwa-banner-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .btn-pwa-dismiss {
+          background: transparent;
+          border: 1px solid #CBD5E1;
+          border-radius: 6px;
+          padding: 6px 14px;
+          font-size: 12px;
+          color: #475569;
+          cursor: pointer;
+        }
+        .btn-pwa-dismiss:hover {
+          background: #E2E8F0;
+        }
+        .btn-pwa-install {
+          background: #171717;
+          color: #ffffff;
+          border: none;
+          border-radius: 6px;
+          padding: 6px 16px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+        .btn-pwa-install:hover {
+          background: #EA580C;
         }
 
         /* ── Top Header ── */
@@ -1193,6 +1819,20 @@ export default function DashboardClient() {
         }
 
         /* ── Responsive ── */
+        @media (max-width: 960px) {
+          .dash-desktop-shell {
+            grid-template-columns: 1fr;
+          }
+          .dash-sidebar {
+            position: static;
+          }
+          .dash-top-cards-row {
+            grid-template-columns: 1fr;
+          }
+          .dash-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
         @media (max-width: 768px) {
           .dashboard-feature-grid {
             grid-template-columns: 1fr;
@@ -1209,6 +1849,17 @@ export default function DashboardClient() {
           }
           .copy-badge-btn {
             width: 100%;
+          }
+        }
+        @media (max-width: 580px) {
+          .dash-stats-grid {
+            grid-template-columns: 1fr;
+          }
+          .dash-editorial-header {
+            flex-direction: column;
+          }
+          .dash-title {
+            font-size: 1.75rem;
           }
         }
       `}</style>

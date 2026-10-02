@@ -213,6 +213,206 @@ body {
   color: var(--text-primary);
 }
 
+/* ── Global Link & Pill Helpers (Figma Sunlit Editorial Arcade) ── */
+/* WHY here: Next.js <Link> components render <a> tags that can bypass scoped styled-jsx.
+   Global rules guarantee reliable styling across all viewports and router transitions. */
+.hero-nav-pill {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  background: #ffffff;
+  color: var(--text-secondary, #4b5563);
+  border: 1px solid var(--border, #e5e0d8);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.hero-nav-pill:hover {
+  border-color: var(--color-ember, #EA580C);
+  color: var(--color-ember, #EA580C);
+  transform: translateY(-1px);
+}
+.hero-nav-pill--universe {
+  border-color: #3b82f6;
+  color: #2563eb;
+}
+
+.btn-recruiter-primary {
+  background: var(--color-ember, #EA580C);
+  color: #ffffff !important;
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s ease;
+}
+.btn-recruiter-primary:hover {
+  background: #c2410c;
+}
+
+.btn-recruiter-secondary {
+  background: #ffffff;
+  color: #0f172a !important;
+  border: 1px solid #cbd5e1;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+}
+.btn-recruiter-secondary:hover {
+  border-color: #0284c7;
+  color: #0284c7 !important;
+}
+
+.btn-mystery-primary {
+  background: #ffffff;
+  border: 1px solid var(--border, #e5e0d8);
+  color: var(--color-ink, #171717) !important;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.15s ease;
+}
+.btn-mystery-primary:hover {
+  border-color: var(--color-ember, #EA580C);
+  color: var(--color-ember, #EA580C) !important;
+}
+
+.btn-mystery-secondary {
+  background: transparent;
+  border: none;
+  color: var(--color-ember, #EA580C) !important;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.plan-btn {
+  margin-top: auto;
+  padding: 11px;
+  text-align: center;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--border, #e5e0d8);
+  background: #f8fafc;
+  color: var(--color-ink, #171717);
+  display: block;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.plan-btn:hover {
+  border-color: var(--color-ember, #EA580C);
+  color: var(--color-ember, #EA580C);
+}
+.plan-btn--fire {
+  background: var(--color-ember, #EA580C);
+  color: #ffffff !important;
+  border: none;
+}
+.plan-btn--fire:hover {
+  background: #c2410c;
+  color: #ffffff !important;
+}
+
+.way-card {
+  padding: 1.75rem 1.5rem;
+  border-radius: 14px;
+  text-decoration: none !important;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: all 0.2s ease;
+}
+.way-card--light {
+  background: #ffffff;
+  border: 1px solid var(--border, #e5e0d8);
+  color: var(--color-ink, #171717) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+.way-card--light:hover {
+  border-color: var(--color-ember, #EA580C);
+  transform: translateY(-3px);
+}
+.way-card--dark {
+  background: #171717;
+  border: 1px solid #262626;
+  color: #ffffff !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+.way-card--dark:hover {
+  border-color: var(--color-ember, #EA580C);
+  transform: translateY(-3px);
+}
+
+.recruiter-hint-link {
+  font-size: 11px;
+  color: #0284c7 !important;
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+}
+.recruiter-hint-link:hover {
+  text-decoration: underline;
+}
+
+.btn-recruiter-login {
+  display: block;
+  text-align: center;
+  background: #0284c7;
+  color: #ffffff !important;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+.btn-recruiter-login:hover {
+  background: #0369a1;
+}
+
+.faq-contact-link {
+  font-size: 12px;
+  color: var(--color-ember, #EA580C) !important;
+  text-decoration: none;
+  font-weight: 600;
+  margin-top: 8px;
+  display: inline-block;
+}
+.faq-contact-link:hover {
+  text-decoration: underline;
+}
+
+.burn-view-link {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-ember, #EA580C) !important;
+  text-decoration: none;
+}
+.burn-view-link:hover {
+  text-decoration: underline;
+}
+
 /* ── Cards ───────────────────────────────────────────────── */
 .card {
   background: var(--bg-card);

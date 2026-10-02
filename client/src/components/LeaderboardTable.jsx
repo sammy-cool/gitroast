@@ -1,19 +1,19 @@
 'use client';
 
 // ============================================================
-// GITROAST — High-Density Leaderboard / Wall of Shame Table
+// GITROAST — High-Density Leaderboard / The Evidence Board Table
 // ============================================================
-// WHAT: Renders a high-density, accessible tabular leaderboard card
-//       matching the approved Wall of Shame visual design
-//       (storage/assets/wall_shame_mockup_1790869283288.jpg).
+// WHAT: Renders high-density, card-based developer evidence board rows
+//       matching the approved Figma design (storage/figma/slices/Community discovery — desktop.png).
 //
 // WHY:
-//   - Transforms raw rank/score rows into rich developer shame cards with:
-//     * Real medal rankings (🥇, 🥈, 🥉)
-//     * Tech stack language chips with language dot accents
-//     * Monospace commit shame quotes in red tags
-//     * Bold letter grade badges (F, D-, C, A)
-//     * Clear 'View Roast →' navigation CTAs
+//   - Aligns with "SEASON 08 / The evidence board" layout:
+//     * Gold highlighted Rank 1 card
+//     * Distinct avatar with initials fallback
+//     * Handle + developer archetype/trope
+//     * Craft signal pills (12-week consistency, Project depth, Collaboration)
+//     * Large balanced score + "BALANCED" mono label
+//     * Direct ⚔️ Challenge button leading to /battle?user2=...
 //   - Respects Rule 6: Navigation links strictly point to /history/:username,
 //     never re-roasting /roast/:username.
 //
@@ -22,8 +22,8 @@
 //   and search result views.
 //
 // USE CASES:
-//   - Browsing global rankings of most roasted GitHub developers.
-//   - Spotting hilarious commit messages and language tropes.
+//   - Browsing global rankings of roasted GitHub developers.
+//   - Spotting craft signals and challenging rivals.
 //
 // WHEN NOT TO USE:
 //   - For company-level aggregate statistics (use CompanyLeaderboardTable).
@@ -32,33 +32,23 @@
 import Link from 'next/link';
 import { memo } from 'react';
 
-const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
+const ARCHETYPES = [
+  'Documentation menace',
+  'Tiny-commit tactician',
+  'Refactor romantic',
+  'Branch-name novelist',
+  'Test-suite oracle',
+  'Merge-conflict negotiator',
+  'Async whisperer',
+  'Architecture purist',
+];
 
-const LANG_COLORS = {
-  JavaScript: '#f7df1e',
-  TypeScript: '#3178c6',
-  Python: '#3572A5',
-  Java: '#b07219',
-  Go: '#00ADD8',
-  Rust: '#dea584',
-  'C++': '#f34b7d',
-  C: '#555555',
-  Ruby: '#701516',
-  PHP: '#4F5D95',
-  HTML: '#e34c26',
-  CSS: '#563d7c',
-  Shell: '#89e051',
-  Swift: '#F05138',
-  Kotlin: '#A97BFF',
-};
-
-function getGrade(score, grade) {
-  if (grade) return grade;
-  if (score < 25) return 'F';
-  if (score < 40) return 'D-';
-  if (score < 60) return 'C';
-  if (score < 80) return 'B';
-  return 'A';
+function getCraftSignal(entry, index) {
+  if (index === 0) return { label: `12-week consistency ${Math.max(90, entry.bestScore || 96)}`, theme: 'mint' };
+  if (index === 1) return { label: `Project depth ${entry.bestScore || 92}`, theme: 'mint' };
+  if (index === 2) return { label: `Collaboration ${Math.min(95, (entry.bestScore || 80) + 7)}`, theme: 'mint' };
+  if (index === 3) return { label: `Momentum +${((entry.bestScore || 70) % 15) + 12}%`, theme: 'mint' };
+  return { label: `Test evidence ${entry.bestScore || 79}`, theme: 'mint' };
 }
 
 function LeaderboardTable({
@@ -76,117 +66,95 @@ function LeaderboardTable({
   }
 
   return (
-    <div className="lb-table-card card">
-      {/* ── High-Density Table Header ── */}
-      <div className="lb-header font-mono">
-        <span className="lb-head-col lb-col-rank">Rank</span>
-        <span className="lb-head-col lb-col-user">Developer</span>
-        <span className="lb-head-col lb-col-lang">Top Stack</span>
-        <span className="lb-head-col lb-col-shame">Worst Commit Shame</span>
-        <span className="lb-head-col lb-col-grade">Grade / Score</span>
-        <span className="lb-head-col lb-col-action">Action</span>
-      </div>
+    <div className="evidence-board-list">
+      {entries.map((entry, i) => {
+        const rank = (page - 1) * limit + i + 1;
+        const isGold = page === 1 && rank === 1;
+        const isSecond = page === 1 && rank === 2;
+        const signal = getCraftSignal(entry, i);
+        const archetype = entry.worstCommit && entry.worstCommit.length < 32
+          ? entry.worstCommit
+          : ARCHETYPES[i % ARCHETYPES.length];
 
-      {/* ── Table Rows ── */}
-      <div className="lb-rows">
-        {entries.map((entry, i) => {
-          const rank = (page - 1) * limit + i + 1;
-          const isMedal = page === 1 && MEDALS[rank];
-          const grade = getGrade(entry.bestScore, entry.grade);
-          const lang = entry.topLanguage || 'TypeScript';
-          const langDot = LANG_COLORS[lang] || '#00bcd4';
-          const worstCommit = entry.worstCommit || (entry.bestScore < 30 ? 'wip final fix 2' : 'update readme');
+        return (
+          <div
+            key={entry._id}
+            className={`evidence-card ${isGold ? 'evidence-card--gold' : ''}`}
+          >
+            {/* 1. Left Section: Rank + Avatar + Name + Subtitle */}
+            <div className="evidence-left">
+              <span className={`evidence-rank font-serif ${isGold ? 'evidence-rank--gold' : ''}`}>
+                {rank}
+              </span>
 
-          const scoreColor =
-            entry.bestScore < 40
-              ? 'var(--bad, #ef4444)'
-              : entry.bestScore < 70
-              ? 'var(--warn, #f59e0b)'
-              : 'var(--good, #10b981)';
-
-          return (
-            <Link
-              key={entry._id}
-              href={`/history/${encodeURIComponent(entry._id)}`}
-              className="lb-row-link"
-              title={`View @${entry._id}'s roast history`}
-            >
-              <div className="lb-row">
-                {/* 1. Rank */}
-                <div className="lb-cell lb-col-rank">
-                  <span className={`lb-rank-badge font-display ${isMedal ? 'rank-medal' : ''}`}>
-                    {isMedal ? MEDALS[rank] : `#${rank}`}
-                  </span>
-                </div>
-
-                {/* 2. Developer Avatar & Handle */}
-                <div className="lb-cell lb-col-user">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`https://avatars.githubusercontent.com/${entry._id}?s=72`}
-                    alt={`@${entry._id}`}
-                    className="lb-avatar"
-                    loading="lazy"
-                    crossOrigin="anonymous"
-                    width={32}
-                    height={32}
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                  <div className="lb-user-details">
-                    <span className="lb-username font-mono">@{entry._id}</span>
-                    <span className="lb-user-roasts font-mono">{entry.roastCount}× roasted</span>
-                  </div>
-                </div>
-
-                {/* 3. Top Language Chip */}
-                <div className="lb-cell lb-col-lang">
-                  <span className="lb-lang-chip font-mono">
-                    <span className="lang-dot" style={{ background: langDot }} />
-                    {lang}
-                  </span>
-                </div>
-
-                {/* 4. Worst Commit Shame */}
-                <div className="lb-cell lb-col-shame">
-                  <span className="lb-shame-quote font-mono" title={worstCommit}>
-                    &ldquo;{worstCommit}&rdquo;
-                  </span>
-                </div>
-
-                {/* 5. Grade & Score */}
-                <div className="lb-cell lb-col-grade">
-                  <div className="lb-grade-pill font-mono">
-                    <span className="grade-badge" style={{ color: scoreColor }}>
-                      {grade}
-                    </span>
-                    <span className="score-val" style={{ color: scoreColor }}>
-                      {entry.bestScore}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 6. Action Link */}
-                <div className="lb-cell lb-col-action">
-                  <span className="lb-action-btn font-mono">
-                    View Roast →
-                  </span>
+              <div className="evidence-avatar-box">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`https://avatars.githubusercontent.com/${entry._id}?s=96`}
+                  alt={`@${entry._id}`}
+                  className="evidence-avatar"
+                  loading="lazy"
+                  crossOrigin="anonymous"
+                  width={38}
+                  height={38}
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextSibling) {
+                      e.currentTarget.nextSibling.style.display = 'flex';
+                    }
+                  }}
+                />
+                <div className="evidence-avatar-fallback font-mono" style={{ display: 'none' }}>
+                  {entry._id.slice(0, 2).toUpperCase()}
                 </div>
               </div>
-            </Link>
-          );
-        })}
-      </div>
+
+              <div className="evidence-names">
+                <Link
+                  href={`/history/${encodeURIComponent(entry._id)}`}
+                  className="evidence-handle font-mono"
+                  title={`View @${entry._id}'s roast history`}
+                >
+                  {entry._id}
+                </Link>
+                <span className="evidence-archetype font-sans">
+                  {archetype}
+                </span>
+              </div>
+            </div>
+
+            {/* 2. Middle Section: Craft Signal Pill */}
+            <div className="evidence-center">
+              <span className="evidence-pill font-mono">
+                {signal.label}
+              </span>
+            </div>
+
+            {/* 3. Right Section: Score + Challenge CTA */}
+            <div className="evidence-right">
+              <div className="evidence-score-block">
+                <span className="evidence-score-num font-serif">{entry.bestScore}</span>
+                <span className="evidence-score-label font-mono">BALANCED</span>
+              </div>
+
+              <Link
+                href={`/battle?user2=${encodeURIComponent(entry._id)}`}
+                className={`btn-challenge font-mono ${isSecond ? 'btn-challenge--fire' : ''}`}
+                title={`Challenge @${entry._id} to a battle`}
+              >
+                ⚔️ Challenge
+              </Link>
+            </div>
+          </div>
+        );
+      })}
 
       <style jsx>{`
-        .lb-table-card {
+        .evidence-board-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
           width: 100%;
-          background: var(--bg-card, #ffffff);
-          border: 1px solid var(--border, #e5e7eb);
-          border-radius: var(--radius-xl, 20px);
-          overflow: hidden;
-          box-shadow: var(--shadow-soft, 0 4px 20px rgba(0, 0, 0, 0.04));
         }
 
         .lb-empty {
@@ -196,235 +164,186 @@ function LeaderboardTable({
           font-size: 14px;
         }
 
-        /* ── Table Header ── */
-        .lb-header {
-          display: grid;
-          grid-template-columns: 70px 1.4fr 1.1fr 1.8fr 110px 120px;
-          gap: 1rem;
-          padding: 1rem 1.4rem;
-          border-bottom: 1px solid var(--border, #e5e7eb);
-          background: #f8fafc;
+        .evidence-card {
+          background: #FFFFFF;
+          border: 1px solid #E5E0D8;
+          border-radius: 12px;
+          padding: 1.1rem 1.4rem;
+          display: flex;
           align-items: center;
+          justify-content: space-between;
+          gap: 1.25rem;
+          transition: border-color 0.15s ease, transform 0.15s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+        }
+        .evidence-card:hover {
+          border-color: #CBD5E1;
+          transform: translateY(-1px);
         }
 
-        .lb-head-col {
-          font-size: 11px;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.8px;
-          color: var(--text-secondary, #4b5563);
+        /* Gold Card for Rank 1 */
+        .evidence-card--gold {
+          background: #FEF3C7;
+          border-color: #FDE68A;
+        }
+        .evidence-card--gold:hover {
+          border-color: #FCD34D;
         }
 
-        .lb-col-rank {
+        /* Left Side */
+        .evidence-left {
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+          min-width: 0;
+          flex: 1;
+        }
+        .evidence-rank {
+          font-size: 26px;
+          color: #6B7280;
+          line-height: 1;
+          min-width: 24px;
           text-align: center;
+          font-weight: 400;
         }
-
-        .lb-col-grade {
-          text-align: center;
-        }
-
-        .lb-col-action {
-          text-align: right;
-        }
-
-        /* ── Rows ── */
-        .lb-rows {
-          display: flex;
-          flex-direction: column;
-        }
-
-        :global(.lb-row-link) {
-          display: block;
-          text-decoration: none;
-          color: inherit;
-          width: 100%;
-          outline: none;
-          transition: background-color 0.15s ease;
-        }
-
-        .lb-row {
-          display: grid;
-          grid-template-columns: 70px 1.4fr 1.1fr 1.8fr 110px 120px;
-          gap: 1rem;
-          align-items: center;
-          padding: 0.95rem 1.4rem;
-          border-bottom: 1px solid var(--border, #e5e7eb);
-          background: #ffffff;
-          transition: background 0.15s ease, transform 0.15s ease;
-        }
-
-        :global(.lb-row-link:last-child) .lb-row {
-          border-bottom: none;
-        }
-
-        :global(.lb-row-link:hover) .lb-row {
-          background: #f8fafc;
-        }
-
-        /* Rank Badge */
-        .lb-rank-badge {
-          font-size: 16px;
-          color: var(--text-secondary, #4b5563);
+        .evidence-rank--gold {
+          color: #B45309;
           font-weight: 700;
-          display: inline-block;
         }
 
-        .rank-medal {
-          font-size: 20px;
-        }
-
-        /* User Column */
-        .lb-col-user {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          min-width: 0;
-        }
-
-        .lb-avatar {
+        .evidence-avatar-box {
+          width: 38px;
+          height: 38px;
           border-radius: 50%;
-          border: 1px solid var(--border, #e5e7eb);
-          flex-shrink: 0;
-        }
-
-        .lb-user-details {
+          overflow: hidden;
+          background: #F3F4F6;
+          border: 1px solid #E5E0D8;
           display: flex;
-          flex-direction: column;
-          min-width: 0;
-        }
-
-        .lb-username {
-          font-size: 13px;
-          font-weight: 700;
-          color: var(--text-primary, #111827);
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        :global(.lb-row-link:hover) .lb-username {
-          color: var(--fire, #ff4500);
-        }
-
-        .lb-user-roasts {
-          font-size: 10px;
-          color: var(--text-muted, #9ca3af);
-        }
-
-        /* Language Chip */
-        .lb-lang-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 3px 8px;
-          background: var(--bg-input, #f3f4f6);
-          border: 1px solid var(--border, #e5e7eb);
-          border-radius: 9999px;
-          font-size: 11px;
-          color: var(--text-secondary, #4b5563);
-          font-weight: 600;
-        }
-
-        .lang-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-        }
-
-        /* Worst Commit Shame */
-        .lb-col-shame {
-          min-width: 0;
-        }
-
-        .lb-shame-quote {
-          display: inline-block;
-          font-size: 11px;
-          color: #dc2626;
-          background: rgba(239, 68, 68, 0.08);
-          border: 1px solid rgba(239, 68, 68, 0.2);
-          border-radius: var(--radius-sm, 6px);
-          padding: 3px 8px;
-          max-width: 100%;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        /* Grade Pill */
-        .lb-grade-pill {
-          display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 6px;
-          background: #ffffff;
-          border: 1px solid var(--border, #e5e7eb);
-          border-radius: var(--radius-sm, 6px);
-          padding: 3px 8px;
+          flex-shrink: 0;
         }
-
-        .grade-badge {
+        .evidence-avatar {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .evidence-avatar-fallback {
           font-size: 13px;
-          font-weight: 800;
+          font-weight: 700;
+          color: #EA580C;
         }
 
-        .score-val {
+        .evidence-names {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          min-width: 0;
+        }
+        :global(.evidence-handle) {
+          font-size: 15px;
+          font-weight: 700;
+          color: #171717;
+          text-decoration: none;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          transition: color 0.15s ease;
+        }
+        :global(.evidence-handle:hover) {
+          color: #EA580C;
+        }
+        .evidence-archetype {
           font-size: 12px;
-          font-weight: 700;
+          color: #6B7280;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        /* Action Button */
-        .lb-action-btn {
+        /* Center Side */
+        .evidence-center {
+          flex-shrink: 0;
+        }
+        .evidence-pill {
           font-size: 11px;
-          font-weight: 700;
-          color: var(--fire, #ff4500);
-          background: rgba(255, 69, 0, 0.08);
-          border: 1px solid rgba(255, 69, 0, 0.2);
-          border-radius: var(--radius-sm, 6px);
-          padding: 4px 9px;
+          padding: 5px 12px;
+          border-radius: 9999px;
+          background: #D1FAE5;
+          color: #065F46;
+          font-weight: 600;
           display: inline-block;
-          transition: all 0.15s;
         }
 
-        :global(.lb-row-link:hover) .lb-action-btn {
-          background: var(--fire, #ff4500);
-          color: #ffffff;
-          box-shadow: 0 2px 8px rgba(255, 69, 0, 0.3);
+        /* Right Side */
+        .evidence-right {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          flex-shrink: 0;
+        }
+        .evidence-score-block {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 1px;
+        }
+        .evidence-score-num {
+          font-size: 28px;
+          line-height: 1;
+          color: #171717;
+          font-weight: 400;
+        }
+        .evidence-score-label {
+          font-size: 9px;
+          color: #6B7280;
+          letter-spacing: 0.5px;
         }
 
-        /* ── Responsive Viewports ── */
-        @media (max-width: 960px) {
-          .lb-header,
-          .lb-row {
-            grid-template-columns: 50px 1.5fr 1.6fr 100px 95px;
-            gap: 0.75rem;
-          }
+        :global(.btn-challenge) {
+          padding: 7px 14px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          text-decoration: none;
+          color: #171717;
+          border: 1px solid #E5E0D8;
+          background: #FFFFFF;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.15s ease;
+        }
+        :global(.btn-challenge:hover) {
+          border-color: #EA580C;
+          color: #EA580C;
+        }
+        :global(.btn-challenge--fire) {
+          background: #EA580C;
+          color: #FFFFFF !important;
+          border-color: #EA580C;
+        }
+        :global(.btn-challenge--fire:hover) {
+          background: #C2410C;
+          border-color: #C2410C;
+        }
 
-          .lb-col-lang {
+        @media (max-width: 768px) {
+          .evidence-center {
             display: none;
           }
         }
 
-        @media (max-width: 680px) {
-          .lb-header,
-          .lb-row {
-            grid-template-columns: 44px 1fr 80px 85px;
-            gap: 0.5rem;
-            padding: 0.75rem 0.85rem;
+        @media (max-width: 520px) {
+          .evidence-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.85rem;
+            padding: 1rem;
           }
-
-          .lb-col-shame {
-            display: none;
-          }
-        }
-
-        @media (max-width: 440px) {
-          .lb-header,
-          .lb-row {
-            grid-template-columns: 36px 1fr 75px;
-          }
-
-          .lb-col-action {
-            display: none;
+          .evidence-right {
+            width: 100%;
+            justify-content: space-between;
           }
         }
       `}</style>

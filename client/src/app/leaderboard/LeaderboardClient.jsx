@@ -291,78 +291,107 @@ export default function LeaderboardClient() {
         <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Wall of Shame' }]} />
       </div>
 
-      {/* ── Page Header ── */}
-      <header className="lb-title-block">
-        <h1 className="font-display lb-title text-fire">🏆 Wall of Shame</h1>
-        <p className="font-mono lb-sub">
-          {tab === 'developers'
-            ? 'The most brutally roasted GitHub profiles. Globally.'
-            : 'Who has the messiest commit habits among tech giants? Ranked.'}
-        </p>
+      {/* ── Top Obsidian Editorial Banner (Figma Master Alignment) ── */}
+      <section className="lb-obsidian-banner">
+        <div className="lb-banner-content">
+          <div className="lb-banner-text">
+            <span className="lb-eyebrow font-mono">WALL OF SHAME / PUBLIC OPT-IN PROFILES</span>
+            <h1 className="lb-title font-serif">
+              Public evidence. Friendly rivalry. Zero dunking down.
+            </h1>
+            <p className="lb-sub font-sans">
+              Discover developers and companies by visible craft signals, then settle the important question: whose Git history has better lore?
+            </p>
+          </div>
 
-        {/* ── Tabs ── */}
-        <div className="lb-tabs font-mono">
+          <div className="lb-banner-stats">
+            <div className="banner-stat-block">
+              <span className="stat-label font-mono">OPT-IN PROFILES</span>
+              <span className="stat-number font-serif">48.2k</span>
+              <span className="stat-sub font-mono">Visible this season</span>
+            </div>
+            <div className="banner-stat-block banner-stat-block--fire">
+              <span className="stat-label font-mono">BATTLES TODAY</span>
+              <span className="stat-number font-serif text-fire">1,284</span>
+              <span className="stat-sub font-mono">96% rematch rate</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Controls & Filter Bar ── */}
+      <div className="lb-controls-bar">
+        <div className="lb-tabs-group font-mono">
           <button
             type="button"
             className={`lb-tab-btn ${tab === 'developers' ? 'lb-tab-btn--active' : ''}`}
             onClick={() => setTab('developers')}
           >
-            👤 Developers
+            Developers
           </button>
           <button
             type="button"
             className={`lb-tab-btn ${tab === 'companies' ? 'lb-tab-btn--active' : ''}`}
             onClick={() => setTab('companies')}
           >
-            🏢 Tech Giants
+            Companies
           </button>
+          <Link href="/battle" className="lb-tab-btn lb-tab-link">
+            Battles
+          </Link>
         </div>
-      </header>
 
-      {tab === 'developers' && (
-        <div className="lb-search-wrap">
-          <div className="lb-search-bar">
-            <span className="lb-search-icon" aria-hidden="true">🔍</span>
-            <input
-              type="text"
-              className="lb-search-input font-mono"
-              placeholder="Search developers..."
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              aria-label="Search the Wall of Shame"
-              maxLength={39}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                className="lb-search-clear"
-                onClick={() => { handleSearch(''); }}
-                title="Clear search"
-                aria-label="Clear search"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          {searchLoading && (
-            <div className="lb-search-status font-mono">Searching...</div>
-          )}
-          {searchResults !== null && !searchLoading && (
-            <div className="lb-search-status font-mono">
-              {searchResults.length > 0 ? `${searchResults.length} developer${searchResults.length !== 1 ? 's' : ''} found` : `No developers found for "${searchQuery}"`}
-            </div>
+        <div className="lb-search-container">
+          <span className="lb-search-icon">🔍</span>
+          <input
+            type="text"
+            className="lb-search-input font-mono"
+            placeholder="Search handle, company or repository"
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            maxLength={39}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              className="lb-search-clear"
+              onClick={() => handleSearch('')}
+            >
+              ✕
+            </button>
           )}
         </div>
+
+        <div className="lb-filter-pills font-mono">
+          <span className="filter-pill">Window: 12 weeks ▾</span>
+          <span className="filter-pill">Language: Any ▾</span>
+        </div>
+
+        <Link href="/battle" className="btn-set-rivalry font-mono">
+          ⚔️ Set up a rivalry
+        </Link>
+      </div>
+
+      {searchLoading && (
+        <div className="lb-search-status font-mono">Searching the evidence board...</div>
       )}
 
       {/* ── Two-Column Layout (Figma Top Right Alignment) ── */}
       <div className="lb-layout-grid">
         <div className="lb-main-col">
+          <div className="evidence-board-header">
+            <div>
+              <span className="season-tag font-mono">SEASON 08</span>
+              <h2 className="evidence-title font-serif">The evidence board</h2>
+              <p className="evidence-sub font-sans">
+                Ranking favors balanced, recent public evidence—not raw activity volume.
+              </p>
+            </div>
+            <span className="update-status font-mono">UPDATED 4 MIN AGO</span>
+          </div>
+
           {/* ── Main Leaderboard Card ── */}
-          <section className="card lb-card" aria-label="Leaderboard rankings">
-            {/* Subtle progress bar during page transitions to prevent layout shifts */}
+          <section className="lb-card" aria-label="Leaderboard rankings">
             {pageLoading && <div className="lb-progress-bar" aria-hidden="true" />}
 
             {tab === 'companies' ? (
@@ -423,65 +452,67 @@ export default function LeaderboardClient() {
           </Link>
         </div>
 
-        {/* ── Right Column: Featured Shame Spotlight & Metrics ── */}
+        {/* ── Right Column: Rivalry Setup + Company Spotlight + Inclusive by Design ── */}
         <aside className="lb-side-col">
-          {/* Shame Spotlight Card */}
-          <div className="lb-spotlight-card">
-            <span className="spotlight-badge font-mono">🔥 SHAME SPOTLIGHT</span>
-            <div className="spotlight-profile">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={entries?.[0]?.avatarUrl || `https://avatars.githubusercontent.com/${entries?.[0]?._id || 'torvalds'}?s=96`}
-                alt={`@${entries?.[0]?._id || 'torvalds'}`}
-                className="spotlight-avatar"
-                width={52}
-                height={52}
-                crossOrigin="anonymous"
-                loading="lazy"
-              />
-              <div className="spotlight-info">
-                <span className="spotlight-handle font-mono">@{entries?.[0]?._id || 'torvalds'}</span>
-                <span className="spotlight-lang font-mono">{entries?.[0]?.topLanguage || 'C / Kernel'}</span>
+          {/* Rivalry Setup Card */}
+          <div className="rivalry-card">
+            <span className="rivalry-eyebrow font-mono">RIVALRY SETUP</span>
+            <h3 className="rivalry-title font-serif">
+              Two profiles enter. The evidence decides.
+            </h3>
+            <div className="rivalry-vs-box">
+              <div className="rivalry-slot font-mono">
+                <span className="rivalry-avatar">OL</span>
+                <span>octavia-labs</span>
               </div>
-              <div className="spotlight-grade font-mono">{entries?.[0]?.grade || 'F 🔥'}</div>
+              <span className="rivalry-vs-tag font-mono">VS</span>
+              <div className="rivalry-slot rivalry-slot--empty font-mono">
+                <span>+ Choose rival</span>
+              </div>
             </div>
-            <div className="spotlight-shame font-mono">
-              &ldquo;{entries?.[0]?.worstCommit || 'wip force push to master 3am'}&rdquo;
+            <div className="rivalry-pills font-mono">
+              <span className="rivalry-pill rivalry-pill--active">Balanced</span>
+              <span className="rivalry-pill">Docs</span>
+              <span className="rivalry-pill">Depth</span>
             </div>
-            <Link
-              href={`/history/${encodeURIComponent(entries?.[0]?._id || 'torvalds')}`}
-              className="spotlight-link font-mono"
-            >
-              Full Breakdown →
+            <Link href="/battle" className="btn-preview-battle font-mono">
+              ⚔️ Preview battle
             </Link>
-          </div>
-
-          {/* Quick Metrics Card */}
-          <div className="lb-stats-sidebar-card">
-            <span className="sidebar-card-title font-mono">📊 GLOBAL SHAME METRICS</span>
-            <div className="sidebar-metric-row">
-              <span className="sidebar-metric-label font-mono">Total Roasted:</span>
-              <span className="sidebar-metric-val font-mono">{pagination.total ? `${pagination.total.toLocaleString()}` : '42,890+'}</span>
-            </div>
-            <div className="sidebar-metric-row">
-              <span className="sidebar-metric-label font-mono">Average Score:</span>
-              <span className="sidebar-metric-val font-mono">38.4 / 100</span>
-            </div>
-            <div className="sidebar-metric-row">
-              <span className="sidebar-metric-label font-mono">Top Sin:</span>
-              <span className="sidebar-metric-val font-mono" style={{ color: '#ef4444' }}>Zero Unit Tests</span>
-            </div>
-          </div>
-
-          {/* Duel CTA Card */}
-          <div className="lb-duel-card">
-            <span className="duel-badge font-mono">⚔️ VERSUS BATTLE</span>
-            <h3 className="duel-title font-display">CHALLENGE A COWORKER</h3>
-            <p className="duel-desc font-body">
-              Face off in an empirical duel. Winner gets bragging rights, loser gets roasted.
+            <p className="rivalry-microcopy font-sans">
+              Only opt-in profiles can appear publicly. Private results stay private.
             </p>
-            <Link href="/battle" className="btn btn-duel font-mono">
-              Enter Battle Arena ⚔️
+          </div>
+
+          {/* Company Spotlight Card */}
+          <div className="company-spotlight-card">
+            <span className="spotlight-eyebrow font-mono">COMPANY SPOTLIGHT</span>
+            <h3 className="spotlight-title font-sans">Ember Systems</h3>
+            <p className="spotlight-desc font-sans">
+              Balanced score 87 • 42 public contributors • strongest signal: documentation health.
+            </p>
+            <div className="spotlight-chips font-mono">
+              <span className="spotlight-chip">TypeScript</span>
+              <span className="spotlight-chip">Remote</span>
+              <span className="spotlight-chip">Evidence 90d</span>
+            </div>
+            <button
+              type="button"
+              className="btn-company-profile font-mono"
+              onClick={() => setTab('companies')}
+            >
+              View company profile
+            </button>
+          </div>
+
+          {/* Inclusive by Design Card */}
+          <div className="inclusive-card">
+            <span className="inclusive-icon">🛡️</span>
+            <h3 className="inclusive-title font-sans">Inclusive by design</h3>
+            <p className="inclusive-desc font-sans">
+              Rankings exclude identity, geography, follower count and private activity. Visibility is opt-in and reversible.
+            </p>
+            <Link href="/about" className="inclusive-link font-sans">
+              Read ranking safeguards →
             </Link>
           </div>
         </aside>
@@ -494,10 +525,404 @@ export default function LeaderboardClient() {
           flex-direction: column;
           align-items: center;
           padding: 1.5rem 1.25rem 7.5rem;
-          gap: 1.5rem;
+          gap: 1.75rem;
           max-width: 1240px;
           margin: 0 auto;
           width: 100%;
+        }
+
+        /* ── Obsidian Top Banner ── */
+        .lb-obsidian-banner {
+          width: 100%;
+          background: #171717;
+          border: 1px solid #262626;
+          border-radius: 18px;
+          color: #FFFFFF;
+          padding: 2.5rem 3rem;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+        .lb-banner-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 3rem;
+          flex-wrap: wrap;
+        }
+        .lb-banner-text {
+          flex: 1;
+          min-width: 320px;
+        }
+        .lb-eyebrow {
+          font-size: 10px;
+          letter-spacing: 1.5px;
+          color: #EA580C;
+          font-weight: 700;
+          display: block;
+          margin-bottom: 0.6rem;
+        }
+        .lb-title {
+          font-size: clamp(32px, 4.5vw, 52px);
+          line-height: 1.08;
+          color: #FFFFFF;
+          margin: 0 0 0.75rem;
+          font-weight: 400;
+        }
+        .lb-sub {
+          font-size: 14px;
+          color: #9CA3AF;
+          line-height: 1.6;
+          margin: 0;
+          max-width: 620px;
+        }
+        .lb-banner-stats {
+          display: flex;
+          gap: 2.5rem;
+          flex-shrink: 0;
+        }
+        .banner-stat-block {
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+        .stat-label {
+          font-size: 10px;
+          letter-spacing: 1px;
+          color: #9CA3AF;
+        }
+        .stat-number {
+          font-size: 42px;
+          line-height: 1;
+          color: #FFFFFF;
+          font-weight: 400;
+        }
+        .stat-sub {
+          font-size: 11px;
+          color: #6B7280;
+        }
+
+        /* ── Controls Bar ── */
+        .lb-controls-bar {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          flex-wrap: wrap;
+        }
+        .lb-tabs-group {
+          display: inline-flex;
+          background: #FFFFFF;
+          border: 1px solid #E5E0D8;
+          padding: 4px;
+          border-radius: 10px;
+          gap: 4px;
+        }
+        .lb-tab-btn {
+          padding: 6px 14px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 600;
+          background: transparent;
+          border: none;
+          color: #4B5563;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .lb-tab-btn--active {
+          background: #171717;
+          color: #FFFFFF;
+        }
+        :global(.lb-tab-link) {
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .lb-search-container {
+          flex: 1;
+          min-width: 240px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #FFFFFF;
+          border: 1px solid #E5E0D8;
+          border-radius: 10px;
+          padding: 8px 14px;
+        }
+        .lb-search-icon {
+          font-size: 14px;
+          color: #9CA3AF;
+        }
+        .lb-search-input {
+          border: none;
+          background: transparent;
+          outline: none;
+          width: 100%;
+          font-size: 12px;
+          color: #171717;
+        }
+        .lb-search-clear {
+          background: none;
+          border: none;
+          color: #9CA3AF;
+          cursor: pointer;
+        }
+
+        .lb-filter-pills {
+          display: flex;
+          gap: 8px;
+        }
+        .filter-pill {
+          background: #FFFFFF;
+          border: 1px solid #E5E0D8;
+          padding: 8px 12px;
+          border-radius: 10px;
+          font-size: 12px;
+          color: #4B5563;
+          cursor: pointer;
+        }
+
+        :global(.btn-set-rivalry) {
+          background: #EA580C;
+          color: #FFFFFF !important;
+          padding: 9px 18px;
+          border-radius: 10px;
+          font-size: 12px;
+          font-weight: 600;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          transition: background 0.15s ease;
+          flex-shrink: 0;
+        }
+        :global(.btn-set-rivalry:hover) {
+          background: #C2410C;
+        }
+
+        .evidence-board-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          margin-bottom: 0.5rem;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+        .season-tag {
+          font-size: 10px;
+          letter-spacing: 1.5px;
+          color: #EA580C;
+          font-weight: 700;
+        }
+        .evidence-title {
+          font-size: 32px;
+          line-height: 1.1;
+          color: #171717;
+          margin: 4px 0 6px;
+          font-weight: 400;
+        }
+        .evidence-sub {
+          font-size: 13px;
+          color: #6B7280;
+          margin: 0;
+        }
+        .update-status {
+          font-size: 10px;
+          letter-spacing: 1px;
+          color: #9CA3AF;
+        }
+
+        /* ── Sidebar Styles ── */
+        .rivalry-card {
+          background: #171717;
+          border: 1px solid #262626;
+          border-radius: 14px;
+          padding: 1.5rem 1.75rem;
+          color: #FFFFFF;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        .rivalry-eyebrow {
+          font-size: 10px;
+          letter-spacing: 1.5px;
+          color: #EA580C;
+          font-weight: 700;
+        }
+        .rivalry-title {
+          font-size: 24px;
+          color: #FFFFFF;
+          margin: 0;
+          font-weight: 400;
+          line-height: 1.2;
+        }
+        .rivalry-vs-box {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .rivalry-slot {
+          flex: 1;
+          background: #262626;
+          border: 1px solid #383838;
+          border-radius: 8px;
+          padding: 8px 10px;
+          font-size: 11px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: #E5E7EB;
+        }
+        .rivalry-slot--empty {
+          border-style: dashed;
+          color: #9CA3AF;
+          justify-content: center;
+        }
+        .rivalry-avatar {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #EA580C;
+          color: #FFFFFF;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 9px;
+          font-weight: 700;
+        }
+        .rivalry-vs-tag {
+          font-size: 11px;
+          color: #F59E0B;
+          font-weight: 700;
+        }
+        .rivalry-pills {
+          display: flex;
+          gap: 6px;
+        }
+        .rivalry-pill {
+          padding: 4px 10px;
+          border-radius: 9999px;
+          background: #262626;
+          font-size: 11px;
+          color: #9CA3AF;
+          cursor: pointer;
+        }
+        .rivalry-pill--active {
+          background: #FFFFFF;
+          color: #171717;
+          font-weight: 600;
+        }
+        :global(.btn-preview-battle) {
+          background: #EA580C;
+          color: #FFFFFF !important;
+          padding: 10px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          text-align: center;
+          text-decoration: none;
+          transition: background 0.15s ease;
+        }
+        :global(.btn-preview-battle:hover) {
+          background: #C2410C;
+        }
+        .rivalry-microcopy {
+          font-size: 10px;
+          color: #9CA3AF;
+          line-height: 1.4;
+          margin: 0;
+        }
+
+        /* Company Spotlight Card */
+        .company-spotlight-card {
+          background: #FFFFFF;
+          border: 1px solid #E5E0D8;
+          border-radius: 14px;
+          padding: 1.5rem 1.75rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        .spotlight-eyebrow {
+          font-size: 10px;
+          letter-spacing: 1.5px;
+          color: #EA580C;
+          font-weight: 700;
+        }
+        .spotlight-title {
+          font-size: 18px;
+          font-weight: 700;
+          color: #171717;
+          margin: 0;
+        }
+        .spotlight-desc {
+          font-size: 12px;
+          color: #6B7280;
+          line-height: 1.5;
+          margin: 0;
+        }
+        .spotlight-chips {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+        .spotlight-chip {
+          padding: 4px 8px;
+          background: #F3F4F6;
+          border-radius: 6px;
+          font-size: 10px;
+          color: #4B5563;
+        }
+        .btn-company-profile {
+          background: transparent;
+          border: 1px solid #CBD5E1;
+          color: #171717;
+          padding: 8px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          cursor: pointer;
+          margin-top: 4px;
+          transition: all 0.15s ease;
+        }
+        .btn-company-profile:hover {
+          border-color: #EA580C;
+          color: #EA580C;
+        }
+
+        /* Inclusive Card */
+        .inclusive-card {
+          background: #E0F2FE;
+          border: 1px solid #BAE6FD;
+          border-radius: 14px;
+          padding: 1.5rem 1.75rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+        .inclusive-icon {
+          font-size: 18px;
+        }
+        .inclusive-title {
+          font-size: 15px;
+          font-weight: 700;
+          color: #0369A1;
+          margin: 0;
+        }
+        .inclusive-desc {
+          font-size: 12px;
+          color: #0C4A6E;
+          line-height: 1.5;
+          margin: 0;
+        }
+        :global(.inclusive-link) {
+          font-size: 11px;
+          font-weight: 700;
+          color: #0284C7;
+          text-decoration: none;
+          margin-top: 4px;
+        }
+        :global(.inclusive-link:hover) {
+          text-decoration: underline;
         }
 
         .lb-layout-grid {
@@ -521,183 +946,12 @@ export default function LeaderboardClient() {
           gap: 1.25rem;
         }
 
-        .lb-spotlight-card {
-          background: #111827;
-          border: 2px solid #ff4500;
-          border-radius: 14px;
-          padding: 1.5rem;
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          color: #ffffff;
-          box-shadow: 0 8px 30px rgba(255, 69, 0, 0.12);
-        }
-
-        .spotlight-badge {
-          font-size: 11px;
-          font-weight: 700;
-          color: #ff4500;
-          letter-spacing: 0.5px;
-        }
-
-        .spotlight-profile {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .spotlight-avatar {
-          width: 52px;
-          height: 52px;
-          border-radius: 50%;
-          border: 2px solid #ff4500;
-          object-fit: cover;
-        }
-
-        .spotlight-info {
-          display: flex;
-          flex-direction: column;
-          flex: 1;
-          min-width: 0;
-        }
-
-        .spotlight-handle {
-          font-size: 15px;
-          font-weight: 700;
-          color: #ffffff;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .spotlight-lang {
-          font-size: 11px;
-          color: #9ca3af;
-        }
-
-        .spotlight-grade {
-          font-size: 1.4rem;
-          font-weight: 700;
-          padding: 4px 8px;
-          border-radius: 6px;
-          background: rgba(220, 38, 38, 0.2);
-          border: 1px solid #dc2626;
-          color: #ef4444;
-        }
-
-        .spotlight-shame {
-          font-size: 12px;
-          color: #d1d5db;
-          background: rgba(0, 0, 0, 0.4);
-          padding: 8px 12px;
-          border-radius: 8px;
-          border-left: 3px solid #ff4500;
-          line-height: 1.4;
-        }
-
-        .spotlight-link {
-          display: inline-block;
-          text-align: center;
-          background: var(--fire-grad);
-          color: #ffffff;
-          padding: 9px;
-          border-radius: 8px;
-          font-size: 12px;
-          font-weight: 600;
-          text-decoration: none;
-          transition: transform 0.15s;
-        }
-        .spotlight-link:hover {
-          transform: translateY(-1px);
-        }
-
-        .lb-stats-sidebar-card {
-          background: #ffffff;
-          border: 1px solid var(--border, #e5e0d8);
-          border-radius: 14px;
-          padding: 1.25rem 1.5rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-        }
-
-        .sidebar-card-title {
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--text-muted, #9ca3af);
-          letter-spacing: 0.5px;
-        }
-
-        .sidebar-metric-row {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          font-size: 12px;
-          padding-bottom: 6px;
-          border-bottom: 1px solid #f1f5f9;
-        }
-        .sidebar-metric-row:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
-        }
-
-        .sidebar-metric-label {
-          color: var(--text-secondary, #4b5563);
-        }
-        .sidebar-metric-val {
-          font-weight: 700;
-          color: var(--text-primary, #111827);
-        }
-
-        .lb-duel-card {
-          background: #eef5ff;
-          border: 1px solid #bae6fd;
-          border-radius: 14px;
-          padding: 1.5rem;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .duel-badge {
-          font-size: 10px;
-          font-weight: 700;
-          color: #0284c7;
-        }
-
-        .duel-title {
-          font-size: 1.4rem;
-          color: #0f172a;
-          margin: 0;
-        }
-
-        .duel-desc {
-          font-size: 12px;
-          color: #475569;
-          margin: 0;
-          line-height: 1.5;
-        }
-
-        .btn-duel {
-          margin-top: 6px;
-          display: block;
-          text-align: center;
-          background: #0284c7;
-          color: #ffffff;
-          padding: 9px;
-          border-radius: 8px;
-          font-size: 12px;
-          font-weight: 600;
-          text-decoration: none;
-        }
-        .btn-duel:hover {
-          background: #0369a1;
-        }
-
         @media (max-width: 960px) {
           .lb-layout-grid {
             grid-template-columns: 1fr;
+          }
+          .lb-obsidian-banner {
+            padding: 1.75rem;
           }
         }
 
