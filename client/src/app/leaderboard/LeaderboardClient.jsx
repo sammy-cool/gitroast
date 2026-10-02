@@ -357,67 +357,135 @@ export default function LeaderboardClient() {
         </div>
       )}
 
-      {/* ── Main Leaderboard Card ── */}
-      <section className="card lb-card" aria-label="Leaderboard rankings">
-        {/* Subtle progress bar during page transitions to prevent layout shifts */}
-        {pageLoading && <div className="lb-progress-bar" aria-hidden="true" />}
+      {/* ── Two-Column Layout (Figma Top Right Alignment) ── */}
+      <div className="lb-layout-grid">
+        <div className="lb-main-col">
+          {/* ── Main Leaderboard Card ── */}
+          <section className="card lb-card" aria-label="Leaderboard rankings">
+            {/* Subtle progress bar during page transitions to prevent layout shifts */}
+            {pageLoading && <div className="lb-progress-bar" aria-hidden="true" />}
 
-        {tab === 'companies' ? (
-          companiesLoading ? (
-            <LeaderboardSkeleton />
-          ) : (
-            <CompanyLeaderboardTable companies={companies} />
-          )
-        ) : initialLoading ? (
-          <LeaderboardSkeleton />
-        ) : error ? (
-          <div className="lb-error">
-            <p className="font-mono error-msg">
-              ❌ Could not load leaderboard. The server may be warming up.
-            </p>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => fetchPage(currentPage)}
+            {tab === 'companies' ? (
+              companiesLoading ? (
+                <LeaderboardSkeleton />
+              ) : (
+                <CompanyLeaderboardTable companies={companies} />
+              )
+            ) : initialLoading ? (
+              <LeaderboardSkeleton />
+            ) : error ? (
+              <div className="lb-error">
+                <p className="font-mono error-msg">
+                  ❌ Could not load leaderboard. The server may be warming up.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => fetchPage(currentPage)}
+                >
+                  Try Again ↻
+                </button>
+              </div>
+            ) : searchResults !== null ? (
+              <div className="lb-content">
+                <LeaderboardTable
+                  entries={searchResults}
+                  page={1}
+                  limit={searchResults.length || 10}
+                  emptyMessage={searchQuery ? `No developers found matching "${searchQuery}".` : 'No developers found.'}
+                />
+              </div>
+            ) : (
+              <div className={`lb-content ${pageLoading ? 'lb-content--transitioning' : ''}`}>
+                <LeaderboardTable
+                  entries={entries}
+                  page={pagination.page}
+                  limit={pagination.limit}
+                />
+
+                <Pagination
+                  page={pagination.page}
+                  totalPages={pagination.totalPages}
+                  total={pagination.total}
+                  limit={pagination.limit}
+                  hasPrev={pagination.hasPrev}
+                  hasNext={pagination.hasNext}
+                  onPageChange={handlePageChange}
+                  loading={pageLoading}
+                />
+              </div>
+            )}
+          </section>
+
+          {/* ── Bottom CTA ── */}
+          <Link href="/" className="btn btn-primary lb-cta font-mono">
+            🔥 Add Yourself to the List
+          </Link>
+        </div>
+
+        {/* ── Right Column: Featured Shame Spotlight & Metrics ── */}
+        <aside className="lb-side-col">
+          {/* Shame Spotlight Card */}
+          <div className="lb-spotlight-card">
+            <span className="spotlight-badge font-mono">🔥 SHAME SPOTLIGHT</span>
+            <div className="spotlight-profile">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={entries?.[0]?.avatarUrl || `https://avatars.githubusercontent.com/${entries?.[0]?._id || 'torvalds'}?s=96`}
+                alt={`@${entries?.[0]?._id || 'torvalds'}`}
+                className="spotlight-avatar"
+                width={52}
+                height={52}
+                crossOrigin="anonymous"
+                loading="lazy"
+              />
+              <div className="spotlight-info">
+                <span className="spotlight-handle font-mono">@{entries?.[0]?._id || 'torvalds'}</span>
+                <span className="spotlight-lang font-mono">{entries?.[0]?.topLanguage || 'C / Kernel'}</span>
+              </div>
+              <div className="spotlight-grade font-mono">{entries?.[0]?.grade || 'F 🔥'}</div>
+            </div>
+            <div className="spotlight-shame font-mono">
+              &ldquo;{entries?.[0]?.worstCommit || 'wip force push to master 3am'}&rdquo;
+            </div>
+            <Link
+              href={`/history/${encodeURIComponent(entries?.[0]?._id || 'torvalds')}`}
+              className="spotlight-link font-mono"
             >
-              Try Again ↻
-            </button>
+              Full Breakdown →
+            </Link>
           </div>
-        ) : searchResults !== null ? (
-          <div className="lb-content">
-            <LeaderboardTable
-              entries={searchResults}
-              page={1}
-              limit={searchResults.length || 10}
-              emptyMessage={searchQuery ? `No developers found matching "${searchQuery}".` : 'No developers found.'}
-            />
-          </div>
-        ) : (
-          <div className={`lb-content ${pageLoading ? 'lb-content--transitioning' : ''}`}>
-            <LeaderboardTable
-              entries={entries}
-              page={pagination.page}
-              limit={pagination.limit}
-            />
 
-            <Pagination
-              page={pagination.page}
-              totalPages={pagination.totalPages}
-              total={pagination.total}
-              limit={pagination.limit}
-              hasPrev={pagination.hasPrev}
-              hasNext={pagination.hasNext}
-              onPageChange={handlePageChange}
-              loading={pageLoading}
-            />
+          {/* Quick Metrics Card */}
+          <div className="lb-stats-sidebar-card">
+            <span className="sidebar-card-title font-mono">📊 GLOBAL SHAME METRICS</span>
+            <div className="sidebar-metric-row">
+              <span className="sidebar-metric-label font-mono">Total Roasted:</span>
+              <span className="sidebar-metric-val font-mono">{pagination.total ? `${pagination.total.toLocaleString()}` : '42,890+'}</span>
+            </div>
+            <div className="sidebar-metric-row">
+              <span className="sidebar-metric-label font-mono">Average Score:</span>
+              <span className="sidebar-metric-val font-mono">38.4 / 100</span>
+            </div>
+            <div className="sidebar-metric-row">
+              <span className="sidebar-metric-label font-mono">Top Sin:</span>
+              <span className="sidebar-metric-val font-mono" style={{ color: '#ef4444' }}>Zero Unit Tests</span>
+            </div>
           </div>
-        )}
-      </section>
 
-      {/* ── Bottom CTA ── */}
-      <Link href="/" className="btn btn-primary lb-cta">
-        🔥 Add Yourself to the List
-      </Link>
+          {/* Duel CTA Card */}
+          <div className="lb-duel-card">
+            <span className="duel-badge font-mono">⚔️ VERSUS BATTLE</span>
+            <h3 className="duel-title font-display">CHALLENGE A COWORKER</h3>
+            <p className="duel-desc font-body">
+              Face off in an empirical duel. Winner gets bragging rights, loser gets roasted.
+            </p>
+            <Link href="/battle" className="btn btn-duel font-mono">
+              Enter Battle Arena ⚔️
+            </Link>
+          </div>
+        </aside>
+      </div>
 
       <style jsx>{`
         .lb-page {
@@ -425,11 +493,212 @@ export default function LeaderboardClient() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          padding: 1.5rem 1rem 6.5rem;
+          padding: 1.5rem 1.25rem 7.5rem;
           gap: 1.5rem;
-          max-width: 640px;
+          max-width: 1240px;
           margin: 0 auto;
           width: 100%;
+        }
+
+        .lb-layout-grid {
+          display: grid;
+          grid-template-columns: 1fr 340px;
+          gap: 2rem;
+          width: 100%;
+          align-items: flex-start;
+        }
+
+        .lb-main-col {
+          display: flex;
+          flex-direction: column;
+          gap: 1.5rem;
+          min-width: 0;
+        }
+
+        .lb-side-col {
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+        }
+
+        .lb-spotlight-card {
+          background: #111827;
+          border: 2px solid #ff4500;
+          border-radius: 14px;
+          padding: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+          color: #ffffff;
+          box-shadow: 0 8px 30px rgba(255, 69, 0, 0.12);
+        }
+
+        .spotlight-badge {
+          font-size: 11px;
+          font-weight: 700;
+          color: #ff4500;
+          letter-spacing: 0.5px;
+        }
+
+        .spotlight-profile {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .spotlight-avatar {
+          width: 52px;
+          height: 52px;
+          border-radius: 50%;
+          border: 2px solid #ff4500;
+          object-fit: cover;
+        }
+
+        .spotlight-info {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+          min-width: 0;
+        }
+
+        .spotlight-handle {
+          font-size: 15px;
+          font-weight: 700;
+          color: #ffffff;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .spotlight-lang {
+          font-size: 11px;
+          color: #9ca3af;
+        }
+
+        .spotlight-grade {
+          font-size: 1.4rem;
+          font-weight: 700;
+          padding: 4px 8px;
+          border-radius: 6px;
+          background: rgba(220, 38, 38, 0.2);
+          border: 1px solid #dc2626;
+          color: #ef4444;
+        }
+
+        .spotlight-shame {
+          font-size: 12px;
+          color: #d1d5db;
+          background: rgba(0, 0, 0, 0.4);
+          padding: 8px 12px;
+          border-radius: 8px;
+          border-left: 3px solid #ff4500;
+          line-height: 1.4;
+        }
+
+        .spotlight-link {
+          display: inline-block;
+          text-align: center;
+          background: var(--fire-grad);
+          color: #ffffff;
+          padding: 9px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          text-decoration: none;
+          transition: transform 0.15s;
+        }
+        .spotlight-link:hover {
+          transform: translateY(-1px);
+        }
+
+        .lb-stats-sidebar-card {
+          background: #ffffff;
+          border: 1px solid var(--border, #e5e0d8);
+          border-radius: 14px;
+          padding: 1.25rem 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+        }
+
+        .sidebar-card-title {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-muted, #9ca3af);
+          letter-spacing: 0.5px;
+        }
+
+        .sidebar-metric-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 12px;
+          padding-bottom: 6px;
+          border-bottom: 1px solid #f1f5f9;
+        }
+        .sidebar-metric-row:last-child {
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+
+        .sidebar-metric-label {
+          color: var(--text-secondary, #4b5563);
+        }
+        .sidebar-metric-val {
+          font-weight: 700;
+          color: var(--text-primary, #111827);
+        }
+
+        .lb-duel-card {
+          background: #eef5ff;
+          border: 1px solid #bae6fd;
+          border-radius: 14px;
+          padding: 1.5rem;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .duel-badge {
+          font-size: 10px;
+          font-weight: 700;
+          color: #0284c7;
+        }
+
+        .duel-title {
+          font-size: 1.4rem;
+          color: #0f172a;
+          margin: 0;
+        }
+
+        .duel-desc {
+          font-size: 12px;
+          color: #475569;
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        .btn-duel {
+          margin-top: 6px;
+          display: block;
+          text-align: center;
+          background: #0284c7;
+          color: #ffffff;
+          padding: 9px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          text-decoration: none;
+        }
+        .btn-duel:hover {
+          background: #0369a1;
+        }
+
+        @media (max-width: 960px) {
+          .lb-layout-grid {
+            grid-template-columns: 1fr;
+          }
         }
 
         /* Nav */
