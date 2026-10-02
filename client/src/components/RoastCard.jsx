@@ -352,13 +352,15 @@ export default function RoastCard({ data, onProClick }) {
 
         .card-header {
           padding:         1.25rem 1.5rem;
-          background:      var(--bg-elevated);
-          border-bottom:   1px solid var(--border);
+          background:      #111827;
+          border-bottom:   1px solid #1f2937;
           display:         flex;
           justify-content: space-between;
           align-items:     center;
           gap:             0.75rem;
           flex-wrap:       nowrap;
+          border-top-left-radius: var(--radius-lg);
+          border-top-right-radius: var(--radius-lg);
         }
         .profile-info {
           display:     flex;
@@ -371,7 +373,7 @@ export default function RoastCard({ data, onProClick }) {
           height:          46px;
           border-radius:   50%;
           background:      var(--bg-card);
-          border:          2px solid rgba(255, 69, 0, 0.4);
+          border:          2px solid #ff4500;
           overflow:        hidden;
           display:         flex;
           align-items:     center;
@@ -401,9 +403,9 @@ export default function RoastCard({ data, onProClick }) {
           text-overflow: ellipsis;
           white-space:   nowrap;
           max-width:     180px;
-          color:         var(--text-primary);
+          color:         #ffffff;
         }
-        .profile-meta { color: var(--text-secondary); font-size: 11px; margin: 2px 0 0; }
+        .profile-meta { color: #9ca3af; font-size: 11px; margin: 2px 0 0; }
 
         .stamped-grade-pill {
           background:    #DC2626;
