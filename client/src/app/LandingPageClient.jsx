@@ -53,18 +53,48 @@ import {
 } from "@/services/roastService";
 
 const PERSONAS = [
-  { key: "classic", label: "Classic", emoji: "💀", desc: "Sharp, cynical code review" },
-  { key: "hinglish", label: "Hinglish", emoji: "🇮🇳", desc: "Desi Tech Lead office comedy" },
-  { key: "techbro", label: "Tech Bro", emoji: "👔", desc: "Silicon Valley Web3/AI lingo" },
-  { key: "ramsay", label: "Chef Ramsay", emoji: "👨‍🍳", desc: "IT'S RAW! Pure kitchen fury" },
-  { key: "shakespearean", label: "Shakespeare", emoji: "🎭", desc: "Elizabethan tragic verse" },
+  {
+    key: "classic",
+    label: "Staff engineer",
+    emoji: "👔",
+    badge: "Dry, specific",
+    desc: "Architecture, systems, edge cases. Deeply disappointed in your lifecycle choices.",
+  },
+  {
+    key: "techbro",
+    label: "Chaos intern",
+    emoji: "⚡",
+    badge: "Fast, feral",
+    desc: "Blunt, meme-fluent, hyperactive. Wonders why you pushed secrets to master.",
+  },
+  {
+    key: "shakespearean",
+    label: "Historian",
+    emoji: "📜",
+    badge: "Long memory",
+    desc: "Traces every tragic lineage. Speaks like a Victorian coroner reading git log.",
+  },
+  {
+    key: "hinglish",
+    label: "Desi Tech Lead",
+    emoji: "🇮🇳",
+    badge: "Office drama",
+    desc: "Authentic Indian tech office comedy. 'Bhai production fat gaya!'",
+  },
+  {
+    key: "ramsay",
+    label: "Chef Ramsay",
+    emoji: "👨‍🍳",
+    badge: "Pure fury",
+    desc: "IT'S RAW! Pure kitchen fury applied to software engineering.",
+  },
 ];
 
 const INTENSITIES = [
   {
     key: "mild",
     emoji: "🌶",
-    label: "Mild",
+    label: "Warm-up",
     description: "Gentle observations. Still burns.",
     color: "#FFB700",
     isPro: false,
@@ -72,8 +102,8 @@ const INTENSITIES = [
   {
     key: "savage",
     emoji: "🔥",
-    label: "Savage",
-    description: "Brutal comedy. The default.",
+    label: "Crispy",
+    description: "Recommended. Real burns, real lessons.",
     color: "#FF6B00",
     isPro: false,
   },
@@ -81,7 +111,7 @@ const INTENSITIES = [
     key: "nuclear",
     emoji: "☢️",
     label: "Nuclear",
-    description: "Absolutely no mercy.",
+    description: "Uncensored existential demolition. Zero mercy.",
     color: "#FF3D3D",
     isPro: true,
   },
@@ -117,24 +147,28 @@ const RECENT_BURNS = [
 
 const FAQS = [
   {
+    q: "What does GitRoast analyze?",
+    a: "Public GitHub profile and repository evidence: commit patterns, project depth, documentation, commit timestamps, and visible collaboration signals.",
+  },
+  {
+    q: "Is Nuclear mode abusive?",
+    a: "No. Intensity changes theatricality, not safety. We avoid identity, appearance, and protected characteristics, focusing exclusively on code architecture and Git hygiene.",
+  },
+  {
+    q: "Can I remove or hide my profile?",
+    a: "Yes. Ghost Mode controls discoverability on the Wall of Shame and Battles, and public-page removal requests are available anytime without a paid plan.",
+  },
+  {
+    q: "Is recruiter scoring the same as a roast?",
+    a: "No. Professional recruiter insights use explainable, job-relevant public evidence and never surface playful roast copy or satire.",
+  },
+  {
     q: "Does GitRoast roast private repositories?",
-    a: "No. By default, GitRoast only inspects public repositories using GitHub's public REST API. If you log in with GitHub and hold a Pro membership, you can optionally analyze your own private repositories.",
+    a: "Only if you log in and explicitly authorize GitRoast Pro to review your own private repositories. We never inspect or store private code without your direct permission.",
   },
   {
-    q: "Can organizations or companies be roasted?",
-    a: "GitRoast is built specifically for individual developers. Attempting to roast an organization account will return a friendly error directing you to individual contributors.",
-  },
-  {
-    q: "How does the AI work?",
-    a: "We extract statistical signals from your GitHub profile (commit frequencies, star-to-repo ratios, commit message patterns, language distributions, and graveyard streaks) and pass this structured snapshot to Google Gemini AI to assemble a savage, context-aware roast.",
-  },
-  {
-    q: "What if Gemini AI or GitHub API is down?",
-    a: "GitRoast operates on a zero-crash, defensive programming philosophy. If the Gemini AI API experiences high load or rate limits, our deterministic rule-based roast engine immediately takes over without failing the request.",
-  },
-  {
-    q: "How can I add the GitRoast badge to my GitHub profile README?",
-    a: "Every roast page and history page features a 1-click '🛡️ Copy GitHub README Badge' button! You can choose between a fiery dark card style (320×78px) or a sleek shield/pill style. Paste the Markdown snippet into your GitHub profile README.md and it will dynamically update with your score!",
+    q: "How does the pricing work?",
+    a: "GitRoast has no recurring subscription traps. You can use the free tier forever, or make a simple one-time payment for the Pro Roaster (₹99 / $1.99) or Historian (₹199 / $3.99) pass.",
   },
 ];
 
@@ -149,6 +183,7 @@ export default function LandingPageClient() {
   const [openFaq, setOpenFaq] = useState(null);
   const [candidateSearch, setCandidateSearch] = useState('');
   const [mobileTab, setMobileTab] = useState('dev'); // 'dev' | 'recruiter'
+  const [targetTab, setTargetTab] = useState('profile'); // 'profile' | 'repo'
   const router = useRouter();
 
   const [intensity, setIntensity] = useState(() => {
@@ -390,40 +425,38 @@ export default function LandingPageClient() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
-          1. HERO SECTION (Figma Dual Split Alignment)
+          1. HERO SECTION (Figma "Sunlit Editorial Arcade" Alignment)
           ══════════════════════════════════════════════════════════════ */}
       <section className="hero-section">
         <div className="hero-container">
-          {/* Left Column: Bold Headline & Social Proof */}
+          {/* Left Column: Bold Headline & Trust Proof */}
           <div className={`hero-copy-col ${mobileTab === 'recruiter' ? 'col--hidden-mobile' : ''}`}>
-            <div className="hero-badge font-mono">
-              <span className="badge-pulse-dot" />
-              <span>LIVE GITHUB DEV FORENSICS</span>
+            <div className="fresh-receipts-badge font-mono">
+              <span className="badge-sparkle">✨</span>
+              <span>FRESH RECEIPTS · 18,492 ROASTS THIS WEEK</span>
             </div>
 
-            <h1 className="hero-main-title font-display">
-              TURN PUBLIC COMMITS INTO <span className="text-fire">BRUTAL REALITY.</span>
+            <h1 className="hero-main-title font-serif">
+              Your GitHub has a story.
+              <br />
+              We brought matches.
             </h1>
 
             <p className="hero-desc font-body">
-              Real GitHub commits analyzed, architectural sins exposed, and developer egos dismantled.
-              No AI sycophancy. Zero mercy.
+              AI-powered satire grounded in public code. Get the laugh, see the evidence, and leave with a better developer story.
             </p>
 
-            {/* Social Proof Metric Chips */}
-            <div className="hero-metrics-row font-mono">
-              <div className="metric-chip">
-                <span className="metric-val">{totalRoasts ? `${totalRoasts.toLocaleString()}+` : '42,890+'}</span>
-                <span className="metric-label">Devs Roasted</span>
-              </div>
-              <div className="metric-chip">
-                <span className="metric-val">4.9 / 5</span>
-                <span className="metric-label">Savage Rating</span>
-              </div>
-              <div className="metric-chip">
-                <span className="metric-val">180k+</span>
-                <span className="metric-label">Repos Abandoned</span>
-              </div>
+            {/* Figma Trust Indicators */}
+            <div className="hero-bullets-row font-mono">
+              <span className="hero-bullet-item">
+                <span className="bullet-dot" /> Public data only
+              </span>
+              <span className="hero-bullet-item">
+                <span className="bullet-dot" /> No password needed
+              </span>
+              <span className="hero-bullet-item">
+                <span className="bullet-dot" /> Methodology explained
+              </span>
             </div>
 
             {/* Quick Exploration Navigation Pills */}
@@ -435,10 +468,10 @@ export default function LandingPageClient() {
                 🏆 Wall of Shame
               </Link>
               <Link href="/battle" className="hero-nav-pill">
-                ⚔️ Battle
+                ⚔️ Battles
               </Link>
               <Link href="/universe" className="hero-nav-pill hero-nav-pill--universe">
-                🌌 3D Universe
+                🌌 Universe
               </Link>
               <button
                 type="button"
@@ -450,68 +483,101 @@ export default function LandingPageClient() {
             </div>
           </div>
 
-          {/* Right Column: Floating Interactive Roast Card */}
+          {/* Right Column: Floating Interactive Roast Card (Figma Slices 02-03) */}
           <div className={`hero-card-col ${mobileTab === 'recruiter' ? 'col--hidden-mobile' : ''}`}>
             <div className="floating-roast-card">
-              <div className="roast-card-header font-mono">
-                <span className="card-header-icon">🔥</span>
-                <span className="card-header-title">ROAST MY GITHUB</span>
-                <span className="card-header-badge font-mono">INSTANT</span>
+              {/* Card Top Pill & Health Telemetry */}
+              <div className="card-top-bar font-mono">
+                <span className="card-top-label">LIGHT THE GRILL</span>
+                <span className="card-status-pill">
+                  <span className="card-status-dot" />
+                  SYSTEM HEALTHY
+                </span>
               </div>
 
-              {/* Username / Repo Input Component */}
-              <div className="input-wrap">
-                <UsernameInput onSubmit={handleRoast} />
+              <h2 className="card-heading font-serif">Who are we roasting?</h2>
+              <p className="card-subheading font-body">
+                Enter any public handle or repository to generate a full roast dossier.
+              </p>
+
+              {/* Segmented Tab Switcher: [ Profile ] | [ Repository ] */}
+              <div className="target-tab-switch font-mono">
+                <button
+                  type="button"
+                  className={`target-tab-btn ${targetTab === 'profile' ? 'target-tab-btn--active' : ''}`}
+                  onClick={() => setTargetTab('profile')}
+                >
+                  Profile
+                </button>
+                <button
+                  type="button"
+                  className={`target-tab-btn ${targetTab === 'repo' ? 'target-tab-btn--active' : ''}`}
+                  onClick={() => setTargetTab('repo')}
+                >
+                  Repository
+                </button>
               </div>
 
-              {/* Intensity Selector */}
-              <div className="selector-block">
-                <span className="selector-title font-mono">BURN INTENSITY:</span>
-                <div className="intensity-pills-wrap">
-                  {INTENSITIES.map((opt) => (
-                    <button
-                      type="button"
-                      key={opt.key}
-                      className={`intensity-pill font-mono ${intensity === opt.key ? 'intensity-pill--active' : ''} ${opt.isPro ? 'intensity-pill--pro' : ''}`}
-                      onClick={() => handleIntensitySelect(opt.key)}
-                      title={opt.isPro ? `${opt.label} — Pro only` : opt.description}
-                    >
-                      <span>{opt.emoji}</span>
-                      <span>{opt.label}</span>
-                      {opt.isPro && (
-                        <span className={`pill-pro-tag ${user?.isPro ? 'pill-pro-tag--unlocked' : ''}`}>
-                          {user?.isPro ? 'PRO ✓' : 'PRO'}
-                        </span>
-                      )}
-                    </button>
-                  ))}
+              {/* Form Input + Nested Controls + Submit Button via UsernameInput */}
+              <UsernameInput
+                onSubmit={handleRoast}
+                placeholder={targetTab === 'profile' ? "e.g. torvalds or octavia-labs" : "e.g. facebook/react or torvalds/linux"}
+                buttonText={targetTab === 'profile' ? "🔥 Roast this profile →" : "🔥 Roast this repository →"}
+              >
+                {/* Intensity Selector */}
+                <div className="card-control-section">
+                  <div className="control-label-row font-mono">
+                    <span className="control-label">Intensity</span>
+                  </div>
+                  <div className="intensity-pills-row font-mono">
+                    {INTENSITIES.map((opt) => (
+                      <button
+                        type="button"
+                        key={opt.key}
+                        className={`intensity-pill ${intensity === opt.key ? 'intensity-pill--active' : ''} ${opt.isPro ? 'intensity-pill--pro' : ''}`}
+                        onClick={() => handleIntensitySelect(opt.key)}
+                        title={opt.isPro ? `${opt.label} — Pro only` : opt.description}
+                      >
+                        <span>{opt.label}</span>
+                        {opt.isPro && (
+                          <span className={`pill-pro-tag ${user?.isPro ? 'pill-pro-tag--unlocked' : ''}`}>
+                            {user?.isPro ? '✓' : 'PRO'}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <p className="selector-caption font-mono">
-                  {selectedIntensity.emoji} {selectedIntensity.description}
-                </p>
-              </div>
 
-              {/* Persona Selector */}
-              <div className="selector-block">
-                <span className="selector-title font-mono">ROAST PERSONA:</span>
-                <div className="persona-chips-wrap">
-                  {PERSONAS.map((p) => (
-                    <button
-                      type="button"
-                      key={p.key}
-                      className={`persona-chip font-mono ${persona === p.key ? 'persona-chip--active' : ''}`}
-                      onClick={() => handlePersonaSelect(p.key)}
-                      title={p.desc}
-                    >
-                      <span>{p.emoji}</span>
-                      <span>{p.label}</span>
-                    </button>
-                  ))}
+                {/* Persona Selector (3 Primary Figma Cards + Extended Option) */}
+                <div className="card-control-section">
+                  <div className="control-label-row font-mono">
+                    <span className="control-label">Roast persona</span>
+                  </div>
+                  <div className="persona-cards-grid">
+                    {PERSONAS.slice(0, 3).map((p) => (
+                      <button
+                        type="button"
+                        key={p.key}
+                        className={`persona-card ${persona === p.key ? 'persona-card--active' : ''}`}
+                        onClick={() => handlePersonaSelect(p.key)}
+                      >
+                        <div className="persona-card-header">
+                          <span className="persona-card-icon">{p.emoji}</span>
+                          {persona === p.key && <span className="persona-active-dot" />}
+                        </div>
+                        <div className="persona-card-name font-body">{p.label}</div>
+                        <div className="persona-card-badge font-mono">{p.badge}</div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Persona Description Caption */}
+                  <p className="persona-caption font-mono">
+                    {PERSONAS.find((p) => p.key === persona)?.desc}
+                  </p>
                 </div>
-                <p className="selector-caption font-mono">
-                  {PERSONAS.find((p) => p.key === persona)?.desc}
-                </p>
-              </div>
+              </UsernameInput>
 
               {/* Recruiter Switch Gateway */}
               <div className="recruiter-hint-row">
@@ -520,9 +586,9 @@ export default function LandingPageClient() {
                 </Link>
               </div>
 
-              {/* Trust Footnote */}
-              <div className="card-trust-footer font-mono">
-                🔒 100% Read-Only Public API · Free &amp; Instant · 5,000 req/hr with GitHub Auth
+              {/* Card Footnote */}
+              <div className="card-footnote font-mono">
+                By continuing, you confirm this profile is public. Keep it playful.
               </div>
             </div>
           </div>
@@ -531,10 +597,10 @@ export default function LandingPageClient() {
           <div className={`recruiter-mobile-panel ${mobileTab === 'dev' ? 'panel--hidden-mobile' : ''}`}>
             <div className="recruiter-panel-card">
               <span className="recruiter-badge font-mono">💼 ENTERPRISE TALENT INTELLIGENCE</span>
-              <h2 className="recruiter-hero-title font-display text-recruiter">
-                SPOT REAL ENGINEERING TALENT
+              <h2 className="recruiter-hero-title font-serif">
+                Turn public work into explainable talent signals.
               </h2>
-              <p className="recruiter-hero-desc">
+              <p className="recruiter-hero-desc font-body">
                 Cut through resume fluff. Uncover real code hygiene, abandonment velocity, and architecture depth directly from commit logs.
               </p>
 
@@ -575,7 +641,7 @@ export default function LandingPageClient() {
         <div className="ticker-inner">
           <div className="ticker-label font-mono">
             <span className="ticker-dot animate-pulse" />
-            <span>LIVE BURNS:</span>
+            <span>LIVE FROM THE GRILL:</span>
           </div>
           <div className="ticker-content">
             <LiveRoastFeed />
@@ -584,88 +650,151 @@ export default function LandingPageClient() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          3. RECENT SAVAGE BURNS SHOWCASE (Figma 3-Card Grid)
+          3. HOW IT WORKS (Figma Slice 03 Alignment)
           ══════════════════════════════════════════════════════════════ */}
-      <section className="burns-showcase-section">
+      <section className="how-it-works-section">
         <div className="section-header">
-          <h2 className="section-title font-display">RECENT SAVAGE BURNS</h2>
-          <p className="section-subtitle font-mono">
-            Real profiles roasted in the last 15 minutes. Pure unfiltered truth.
+          <span className="section-tag font-mono">HOW IT WORKS</span>
+          <h2 className="section-title font-serif">The joke lands because the receipts are real.</h2>
+          <p className="section-subtitle font-body">
+            GitRoast analyzes public GitHub activity, explains what shaped the score, and turns patterns into shareable, useful satire.
           </p>
         </div>
 
-        <div className="burns-grid">
-          {RECENT_BURNS.map((item, idx) => (
-            <div
-              key={idx}
-              className={`burn-card ${item.featured ? 'burn-card--featured' : 'burn-card--light'}`}
-            >
-              <div className="burn-card-top">
-                <div className="burn-author-info">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`https://avatars.githubusercontent.com/${item.username}?s=96`}
-                    alt={`@${item.username}`}
-                    className="burn-avatar"
-                    width={42}
-                    height={42}
-                    crossOrigin="anonymous"
-                    loading="lazy"
-                  />
-                  <div>
-                    <h3 className="burn-handle font-mono">@{item.username}</h3>
-                    <span className="burn-lang font-mono">{item.topLang}</span>
-                  </div>
-                </div>
-                <div className="burn-grade-badge font-mono">
-                  {item.grade}
-                </div>
-              </div>
+        <div className="how-grid">
+          <div className="how-card how-card--light">
+            <span className="how-num font-mono">01</span>
+            <h3 className="how-title font-serif">Choose the heat</h3>
+            <p className="how-desc font-body">
+              Pick an intensity and a voice. Nuclear is optional; clarity is not.
+            </p>
+          </div>
 
-              {item.shameTags && (
-                <div className="burn-tags-row font-mono">
-                  {item.shameTags.map((t, i) => (
-                    <span key={i} className="burn-tag-pill">{t}</span>
-                  ))}
-                </div>
-              )}
+          <div className="how-card how-card--featured">
+            <span className="how-num font-mono">02</span>
+            <h3 className="how-title font-serif">We read the public evidence</h3>
+            <p className="how-desc font-body">
+              Commits, repositories, cadence and collaboration signals—dated and sourced.
+            </p>
+          </div>
 
-              <p className="burn-quote font-mono">
-                &ldquo;{item.quote}&rdquo;
-              </p>
-
-              <div className="burn-card-bottom">
-                <span className="burn-score-pill font-mono">
-                  Score: {item.score}/100
-                </span>
-                <Link href={`/history/${item.username}`} className="burn-view-link font-mono">
-                  View Roast ↗
-                </Link>
-              </div>
-            </div>
-          ))}
+          <div className="how-card how-card--light">
+            <span className="how-num font-mono">03</span>
+            <h3 className="how-title font-serif">Share the pain</h3>
+            <p className="how-desc font-body">
+              Export a card, add a README badge, compare history or keep it private.
+            </p>
+          </div>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          4. COMMUNITY & SOCIAL BANNER (Figma Pastel Blue Alignment)
+          4. MORE WAYS TO PLAY (Figma Slice 03 Alignment)
           ══════════════════════════════════════════════════════════════ */}
-      <section className="community-banner-section">
-        <div className="community-card">
-          <div className="community-content">
-            <span className="community-badge font-mono">🏆 COMMUNITY &amp; COMPETITION</span>
-            <h2 className="community-title font-display">
-              JOIN 40,000+ DEVELOPERS ON THE WALL OF SHAME
-            </h2>
-            <p className="community-desc">
-              Compare your commit crimes with top open source contributors or duel your coworkers in Head-to-Head Roast Battles.
+      <section className="more-ways-section">
+        <div className="section-header">
+          <span className="section-tag font-mono">MORE WAYS TO PLAY</span>
+          <h2 className="section-title font-serif">Roast once. Return for the lore.</h2>
+          <p className="section-subtitle font-body">
+            Progression without streak anxiety. Competition without punching down.
+          </p>
+        </div>
+
+        <div className="ways-grid">
+          <Link href="/leaderboard" className="way-card way-card--light">
+            <div className="way-icon">🏆</div>
+            <h3 className="way-title font-serif">Wall of Shame</h3>
+            <p className="way-desc font-body">Public rankings, lovingly embarrassing.</p>
+            <span className="way-link font-mono">See the leaderboard →</span>
+          </Link>
+
+          <Link href="/battle" className="way-card way-card--light">
+            <div className="way-icon">⚔️</div>
+            <h3 className="way-title font-serif">Developer Battles</h3>
+            <p className="way-desc font-body">Settle a rivalry with public evidence.</p>
+            <span className="way-link font-mono">Start a battle →</span>
+          </Link>
+
+          <Link href="/universe" className="way-card way-card--dark">
+            <div className="way-icon">🌌</div>
+            <h3 className="way-title font-serif">Repository Universe</h3>
+            <p className="way-desc font-body">Orbit your codebase in a 3D constellation.</p>
+            <span className="way-link font-mono">Enter the universe →</span>
+          </Link>
+
+          <Link href="/dashboard" className="way-card way-card--light">
+            <div className="way-icon">📜</div>
+            <h3 className="way-title font-serif">History</h3>
+            <p className="way-desc font-body">Watch habits improve—or become lore.</p>
+            <span className="way-link font-mono">Open your timeline →</span>
+          </Link>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          5. NO MYSTERY MEAT SCORING (Figma Slice 04 Alignment)
+          ══════════════════════════════════════════════════════════════ */}
+      <section className="mystery-scoring-section">
+        <div className="mystery-container">
+          <div className="mystery-left">
+            <span className="section-tag font-mono">BUILT FOR LAUGHS, CHECKED LIKE A TOOL</span>
+            <h2 className="section-title font-serif">No mystery meat scoring.</h2>
+            <p className="section-subtitle font-body">
+              Every score links to the public signal, time window and weight behind it. We show uncertainty when the evidence is thin.
             </p>
-            <div className="community-actions font-mono">
-              <Link href="/leaderboard" className="btn btn-community-primary">
-                🏆 Explore Wall of Shame
+            <div className="mystery-actions font-mono">
+              <Link href="/about" className="btn-mystery-primary">
+                Read the methodology
               </Link>
-              <Link href="/battle" className="btn btn-community-secondary">
-                ⚔️ Start a Roast Battle
+              <Link href="/about" className="btn-mystery-secondary">
+                ⚡ System status
+              </Link>
+            </div>
+          </div>
+
+          <div className="mystery-right">
+            <div className="system-pulse-card font-mono">
+              <div className="pulse-header">
+                <span>SYSTEM PULSE / SAMPLE</span>
+              </div>
+              <div className="pulse-stats-grid">
+                <div className="pulse-stat">
+                  <div className="pulse-val font-serif">1.28M</div>
+                  <div className="pulse-lbl">All-time public analyses</div>
+                </div>
+                <div className="pulse-stat">
+                  <div className="pulse-val font-serif pulse-val--good">99.98%</div>
+                  <div className="pulse-lbl">30-day analysis availability</div>
+                </div>
+              </div>
+              <div className="pulse-footer">
+                <span className="pulse-dot-item"><span className="pulse-green-dot" /> GitHub ingestion healthy</span>
+                <span className="pulse-dot-item"><span className="pulse-blue-dot" /> Scoring v3.2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          6. FOR RECRUITERS BANNER (Figma Slice 04 Alignment)
+          ══════════════════════════════════════════════════════════════ */}
+      <section className="recruiter-banner-section">
+        <div className="recruiter-banner-card">
+          <div className="recruiter-banner-content">
+            <span className="recruiter-banner-tag font-mono">FOR RECRUITERS, WITHOUT THE CIRCUS</span>
+            <h2 className="recruiter-banner-title font-serif">
+              Turn public work into explainable talent signals.
+            </h2>
+            <p className="recruiter-banner-desc font-body">
+              Role-fit filters, project depth, consistency and collaboration indicators—clearly separated from playful roast copy.
+            </p>
+            <div className="recruiter-banner-actions font-mono">
+              <Link href="/recruiter/login" className="btn-recruiter-primary">
+                Explore recruiter workspace →
+              </Link>
+              <Link href="/about" className="btn-recruiter-secondary">
+                How evidence works
               </Link>
             </div>
           </div>
@@ -673,28 +802,24 @@ export default function LandingPageClient() {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          5. PRICING & PRO OVERVIEW (Figma 3-Tier Grid Alignment)
+          7. PRICING & PRO OVERVIEW (Figma Slice 04 Alignment)
           ══════════════════════════════════════════════════════════════ */}
       <section className="pricing-preview-section">
         <div className="section-header">
-          <h2 className="section-title font-display">TRANSPARENT POWER. ZERO SUBSCRIPTION TRAPS.</h2>
-          <p className="section-subtitle font-mono">
-            Pay once or stay free forever. No recurring credit card traps.
+          <span className="section-tag font-mono">PLANS</span>
+          <h2 className="section-title font-serif">Free to get roasted. Pro to remember everything.</h2>
+          <p className="section-subtitle font-body">
+            Clear limits, no surprise heat. Pay once or stay free forever.
           </p>
         </div>
 
         <div className="pricing-grid">
           {/* Free Tier */}
           <div className="pricing-plan-card">
-            <h3 className="plan-name font-display">FREE TIER</h3>
-            <div className="plan-price font-display">₹0 <span className="price-sub font-mono">forever</span></div>
-            <p className="plan-desc font-mono">Standard code burns and public wall ranking.</p>
-            <ul className="plan-features font-mono">
-              <li>✓ Public GitHub profile roasts</li>
-              <li>✓ Deterministic comedy rule engine</li>
-              <li>✓ Global Wall of Shame ranking</li>
-              <li>✓ 60 req/hr IP rate limit</li>
-            </ul>
+            <h3 className="plan-name font-mono">Free</h3>
+            <div className="plan-price font-serif">$0 <span className="price-sub font-mono">/ per month</span></div>
+            <p className="plan-limit font-mono">3 roasts / month</p>
+            <p className="plan-desc font-body">Public result · Share card · Community</p>
             <button
               type="button"
               className="plan-btn font-mono"
@@ -702,53 +827,43 @@ export default function LandingPageClient() {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             >
-              Get Roasted Free 🔥
+              Start free
             </button>
           </div>
 
-          {/* Roaster Plan (Featured) */}
+          {/* Pro Roaster (Featured Obsidian Card) */}
           <div className="pricing-plan-card pricing-plan-card--featured">
-            <div className="plan-popular-tag font-mono">MOST POPULAR</div>
-            <h3 className="plan-name font-display text-fire">ROASTER PLAN</h3>
-            <div className="plan-price font-display">₹99 <span className="price-sub font-mono">/ $1.99</span></div>
-            <p className="plan-desc font-mono">Unlimited Gemini AI burns and Nuclear mode.</p>
-            <ul className="plan-features font-mono">
-              <li>✓ Unlimited Gemini 2.5 Flash burns</li>
-              <li>✓ Nuclear ☢️ Intensity mode unlocked</li>
-              <li>✓ Zero watermarks on 2× HD downloads</li>
-              <li>✓ 5,000 req/hr dedicated quota</li>
-            </ul>
+            <div className="plan-popular-tag font-mono">Most roasted</div>
+            <h3 className="plan-name font-mono">Pro Roaster</h3>
+            <div className="plan-price font-serif">$9 <span className="price-sub font-mono">/ per month (or ₹99)</span></div>
+            <p className="plan-limit font-mono">30 roasts / month</p>
+            <p className="plan-desc font-body">History · Personas · Badges · Ghost Mode</p>
             <Link href="/pricing" className="plan-btn plan-btn--fire font-mono">
-              Upgrade to Roaster ⚡
+              Go Pro
             </Link>
           </div>
 
           {/* Historian Plan */}
           <div className="pricing-plan-card">
-            <h3 className="plan-name font-display">HISTORIAN PLAN</h3>
-            <div className="plan-price font-display">₹199 <span className="price-sub font-mono">/ $3.99</span></div>
-            <p className="plan-desc font-mono">Lifetime trend analysis and private repo audits.</p>
-            <ul className="plan-features font-mono">
-              <li>✓ All Roaster plan benefits</li>
-              <li>✓ Deep private repository reviews</li>
-              <li>✓ Monthly GitHub audit reports</li>
-              <li>✓ Permanent lifetime score tracking</li>
-            </ul>
+            <h3 className="plan-name font-mono">Historian</h3>
+            <div className="plan-price font-serif">$19 <span className="price-sub font-mono">/ per month (or ₹199)</span></div>
+            <p className="plan-limit font-mono">Unlimited personal history</p>
+            <p className="plan-desc font-body">Trend exports · Comparison · Priority analysis</p>
             <Link href="/pricing" className="plan-btn font-mono">
-              Upgrade to Historian 📜
+              Choose Historian
             </Link>
           </div>
         </div>
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          6. INTERACTIVE FAQ ACCORDION (Figma Two-Column Alignment)
+          8. INTERACTIVE FAQ ACCORDION (Figma Slice 05 Alignment)
           ══════════════════════════════════════════════════════════════ */}
       <section className="faq-section">
         <div className="faq-container">
           <div className="faq-left-col">
-            <span className="faq-badge font-mono">KNOWLEDGE BASE</span>
-            <h2 className="faq-title font-display">FREQUENTLY ASKED QUESTIONS</h2>
+            <span className="section-tag font-mono">FAQ / THE USEFUL KIND</span>
+            <h2 className="faq-title font-serif">Before you hand us the matches.</h2>
             <p className="faq-sub font-body">
               Everything you need to know about roast accuracy, data privacy, and Pro benefits.
             </p>
@@ -764,9 +879,9 @@ export default function LandingPageClient() {
                 className={`faq-accordion-item ${openFaq === idx ? 'faq-item--open' : ''}`}
                 onClick={() => toggleFaq(idx)}
               >
-                <div className="faq-question-row font-mono">
-                  <span className="faq-q-text">{faq.q}</span>
-                  <span className="faq-chevron">{openFaq === idx ? '▲' : '▼'}</span>
+                <div className="faq-question-row">
+                  <span className="faq-q-text font-serif">{faq.q}</span>
+                  <span className="faq-plus-icon font-mono">{openFaq === idx ? '−' : '+'}</span>
                 </div>
                 {openFaq === idx && (
                   <p className="faq-a-text font-body animate-fadeUp">
@@ -797,8 +912,8 @@ export default function LandingPageClient() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          background-color: var(--bg-primary, #F7F5F0);
-          color: var(--text-primary, #111827);
+          background-color: var(--color-paper, #F7F5F0);
+          color: var(--color-ink, #171717);
           padding-bottom: 7.5rem;
           position: relative;
           overflow-x: hidden;
@@ -810,11 +925,11 @@ export default function LandingPageClient() {
           align-items: center;
           justify-content: space-between;
           width: 100%;
-          max-width: 1200px;
+          max-width: 1240px;
           margin: 0.75rem 1.25rem 0;
           padding: 8px 16px;
-          background: rgba(255, 183, 0, 0.12);
-          border: 1px solid rgba(255, 183, 0, 0.35);
+          background: rgba(234, 88, 12, 0.08);
+          border: 1px solid rgba(234, 88, 12, 0.25);
           border-radius: var(--radius-md, 10px);
           font-size: 12px;
           z-index: 10;
@@ -826,21 +941,21 @@ export default function LandingPageClient() {
           flex-wrap: wrap;
         }
         .broadcast-pill {
-          background: #ffb700;
-          color: #000;
+          background: var(--color-ember, #EA580C);
+          color: #ffffff;
           font-weight: 700;
           font-size: 10px;
-          padding: 2px 6px;
+          padding: 2px 8px;
           border-radius: 4px;
         }
         .broadcast-text {
-          color: var(--text-primary, #111827);
+          color: var(--color-ink, #171717);
         }
         .broadcast-login-link {
           background: none;
           border: none;
           padding: 0;
-          color: var(--fire, #ff4500);
+          color: var(--color-ember, #EA580C);
           text-decoration: underline;
           cursor: pointer;
           font-weight: 700;
@@ -859,12 +974,12 @@ export default function LandingPageClient() {
           width: 90%;
           max-width: 400px;
           margin: 1rem auto 0;
-          background: var(--bg-card, #ffffff);
+          background: var(--color-surface, #ffffff);
           border: 1px solid var(--border, #e5e0d8);
           border-radius: 9999px;
           padding: 4px;
           gap: 4px;
-          box-shadow: var(--shadow-soft, 0 2px 8px rgba(0, 0, 0, 0.04));
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
           z-index: 10;
         }
         .tab-switch-btn {
@@ -880,102 +995,93 @@ export default function LandingPageClient() {
           transition: all 0.18s ease;
         }
         .tab-switch-btn--active-dev {
-          background: var(--fire-grad);
+          background: var(--color-ember, #EA580C);
           color: #ffffff;
         }
         .tab-switch-btn--active-recruiter {
-          background: linear-gradient(135deg, #0284c7 0%, #00bcd4 100%);
+          background: #0284c7;
           color: #ffffff;
         }
 
-        /* ── 1. Hero Section ── */
+        /* ── 1. Hero Section (Figma Slices 02-03) ── */
         .hero-section {
           width: 100%;
           max-width: 1240px;
-          padding: 2.5rem 1.5rem 2rem;
+          padding: 2.75rem 1.5rem 2.25rem;
           margin: 0 auto;
         }
         .hero-container {
           display: grid;
           grid-template-columns: 1.15fr 0.85fr;
-          gap: 2.5rem;
-          align-items: center;
+          gap: 3rem;
+          align-items: flex-start;
         }
 
         /* Left Column */
         .hero-copy-col {
           display: flex;
           flex-direction: column;
-          gap: 1.25rem;
+          gap: 1.5rem;
         }
-        .hero-badge {
+        .fresh-receipts-badge {
           display: inline-flex;
           align-items: center;
           gap: 8px;
           align-self: flex-start;
-          padding: 4px 12px;
+          padding: 5px 14px;
           background: #ffffff;
           border: 1px solid var(--border, #e5e0d8);
           border-radius: 9999px;
           font-size: 11px;
           font-weight: 600;
           color: var(--text-secondary, #4b5563);
-          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
         }
-        .badge-pulse-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: #10b981;
-          box-shadow: 0 0 8px #10b981;
+        .badge-sparkle {
+          color: var(--color-gold, #F59E0B);
         }
         .hero-main-title {
-          font-size: clamp(2.8rem, 5.5vw, 4.2rem);
-          line-height: 1.02;
-          letter-spacing: 0.5px;
-          color: var(--text-primary, #111827);
+          font-size: clamp(2.8rem, 5.2vw, 4.4rem);
+          line-height: 1.05;
+          letter-spacing: -0.5px;
+          color: var(--color-ink, #171717);
           margin: 0;
+          font-weight: 400;
         }
         .hero-desc {
-          font-size: 16px;
-          color: var(--text-secondary, #4b5563);
+          font-size: 16.5px;
+          color: #475569;
           line-height: 1.6;
-          max-width: 580px;
+          max-width: 560px;
           margin: 0;
         }
 
-        /* Hero Metrics Row */
-        .hero-metrics-row {
+        /* Trust Bullet Points */
+        .hero-bullets-row {
           display: flex;
-          gap: 1.25rem;
-          padding: 1rem 0;
+          gap: 1.5rem;
           flex-wrap: wrap;
+          font-size: 12px;
+          color: #64748b;
         }
-        .metric-chip {
+        .hero-bullet-item {
           display: flex;
-          flex-direction: column;
-          gap: 2px;
-          padding: 8px 14px;
-          background: #ffffff;
-          border: 1px solid var(--border, #e5e0d8);
-          border-radius: 8px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+          align-items: center;
+          gap: 6px;
         }
-        .metric-val {
-          font-size: 1.2rem;
-          font-weight: 700;
-          color: var(--fire, #ff4500);
-        }
-        .metric-label {
-          font-size: 11px;
-          color: var(--text-muted, #9ca3af);
+        .bullet-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: var(--color-ember, #EA580C);
         }
 
-        /* Quick Pills */
+        /* Quick Exploration Pills */
         .hero-pills-row {
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
+          padding-top: 0.5rem;
         }
         .hero-nav-pill {
           padding: 6px 12px;
@@ -989,8 +1095,8 @@ export default function LandingPageClient() {
           transition: all 0.15s ease;
         }
         .hero-nav-pill:hover {
-          border-color: var(--fire, #ff4500);
-          color: var(--fire, #ff4500);
+          border-color: var(--color-ember, #EA580C);
+          color: var(--color-ember, #EA580C);
           transform: translateY(-1px);
         }
         .hero-nav-pill--universe {
@@ -1008,85 +1114,137 @@ export default function LandingPageClient() {
         }
         .floating-roast-card {
           width: 100%;
-          max-width: 460px;
-          background: var(--bg-card, #ffffff);
+          max-width: 480px;
+          background: var(--color-surface, #ffffff);
           border: 1px solid var(--border, #e5e0d8);
           border-radius: 16px;
           padding: 1.75rem;
-          box-shadow: 0 12px 36px -6px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.07);
           display: flex;
           flex-direction: column;
-          gap: 1.25rem;
+          gap: 1.15rem;
           position: relative;
         }
-        .roast-card-header {
+        .card-top-bar {
           display: flex;
+          justify-content: space-between;
           align-items: center;
-          gap: 8px;
         }
-        .card-header-icon {
-          font-size: 1.2rem;
-        }
-        .card-header-title {
-          font-size: 13px;
+        .card-top-label {
+          font-size: 10.5px;
           font-weight: 700;
-          color: var(--text-primary, #111827);
+          color: #94a3b8;
           letter-spacing: 0.5px;
         }
-        .card-header-badge {
-          margin-left: auto;
-          font-size: 9px;
-          font-weight: 700;
-          padding: 2px 6px;
-          border-radius: 4px;
-          background: rgba(255, 69, 0, 0.1);
-          color: var(--fire, #ff4500);
-        }
-        .input-wrap {
-          width: 100%;
-        }
-
-        /* Selector Blocks */
-        .selector-block {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .selector-title {
-          font-size: 10px;
-          font-weight: 700;
-          color: var(--text-muted, #9ca3af);
-          letter-spacing: 0.5px;
-        }
-        .intensity-pills-wrap, .persona-chips-wrap {
-          display: flex;
-          gap: 6px;
-          flex-wrap: wrap;
-        }
-        .intensity-pill, .persona-chip {
+        .card-status-pill {
           display: inline-flex;
           align-items: center;
-          gap: 4px;
-          padding: 5px 10px;
+          gap: 6px;
+          padding: 3px 8px;
+          background: #ebf8f2;
+          border: 1px solid #d1fae5;
+          border-radius: 9999px;
+          font-size: 9.5px;
+          font-weight: 700;
+          color: #059669;
+        }
+        .card-status-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+        }
+        .card-heading {
+          font-size: 2.1rem;
+          line-height: 1.1;
+          color: var(--color-ink, #171717);
+          margin: 0;
+          font-weight: 400;
+        }
+        .card-subheading {
+          font-size: 13px;
+          color: #64748b;
+          margin: -0.25rem 0 0;
+          line-height: 1.5;
+        }
+
+        /* Target Tab Switcher */
+        .target-tab-switch {
+          display: flex;
+          background: #f1ede6;
+          border-radius: 8px;
+          padding: 3px;
+          gap: 3px;
+        }
+        .target-tab-btn {
+          flex: 1;
+          border: none;
+          padding: 8px;
           border-radius: 6px;
-          font-size: 11px;
+          font-size: 12px;
+          font-weight: 600;
+          background: transparent;
+          color: #64748b;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .target-tab-btn--active {
+          background: #ffffff;
+          color: var(--color-ink, #171717);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        /* Card Form Controls */
+        .card-control-section {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 4px;
+        }
+        .control-label-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .control-label {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: #64748b;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+        }
+
+        /* Intensity Pills Row */
+        .intensity-pills-row {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
+        }
+        .intensity-pill {
+          padding: 7px 10px;
+          border-radius: 8px;
+          font-size: 11.5px;
           font-weight: 600;
           background: #f8fafc;
           border: 1px solid var(--border, #e5e0d8);
           color: var(--text-secondary, #4b5563);
           cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
           transition: all 0.15s ease;
         }
-        .intensity-pill:hover, .persona-chip:hover {
-          border-color: var(--fire, #ff4500);
+        .intensity-pill:hover {
+          border-color: var(--color-ember, #EA580C);
         }
-        .intensity-pill--active, .persona-chip--active {
-          background: rgba(255, 69, 0, 0.08);
-          border-color: var(--fire, #ff4500);
-          color: var(--fire, #ff4500);
+        .intensity-pill--active {
+          background: rgba(234, 88, 12, 0.08);
+          border-color: var(--color-ember, #EA580C);
+          color: var(--color-ember, #EA580C);
         }
         .pill-pro-tag {
-          font-size: 9px;
+          font-size: 8.5px;
           padding: 1px 4px;
           border-radius: 3px;
           background: #ef4444;
@@ -1095,13 +1253,67 @@ export default function LandingPageClient() {
         .pill-pro-tag--unlocked {
           background: #10b981;
         }
-        .selector-caption {
-          font-size: 10px;
-          color: var(--text-muted, #9ca3af);
-          margin: 0;
+
+        /* Persona Cards Grid (Figma 3-card layout) */
+        .persona-cards-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 8px;
         }
+        .persona-card {
+          padding: 10px 8px;
+          border-radius: 10px;
+          background: #ffffff;
+          border: 1px solid var(--border, #e5e0d8);
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.15s ease;
+        }
+        .persona-card:hover {
+          border-color: #cbd5e1;
+          transform: translateY(-1px);
+        }
+        .persona-card--active {
+          background: #fff8f5;
+          border-color: var(--color-ember, #EA580C);
+        }
+        .persona-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .persona-card-icon {
+          font-size: 15px;
+        }
+        .persona-active-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--color-ember, #EA580C);
+        }
+        .persona-card-name {
+          font-size: 11.5px;
+          font-weight: 700;
+          color: var(--color-ink, #171717);
+          margin-top: 2px;
+          line-height: 1.2;
+        }
+        .persona-card-badge {
+          font-size: 9.5px;
+          color: #64748b;
+        }
+        .persona-caption {
+          font-size: 11px;
+          color: #64748b;
+          margin: 2px 0 0;
+          line-height: 1.4;
+        }
+
         .recruiter-hint-row {
-          padding-top: 4px;
+          padding-top: 6px;
           border-top: 1px dashed var(--border, #e5e0d8);
         }
         .recruiter-hint-link {
@@ -1113,9 +1325,9 @@ export default function LandingPageClient() {
         .recruiter-hint-link:hover {
           text-decoration: underline;
         }
-        .card-trust-footer {
-          font-size: 10px;
-          color: var(--text-muted, #9ca3af);
+        .card-footnote {
+          font-size: 10.5px;
+          color: #94a3b8;
           text-align: center;
         }
 
@@ -1142,6 +1354,7 @@ export default function LandingPageClient() {
           font-size: 2rem;
           color: #0284c7;
           margin: 0;
+          font-weight: 400;
         }
         .recruiter-hero-desc {
           font-size: 13px;
@@ -1193,18 +1406,18 @@ export default function LandingPageClient() {
         /* ── 2. Black Live Roast Ticker Band ── */
         .live-ticker-band {
           width: 100%;
-          background: #111827;
-          border-top: 1px solid #1f2937;
-          border-bottom: 1px solid #1f2937;
-          padding: 8px 1.5rem;
-          margin: 1.5rem 0;
+          background: #171717;
+          border-top: 1px solid #262626;
+          border-bottom: 1px solid #262626;
+          padding: 10px 1.5rem;
+          margin: 2rem 0;
         }
         .ticker-inner {
           max-width: 1240px;
           margin: 0 auto;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 14px;
         }
         .ticker-label {
           display: flex;
@@ -1212,8 +1425,9 @@ export default function LandingPageClient() {
           gap: 6px;
           font-size: 11px;
           font-weight: 700;
-          color: #ff4500;
+          color: var(--color-ember, #EA580C);
           white-space: nowrap;
+          letter-spacing: 0.5px;
         }
         .ticker-dot {
           width: 7px;
@@ -1226,204 +1440,316 @@ export default function LandingPageClient() {
           overflow: hidden;
         }
 
-        /* ── 3. Recent Savage Burns Showcase ── */
-        .burns-showcase-section {
+        /* ── 3. How It Works (Figma Slice 03) ── */
+        .how-it-works-section {
           width: 100%;
           max-width: 1240px;
-          padding: 2.5rem 1.5rem;
+          padding: 3rem 1.5rem;
         }
         .section-header {
-          text-align: center;
-          margin-bottom: 2rem;
+          text-align: left;
+          margin-bottom: 2.25rem;
+        }
+        .section-tag {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--color-ember, #EA580C);
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
         }
         .section-title {
-          font-size: clamp(2rem, 4vw, 2.8rem);
-          color: var(--text-primary, #111827);
-          letter-spacing: 0.5px;
-          margin: 0;
+          font-size: clamp(2.2rem, 4vw, 3rem);
+          color: var(--color-ink, #171717);
+          margin: 0.35rem 0 0.5rem;
+          font-weight: 400;
+          line-height: 1.1;
         }
         .section-subtitle {
-          font-size: 13px;
-          color: var(--text-secondary, #4b5563);
-          margin-top: 6px;
+          font-size: 15px;
+          color: #64748b;
+          max-width: 680px;
+          line-height: 1.6;
+          margin: 0;
         }
-        .burns-grid {
+        .how-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 1.5rem;
         }
-        .burn-card {
-          padding: 1.5rem;
+        .how-card {
+          padding: 2rem;
           border-radius: 14px;
           display: flex;
           flex-direction: column;
-          gap: 1rem;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+          gap: 0.85rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
           transition: transform 0.2s, box-shadow 0.2s;
         }
-        .burn-card:hover {
+        .how-card:hover {
           transform: translateY(-3px);
-          box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.07);
         }
-        .burn-card--light {
+        .how-card--light {
           background: #ffffff;
           border: 1px solid var(--border, #e5e0d8);
-          color: var(--text-primary, #111827);
+          color: var(--color-ink, #171717);
         }
-        .burn-card--featured {
-          background: #111827;
-          border: 2px solid #ff4500;
+        .how-card--featured {
+          background: #171717;
+          border: 1px solid #262626;
           color: #ffffff;
-          box-shadow: 0 8px 30px rgba(255, 69, 0, 0.15);
         }
-        .burn-card-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .burn-author-info {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .burn-avatar {
-          width: 42px;
-          height: 42px;
-          border-radius: 50%;
-          border: 2px solid var(--border, #e5e0d8);
-          object-fit: cover;
-        }
-        .burn-card--featured .burn-avatar {
-          border-color: #ff4500;
-        }
-        .burn-handle {
-          font-size: 13px;
+        .how-num {
+          font-size: 12px;
           font-weight: 700;
+          color: var(--color-ember, #EA580C);
+        }
+        .how-title {
+          font-size: 1.65rem;
+          font-weight: 400;
+          line-height: 1.2;
           margin: 0;
         }
-        .burn-lang {
-          font-size: 11px;
-          color: var(--text-muted, #9ca3af);
+        .how-desc {
+          font-size: 13.5px;
+          line-height: 1.6;
+          margin: 0;
+          color: #64748b;
         }
-        .burn-grade-badge {
-          font-size: 1.2rem;
-          font-weight: 700;
-          padding: 3px 8px;
-          border-radius: 6px;
-          background: rgba(255, 69, 0, 0.1);
-          color: var(--fire, #ff4500);
-          border: 1px solid rgba(255, 69, 0, 0.25);
+        .how-card--featured .how-desc {
+          color: #94a3b8;
         }
-        .burn-tags-row {
+
+        /* ── 4. More Ways To Play (Figma Slice 03) ── */
+        .more-ways-section {
+          width: 100%;
+          max-width: 1240px;
+          padding: 2.5rem 1.5rem;
+        }
+        .ways-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1.25rem;
+        }
+        .way-card {
+          padding: 1.75rem 1.5rem;
+          border-radius: 14px;
+          text-decoration: none;
           display: flex;
-          gap: 6px;
-          flex-wrap: wrap;
+          flex-direction: column;
+          gap: 0.75rem;
+          transition: all 0.2s ease;
         }
-        .burn-tag-pill {
-          background: #dc2626;
+        .way-card--light {
+          background: #ffffff;
+          border: 1px solid var(--border, #e5e0d8);
+          color: var(--color-ink, #171717);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+        }
+        .way-card--light:hover {
+          border-color: var(--color-ember, #EA580C);
+          transform: translateY(-3px);
+        }
+        .way-card--dark {
+          background: #171717;
+          border: 1px solid #262626;
           color: #ffffff;
-          font-size: 10px;
-          font-weight: 600;
-          padding: 2px 8px;
-          border-radius: 9999px;
+          box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
         }
-        .burn-quote {
-          font-size: 12.5px;
+        .way-card--dark:hover {
+          border-color: var(--color-ember, #EA580C);
+          transform: translateY(-3px);
+        }
+        .way-icon {
+          font-size: 1.75rem;
+        }
+        .way-title {
+          font-size: 1.5rem;
+          margin: 0;
+          font-weight: 400;
+          line-height: 1.2;
+        }
+        .way-desc {
+          font-size: 13px;
+          color: #64748b;
           line-height: 1.5;
           margin: 0;
           flex: 1;
         }
-        .burn-card--light .burn-quote {
-          color: var(--text-secondary, #4b5563);
+        .way-card--dark .way-desc {
+          color: #94a3b8;
         }
-        .burn-card--featured .burn-quote {
-          color: #e5e7eb;
-        }
-        .burn-card-bottom {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 8px;
-          border-top: 1px solid rgba(0,0,0,0.06);
-        }
-        .burn-card--featured .burn-card-bottom {
-          border-top-color: rgba(255,255,255,0.1);
-        }
-        .burn-score-pill {
+        .way-link {
           font-size: 11px;
-          color: var(--text-muted, #9ca3af);
-        }
-        .burn-view-link {
-          font-size: 11px;
-          font-weight: 600;
-          color: var(--fire, #ff4500);
-          text-decoration: none;
-        }
-        .burn-view-link:hover {
-          text-decoration: underline;
+          font-weight: 700;
+          color: var(--color-ember, #EA580C);
+          margin-top: 4px;
         }
 
-        /* ── 4. Community & Social Banner ── */
-        .community-banner-section {
+        /* ── 5. No Mystery Meat Scoring (Figma Slice 04) ── */
+        .mystery-scoring-section {
           width: 100%;
           max-width: 1240px;
-          padding: 1rem 1.5rem 2.5rem;
+          padding: 3rem 1.5rem;
         }
-        .community-card {
-          background: #eef5ff;
-          border: 1px solid #bae6fd;
-          border-radius: 16px;
-          padding: 2.5rem 2rem;
-          text-align: center;
-          box-shadow: 0 4px 20px rgba(2, 132, 199, 0.05);
+        .mystery-container {
+          display: grid;
+          grid-template-columns: 1.15fr 0.85fr;
+          gap: 3rem;
+          align-items: center;
         }
-        .community-content {
-          max-width: 680px;
-          margin: 0 auto;
+        .mystery-left {
           display: flex;
           flex-direction: column;
-          align-items: center;
-          gap: 10px;
+          gap: 1rem;
         }
-        .community-badge {
+        .mystery-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 0.5rem;
+          flex-wrap: wrap;
+        }
+        .btn-mystery-primary {
+          background: #ffffff;
+          border: 1px solid var(--border, #e5e0d8);
+          color: var(--color-ink, #171717);
+          padding: 9px 18px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: 600;
+          text-decoration: none;
+          transition: all 0.15s ease;
+        }
+        .btn-mystery-primary:hover {
+          border-color: var(--color-ember, #EA580C);
+          color: var(--color-ember, #EA580C);
+        }
+        .btn-mystery-secondary {
+          background: transparent;
+          border: none;
+          color: var(--color-ember, #EA580C);
+          padding: 9px 12px;
+          font-size: 12px;
+          font-weight: 600;
+          text-decoration: none;
+        }
+        .system-pulse-card {
+          background: #ffffff;
+          border: 1px solid var(--border, #e5e0d8);
+          border-radius: 14px;
+          padding: 1.75rem;
+          display: flex;
+          flex-direction: column;
+          gap: 1.25rem;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+        }
+        .pulse-header {
+          font-size: 10.5px;
+          font-weight: 700;
+          color: #94a3b8;
+          letter-spacing: 0.5px;
+        }
+        .pulse-stats-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.5rem;
+        }
+        .pulse-val {
+          font-size: 2.2rem;
+          line-height: 1;
+          color: var(--color-ink, #171717);
+        }
+        .pulse-val--good {
+          color: #059669;
+        }
+        .pulse-lbl {
+          font-size: 11px;
+          color: #64748b;
+          margin-top: 4px;
+        }
+        .pulse-footer {
+          display: flex;
+          justify-content: space-between;
+          padding-top: 10px;
+          border-top: 1px solid #f1ede6;
+          font-size: 11px;
+          color: #64748b;
+        }
+        .pulse-dot-item {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .pulse-green-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10b981;
+        }
+        .pulse-blue-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #0284c7;
+        }
+
+        /* ── 6. For Recruiters Banner (Figma Slice 04) ── */
+        .recruiter-banner-section {
+          width: 100%;
+          max-width: 1240px;
+          padding: 1.5rem 1.5rem 3rem;
+        }
+        .recruiter-banner-card {
+          background: var(--color-blue, #E0F2FE);
+          border: 1px solid #bae6fd;
+          border-radius: 16px;
+          padding: 3rem 2.5rem;
+          box-shadow: 0 4px 20px rgba(2, 132, 199, 0.05);
+        }
+        .recruiter-banner-content {
+          max-width: 720px;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+        .recruiter-banner-tag {
           font-size: 11px;
           font-weight: 700;
           color: #0284c7;
           letter-spacing: 0.5px;
         }
-        .community-title {
-          font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+        .recruiter-banner-title {
+          font-size: clamp(2rem, 3.8vw, 2.75rem);
           color: #0f172a;
           margin: 0;
           line-height: 1.1;
+          font-weight: 400;
         }
-        .community-desc {
-          font-size: 14px;
-          color: #475569;
-          margin: 0;
-          line-height: 1.5;
+        .recruiter-banner-desc {
+          font-size: 15px;
+          color: #334155;
+          line-height: 1.6;
+          margin: 0.25rem 0 0.5rem;
         }
-        .community-actions {
+        .recruiter-banner-actions {
           display: flex;
           gap: 12px;
-          margin-top: 10px;
           flex-wrap: wrap;
-          justify-content: center;
         }
-        .btn-community-primary {
-          background: #0284c7;
+        .btn-recruiter-primary {
+          background: var(--color-ember, #EA580C);
           color: #ffffff;
-          padding: 10px 20px;
+          padding: 10px 22px;
           border-radius: 8px;
           font-size: 13px;
           font-weight: 600;
           text-decoration: none;
-          transition: background 0.15s;
+          transition: background 0.15s ease;
         }
-        .btn-community-primary:hover {
-          background: #0369a1;
+        .btn-recruiter-primary:hover {
+          background: #c2410c;
         }
-        .btn-community-secondary {
+        .btn-recruiter-secondary {
           background: #ffffff;
           color: #0f172a;
           border: 1px solid #cbd5e1;
@@ -1432,14 +1758,9 @@ export default function LandingPageClient() {
           font-size: 13px;
           font-weight: 600;
           text-decoration: none;
-          transition: all 0.15s;
-        }
-        .btn-community-secondary:hover {
-          border-color: #0284c7;
-          color: #0284c7;
         }
 
-        /* ── 5. Pricing Preview Grid ── */
+        /* ── 7. Pricing Preview Grid (Figma Slice 04) ── */
         .pricing-preview-section {
           width: 100%;
           max-width: 1240px;
@@ -1455,23 +1776,24 @@ export default function LandingPageClient() {
           background: #ffffff;
           border: 1px solid var(--border, #e5e0d8);
           border-radius: 14px;
-          padding: 2rem 1.75rem;
+          padding: 2.25rem 2rem;
           display: flex;
           flex-direction: column;
-          gap: 1rem;
+          gap: 0.75rem;
           position: relative;
-          box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
         }
         .pricing-plan-card--featured {
-          border: 2px solid #ff4500;
-          box-shadow: 0 8px 30px rgba(255, 69, 0, 0.12);
+          background: #171717;
+          border: 1px solid #262626;
+          color: #ffffff;
+          box-shadow: 0 10px 36px rgba(0, 0, 0, 0.18);
         }
         .plan-popular-tag {
           position: absolute;
-          top: -12px;
-          left: 50%;
-          transform: translateX(-50%);
-          background: #ff4500;
+          top: 1.5rem;
+          right: 1.5rem;
+          background: var(--color-ember, #EA580C);
           color: #ffffff;
           font-size: 10px;
           font-weight: 700;
@@ -1479,39 +1801,40 @@ export default function LandingPageClient() {
           border-radius: 9999px;
         }
         .plan-name {
-          font-size: 1.6rem;
+          font-size: 1.15rem;
           margin: 0;
-          color: var(--text-primary, #111827);
+          font-weight: 700;
+          color: inherit;
         }
         .plan-price {
-          font-size: 2.4rem;
-          font-weight: 700;
-          color: var(--text-primary, #111827);
+          font-size: 3rem;
           line-height: 1;
+          color: inherit;
+          margin: 0.25rem 0;
+          font-weight: 400;
         }
         .price-sub {
           font-size: 12px;
-          color: var(--text-muted, #9ca3af);
+          color: #94a3b8;
           font-weight: 400;
         }
-        .plan-desc {
+        .plan-limit {
           font-size: 12px;
-          color: var(--text-secondary, #4b5563);
+          font-weight: 700;
+          color: var(--color-ember, #EA580C);
           margin: 0;
         }
-        .plan-features {
-          list-style: none;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          font-size: 12px;
-          color: var(--text-secondary, #4b5563);
-          margin: 0.5rem 0 auto;
-          padding: 0;
+        .plan-desc {
+          font-size: 13px;
+          color: #64748b;
+          margin: 0 0 1rem;
+        }
+        .pricing-plan-card--featured .plan-desc {
+          color: #94a3b8;
         }
         .plan-btn {
-          margin-top: 1rem;
-          padding: 10px;
+          margin-top: auto;
+          padding: 11px;
           text-align: center;
           border-radius: 8px;
           font-size: 13px;
@@ -1519,34 +1842,34 @@ export default function LandingPageClient() {
           text-decoration: none;
           border: 1px solid var(--border, #e5e0d8);
           background: #f8fafc;
-          color: var(--text-primary, #111827);
+          color: var(--color-ink, #171717);
           cursor: pointer;
-          transition: all 0.15s;
+          transition: all 0.15s ease;
         }
         .plan-btn:hover {
-          border-color: var(--fire, #ff4500);
-          color: var(--fire, #ff4500);
+          border-color: var(--color-ember, #EA580C);
+          color: var(--color-ember, #EA580C);
         }
         .plan-btn--fire {
-          background: var(--fire-grad);
+          background: var(--color-ember, #EA580C);
           color: #ffffff;
           border: none;
         }
         .plan-btn--fire:hover {
-          opacity: 0.95;
-          transform: translateY(-1px);
+          background: #c2410c;
+          color: #ffffff;
         }
 
-        /* ── 6. FAQ Section ── */
+        /* ── 8. FAQ Section (Figma Slice 05) ── */
         .faq-section {
           width: 100%;
           max-width: 1240px;
-          padding: 2.5rem 1.5rem 4rem;
+          padding: 3rem 1.5rem 4rem;
         }
         .faq-container {
           display: grid;
           grid-template-columns: 0.9fr 1.1fr;
-          gap: 3rem;
+          gap: 3.5rem;
           align-items: flex-start;
         }
         .faq-left-col {
@@ -1554,27 +1877,22 @@ export default function LandingPageClient() {
           flex-direction: column;
           gap: 12px;
         }
-        .faq-badge {
-          font-size: 11px;
-          font-weight: 700;
-          color: var(--fire, #ff4500);
-          letter-spacing: 0.5px;
-        }
         .faq-title {
-          font-size: clamp(2rem, 3.5vw, 2.8rem);
-          color: var(--text-primary, #111827);
+          font-size: clamp(2.2rem, 3.8vw, 3rem);
+          color: var(--color-ink, #171717);
           line-height: 1.05;
           margin: 0;
+          font-weight: 400;
         }
         .faq-sub {
-          font-size: 14px;
-          color: var(--text-secondary, #4b5563);
+          font-size: 14.5px;
+          color: #64748b;
           line-height: 1.6;
           margin: 0;
         }
         .faq-contact-link {
           font-size: 12px;
-          color: var(--fire, #ff4500);
+          color: var(--color-ember, #EA580C);
           text-decoration: none;
           font-weight: 600;
           margin-top: 8px;
@@ -1585,13 +1903,13 @@ export default function LandingPageClient() {
         .faq-right-col {
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 12px;
         }
         .faq-accordion-item {
           background: #ffffff;
           border: 1px solid var(--border, #e5e0d8);
           border-radius: 10px;
-          padding: 14px 18px;
+          padding: 16px 20px;
           cursor: pointer;
           transition: border-color 0.15s, box-shadow 0.15s;
         }
@@ -1599,29 +1917,32 @@ export default function LandingPageClient() {
           border-color: #cbd5e1;
         }
         .faq-item--open {
-          border-color: rgba(255, 69, 0, 0.35);
-          box-shadow: 0 4px 14px rgba(255, 69, 0, 0.05);
+          border-color: rgba(234, 88, 12, 0.4);
+          box-shadow: 0 4px 14px rgba(234, 88, 12, 0.05);
         }
         .faq-question-row {
           display: flex;
           justify-content: space-between;
           align-items: center;
           gap: 12px;
-          font-size: 13.5px;
-          font-weight: 600;
-          color: var(--text-primary, #111827);
         }
-        .faq-chevron {
-          font-size: 10px;
-          color: var(--text-muted, #9ca3af);
+        .faq-q-text {
+          font-size: 1.35rem;
+          color: var(--color-ink, #171717);
+          font-weight: 400;
+        }
+        .faq-plus-icon {
+          font-size: 16px;
+          color: var(--color-ember, #EA580C);
+          font-weight: 700;
         }
         .faq-a-text {
-          font-size: 13px;
-          color: var(--text-secondary, #4b5563);
+          font-size: 13.5px;
+          color: #475569;
           line-height: 1.6;
-          margin: 10px 0 0;
-          padding-top: 8px;
-          border-top: 1px solid #f1f5f9;
+          margin: 12px 0 0;
+          padding-top: 10px;
+          border-top: 1px solid #f1ede6;
         }
 
         /* ── Responsive Adaptations ── */
@@ -1634,17 +1955,29 @@ export default function LandingPageClient() {
           }
           .hero-container {
             grid-template-columns: 1fr;
-            gap: 1.75rem;
+            gap: 2rem;
           }
           .recruiter-mobile-panel {
             display: block;
           }
-          .burns-grid, .pricing-grid {
+          .how-grid, .pricing-grid {
             grid-template-columns: 1fr;
+          }
+          .ways-grid {
+            grid-template-columns: 1fr 1fr;
+          }
+          .mystery-container {
+            grid-template-columns: 1fr;
+            gap: 2rem;
           }
           .faq-container {
             grid-template-columns: 1fr;
-            gap: 1.5rem;
+            gap: 1.75rem;
+          }
+        }
+        @media (max-width: 600px) {
+          .ways-grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>

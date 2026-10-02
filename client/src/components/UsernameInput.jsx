@@ -5,7 +5,7 @@
 import { useForm } from 'react-hook-form'
 import { useState } from 'react'
 
-export default function UsernameInput({ onSubmit }) {
+export default function UsernameInput({ onSubmit, buttonText, placeholder, children }) {
     const [focused, setFocused] = useState(false)
 
     const {
@@ -78,7 +78,7 @@ export default function UsernameInput({ onSubmit }) {
                 <input
                     type="text"
                     aria-label="GitHub username or repository (e.g. torvalds/linux)"
-                    placeholder="username or owner/repo"
+                    placeholder={placeholder || "username or owner/repo"}
                     autoComplete="off"
                     autoCapitalize="off"
                     className="username-input font-mono"
@@ -104,9 +104,12 @@ export default function UsernameInput({ onSubmit }) {
                 </p>
             )}
 
+            {/* ── Optional nested controls (e.g. Intensity, Persona) ── */}
+            {children}
+
             {/* ── Submit button ── */}
             <button type="submit" className="btn btn-primary roast-btn">
-                🔥 Roast GitHub / Repo
+                {buttonText || "🔥 Roast GitHub / Repo"}
             </button>
 
             <style jsx>{`

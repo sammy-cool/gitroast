@@ -65,10 +65,21 @@
   --text-muted: #9CA3AF;
   --text-ghost: #D1D5DB;
 
+  /* Figma "Sunlit Editorial Arcade" Color Roles */
+  --color-paper: #F7F5F0;
+  --color-surface: #FFFFFF;
+  --color-ink: #171717;
+  --color-ember: #EA580C;
+  --color-gold: #F59E0B;
+  --color-mint: #D1FAE5;
+  --color-blue: #E0F2FE;
+  --color-error: #FEE2E2;
+
   /* WHY font variables reference next/font CSS variables:
      layout.jsx sets --font-display-loaded, --font-mono-loaded,
-     --font-body-loaded on <html> via next/font
+     --font-body-loaded, --font-serif-loaded on <html> via next/font
      We read them here + add fallbacks for safety */
+  --font-serif: var(--font-serif-loaded), "Instrument Serif", Georgia, serif;
   --font-display: var(--font-display-loaded, "Impact", sans-serif);
   --font-mono: var(--font-mono-loaded, "Courier New", monospace);
   --font-body: var(--font-body-loaded, "Segoe UI", system-ui, sans-serif);
@@ -118,6 +129,10 @@ body {
 }
 
 /* ── Typography Helpers ──────────────────────────────────── */
+.font-serif {
+  font-family: var(--font-serif);
+}
+
 .font-display {
   font-family: var(--font-display);
 }

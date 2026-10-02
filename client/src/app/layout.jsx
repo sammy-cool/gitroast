@@ -14,7 +14,7 @@
 // WHERE: client/src/app/layout.jsx — Next.js App Router root layout
 // ============================================================
 import Script from "next/script";
-import { Bebas_Neue, Fira_Code, Plus_Jakarta_Sans } from "next/font/google";
+import { Bebas_Neue, Fira_Code, Plus_Jakarta_Sans, Instrument_Serif } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { RecruiterAuthProvider } from "@/context/RecruiterAuthContext";
 import { Suspense } from "react";
@@ -32,10 +32,18 @@ import "./globals.css";
 //   - Zero layout shift (FOUT) — font bytes arrive with the page
 //   - Self-hosted — no Google Fonts CDN dependency at runtime
 //   - Each font exposed as a CSS variable → used in globals.css
-// WHY these 3 fonts:
-//   Bebas Neue  → display — bold headers, scores, logo (GITROAST)
-//   Fira Code   → mono    — terminal, stats, badge text (developer aesthetic)
-//   Plus Jakarta Sans → body — readable prose, descriptions
+// WHY these 4 fonts:
+//   Instrument Serif → editorial — literary tension, elegant headlines (Figma design system)
+//   Bebas Neue       → display   — bold numeric scores, stats, badges
+//   Fira Code        → mono      — terminal, commits, code evidence
+//   Plus Jakarta Sans → body     — readable UI labels and descriptions
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--font-serif-loaded",
+});
 const bebasNeue = Bebas_Neue({
   weight: "400",
   subsets: ["latin"],
