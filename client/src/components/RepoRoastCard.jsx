@@ -215,6 +215,69 @@ export default function RepoRoastCard({ data, onProClick }) {
         </div>
       </div>
 
+      {/* ── Repository Architecture & File Hotspots (Rule 7 Pedagogical Annotation) ──
+        WHAT: Repository structural breakdown displaying test presence, license, and file sample.
+        WHY: Visualizes structural health and code organization beyond simple textual roasts.
+        WHERE & WHEN TO USE: In RepoRoastCard directly below repository stats.
+        USE CASES: Assessing architectural debt, missing documentation, and test absence.
+        WHEN NOT TO USE: In user profile roasts where individual repo AST trees are not fetched.
+      ── */}
+      <div className="arch-section font-mono">
+        <div className="arch-header">
+          <span className="section-title">🌲 Architecture &amp; File Hotspots</span>
+          <span className={`arch-badge ${data.hasTests ? 'arch-badge--ok' : 'arch-badge--warn'}`}>
+            {data.hasTests ? '✓ Automated Tests Found' : '🚨 Zero Tests Found'}
+          </span>
+        </div>
+        
+        <div className="arch-chips-grid">
+          <div className="arch-chip">
+            <span className="arch-chip-icon">📄</span>
+            <span className="arch-chip-label">README:</span>
+            <span className={`arch-chip-status ${data.hasReadme ? 'status--ok' : 'status--bad'}`}>
+              {data.hasReadme ? 'Present' : 'Missing'}
+            </span>
+          </div>
+
+          <div className="arch-chip">
+            <span className="arch-chip-icon">⚖️</span>
+            <span className="arch-chip-label">LICENSE:</span>
+            <span className={`arch-chip-status ${data.hasLicense ? 'status--ok' : 'status--bad'}`}>
+              {data.hasLicense ? 'Licensed' : 'None'}
+            </span>
+          </div>
+
+          <div className="arch-chip">
+            <span className="arch-chip-icon">🧪</span>
+            <span className="arch-chip-label">Tests:</span>
+            <span className={`arch-chip-status ${data.hasTests ? 'status--ok' : 'status--bad'}`}>
+              {data.hasTests ? 'Detected' : '0 Found'}
+            </span>
+          </div>
+
+          <div className="arch-chip">
+            <span className="arch-chip-icon">🧹</span>
+            <span className="arch-chip-label">Hygiene:</span>
+            <span className={`arch-chip-status ${data.commitQuality >= 60 ? 'status--ok' : 'status--bad'}`}>
+              {data.commitQuality}%
+            </span>
+          </div>
+        </div>
+
+        {data.rootFiles && data.rootFiles.length > 0 && (
+          <div className="root-files-box">
+            <span className="root-files-label">Root Structure Sample:</span>
+            <div className="root-files-list">
+              {data.rootFiles.map((file, idx) => (
+                <span key={idx} className="root-file-tag">
+                  {file.endsWith('.json') ? '📦' : file.endsWith('.js') || file.endsWith('.ts') ? '⚡' : file.endsWith('.md') ? '📝' : '📁'} {file}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* ── Code Smells ── */}
       {data.codeSmells && data.codeSmells.length > 0 && (
         <div className="smells-section">
@@ -417,6 +480,97 @@ export default function RepoRoastCard({ data, onProClick }) {
         .pill-val {
           color: #ffb700;
           font-weight: 600;
+        }
+        .arch-section {
+          padding: 1.15rem 1.5rem;
+          border-bottom: 1px solid var(--border);
+          background: #ffffff;
+          display: flex;
+          flex-direction: column;
+          gap: 0.85rem;
+        }
+        .arch-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .arch-badge {
+          font-size: 10px;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-weight: 700;
+        }
+        .arch-badge--ok {
+          background: #ECFDF5;
+          color: #059669;
+          border: 1px solid #A7F3D0;
+        }
+        .arch-badge--warn {
+          background: #FEF2F2;
+          color: #DC2626;
+          border: 1px solid #FECACA;
+        }
+        .arch-chips-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+        }
+        .arch-chip {
+          background: var(--bg-primary, #F8FAFC);
+          border: 1px solid var(--border, #E2E8F0);
+          border-radius: 6px;
+          padding: 6px 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          font-size: 10.5px;
+        }
+        .arch-chip-icon {
+          font-size: 14px;
+        }
+        .arch-chip-label {
+          color: var(--text-muted, #64748B);
+          font-size: 9.5px;
+        }
+        .arch-chip-status {
+          font-weight: 700;
+          font-size: 11px;
+        }
+        .status--ok {
+          color: #10B981;
+        }
+        .status--bad {
+          color: #EF4444;
+        }
+        .root-files-box {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          margin-top: 2px;
+        }
+        .root-files-label {
+          font-size: 10px;
+          color: var(--text-muted, #64748B);
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .root-files-list {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .root-file-tag {
+          font-size: 10.5px;
+          background: #F1F5F9;
+          border: 1px solid #CBD5E1;
+          color: #334155;
+          padding: 2px 7px;
+          border-radius: 4px;
+        }
+        @media (max-width: 480px) {
+          .arch-chips-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
         }
         .smells-section,
         .commits-section {

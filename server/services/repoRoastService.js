@@ -221,6 +221,7 @@ async function analyzeRepository(owner, repoName, userToken = null, isPro = fals
     hasLicense,
     commitQuality,
     codeSmells,
+    rootFiles: fileNames.slice(0, 15),
     shameCommits: commitMessages.slice(0, 4),
     roast: finalRoast,
     roastSource,
