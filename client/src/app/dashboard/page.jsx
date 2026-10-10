@@ -3,7 +3,7 @@ import DashboardClient from './DashboardClient'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev'
 
 export const metadata = {
-  title: 'Developer Command Center & Vault ⚡ — GitRoast Dashboard',
+  title: 'Developer dashboard — GitRoast',
   description:
     'Manage your past roasts, track daily AI quota, customize persona styles, toggle Ghost Mode privacy, and copy your official README badges.',
   keywords: [
@@ -17,7 +17,7 @@ export const metadata = {
     canonical: `${SITE_URL}/dashboard`,
   },
   openGraph: {
-    title: 'GitRoast Dashboard ⚡ — Developer Vault & Settings',
+    title: 'GitRoast developer dashboard',
     description:
       'Manage your past roasts, track daily quota, customize persona styles, and copy your official README badges.',
     url: `${SITE_URL}/dashboard`,
@@ -34,7 +34,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GitRoast Dashboard ⚡',
+    title: 'GitRoast dashboard',
     description: 'Manage your GitHub roast vault, quotas, and persona settings.',
     images: ['/og-default.png'],
   },
@@ -43,3 +43,4 @@ export const metadata = {
 export default function DashboardPage() {
   return <DashboardClient />
 }
+

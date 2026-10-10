@@ -1,16 +1,3 @@
-// ============================================================
-// GITROAST — Battle Model
-// ============================================================
-// WHAT: MongoDB schema for 1-on-1 developer roast battles.
-//       Stores scores, comparative verdict, stats, and real-time reactions.
-//
-// WHY & FLOW:
-//   - Battles are shareable via permalink (/battle/:user1/vs/:user2)
-//   - Reactions (relatable, destroyed, savage) persisted in database
-//   - Preserves reaction counts when rematching or reloading battle
-//   - Dynamic metrics (viewCount, shareCount, tags) enable rich UI social proof
-// ============================================================
-
 const mongoose = require("mongoose");
 
 const battleSchema = new mongoose.Schema(
@@ -20,8 +7,6 @@ const battleSchema = new mongoose.Schema(
       required: true,
       trim: true,
       lowercase: true,
-      // WHY: index: true removed because compound index { user1: 1, user2: 1 }
-      //      already covers user1 lookups with left-prefix query optimization
     },
     user2: {
       type: String,
@@ -84,7 +69,7 @@ const battleSchema = new mongoose.Schema(
     },
     intensity: {
       type: String,
-      enum: ["mild", "savage", "nuclear"],
+      enum: ["warm", "crispy", "nuclear", "mild", "savage"],
       default: "savage",
     },
     battleSource: {
@@ -113,17 +98,14 @@ const battleSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    // WHY viewCount: powers dynamic "👁️ N views" social proof in battle UI
     viewCount: {
       type: Number,
       default: 0,
     },
-    // WHY rematchCount: tracks battle rivalry heat over time
     rematchCount: {
       type: Number,
       default: 0,
     },
-    // WHY tags: categorized labels (e.g. 'clean_sweep', 'close_call', 'draw')
     tags: {
       type: [String],
       default: [],
@@ -134,33 +116,11 @@ const battleSchema = new mongoose.Schema(
   }
 );
 
-// WHY compound indexes:
-//   - Fast lookup when searching for an existing battle pair
-//   - Fast query for most roastable winners and trending battles
 battleSchema.index({ user1: 1, user2: 1 });
 battleSchema.index({ winner: 1, createdAt: -1 });
 battleSchema.index({ createdAt: -1 });
 battleSchema.index({ "reactions.savage": -1, "reactions.destroyed": -1, createdAt: -1 });
 
-// WHY static method for atomic reaction updates:
-//   Avoids race conditions under concurrent clicks
-//   Uses returnDocument: 'after' complying with Mongoose 8+ standards
-// ── Safe Battle Reaction Increment With ID Validation ─────────
-// ── WHAT: ────────────────────────────────────────────────────
-// Atomically increments emoji reaction count for a verified battle document ID.
-//
-// ── WHY: ─────────────────────────────────────────────────────
-// 1. Verifying mongoose.Types.ObjectId.isValid(id) prevents unhandled CastError exceptions.
-// 2. Atomic $inc avoids race conditions under concurrent clicks.
-//
-// ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// In battle reaction route handlers and model static update methods.
-//
-// ── USE CASES: ───────────────────────────────────────────────
-// Recording peer reactions on 1-on-1 developer battles.
-//
-// ── WHEN NOT TO USE: ─────────────────────────────────────────
-// Do not use for non-ObjectId string identifiers (e.g. slug strings) directly.
 battleSchema.statics.addReaction = function (id, type) {
   const allowed = ["relatable", "destroyed", "savage"];
   if (!allowed.includes(type)) throw new Error("Invalid reaction type");
@@ -191,3 +151,4 @@ battleSchema.statics.incrementShare = function (id) {
 };
 
 module.exports = mongoose.model("Battle", battleSchema);
+

@@ -3,1005 +3,301 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import UsernameInput from "@/components/UsernameInput";
-import { toast } from "@/utils/toast";
-import dynamic from 'next/dynamic';
-const ProModal = dynamic(() => import('@/components/ProModal'), { ssr: false });
-const WelcomeConsentModal = dynamic(() => import('@/components/WelcomeConsentModal'), { ssr: false });
+import Image from "next/image";
+import dynamic from "next/dynamic";
+import { toast, notify } from "@/utils/toast";
 import { WELCOME_CONSENT_KEY } from "@/utils/welcomeConstants";
-import GitHubLoginBtn from "@/components/GitHubLoginBtn";
 import RateLimitBanner from "@/components/RateLimitBanner";
-import LiveRoastFeed from "@/components/LiveRoastFeed";
-import SoundToggle from "@/components/SoundToggle";
 import { playClick, playFireSizzle } from "@/utils/soundFX";
 import { useAuth } from "@/context/AuthContext";
-import {
-  getRoastStats,
-  checkHealth,
-  getRoastOfTheDay,
-} from "@/services/roastService";
+import { getRoastStats, checkHealth, getRoastOfTheDay } from "@/services/roastService";
+import { INTENSITIES, normalizeIntensity, normalizePersona } from "@/utils/vocab";
+import RoastLauncher from "@/components/home/RoastLauncher";
+import LiveGrillBand from "@/components/home/LiveGrillBand";
+import PlansSection from "@/components/home/PlansSection";
+import Faq from "@/components/home/Faq";
+import "./home.css";
 
-const PERSONAS = [
-  { key: "classic", label: "Classic", emoji: "💀", desc: "Sharp, cynical code review" },
-  { key: "hinglish", label: "Hinglish", emoji: "🇮🇳", desc: "Desi Tech Lead office comedy" },
-  { key: "techbro", label: "Tech Bro", emoji: "👔", desc: "Silicon Valley Web3/AI lingo" },
-  { key: "ramsay", label: "Chef Ramsay", emoji: "👨‍🍳", desc: "IT'S RAW! Pure kitchen fury" },
-  { key: "shakespearean", label: "Shakespeare", emoji: "🎭", desc: "Elizabethan tragic verse" },
+const ProModal = dynamic(() => import("@/components/ProModal"), { ssr: false });
+const WelcomeConsentModal = dynamic(() => import("@/components/WelcomeConsentModal"), { ssr: false });
+
+const STEPS = [
+  ["01", "Choose the heat", "Pick an intensity and a voice. Nuclear is optional; clarity is not."],
+  ["02", "We read the public evidence", "Commits, repositories, cadence and collaboration signals — dated and sourced."],
+  ["03", "Share the pain", "Export a card, add a README badge, compare history or keep it private."],
 ];
 
-const INTENSITIES = [
-  {
-    key: "mild",
-    emoji: "🌶",
-    label: "Mild",
-    description: "Gentle observations. Still burns.",
-    color: "#FFB700",
-    isPro: false,
-  },
-  {
-    key: "savage",
-    emoji: "🔥",
-    label: "Savage",
-    description: "Brutal comedy. The default.",
-    color: "#FF6B00",
-    isPro: false,
-  },
-  {
-    key: "nuclear",
-    emoji: "☢️",
-    label: "Nuclear",
-    description: "Absolutely no mercy.",
-    color: "#FF3D3D",
-    isPro: true,
-  },
+const PLAY = [
+  ["Wall of Shame", "Public rankings, lovingly embarrassing.", "See the leaderboard", "/leaderboard"],
+  ["Developer Battles", "Settle a rivalry with public evidence.", "Start a battle", "/battle"],
+  ["Repository Universe", "Orbit your codebase in a 3D constellation.", "Enter the universe", "/universe", true],
+  ["History", "Watch habits improve — or become lore.", "Open your timeline", "/dashboard"],
 ];
+
+function readSession(key) {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
 
 export default function LandingPageClient() {
   const { user, loginWithGitHub, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [showProModal, setShowProModal] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [totalRoasts, setTotalRoasts] = useState(null);
   const [dailyRoast, setDailyRoast] = useState(null);
-  const [broadcastDismissed, setBroadcastDismissed] = useState(false);
-  const [serverStatus, setServerStatus] = useState("checking"); // "checking" | "online" | "offline"
-  const [intensity, setIntensity] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = sessionStorage.getItem("gitroast_intensity");
-        if (saved && INTENSITIES.find((i) => i.key === saved)) {
-          return saved;
-        }
-      } catch {
-        // Ignored in strict private browsing environments
-      }
-    }
-    return "savage";
-  });
-
+  const [serverStatus, setServerStatus] = useState("checking");
+  const [intensity, setIntensity] = useState(() => normalizeIntensity(readSession("gitroast_intensity")));
   const [selectedPersona, setSelectedPersona] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const saved = sessionStorage.getItem("gitroast_persona");
-        if (saved && PERSONAS.find((p) => p.key === saved)) {
-          return saved;
-        }
-      } catch {
-        // Ignored in strict private browsing environments
-      }
-    }
-    return null;
+    const saved = readSession("gitroast_persona");
+    return saved ? normalizePersona(saved) : null;
   });
-
-  // Derived persona: user-selected > account default > 'classic'
-  const persona = selectedPersona || user?.customPreferences?.defaultPersona || "classic";
+  const persona = selectedPersona || normalizePersona(user?.customPreferences?.defaultPersona);
 
   const [rateLimitSecs, setRateLimitSecs] = useState(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const rl = sessionStorage.getItem("gitroast_rate_limit");
-        if (rl) {
-          try {
-            const { retryAfter, setAt } = JSON.parse(rl);
-            const elapsed = Math.floor((Date.now() - setAt) / 1000);
-            const remaining = retryAfter - elapsed;
-            if (remaining > 0) return remaining;
-            sessionStorage.removeItem("gitroast_rate_limit");
-          } catch {
-            sessionStorage.removeItem("gitroast_rate_limit");
-          }
-        }
-      } catch {
-        // Ignored in strict private browsing environments
+    try {
+      const rl = readSession("gitroast_rate_limit");
+      if (rl) {
+        const { retryAfter, setAt } = JSON.parse(rl);
+        const remaining = retryAfter - Math.floor((Date.now() - setAt) / 1000);
+        if (remaining > 0) return remaining;
+        sessionStorage.removeItem("gitroast_rate_limit");
       }
+    } catch {
+      try { sessionStorage.removeItem("gitroast_rate_limit"); } catch {}
     }
     return null;
   });
-  const router = useRouter();
 
-  /* 
-    ── WHAT: ────────────────────────────────────────────────────────
-    First-time visitor welcome & satirical consent modal onboarding check.
-    ── WHY: ─────────────────────────────────────────────────────────
-    Ensures new users understand GitRoast's public data safety & comedic
-    satire. Uses a soft 350ms timeout to allow initial SSR hydration and
-    hero paints to settle without incurring any Core Web Vitals (LCP) penalty.
-    ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-    Fires exclusively on initial client-side landing page mount.
-    ── USE CASES: ───────────────────────────────────────────────────
-    First-time visitors on any device/viewport.
-    ── WHEN NOT TO USE: ─────────────────────────────────────────────
-    Returning visitors who have already established consent in localStorage.
-  */
+  // First-visit consent
   useEffect(() => {
     try {
-      if (typeof window !== "undefined") {
-        const consented = localStorage.getItem(WELCOME_CONSENT_KEY);
-        if (!consented) {
-          const timer = setTimeout(() => {
-            setShowWelcomeModal(true);
-          }, 350);
-          return () => clearTimeout(timer);
-        }
+      if (!localStorage.getItem(WELCOME_CONSENT_KEY)) {
+        const t = setTimeout(() => setShowWelcomeModal(true), 350);
+        return () => clearTimeout(t);
       }
-    } catch {
-      // Ignored in strict private browsing environments
-    }
+    } catch {}
   }, []);
 
-  // WHY health poll: powers the glowing status indicator dot
-  //     Checks immediately on mount, then every 30s
-  //     Aligned with LiveRoastFeed polling interval for efficiency
+  // Backend health (drives the "System healthy" status)
   useEffect(() => {
-    async function initHealth() {
-      const ok = await checkHealth();
-      setServerStatus(ok ? 'online' : 'offline');
-    }
-    initHealth();
-    const interval = setInterval(initHealth, 30000);
-    return () => clearInterval(interval);
+    const run = async () => setServerStatus((await checkHealth()) ? "online" : "offline");
+    run();
+    const t = setInterval(run, 30000);
+    return () => clearInterval(t);
   }, []);
 
-  /**
-   * WHAT: Evaluates whether an unauthenticated guest visitor should receive a GitHub login nudge toast, debounced by 5000ms.
-   * WHY: Alerts unauthenticated visitors to log in for dedicated 5,000 req/hr rate limits; 5000ms debounce avoids colliding with the 4000ms welcome toast.
-   * WHERE & WHEN TO USE: Landing page effect triggered after auth loading completes and when welcome modal is closed and consent granted.
-   * USE CASES: First-time or returning guest visitors exploring the landing page without an active session.
-   * WHEN NOT TO USE: When user is authenticated (`user !== null`), when auth is still verifying (`authLoading === true`), or when welcome modal is open.
-   */
+  // One calm sign-in nudge per session
   useEffect(() => {
-    if (authLoading) return;
-    if (
-      !user &&
-      !showWelcomeModal &&
-      typeof window !== "undefined" &&
-      !sessionStorage.getItem("gitroast_login_broadcast") &&
-      localStorage.getItem(WELCOME_CONSENT_KEY)
-    ) {
-      const timer = setTimeout(() => {
-        if (!sessionStorage.getItem("gitroast_login_broadcast")) {
-          toast.info("⚡ Please log in with GitHub to avoid public API rate limit throttling!", {
-            duration: 8000,
-            cta: {
-              label: "Login ↗",
-              onClick: loginWithGitHub,
-              autoClose: true,
-            },
-          });
-          sessionStorage.setItem("gitroast_login_broadcast", "1");
-        }
-      }, 5000);
-
-      return () => clearTimeout(timer);
-    }
+    if (authLoading || user || showWelcomeModal) return;
+    try {
+      if (sessionStorage.getItem("gitroast_login_broadcast") || !localStorage.getItem(WELCOME_CONSENT_KEY)) return;
+    } catch { return; }
+    const t = setTimeout(() => {
+      try {
+        if (sessionStorage.getItem("gitroast_login_broadcast")) return;
+        sessionStorage.setItem("gitroast_login_broadcast", "1");
+      } catch {}
+      toast.info("Sign in with GitHub for a higher request quota", {
+        description: "Public requests can be throttled during busy hours.",
+        action: { label: "Sign in", onClick: loginWithGitHub },
+        duration: 8000,
+      });
+    }, 5000);
+    return () => clearTimeout(t);
   }, [authLoading, user, loginWithGitHub, showWelcomeModal]);
 
   useEffect(() => {
-    getRoastStats().then((total) => {
-      if (total > 0) setTotalRoasts(total);
-    });
-    getRoastOfTheDay().then((roast) => {
-      if (roast) setDailyRoast(roast);
-    });
+    getRoastStats().then((n) => n > 0 && setTotalRoasts(n));
+    getRoastOfTheDay().then((r) => r && setDailyRoast(r));
   }, []);
 
-  function handleIntensitySelect(key) {
+  function handleIntensity(key) {
     playClick();
-    const selected = INTENSITIES.find((i) => i.key === key);
-    if (selected.isPro && !user?.isPro) {
-      toast.proNudge("☢️ Nuclear mode is a Pro feature.", () => setShowProModal(true), "See Plans ⚡");
+    const sel = INTENSITIES.find((i) => i.key === key);
+    if (sel?.isPro && !user?.isPro) {
+      toast.proNudge("Nuclear is a Pro feature", () => setShowProModal(true), "See plans");
       return;
     }
     setIntensity(key);
-    sessionStorage.setItem("gitroast_intensity", key);
+    try { sessionStorage.setItem("gitroast_intensity", key); } catch {}
   }
 
-  function handlePersonaSelect(key) {
+  function handlePersona(key) {
     playClick();
     setSelectedPersona(key);
-    sessionStorage.setItem("gitroast_persona", key);
+    try { sessionStorage.setItem("gitroast_persona", key); } catch {}
   }
 
   function handleRoast(target) {
-    if (rateLimitSecs && rateLimitSecs > 0) {
-      toast.rateLimit(rateLimitSecs, loginWithGitHub);
-      return;
-    }
-
-    const cleanTarget = (target || "").trim().toLowerCase();
-    if (!cleanTarget) {
-      toast.warning("Enter a GitHub username or repo first!");
-      return;
-    }
-
+    if (rateLimitSecs > 0) return toast.rateLimit(rateLimitSecs, loginWithGitHub);
+    const clean = String(target || "").trim().toLowerCase();
+    if (!clean) return notify.profileNotFound({ onAction: () => document.getElementById("roast-target")?.focus() });
     playFireSizzle();
-    sessionStorage.setItem("gitroast_intensity", intensity);
-    sessionStorage.setItem("gitroast_persona", persona);
-    if (cleanTarget.includes("/")) {
-      router.push(`/repo/${cleanTarget}`);
-    } else {
-      router.push(`/roast/${cleanTarget}?intensity=${intensity}&persona=${persona}`);
-    }
+    try {
+      sessionStorage.setItem("gitroast_intensity", intensity);
+      sessionStorage.setItem("gitroast_persona", persona);
+    } catch {}
+    if (clean.includes("/")) router.push(`/repo/${clean}`);
+    else router.push(`/roast/${clean}?intensity=${intensity}&persona=${persona}`);
   }
 
-  const selectedIntensity = INTENSITIES.find((i) => i.key === intensity);
+  const burns = dailyRoast ? (dailyRoast.reactions?.savage || 0) + (dailyRoast.reactions?.destroyed || 0) + (dailyRoast.reactions?.relatable || 0) : 0;
 
   return (
-    <main className="landing-page">
-      <div className="landing-glow animate-glow" />
-
-      {/* ── Top Nav: in normal flow to prevent mobile collision ── */}
-      <nav className="landing-nav" aria-label="Main Navigation">
-        <div className="landing-nav-left">
-          <div
-            className={`status-dot status-dot--${serverStatus}`}
-            title={`Backend: ${serverStatus}`}
+    <main className="home">
+      {/* HERO */}
+      <section className="home-hero">
+        <div className="home-hero__copy">
+          {totalRoasts && <span className="gr-pill gr-pill--gold home-hero__pill">Fresh receipts • {totalRoasts.toLocaleString()} roasts</span>}
+          <h1 className="gr-h1">Your GitHub has a story. We brought matches.</h1>
+          <p className="gr-lede">AI-powered satire grounded in public code. Get the laugh, see the evidence, and leave with a better developer story.</p>
+          <ul className="home-hero__facts">
+            <li>Public data only</li>
+            <li>No password needed</li>
+            <li><Link href="/about#methodology">Methodology explained</Link></li>
+          </ul>
+        </div>
+        <div className="home-hero__panel">
+          <RoastLauncher
+            intensity={intensity}
+            persona={persona}
+            user={user}
+            onIntensity={handleIntensity}
+            onPersona={handlePersona}
+            onSubmit={handleRoast}
           />
-          <span className="status-label font-mono">
-            {serverStatus === "online"
-              ? "Systems Online"
-              : serverStatus === "offline"
-                ? "Connecting…"
-                : "Checking…"}
-          </span>
-          <button
-            type="button"
-            className="nav-guide-btn font-mono"
-            onClick={() => setShowWelcomeModal(true)}
-            title="How GitRoast works & Satire Rules"
-            aria-label="How GitRoast works & Satire Rules"
-          >
-            <span className="nav-guide-label">Rules</span>
-            <span className="nav-guide-icon" aria-hidden="true">ℹ️</span>
-          </button>
-        </div>
-        <div className="landing-nav-right">
-          <SoundToggle />
-          {user && (
-            <Link
-              href="/dashboard"
-              className="nav-dashboard-link font-mono"
-              title="User Dashboard & Settings"
-            >
-              ⚡ Dashboard
-            </Link>
+          {rateLimitSecs && (
+            <RateLimitBanner
+              seconds={rateLimitSecs}
+              onExpired={() => {
+                setRateLimitSecs(null);
+                try { sessionStorage.removeItem("gitroast_rate_limit"); } catch {}
+              }}
+            />
           )}
-          <GitHubLoginBtn variant="compact" />
         </div>
-      </nav>
+      </section>
 
-      {/* ── Broadcast Notice: sleek, non-intrusive alert pill ── */}
-      {!authLoading && !user && !broadcastDismissed && (
-        <div className="broadcast-banner font-mono" role="status">
-          <div className="broadcast-left">
-            <span className="broadcast-pill">NOTICE ⚡</span>
-            <p className="broadcast-text">
-              Public API is rate-limited.{" "}
-              <button
-                type="button"
-                className="broadcast-login-link"
-                onClick={loginWithGitHub}
-              >
-                Sign in with GitHub
-              </button>{" "}
-              for dedicated 5,000 req/hr!
+      <LiveGrillBand />
+
+      {/* HOW IT WORKS */}
+      <section className="home-section">
+        <div className="gr-page">
+          <p className="gr-eyebrow">How it works</p>
+          <h2 className="gr-h2 home-section__title">The joke lands because the receipts are real.</h2>
+          <p className="gr-lede">GitRoast analyzes public GitHub activity, explains what shaped the score, and turns patterns into shareable, useful satire.</p>
+          <div className="home-grid home-grid--3">
+            {STEPS.map(([n, t, d], i) => (
+              <article key={n} className={`gr-card${i === 1 ? " gr-card--dark" : ""}`}>
+                <span className="gr-eyebrow">{n}</span>
+                <h3 className="gr-h3 home-card__title">{t}</h3>
+                <p className="home-card__text">{d}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* MORE WAYS TO PLAY */}
+      <section className="home-section home-section--tint">
+        <div className="gr-page">
+          <div className="home-section__row">
+            <div>
+              <p className="gr-eyebrow">More ways to play</p>
+              <h2 className="gr-h2 home-section__title">Roast once. Return for the lore.</h2>
+            </div>
+            <p className="home-section__aside">Progression without streak anxiety. Competition without punching down.</p>
+          </div>
+          <div className="home-grid home-grid--4">
+            {PLAY.map(([t, d, cta, href, dark]) => (
+              <Link key={t} href={href} className={`gr-card gr-card--interactive home-play${dark ? " gr-card--dark" : ""}`}>
+                <h3 className="home-play__title">{t}</h3>
+                <p className="home-card__text">{d}</p>
+                <span className="home-play__cta">{cta} →</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ROAST OF THE DAY */}
+      {dailyRoast && (
+        <section className="home-section">
+          <div className="gr-page home-daily">
+            <p className="gr-eyebrow">Roast of the day</p>
+            <blockquote className="home-daily__quote">&ldquo;{dailyRoast.roastText}&rdquo;</blockquote>
+            <p className="home-daily__meta">
+              <Link href={`/history/${dailyRoast.username}`}>@{dailyRoast.username}</Link> · Score {dailyRoast.score}/100 · Grade {dailyRoast.grade}
+              {burns > 0 && <> · {burns} reactions</>}
             </p>
           </div>
-          <button
-            type="button"
-            className="broadcast-close-btn"
-            onClick={() => setBroadcastDismissed(true)}
-            aria-label="Dismiss banner"
-            title="Dismiss"
-          >
-            ✕
-          </button>
-        </div>
+        </section>
       )}
 
-      {/* ── Brand Logo Header ── */}
-      <div className="landing-logo">
-        <h1 className="font-display text-fire">GITROAST 🔥</h1>
-        <p className="landing-tagline">
-          Get your GitHub{" "}
-          <span style={{ color: "var(--fire)" }}>brutally roasted.</span> Share
-          the pain.
-        </p>
-      </div>
-
-      {/* Intensity selector */}
-      <div className="intensity-wrap">
-        <p className="intensity-label font-mono">Choose your intensity:</p>
-        <div className="intensity-options">
-          {INTENSITIES.map((opt) => (
-            <button
-              type="button"
-              key={opt.key}
-              className={`intensity-btn font-mono ${intensity === opt.key ? "intensity-btn--active" : ""} ${opt.isPro ? "intensity-btn--pro" : ""}`}
-              style={{
-                "--intensity-color": opt.color,
-                borderColor: intensity === opt.key ? opt.color : undefined,
-              }}
-              onClick={() => handleIntensitySelect(opt.key)}
-              title={opt.isPro ? `${opt.label} — Pro only` : opt.description}
-            >
-              <span className="intensity-emoji">{opt.emoji}</span>
-              <span className="intensity-name">{opt.label}</span>
-              {opt.isPro && (
-                <span className={`intensity-pro-tag ${user?.isPro ? "intensity-pro-tag--unlocked" : ""}`}>
-                  {user?.isPro ? "PRO ✓" : "PRO"}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-        <p className="intensity-desc font-mono">
-          {selectedIntensity.emoji} {selectedIntensity.description}
-        </p>
-      </div>
-
-      {/* ── Roast Persona / Tone Selector ── */}
-      <div className="persona-wrap">
-        <p className="persona-label font-mono">🎭 Roast Persona:</p>
-        <div className="persona-options">
-          {PERSONAS.map((p) => (
-            <button
-              type="button"
-              key={p.key}
-              className={`persona-btn font-mono ${persona === p.key ? "persona-btn--active" : ""}`}
-              onClick={() => handlePersonaSelect(p.key)}
-              title={p.desc}
-            >
-              <span className="persona-emoji">{p.emoji}</span>
-              <span className="persona-name">{p.label}</span>
-            </button>
-          ))}
-        </div>
-        <p className="persona-desc font-mono">
-          {PERSONAS.find((p) => p.key === persona)?.desc}
-        </p>
-      </div>
-
-      {/* Live roast feed — placed right above the username input */}
-      <LiveRoastFeed />
-
-      <UsernameInput onSubmit={handleRoast} />
-
-      {/* Rate limit banner */}
-      {rateLimitSecs && (
-        <RateLimitBanner
-          seconds={rateLimitSecs}
-          onExpired={() => {
-            setRateLimitSecs(null);
-            sessionStorage.removeItem("gitroast_rate_limit");
-          }}
-        />
-      )}
-
-      {/* Social proof count */}
-      {totalRoasts && (
-        <p className="landing-social-proof font-mono">
-          <span style={{ color: "var(--fire)" }}>
-            {totalRoasts.toLocaleString()}
-          </span>{" "}
-          devs roasted and counting
-        </p>
-      )}
-
-      {/* CTA buttons */}
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
-        <Link href="/pricing" className="btn btn-outline">
-          ⚡ Pricing
-        </Link>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={() => setShowProModal(true)}
-        >
-          What&apos;s in Pro?
-        </button>
-      </div>
-
-      {/* ── Exploratory Navigation Links ── */}
-      {/* WHAT: Direct entry points to Wall of Shame, Developer Battles, and the 3D Code Solar System */}
-      {/* WHY: Exposes secondary viral features directly below the primary roast input */}
-      {/* WHERE & WHEN TO USE: Landing page central column */}
-      {/* USE CASES: Visitors who want to browse before roasting themselves */}
-      {/* WHEN NOT TO USE: Inside individual roast result pages */}
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", justifyContent: "center" }}>
-        <Link href="/leaderboard" className="btn btn-ghost">
-          🏆 Wall of Shame
-        </Link>
-        <Link href="/battle" className="btn btn-ghost">
-          ⚔️ Roast Battle
-        </Link>
-        <Link href="/universe" className="btn btn-ghost" style={{ color: "#00E5FF", borderColor: "rgba(0, 229, 255, 0.3)" }}>
-          🌌 3D Universe
-        </Link>
-      </div>
-
-      {/* ── Community Roast of the Day ── */}
-      <div className="sample-roast card">
-        <div className="daily-header">
-          <p className="sample-roast-label font-mono">🔥 ROAST OF THE DAY</p>
-          {dailyRoast && (
-            // ── Comprehensive Burn Counter ───────────────────────────
-            // ── WHAT: ────────────────────────────────────────────────
-            // Aggregates total community engagements across all three supported
-            // reaction types: savage (🔥), destroyed (💀), and relatable (😂).
-            //
-            // ── WHY: ─────────────────────────────────────────────────
-            // Previously omitted 'relatable', artificially deflating community interaction metrics.
-            //
-            // ── WHERE & WHEN TO USE: ─────────────────────────────────
-            // High-visibility social proof badges and highlight cards.
-            //
-            // ── USE CASES: ───────────────────────────────────────────
-            // Hero section "Roast of the Day" burn tally badge.
-            //
-            // ── WHEN NOT TO USE: ─────────────────────────────────────
-            // Do not use when filtering exclusively for destructive/negative sentiment.
-            <span className="daily-badge font-mono">
-              🔥 {(dailyRoast.reactions?.savage || 0) + (dailyRoast.reactions?.destroyed || 0) + (dailyRoast.reactions?.relatable || 0)} BURNS
-            </span>
-          )}
-        </div>
-        {dailyRoast && (
-          <div className="daily-author-row">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={dailyRoast.avatarUrl || `https://avatars.githubusercontent.com/${dailyRoast.username}?s=96`}
-              alt={`@${dailyRoast.username}`}
-              className="daily-avatar"
-              width={36}
-              height={36}
-              loading="eager"
-              crossOrigin="anonymous"
-            />
-            <div className="daily-author-info">
-              <Link
-                href={`/history/${dailyRoast.username}`}
-                className="daily-username font-mono"
-                title={`View @${dailyRoast.username}'s roast history`}
-              >
-                @{dailyRoast.username}
-              </Link>
-              <span className="daily-stats font-mono">
-                Score: {dailyRoast.score}/100 · Grade {dailyRoast.grade}
-              </span>
+      {/* NO MYSTERY MEAT */}
+      <section className="home-section">
+        <div className="gr-page home-split">
+          <div>
+            <p className="gr-eyebrow">Built for laughs, checked like a tool</p>
+            <h2 className="gr-h2 home-section__title">No mystery meat scoring.</h2>
+            <p className="gr-lede">Every score links to the public signal, time window and weight behind it. We show uncertainty when the evidence is thin.</p>
+            <div className="home-actions">
+              <Link href="/about#methodology" className="gr-btn gr-btn--outline">Read the methodology</Link>
             </div>
           </div>
-        )}
-        <p className="sample-roast-text">
-          &ldquo;{dailyRoast?.roastText || "This is not a developer portfolio. It is a detailed public record of every time enthusiasm lasted one weekend."}&rdquo;
-        </p>
-      </div>
+          <aside className="gr-card" aria-label="System pulse">
+            <p className="gr-eyebrow">System pulse</p>
+            <dl className="home-pulse">
+              <div><dt>Profiles roasted</dt><dd>{totalRoasts ? totalRoasts.toLocaleString() : "—"}</dd></div>
+              <div><dt>Status</dt><dd>{serverStatus === "online" ? "Online" : serverStatus === "offline" ? "Waking up" : "Checking"}</dd></div>
+            </dl>
+          </aside>
+        </div>
+      </section>
+
+      {/* RECRUITERS */}
+      <section className="home-section home-section--blue">
+        <div className="gr-page home-recruit">
+          <Image src="/images/recruiter-workspace.png" alt="A hiring team reviewing public project evidence around a table" width={430} height={300} className="home-recruit__img" />
+          <div>
+            <p className="gr-eyebrow">For recruiters, without the circus</p>
+            <h2 className="gr-h2 home-section__title">Turn public work into explainable talent signals.</h2>
+            <p className="gr-lede">Role-fit filters, project depth, consistency and collaboration indicators — clearly separated from playful roast content.</p>
+            <div className="home-actions">
+              <Link href="/auth?role=recruiter" className="gr-btn gr-btn--primary">Explore recruiter workspace</Link>
+              <Link href="/about#methodology" className="gr-btn gr-btn--outline">How evidence works</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* PLANS */}
+      <section className="home-section">
+        <div className="gr-page">
+          <p className="gr-eyebrow">Plans</p>
+          <h2 className="gr-h2 home-section__title">Free to get roasted. Pro to remember everything.</h2>
+          <p className="gr-lede">Clear limits, no surprise heat.</p>
+          <PlansSection onChoose={() => (user ? router.push("/pricing") : setShowProModal(true))} />
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="home-section">
+        <div className="gr-page home-split home-split--faq">
+          <div>
+            <p className="gr-eyebrow">FAQ / The useful kind</p>
+            <h2 className="gr-h2">Before you hand us the matches.</h2>
+          </div>
+          <Faq />
+        </div>
+      </section>
 
       {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
-
-      {showWelcomeModal && (
-        <WelcomeConsentModal
-          isOpen={showWelcomeModal}
-          onClose={() => setShowWelcomeModal(false)}
-        />
-      )}
-
-      <style jsx>{`
-        .landing-page {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: flex-start;
-          padding: 1.25rem 1rem 6.5rem;
-          position: relative;
-          overflow-x: hidden;
-          gap: 1.25rem;
-        }
-
-        /* ── Top Nav in normal document flow ── */
-        .landing-nav {
-          width: 100%;
-          max-width: 640px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 0.25rem 0;
-          z-index: 20;
-        }
-        .landing-nav-left {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .nav-guide-btn {
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid var(--border);
-          color: var(--text-secondary);
-          font-size: 10px;
-          letter-spacing: 0.5px;
-          padding: 2px 8px;
-          border-radius: 6px;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-          transition: all 0.18s ease;
-        }
-        .nav-guide-btn:hover {
-          color: var(--fire);
-          border-color: rgba(255, 69, 0, 0.4);
-          background: rgba(255, 69, 0, 0.08);
-        }
-        .landing-nav-right {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          min-width: 0;
-          overflow: hidden;
-        }
-        .nav-dashboard-link {
-          font-size: 11px;
-          color: var(--fire);
-          text-decoration: none;
-          padding: 4px 8px;
-          background: rgba(255, 69, 0, 0.08);
-          border: 1px solid rgba(255, 69, 0, 0.3);
-          border-radius: var(--radius-sm);
-          transition: all 0.15s ease;
-          display: inline-flex;
-          align-items: center;
-        }
-        .nav-dashboard-link:hover {
-          background: rgba(255, 69, 0, 0.16);
-          border-color: var(--fire);
-        }
-
-        /* ── Health Status Indicator ── */
-        .status-dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          flex-shrink: 0;
-          position: relative;
-        }
-        .status-dot::before {
-          content: "";
-          position: absolute;
-          inset: -3px;
-          border-radius: 50%;
-          opacity: 0.6;
-        }
-        .status-dot--online {
-          background: #FF6B00;
-          box-shadow:
-            0 0 6px 2px rgba(255, 107, 0, 0.6),
-            0 0 16px 4px rgba(255, 69, 0, 0.3);
-          animation: statusPulse 2s ease-in-out infinite;
-        }
-        .status-dot--online::before {
-          background: #FF6B00;
-          animation: statusRing 2s ease-in-out infinite;
-        }
-        .status-dot--offline {
-          background: #FF3D3D;
-          box-shadow:
-            0 0 6px 2px rgba(255, 61, 61, 0.5),
-            0 0 14px 4px rgba(255, 61, 61, 0.2);
-          animation: statusPulse 1.5s ease-in-out infinite;
-        }
-        .status-dot--offline::before {
-          background: #FF3D3D;
-          animation: statusRing 1.5s ease-in-out infinite;
-        }
-        .status-dot--checking {
-          background: #FFB700;
-          box-shadow:
-            0 0 6px 2px rgba(255, 183, 0, 0.5),
-            0 0 14px 4px rgba(255, 183, 0, 0.2);
-          animation: statusPulse 1s ease-in-out infinite;
-        }
-        .status-dot--checking::before {
-          background: #FFB700;
-          animation: statusRing 1s ease-in-out infinite;
-        }
-        .status-label {
-          font-size: 10px;
-          letter-spacing: 1px;
-          color: var(--text-muted);
-          text-transform: uppercase;
-        }
-        @keyframes statusPulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.7; transform: scale(1.15); }
-        }
-        @keyframes statusRing {
-          0%, 100% { transform: scale(1); opacity: 0.6; }
-          50% { transform: scale(2.2); opacity: 0; }
-        }
-
-        /* ── Broadcast Banner ── */
-        .broadcast-banner {
-          width: 100%;
-          max-width: 640px;
-          margin: 0;
-          padding: 0.65rem 0.9rem;
-          background: rgba(255, 69, 0, 0.08);
-          border: 1px solid rgba(255, 107, 0, 0.35);
-          border-radius: var(--radius-md);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 0.75rem;
-          box-shadow: 0 4px 16px rgba(255, 69, 0, 0.1);
-          z-index: 10;
-        }
-        .broadcast-left {
-          display: flex;
-          align-items: center;
-          gap: 0.65rem;
-          flex: 1;
-        }
-        .broadcast-pill {
-          background: linear-gradient(135deg, #ff4500 0%, #ff6b00 100%);
-          color: #fff;
-          font-size: 10px;
-          font-weight: 700;
-          padding: 2px 6px;
-          border-radius: var(--radius-sm);
-          letter-spacing: 0.5px;
-          flex-shrink: 0;
-        }
-        .broadcast-text {
-          font-size: 12px;
-          color: var(--text-secondary);
-          line-height: 1.4;
-          margin: 0;
-        }
-        .broadcast-login-link {
-          background: none;
-          border: none;
-          padding: 0;
-          font: inherit;
-          font-size: inherit;
-          color: #fff;
-          font-weight: 600;
-          text-decoration: underline;
-          cursor: pointer;
-          transition: color 0.15s ease;
-        }
-        .broadcast-login-link:hover {
-          color: var(--fire);
-        }
-        .broadcast-close-btn {
-          background: transparent;
-          border: none;
-          color: var(--text-muted);
-          font-size: 13px;
-          cursor: pointer;
-          padding: 4px;
-          line-height: 1;
-          transition: color 0.15s ease;
-          flex-shrink: 0;
-        }
-        .broadcast-close-btn:hover {
-          color: var(--text-primary);
-        }
-
-        .landing-glow {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(
-            ellipse 80% 40% at 50% 100%,
-            rgba(255, 69, 0, 0.2) 0%,
-            transparent 100%
-          );
-          pointer-events: none;
-        }
-        .landing-logo {
-          text-align: center;
-          margin-top: 0.5rem;
-        }
-        .landing-logo h1 {
-          font-size: clamp(52px, 13vw, 96px);
-          letter-spacing: 4px;
-          line-height: 1;
-          user-select: none;
-        }
-        .landing-tagline {
-          color: var(--text-secondary);
-          font-size: 16px;
-          margin-top: 8px;
-        }
-        .intensity-wrap {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-          width: 100%;
-          max-width: 460px;
-        }
-        .intensity-label {
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          color: var(--text-muted);
-        }
-        .intensity-options {
-          display: flex;
-          gap: 8px;
-          width: 100%;
-        }
-        .intensity-btn {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          padding: 10px 8px;
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          cursor: pointer;
-          transition: all 0.18s ease;
-          position: relative;
-        }
-        .intensity-btn:hover {
-          border-color: var(--intensity-color, var(--fire));
-          background: var(--bg-elevated);
-        }
-        .intensity-btn--active {
-          border-color: var(--intensity-color, var(--fire));
-          background: color-mix(
-            in srgb,
-            var(--intensity-color, var(--fire)) 8%,
-            var(--bg-card)
-          );
-          box-shadow: 0 0 12px
-            color-mix(
-              in srgb,
-              var(--intensity-color, var(--fire)) 20%,
-              transparent
-            );
-        }
-        .intensity-emoji {
-          font-size: 20px;
-          line-height: 1;
-        }
-        .intensity-name {
-          font-size: 11px;
-          color: var(--text-primary);
-        }
-        .intensity-pro-tag {
-          position: absolute;
-          top: -6px;
-          right: -6px;
-          font-size: 8px;
-          padding: 1px 5px;
-          background: var(--fire);
-          color: #fff;
-          border-radius: var(--radius-sm);
-          letter-spacing: 1px;
-        }
-        .intensity-pro-tag--unlocked {
-          background: #27c93f;
-          box-shadow: 0 0 8px rgba(39, 201, 63, 0.4);
-        }
-        .intensity-desc {
-          font-size: 12px;
-          color: var(--text-secondary);
-          height: 18px;
-        }
-        /* ── Roast Persona Selector ── */
-        .persona-wrap {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          width: 100%;
-          max-width: 480px;
-        }
-        .persona-label {
-          font-size: 10px;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          color: var(--text-muted);
-        }
-        .persona-options {
-          display: flex;
-          gap: 6px;
-          width: 100%;
-          flex-wrap: wrap;
-          justify-content: center;
-        }
-        .persona-btn {
-          flex: 1;
-          min-width: 80px;
-          max-width: 92px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          padding: 8px 4px;
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          cursor: pointer;
-          transition: all 0.18s ease;
-        }
-        .persona-btn:hover {
-          border-color: var(--fire);
-          background: var(--bg-elevated);
-        }
-        .persona-btn--active {
-          border-color: var(--fire);
-          background: rgba(255, 69, 0, 0.1);
-          box-shadow: 0 0 10px rgba(255, 69, 0, 0.2);
-        }
-        .persona-emoji {
-          font-size: 18px;
-          line-height: 1;
-        }
-        .persona-name {
-          font-size: 10px;
-          color: var(--text-primary);
-          white-space: nowrap;
-        }
-        .persona-desc {
-          font-size: 11px;
-          color: var(--text-muted);
-          height: 16px;
-          text-align: center;
-        }
-        .landing-social-proof {
-          color: var(--text-secondary);
-          font-size: 13px;
-        }
-        .sample-roast {
-          width: 100%;
-          max-width: 480px;
-          padding: 1.1rem 1.25rem;
-          border-left: 3px solid var(--fire);
-          border-radius: var(--radius-md);
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          background: linear-gradient(135deg, #110900 0%, #0D0D0D 100%);
-        }
-        .daily-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .sample-roast-label {
-          color: var(--fire);
-          font-size: 9px;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-          margin: 0;
-        }
-        .daily-badge {
-          font-size: 10px;
-          padding: 2px 6px;
-          border-radius: 4px;
-          background: rgba(255, 69, 0, 0.12);
-          border: 1px solid rgba(255, 69, 0, 0.3);
-          color: var(--fire);
-        }
-        .daily-author-row {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .daily-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          border: 1px solid var(--fire);
-        }
-        .daily-author-info {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-        .daily-username {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text-primary);
-          text-decoration: none;
-        }
-        .daily-username:hover {
-          color: var(--fire);
-        }
-        .daily-stats {
-          font-size: 11px;
-          color: var(--text-muted);
-        }
-        .sample-roast-text {
-          color: var(--text-secondary);
-          font-size: 13px;
-          font-style: italic;
-          line-height: 1.6;
-          margin: 0;
-        }
-
-        /* ── Mobile Viewport Optimization (<600px) ── */
-        /* WHAT: Streamlined vertical layout ensuring Username Input is immediately prominent above the fold */
-        /* WHY: Eliminates excess vertical padding and shrinks button heights on compact mobile displays */
-        @media (max-width: 600px) {
-          .landing-page {
-            padding-top: 0.75rem;
-            gap: 0.85rem;
-          }
-          .landing-logo {
-            margin-top: 0.2rem;
-          }
-          .status-label {
-            display: none;
-          }
-          .intensity-wrap {
-            gap: 6px;
-          }
-          .intensity-btn {
-            padding: 8px 4px;
-            gap: 2px;
-          }
-          .intensity-emoji {
-            font-size: 16px;
-          }
-          .intensity-name {
-            font-size: 11px;
-          }
-          .intensity-desc {
-            font-size: 11px;
-            margin-top: -2px;
-          }
-          .persona-wrap {
-            gap: 5px;
-          }
-          .persona-options {
-            gap: 4px;
-          }
-          .persona-btn {
-            min-width: 62px;
-            padding: 6px 2px;
-          }
-          .persona-emoji {
-            font-size: 15px;
-          }
-          .persona-name {
-            font-size: 9.5px;
-          }
-          .nav-guide-btn {
-            font-size: 9.5px;
-            padding: 2px 6px;
-          }
-        }
-        @media (max-width: 380px) {
-          .nav-guide-btn .nav-guide-label {
-            display: none;
-          }
-        }
-      `}</style>
+      {showWelcomeModal && <WelcomeConsentModal isOpen={showWelcomeModal} onClose={() => setShowWelcomeModal(false)} />}
     </main>
   );
 }

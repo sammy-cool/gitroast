@@ -39,7 +39,6 @@ describe("Feature #1 — Language Roast Packs", () => {
 
 describe("Feature #4 — GitHub Wrapped 2025", () => {
     it("should generate a complete wrapped report with archetype, streak, and worst month", async () => {
-        // Test analyzeWrapped with mocked fetch
         const originalFetch = global.fetch;
 
         global.fetch = async (url) => {
@@ -213,7 +212,6 @@ describe("Feature #4 — GitHub Wrapped 2025", () => {
         };
 
         try {
-            // Logged in as "callerdev", but roasting "otherdev"
             await analyzeProfile("otherdev", "caller_token_123", "callerdev", false);
             assert.ok(
                 queriedEndpoint && queriedEndpoint.includes("/users/otherdev/repos"),
@@ -308,7 +306,7 @@ describe("Security & Defensive Integrity", () => {
         const { createRateLimiter } = require("../middleware/rateLimiter");
         const limiter = createRateLimiter({
             windowMs: 60 * 1000,
-            maxRequests: 20, // upgraded roast limit: 5 + 15
+            maxRequests: 20,
         });
 
         let nextCallCount = 0;
@@ -336,7 +334,6 @@ describe("Security & Defensive Integrity", () => {
             path: "/testuser",
         };
 
-        // 20 requests must pass
         for (let i = 0; i < 20; i++) {
             limiter(fakeReq, fakeRes, () => {
                 nextCallCount++;
@@ -345,7 +342,6 @@ describe("Security & Defensive Integrity", () => {
         assert.equal(nextCallCount, 20, "All 20 upgraded requests should be permitted");
         assert.equal(lastStatus, null, "Status should not be 429 within quota");
 
-        // 21st request must trigger 429
         limiter(fakeReq, fakeRes, () => {
             nextCallCount++;
         });
@@ -392,7 +388,6 @@ describe("Security & Defensive Integrity", () => {
             };
         }
 
-        // 1. Authenticated user bypasses CAPTCHA
         let nextCalled = false;
         await verifyCaptcha(
             { user: { id: "test-user-123" }, headers: {} },
@@ -401,7 +396,6 @@ describe("Security & Defensive Integrity", () => {
         );
         assert.equal(nextCalled, true, "Authenticated user should bypass CAPTCHA");
 
-        // 2. Unconfigured secret key bypasses CAPTCHA
         const savedSecret = process.env.RECAPTCHA_SECRET_KEY;
         try {
             delete process.env.RECAPTCHA_SECRET_KEY;
@@ -413,7 +407,6 @@ describe("Security & Defensive Integrity", () => {
             );
             assert.equal(nextCalled, true, "Missing secret should bypass gracefully");
 
-            // 3. Secret configured but missing token -> 403 CAPTCHA_REQUIRED
             process.env.RECAPTCHA_SECRET_KEY = "test_secret_key";
             const resNoToken = createMockRes();
             nextCalled = false;
@@ -426,7 +419,6 @@ describe("Security & Defensive Integrity", () => {
             assert.equal(resNoToken.getStatusCode(), 403);
             assert.equal(resNoToken.getJson()?.error, "CAPTCHA_REQUIRED");
 
-            // 4. Secret configured, low score -> 403 CAPTCHA_FAILED
             const originalFetch = global.fetch;
             try {
                 global.fetch = async () => ({
@@ -443,7 +435,6 @@ describe("Security & Defensive Integrity", () => {
                 assert.equal(resLowScore.getStatusCode(), 403);
                 assert.equal(resLowScore.getJson()?.error, "CAPTCHA_FAILED");
 
-                // 5. Secret configured, valid score -> next()
                 global.fetch = async () => ({
                     json: async () => ({ success: true, score: 0.9 }),
                 });
@@ -456,7 +447,6 @@ describe("Security & Defensive Integrity", () => {
                 );
                 assert.equal(nextCalled, true, "Human score should pass verification");
 
-                // 6. Enterprise mode configured, valid assessment -> next()
                 process.env.RECAPTCHA_PROJECT_ID = "gitroast-cloud";
                 process.env.RECAPTCHA_API_KEY = "test-api-key";
                 global.fetch = async () => ({
@@ -474,7 +464,6 @@ describe("Security & Defensive Integrity", () => {
                 );
                 assert.equal(nextCalled, true, "Valid Enterprise assessment should pass");
 
-                // 7. Enterprise mode configured, bot assessment -> 403
                 global.fetch = async () => ({
                     json: async () => ({
                         tokenProperties: { valid: false, invalidReason: "EXPIRED" },
@@ -495,7 +484,6 @@ describe("Security & Defensive Integrity", () => {
                 delete process.env.RECAPTCHA_PROJECT_ID;
                 delete process.env.RECAPTCHA_API_KEY;
 
-                // 8. Network error / timeout -> fails open gracefully
                 global.fetch = async () => {
                     throw new Error("Network timeout");
                 };
@@ -531,7 +519,6 @@ describe("Pillar 2 & 3 — New Growth & Value Features", () => {
         assert.ok(google, "Google should be in the tech giant list");
         assert.ok(google.chaosScore > 0);
         assert.ok(Array.isArray(google.sins) && google.sins.length > 0);
-        // Verify sorted by rank / chaos score descending
         assert.ok(giants[0].chaosScore <= giants[giants.length - 1].chaosScore || giants[0].rank === 1);
     });
 
@@ -547,7 +534,7 @@ describe("Pillar 2 & 3 — New Growth & Value Features", () => {
                         json: async () => [
                             { name: "index.js" },
                             { name: "package.json" },
-                        ], // Missing tests and README
+                        ],
                     };
                 }
                 if (url.includes("/commits")) {
@@ -562,7 +549,6 @@ describe("Pillar 2 & 3 — New Growth & Value Features", () => {
                         ],
                     };
                 }
-                // Repo metadata
                 return {
                     ok: true,
                     status: 200,
@@ -851,7 +837,6 @@ describe("Feature #7 — Dynamic Logger & Telemetry Engine", () => {
         const testPath = `/api/test-dynamic-poll-${Date.now()}`;
         let finishCallbacks = [];
 
-        // Simulate multiple rapid requests to trigger dynamic frequency tracker
         for (let i = 0; i < 15; i++) {
             const req = {
                 method: "GET",
@@ -870,7 +855,6 @@ describe("Feature #7 — Dynamic Logger & Telemetry Engine", () => {
             logRequest(req, res, () => {});
         }
 
-        // Trigger finish events
         finishCallbacks.forEach((cb) => cb());
 
         const stats = getDynamicLoggerStats();
@@ -882,7 +866,7 @@ describe("Feature #7 — Dynamic Logger & Telemetry Engine", () => {
     });
 
     it("should NEVER suppress error responses (>= 400) even for suppressed paths", (t, done) => {
-        const testPath = "/health"; // Statically suppressed path
+        const testPath = "/health";
         let loggedLevel = null;
 
         const req = {
@@ -893,7 +877,7 @@ describe("Feature #7 — Dynamic Logger & Telemetry Engine", () => {
         };
         let finishCb = null;
         const res = {
-            statusCode: 500, // Server failure
+            statusCode: 500,
             setHeader: () => {},
             getHeader: () => undefined,
             on: (event, cb) => {
@@ -1008,11 +992,6 @@ describe("Feature #8 — Database Schemas & Model Integrity", () => {
 });
 
 describe("AI Engine — Model Parity & Dynamic Configuration", () => {
-    // ── WHAT: Validates dynamic model resolution and export consistency.
-    // ── WHY: Ensures zero discrepancy between REST roasts, SSE stream, and battle announcer.
-    // ── WHERE & WHEN TO USE: In CI/CD test suites before deployment.
-    // ── USE CASES: Verifying GEMINI_MODEL environmental defaults and overrides.
-    // ── WHEN NOT TO USE: Do not run against external Google servers during unit testing.
     it("should export GEMINI_MODEL with default to gemini-2.5-flash", () => {
         const { GEMINI_MODEL } = require("../services/aiService");
         assert.ok(GEMINI_MODEL, "GEMINI_MODEL should be defined");
@@ -1032,15 +1011,11 @@ describe("AI Engine — Model Parity & Dynamic Configuration", () => {
     it("should correctly normalize model aliases via resolveGeminiModel", () => {
         const { resolveGeminiModel } = require("../services/aiService");
         assert.equal(typeof resolveGeminiModel, "function");
-        // Test Gemini 3.1 Pro alias mapping to official v1beta preview endpoint
         assert.equal(resolveGeminiModel("gemini-3.1-pro"), "gemini-3.1-pro-preview");
         assert.equal(resolveGeminiModel("gemini-3.1-pro-preview"), "gemini-3.1-pro-preview");
-        // Test Gemini 3.1 Flash alias
         assert.equal(resolveGeminiModel("gemini-3.1-flash"), "gemini-3.1-flash-lite-preview");
-        // Test standard models
         assert.equal(resolveGeminiModel("gemini-2.5-flash"), "gemini-2.5-flash");
         assert.equal(resolveGeminiModel("gemini-2.5-pro"), "gemini-2.5-pro");
-        // Test defaults
         assert.equal(resolveGeminiModel(""), "gemini-2.5-flash");
         assert.equal(resolveGeminiModel(null), "gemini-2.5-flash");
         assert.equal(resolveGeminiModel(undefined), "gemini-2.5-flash");
@@ -1048,11 +1023,6 @@ describe("AI Engine — Model Parity & Dynamic Configuration", () => {
 });
 
 describe("Feature #9 — Logger URL Query Sanitizer & Heartbeat Tracking", () => {
-    // ── WHAT: Validates URL query string credential redaction in the HTTP access logger.
-    // ── WHY: Ensures keys, tokens, and secrets in URL queries never leak into persistent logs.
-    // ── WHERE & WHEN TO USE: In access log middleware and URL processing utilities.
-    // ── USE CASES: Protecting Render and Vercel log streams from credential contamination.
-    // ── WHEN NOT TO USE: Do not call on non-URL plain strings.
     const { sanitizeUrl } = require("../utils/logger");
 
     it("should export sanitizeUrl function", () => {
@@ -1082,11 +1052,6 @@ describe("Feature #9 — Logger URL Query Sanitizer & Heartbeat Tracking", () =>
 });
 
 describe("Feature #10 — Gemini AI Repository Code Review & Redemption Engine", () => {
-    // ── WHAT: Validates repository architectural prompts, redemption plan generation, and model schema.
-    // ── WHY: Verifies Gemini 3.1 Pro / 2.5 Flash repo reviews and actionable advice workflows.
-    // ── WHERE & WHEN TO USE: In unit tests verifying AI and repository analysis integrity.
-    // ── USE CASES: Checking repo roast prompt synthesis and 3-step redemption plan fallback rules.
-    // ── WHEN NOT TO USE: Do not mock production API responses without matching schema shape.
     const {
         buildRepoRoastPrompt,
         generateAIRepoRoast,
@@ -1225,7 +1190,7 @@ describe("Feature #11 — TypeSafe AI System One Engine", () => {
 
     it("should evaluate real TypeSafe System One live API if key is present", async () => {
         if (!isTypeSafeConfigured()) {
-            return; // Skip live network call in CI without API key
+            return;
         }
 
         const triage = await evaluateContactTicket("URGENT: I paid for Pro but my account is still free and card was charged!");
@@ -1557,7 +1522,7 @@ describe("Feature #17 — Repo Idempotency Precedence, Wrapped Year Clamping & C
                 headers: { "x-idempotency-key": "cached-repo-key" },
                 user: {
                     isPro: false,
-                    canRoastToday: () => false, // quota depleted
+                    canRoastToday: () => false,
                 },
             };
             const res = {
@@ -1617,8 +1582,63 @@ describe("Feature #18 — Multi-Tier User Personas & Historian Plan Invariants",
         const historian = responseData.plans.find((p) => p.id === "historian");
         assert.ok(roaster, "Roaster plan must be present");
         assert.ok(historian, "Historian plan must be present");
-        assert.equal(roaster.amount, 9900);
-        assert.equal(historian.amount, 19900);
+        assert.equal(roaster.amount, 500, "default (US) price is $5");
+        assert.equal(historian.amount, 900, "default (US) price is $9");
+        assert.equal(responseData.currency, "USD");
+    });
+
+    it("should price plans regionally by country", () => {
+        const { listPlans, getPlan, currencyForCountry } = require("../services/pricing");
+        assert.equal(currencyForCountry("IN"), "INR");
+        assert.equal(currencyForCountry("DE"), "EUR");
+        assert.equal(currencyForCountry("GB"), "GBP");
+        assert.equal(getPlan("roaster", "IN").amount, 9900);
+        assert.equal(getPlan("historian", "US").amount, 900);
+        assert.equal(getPlan("nope", "US"), null);
+        assert.equal(listPlans("IN").plans[0].id, "free");
+    });
+
+    it("should allow safe price overrides from env JSON", () => {
+        const { loadPrices } = require("../services/pricing");
+        const t = loadPrices('{"USD":{"roaster":700,"bogus":1},"INR":{"roaster":-5},"XXX":{"roaster":1}}');
+        assert.equal(t.USD.roaster, 700);
+        assert.equal(t.USD.historian, 900);
+        assert.equal(t.INR.roaster, 9900, "invalid override ignored");
+        assert.equal(t.XXX, undefined);
+        assert.equal(loadPrices("not json").USD.roaster, 500);
+    });
+
+    it("should normalise legacy intensity/persona values", () => {
+        const c = require("../utils/constants");
+        assert.equal(c.normalizeIntensity("mild"), "warm");
+        assert.equal(c.normalizeIntensity("savage"), "crispy");
+        assert.equal(c.normalizeIntensity("bogus"), "crispy");
+        assert.equal(c.toEngineIntensity("warm"), "mild");
+        assert.equal(c.normalizePersona("classic"), "staff_engineer");
+        assert.equal(c.normalizePersona("techbro"), "chaos_intern");
+        assert.equal(c.normalizePersona("ramsay"), "ramsay");
+    });
+
+    it("should compute talent evidence without penalising missing signals", () => {
+        const { computeSignals, computeFit } = require("../services/talentEvidence");
+        const sig = computeSignals({ totalRepos: 12, abandonedCount: 2, totalStars: 100, hasReadme: true, commitQuality: 80 });
+        assert.equal(sig.collaboration.value, null);
+        assert.equal(sig.collaboration.confidence, "insufficient");
+        const fit = computeFit(sig, "senior-ic");
+        assert.ok(fit.score >= 0 && fit.score <= 100);
+        assert.ok(fit.coverage < 100, "coverage reflects missing collaboration data");
+        assert.equal(computeFit({}, "senior-ic").score, null);
+    });
+
+    it("should hash and verify recruiter passwords", () => {
+        const { hashPassword, verifyPassword, validateSignup, orgFromEmail } = require("../services/recruiterAuthService");
+        const h = hashPassword("correct-horse-battery");
+        assert.ok(verifyPassword("correct-horse-battery", h));
+        assert.ok(!verifyPassword("wrong", h));
+        assert.ok(validateSignup({ email: "a@b.co", password: "short" }));
+        assert.equal(validateSignup({ email: "a@northstar.io", password: "longenough123" }), null);
+        assert.equal(orgFromEmail("a@northstar.io"), "Northstar");
+        assert.equal(orgFromEmail("a@gmail.com"), "");
     });
 
     it("should safely reject unknown plan IDs with 400 INVALID_PLAN on create-order", async () => {
@@ -1797,7 +1817,7 @@ describe("Feature #20 — 3D Code Solar System & Universe Engine", () => {
                                 stargazers_count: 5,
                                 forks_count: 0,
                                 size: 500,
-                                pushed_at: new Date().toISOString(), // recent -> inferno
+                                pushed_at: new Date().toISOString(),
                                 created_at: "2024-01-01T00:00:00Z",
                                 fork: false,
                             },
@@ -1805,7 +1825,7 @@ describe("Feature #20 — 3D Code Solar System & Universe Engine", () => {
                                 name: "popular-living-framework",
                                 description: "Production ready web framework",
                                 language: "Rust",
-                                stargazers_count: 120, // stars >= 15 -> habitable
+                                stargazers_count: 120,
                                 forks_count: 12,
                                 size: 4000,
                                 pushed_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
@@ -1819,17 +1839,17 @@ describe("Feature #20 — 3D Code Solar System & Universe Engine", () => {
                                 stargazers_count: 1,
                                 forks_count: 0,
                                 size: 200,
-                                pushed_at: new Date(Date.now() - 500 * 24 * 3600 * 1000).toISOString(), // >365d -> frozen_ice
+                                pushed_at: new Date(Date.now() - 500 * 24 * 3600 * 1000).toISOString(),
                                 created_at: "2021-01-01T00:00:00Z",
                                 fork: false,
                             },
                             {
                                 name: "massive-node-modules-black-hole",
-                                description: "", // no desc + large + 0 stars + >2y -> black_hole
+                                description: "",
                                 language: "JavaScript",
                                 stargazers_count: 0,
                                 forks_count: 0,
-                                size: 350000, // 350MB
+                                size: 350000,
                                 pushed_at: new Date(Date.now() - 800 * 24 * 3600 * 1000).toISOString(),
                                 created_at: "2020-01-01T00:00:00Z",
                                 fork: false,
@@ -1918,5 +1938,4 @@ describe("Feature #20 — 3D Code Solar System & Universe Engine", () => {
         }
     });
 });
-
 

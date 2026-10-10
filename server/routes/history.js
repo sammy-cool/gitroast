@@ -1,20 +1,3 @@
-// ============================================================
-// GITROAST — History Routes
-// ============================================================
-// WHAT: Endpoints for roast history, leaderboard, sharing, reactions.
-//
-// ROUTES:
-//   GET  /:username       → roast history for a user
-//   GET  /leaderboard/worst → Wall of Shame top 10
-//   POST /:id/share       → increment share count
-//   POST /:id/react       → add emoji reaction (NEW)
-//
-// WHY /leaderboard/worst MUST be above /:username:
-//   Express matches routes top to bottom
-//   /:username would catch /leaderboard/worst as username="leaderboard"
-//   Specific routes ALWAYS above dynamic routes
-// ============================================================
-
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
@@ -25,8 +8,6 @@ const redisService = require("../services/redisService");
 const { logger } = require("../utils/logger");
 const { getCompanyLeaderboard } = require("../services/companyRoastService");
 
-// ── GET /api/history/leaderboard/worst ───────────────────────
-// WHY above /:username: specific route must come before dynamic
 router.get("/leaderboard/worst", async (req, res) => {
   res.setHeader(
     "Cache-Control",
@@ -36,19 +17,6 @@ router.get("/leaderboard/worst", async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
 
-    // ── Distributed Leaderboard Cache (60s TTL) ─────────────────
-    // ── WHAT: ────────────────────────────────────────────────────
-    // Checks Upstash Redis for precomputed Wall of Shame rankings.
-    // ── WHY: ─────────────────────────────────────────────────────
-    // Leaderboard aggregation pipeline executes $project, $group, and $facet
-    // over all Roast records. Caching in cloud Redis for 60s reduces MongoDB Atlas
-    // CPU load by 80% on high-traffic Wall of Shame browsing.
-    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-    // Expensive aggregation queries with bounded pagination parameters.
-    // ── USE CASES: ───────────────────────────────────────────────
-    // Wall of Shame browsing, social traffic surges.
-    // ── WHEN NOT TO USE: ─────────────────────────────────────────
-    // Uncached writes or personalized user profiles.
     const cacheKey = `cache:lb:page:${page}:limit:${limit}`;
     if (redisService.isConfigured) {
       const cached = await redisService.get(cacheKey).catch(() => null);
@@ -78,8 +46,47 @@ router.get("/leaderboard/worst", async (req, res) => {
   }
 });
 
-// ── GET /api/history/leaderboard/companies ───────────────────
-// WHAT: Returns curated tech giant roast rankings and developer sins
+const { computeSignals } = require("../services/talentEvidence");
+const SIGNAL_LABELS = { depth: "Project depth", consistency: "Consistency", documentation: "Documentation", collaboration: "Collaboration" };
+
+// Wall of Shame — evidence board (best-first, Ghost Mode excluded).
+router.get("/leaderboard/board", async (req, res) => {
+  res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+  try {
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+    const windowWeeks = [0, 4, 12, 52].includes(parseInt(req.query.weeks, 10)) ? parseInt(req.query.weeks, 10) : 12;
+    const language = String(req.query.language || "").trim().slice(0, 30);
+    const q = String(req.query.q || "").trim().toLowerCase().slice(0, 39);
+
+    let result = await Roast.getEvidenceBoard({ page, limit, windowWeeks, language });
+    if (result.pagination.total === 0 && windowWeeks > 0) {
+      result = await Roast.getEvidenceBoard({ page, limit, windowWeeks: 0, language });
+    }
+    let entries = result.entries.map((e, i) => {
+      const signals = computeSignals(e.githubSnapshot || {});
+      const best = Object.entries(signals)
+        .filter(([, s]) => typeof s.value === "number")
+        .sort((a, b) => b[1].value - a[1].value)[0];
+      return {
+        rank: (result.pagination.page - 1) * result.pagination.limit + i + 1,
+        username: e.username,
+        score: e.score,
+        grade: e.grade,
+        topLanguage: e.topLanguage || "",
+        roastCount: e.roastCount,
+        analyzedAt: e.analyzedAt,
+        topSignal: best ? { label: SIGNAL_LABELS[best[0]], value: best[1].value } : null,
+      };
+    });
+    if (q) entries = entries.filter((e) => e.username.toLowerCase().includes(q));
+    return res.status(200).json({ success: true, window: windowWeeks, entries, pagination: result.pagination });
+  } catch (err) {
+    logger.error("Leaderboard", "Board fetch failed", { message: err.message });
+    return res.status(500).json({ error: "SERVER_ERROR", message: "Could not fetch the evidence board." });
+  }
+});
+
 router.get("/leaderboard/companies", (req, res) => {
   res.setHeader(
     "Cache-Control",
@@ -100,54 +107,21 @@ router.get("/leaderboard/companies", (req, res) => {
   }
 });
 
-// ── GET /api/history/leaderboard/search ──────────────────────
-// WHAT: Searches the Wall of Shame by username prefix/substring
 router.get("/leaderboard/search", async (req, res) => {
   res.setHeader(
     "Cache-Control",
     "public, max-age=30, stale-while-revalidate=60"
   );
   try {
-    // 1. Extract and validate query
     const q = (req.query.q || "").trim().slice(0, 39);
     if (!q || q.length < 2) {
       return res.status(200).json({ success: true, results: [], pagination: { total: 0, page: 1, totalPages: 0 } });
     }
-    // Sanitize for regex safety
     const safeQ = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
     const skip = (page - 1) * limit;
 
-    /* 
-      ── WHAT: ────────────────────────────────────────────────────────
-      Case-insensitive leaderboard search aggregation.
-      
-      ── WHY: ─────────────────────────────────────────────────────────
-      Projects username with $toLower so uppercase and lowercase variants
-      of the same user (e.g. Torvalds vs torvalds) are unified into a single
-      search entry with their absolute best (lowest) score.
-      
-      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-      In Wall of Shame developer search queries.
-      
-      ── USE CASES: ───────────────────────────────────────────────────
-      Finding developers on the leaderboard by prefix or substring.
-      
-      ── WHEN NOT TO USE: ─────────────────────────────────────────────
-      Case-sensitive repository path lookups.
-    */
-    // ── WHAT: ────────────────────────────────────────────────────
-    // Matches by case-insensitive username regex while strictly excluding Ghost Mode private roasts.
-    // ── WHY: ─────────────────────────────────────────────────────
-    // Respects user privacy preferences configured in /dashboard by preventing
-    // hidden profiles from leaking into public search results.
-    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-    // Leaderboard search query pipeline.
-    // ── USE CASES: ───────────────────────────────────────────────
-    // Searching the Wall of Shame.
-    // ── WHEN NOT TO USE: ─────────────────────────────────────────
-    // Do not filter out private roasts when fetching authenticated owner's personal history.
     const result = await Roast.aggregate([
       { $match: { username: { $regex: safeQ, $options: "i" }, isPrivate: { $ne: true } } },
       { $project: { username: { $toLower: "$username" }, score: 1 } },
@@ -174,25 +148,12 @@ router.get("/leaderboard/search", async (req, res) => {
   }
 });
 
-// ── GET /api/history/daily-burn ──────────────────────────────
-// WHAT: Returns the highest-reacted "Roast of the Day"
 router.get("/daily-burn", async (req, res) => {
   res.setHeader(
     "Cache-Control",
     "public, max-age=300, stale-while-revalidate=600",
   );
   try {
-    // ── Distributed Daily Burn Cache (60s TTL) ───────────────────
-    // ── WHAT: ────────────────────────────────────────────────────
-    // Checks Upstash Redis for cached Roast of the Day.
-    // ── WHY: ─────────────────────────────────────────────────────
-    // Eliminates MongoDB sorted lookups on every landing page visit.
-    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-    // Global featured daily cards mounted on public landing pages.
-    // ── USE CASES: ───────────────────────────────────────────────
-    // Landing page hero cards, featured roast widgets.
-    // ── WHEN NOT TO USE: ─────────────────────────────────────────
-    // Real-time notification streams.
     const cacheKey = "cache:roast:daily-burn";
     if (redisService.isConfigured) {
       const cached = await redisService.get(cacheKey).catch(() => null);
@@ -224,7 +185,6 @@ router.get("/daily-burn", async (req, res) => {
         },
       };
     } else {
-      // Default curated fallback if DB empty
       responseData = {
         success: true,
         roast: {
@@ -259,7 +219,6 @@ router.get("/daily-burn", async (req, res) => {
   }
 });
 
-// ── GET /api/history/:username ────────────────────────────────
 router.get("/:username", async (req, res) => {
   const { username } = req.params;
 
@@ -271,7 +230,6 @@ router.get("/:username", async (req, res) => {
   }
 
   try {
-    // WHY clamp: prevents negative limits, NaN cast errors, or excessive memory spikes
     const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 10));
     const history = await Roast.getHistory(username, limit);
 
@@ -290,7 +248,6 @@ router.get("/:username", async (req, res) => {
   }
 });
 
-// ── POST /api/history/:id/share ───────────────────────────────
 router.post("/:id/share", async (req, res) => {
   const { id } = req.params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -304,12 +261,10 @@ router.post("/:id/share", async (req, res) => {
     await Roast.incrementShare(id);
     return res.status(200).json({ success: true });
   } catch {
-    // WHY always 200: share tracking failure must never break UX
     return res.status(200).json({ success: true });
   }
 });
 
-// ── POST /api/history/:id/view ────────────────────────────────
 router.post("/:id/view", async (req, res) => {
   const { id } = req.params;
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -323,36 +278,11 @@ router.post("/:id/view", async (req, res) => {
     const updated = await Roast.incrementView(id);
     return res.status(200).json({ success: true, viewCount: updated?.viewCount || 0 });
   } catch {
-    // WHY always 200: view tracking failure must never break UX
     return res.status(200).json({ success: true });
   }
 });
 
-// ── POST /api/history/:id/react ───────────────────────────────
-// WHAT: Adds one emoji reaction to a roast
-//
-// WHY no auth required:
-//   Anonymous reactions = more engagement
-//   Requiring login = friction = fewer reactions
-//   Same UX as Twitter/Reddit likes
-//
-// WHY IP-based deduplication (not user ID):
-//   Works for anonymous users too
-//   Simple — no session management needed
-//   Good enough for this scale
-//   One reaction per IP per roast per type
-//
-// WHY store seen reactions in memory (not DB):
-//   Storing every IP in DB = expensive at scale
-//   In-memory Map = fast, zero DB cost
-//   Trade-off: resets on server restart (acceptable)
-//   At this scale: correct choice
 const reactionCache = new Map();
-// WHY cleanup every 24h:
-//   Prevents Map growing unbounded
-//   24h window = fair deduplication period
-// WHY .unref(): prevents this timer from blocking process exit during tests/shutdown
-// WHY cap check: prevents unbounded memory growth from IP-based keys
 setInterval(() => reactionCache.clear(), 24 * 60 * 60 * 1000).unref();
 
 router.post("/:id/react", async (req, res) => {
@@ -366,9 +296,6 @@ router.post("/:id/react", async (req, res) => {
     });
   }
 
-  // WHY validate type server-side:
-  //   Client sends type — must validate before DB write
-  //   Prevents arbitrary field injection
   const allowed = ["relatable", "destroyed", "savage"];
   if (!type || !allowed.includes(type)) {
     return res.status(400).json({
@@ -377,17 +304,11 @@ router.post("/:id/react", async (req, res) => {
     });
   }
 
-  // WHY x-forwarded-for:
-  //   Render sits behind proxy — real IP in this header
   const ip =
     req.headers["x-forwarded-for"]?.split(",")[0]?.trim() ||
     req.socket.remoteAddress ||
     "unknown";
 
-  // WHY compound key (ip + id + type):
-  //   Same IP can react with DIFFERENT emojis to same roast
-  //   But cannot react SAME emoji twice
-  //   e.g. user can click 😂 AND 💀 but not 😂 twice
   const cacheKey = `${ip}:${id}:${type}`;
   if (reactionCache.has(cacheKey)) {
     return res.status(200).json({
@@ -402,7 +323,6 @@ router.post("/:id/react", async (req, res) => {
     if (mongoose.Types.ObjectId.isValid(id)) {
       updated = await Roast.addReaction(id, type);
       if (!updated) {
-        // Dynamic fallback: check if ID belongs to a Battle document
         updated = await Battle.addReaction(id, type);
       }
     }
@@ -414,28 +334,12 @@ router.post("/:id/react", async (req, res) => {
       });
     }
 
-    // ── Safe FIFO Map Capacity Eviction ──────────────────────────
-    // WHAT: Evicts the oldest entry rather than clearing the entire reactionCache.
-    // WHY: Clearing the entire Map resets the rate-limit state globally, allowing
-    //      attackers to bypass duplicate reaction checks for everyone else.
-    // WHERE & WHEN TO USE: In bounded memory stores with high-throughput keys.
-    // USE CASES: IP-based deduping and lightweight throttling.
-    // WHEN NOT TO USE: When persistent or distributed rate limiting is needed (use Redis).
     if (reactionCache.size >= 50000) {
       const firstKey = reactionCache.keys().next().value;
       reactionCache.delete(firstKey);
     }
-    // WHY mark after successful DB write:
-    //   If DB fails — don't cache — user can try again
-    //   Only mark seen when we're sure it worked
     reactionCache.set(cacheKey, true);
 
-    // ── Wire Target User Reaction Counters ───────────────────────
-    // WHAT: Atomically increments reactionsReceived on the roasted user's account.
-    // WHY: Fulfills User schema stats.reactionsReceived field without blocking reaction response.
-    // WHERE & WHEN TO USE: When an emoji reaction is successfully recorded.
-    // USE CASES: User profile popularity and interaction telemetry.
-    // WHEN NOT TO USE: When the roasted entity is an anonymous/unregistered user.
     if (updated.username) {
       const escapedUsername = String(updated.username).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       User.updateOne(
@@ -458,3 +362,4 @@ router.post("/:id/react", async (req, res) => {
 });
 
 module.exports = router;
+

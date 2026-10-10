@@ -1,0 +1,15 @@
+@import "../home.css";
+@import "../../components/recruiter/recruiter.css";
+.pricing { background: var(--paper); padding-bottom: 80px; }
+.pricing-head { padding-top: 64px; padding-bottom: 8px; display: grid; gap: 14px; }
+.pricing-region { margin: 0; }
+.pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding-top: 28px; padding-bottom: 28px; align-items: stretch; }
+.pricing-plan { display: grid; gap: 12px; align-content: start; }
+.pricing-points { list-style: none; display: grid; gap: 8px; font-size: 14px; margin: 6px 0 10px; }
+.pricing-points li::before { content: "✓"; color: var(--mint-ink); font-weight: 700; margin-right: 10px; }
+.gr-card--dark .pricing-points li::before { color: var(--gold); }
+.pricing-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding-bottom: 56px; }
+.pricing-pair .gr-card { display: grid; gap: 10px; align-content: start; }
+.pricing-joined { font-weight: 600; color: var(--mint-ink); }
+.pricing-faq { padding-top: 24px; }
+@media (max-width: 960px) { .pricing-grid, .pricing-pair { grid-template-columns: 1fr; } .pricing-head { padding-top: 36px; } }

@@ -1,24 +1,3 @@
-// ============================================================
-// GITROAST — Payment Routes
-// ============================================================
-// WHAT: Three endpoints for the payment lifecycle:
-//   GET  /api/payment/plans        → returns plan list to frontend
-//   POST /api/payment/create-order → creates Razorpay order
-//   POST /api/payment/verify       → verifies + unlocks Pro
-//
-// WHY GET /plans:
-//   Frontend reads plan data from backend — single source of truth
-//   If price changes in paymentService.js → frontend auto-updates
-//   No hardcoded prices in React components
-//
-// WHY POST for create-order (not GET):
-//   Creates a resource on Razorpay servers — POST is correct
-//   Also: GET requests should not have side effects (REST principle)
-//
-// WHERE: Registered in index.js as:
-//   app.use('/api/payment', require('./routes/payment'))
-// ============================================================
-
 const express = require("express");
 const mongoose = require("mongoose");
 const router = express.Router();
@@ -32,32 +11,13 @@ const {
   verifyWebhookSignature,
 } = require("../services/paymentService");
 const { logger } = require("../utils/logger");
+const { resolveCountry, listPlans, getPlan } = require("../services/pricing");
 
-// ── GET /api/payment/plans ────────────────────────────────────
-// WHAT: Returns all available plans to frontend
-// WHY public (no auth): pricing page visible to everyone
-// WHY strip sensitive fields: amount in paise confuses frontend
-//     only send display-ready data
 router.get("/plans", (req, res) => {
-  const publicPlans = Object.values(PLANS).map((plan) => ({
-    id: plan.id,
-    name: plan.name,
-    amount: plan.amount,
-    currency: plan.currency,
-  }));
-  res.json({ success: true, plans: publicPlans });
+  const country = resolveCountry(req);
+  res.json({ success: true, ...listPlans(country) });
 });
 
-// ── POST /api/payment/create-order ───────────────────────────
-// WHAT: Creates a Razorpay order and returns orderId to frontend
-//
-// WHY requireAuth:
-//   Only logged-in users can buy Pro
-//   Anonymous users have no account to upgrade
-//
-// WHY planId from body (not URL param):
-//   POST body is not logged by proxies/CDNs
-//   URL params are logged — plan info shouldn't be in logs
 router.post("/create-order", requireAuth, async (req, res) => {
   logger.debug("Payment", "create-order body", { body: req.body });
   const { planId } = req.body;
@@ -69,9 +29,6 @@ router.post("/create-order", requireAuth, async (req, res) => {
     });
   }
 
-  // WHY check PLANS here too (not just in service):
-  //   Fast fail before hitting Razorpay API
-  //   Gives clearer error message to frontend
   if (!PLANS[planId]) {
     return res.status(400).json({
       error: "INVALID_PLAN",
@@ -80,18 +37,16 @@ router.post("/create-order", requireAuth, async (req, res) => {
   }
 
   try {
-    const { order, plan } = await createOrder(planId, req.user._id);
+    const country = resolveCountry(req);
+    const { order, plan } = await createOrder(planId, req.user._id, country);
 
-    // WHY persist pending payment:
-    //   Locks in the exact planId and amount associated with this razorpayOrderId.
-    //   In /verify, we cross-reference this order record to prevent tier tampering
-    //   (e.g. paying for ₹99 roaster but submitting planId: 'historian').
     try {
       await Payment.create({
         userId: req.user._id,
         razorpayOrderId: order.id,
         planId,
         amount: plan.amount,
+        currency: plan.currency,
         status: "pending",
       });
     } catch (orderRecordErr) {
@@ -105,10 +60,6 @@ router.post("/create-order", requireAuth, async (req, res) => {
       currency: order.currency,
       planName: plan.name,
       planId: plan.id,
-      // WHY send keyId to frontend:
-      //   Razorpay SDK needs key_id to open checkout popup
-      //   key_id is PUBLIC — safe to expose
-      //   key_SECRET is NEVER sent to frontend
       keyId: process.env.RAZORPAY_KEY_ID,
     });
   } catch (err) {
@@ -119,18 +70,6 @@ router.post("/create-order", requireAuth, async (req, res) => {
   }
 });
 
-// ── POST /api/payment/verify ──────────────────────────────────
-// WHAT: Verifies payment signature → sets isPro = true on user
-//
-// WHY verify before ANY DB write:
-//   Signature check uses HMAC + key_secret
-//   If signature invalid → reject immediately, no DB changes
-//   Prevents free Pro by posting fake payment data
-//
-// WHY duplicate payment check:
-//   User might retry if network dropped after Razorpay succeeded
-//   Without check: second verify = second Payment doc created
-//   With check: idempotent — same payment processed once only
 router.post("/verify", requireAuth, async (req, res) => {
   const { orderId, paymentId, signature, planId } = req.body;
 
@@ -141,8 +80,6 @@ router.post("/verify", requireAuth, async (req, res) => {
     });
   }
 
-  // WHY verify first, DB write second:
-  //   If verify fails → reject immediately → no DB changes
   const isValid = verifyPayment({ orderId, paymentId, signature });
 
   if (!isValid) {
@@ -154,24 +91,6 @@ router.post("/verify", requireAuth, async (req, res) => {
   }
 
   try {
-    // ── Anti-Tampering Check: Cross-reference Order Record ───────────
-    /* 
-      ── WHAT: ────────────────────────────────────────────────────────
-      Cross-checks the verified Razorpay orderId against the initial order planId.
-      
-      ── WHY: ─────────────────────────────────────────────────────────
-      Prevents client-side payload tampering where a bad actor purchases
-      the Roaster tier (₹99) but sends planId: 'historian' (₹199) to /verify.
-      
-      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-      Inside payment verification before unlocking account entitlements.
-      
-      ── USE CASES: ───────────────────────────────────────────────────
-      Securing tiered subscription checkout systems.
-      
-      ── WHEN NOT TO USE: ─────────────────────────────────────────────
-      Never grant higher subscription tiers without cross-validating the order record.
-    */
     const pendingOrder = await Payment.findOne({ razorpayOrderId: orderId });
     if (pendingOrder && pendingOrder.planId !== planId) {
       logger.warn("Payment", "Plan tampering attempt detected", {
@@ -192,9 +111,6 @@ router.post("/verify", requireAuth, async (req, res) => {
         .json({ success: true, message: "Already processed.", isPro: true });
     }
 
-    // WHY separate try/catch for Payment record update/create:
-    //   Payment logging failure should NOT block Pro unlock
-    //   User already paid — they must get access regardless
     try {
       if (pendingOrder) {
         pendingOrder.razorpayPaymentId = paymentId;
@@ -206,32 +122,14 @@ router.post("/verify", requireAuth, async (req, res) => {
           razorpayOrderId: orderId,
           razorpayPaymentId: paymentId,
           planId,
-          amount: PLANS[planId]?.amount || 0,
+          amount: getPlan(planId, "US")?.amount || 0,
           status: "captured",
         });
       }
     } catch (paymentErr) {
-      // WHY: log but don't throw — Pro unlock is more important
       logger.error("Payment", "Verify failed", { message: paymentErr.message });
     }
 
-    /* 
-      ── WHAT: ────────────────────────────────────────────────────────
-      Updates User document with Pro status and specific tier planId.
-      
-      ── WHY: ─────────────────────────────────────────────────────────
-      Persists the user's selected tier ('roaster' | 'historian') into proPlan,
-      ensuring account state matches the purchased SKU.
-      
-      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-      In payment verification controllers after cryptographic signature validation.
-      
-      ── USE CASES: ───────────────────────────────────────────────────
-      Unlocking Pro tier privileges and lifetime/subscription features.
-      
-      ── WHEN NOT TO USE: ─────────────────────────────────────────────
-      Do not set proPlan without verified payment confirmation.
-    */
     req.user.isPro = true;
     req.user.proPlan = planId;
     req.user.proSince = new Date();
@@ -253,10 +151,6 @@ router.post("/verify", requireAuth, async (req, res) => {
   }
 });
 
-// ── POST /api/payment/webhook ────────────────────────────────
-// WHAT: Handles asynchronous payment events directly from Razorpay.
-// WHY: If user closes browser or network drops before frontend /verify completes,
-//      webhook ensures Pro is still unlocked reliably in the background.
 router.post("/webhook", async (req, res) => {
   const signature = req.headers["x-razorpay-signature"];
   const secret =
@@ -289,27 +183,6 @@ router.post("/webhook", async (req, res) => {
       const userId = notes.userId;
       const amount = paymentEntity?.amount || orderEntity?.amount || 0;
 
-      // ── Webhook Payment Document Creation & User Upgrade ──────────
-      // ── WHAT: ────────────────────────────────────────────────────
-      // Validates userId ObjectId format before attempting Payment.create or User lookup.
-      // If payment was initiated externally without notes.userId, safely checks if an
-      // existing Payment document was pre-created via orderId or logs an operational warning.
-      //
-      // ── WHY: ─────────────────────────────────────────────────────
-      // Payment.schema enforces { userId: { required: true, type: ObjectId } }.
-      // If Razorpay webhook notes omit userId or send non-ObjectId strings,
-      // Payment.create throws a Mongoose ValidationError causing the webhook to return
-      // HTTP 500. This triggers Razorpay retry storms and prevents idempotency.
-      //
-      // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-      // In webhook and event ingestion controllers where payload payloads can
-      // originate from external actors with partial or unvalidated metadata.
-      //
-      // ── USE CASES: ───────────────────────────────────────────────
-      // Handling asynchronous payment notifications safely without unhandled rejections.
-      //
-      // ── WHEN NOT TO USE: ─────────────────────────────────────────
-      // Do not use when processing trusted internal DB transactions where schemas are strictly typed.
       const isValidUserId = userId && mongoose.Types.ObjectId.isValid(userId);
       let paymentDoc = null;
 
@@ -329,7 +202,6 @@ router.post("/webhook", async (req, res) => {
               status: "captured",
             });
           } else {
-            // Check if orderId matches a pre-existing order document
             const existingOrderByOrder = orderId
               ? await Payment.findOne({ razorpayOrderId: orderId })
               : null;
@@ -356,17 +228,6 @@ router.post("/webhook", async (req, res) => {
       if (isValidUserId) {
         const user = await User.findById(userId);
         if (user && !user.isPro) {
-          // ── WHAT: ──────────────────────────────────────────────────
-          // Updates User document with Pro status and verified planId.
-          // ── WHY: ───────────────────────────────────────────────────
-          // Fallback order ensures planId from notes is prioritized,
-          // then payment document planId, defaulting to 'roaster'.
-          // ── WHERE & WHEN TO USE: ───────────────────────────────────
-          // In webhook background account elevation.
-          // ── USE CASES: ─────────────────────────────────────────────
-          // Asynchronous Razorpay webhook processing.
-          // ── WHEN NOT TO USE: ───────────────────────────────────────
-          // Do not upgrade if user is already elevated.
           user.isPro = true;
           user.proPlan = (paymentDoc && paymentDoc.planId) || planId || "roaster";
           user.proSince = new Date();
@@ -386,3 +247,4 @@ router.post("/webhook", async (req, res) => {
 });
 
 module.exports = router;
+

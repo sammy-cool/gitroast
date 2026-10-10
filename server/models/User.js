@@ -1,28 +1,51 @@
 const mongoose = require('mongoose')
+const { normalizeIntensity, normalizePersona } = require('../utils/constants')
 
-// WHY: defines exact shape of a User document in MongoDB
-//      mongoose validates every save against this schema
 const userSchema = new mongoose.Schema(
     {
-        // WHY: GitHub's own ID — never changes even if username does
         githubId: {
             type: String,
             required: true,
             unique: true,
-            index: true,       // WHY: faster lookups by githubId
+            index: true,
         },
 
         username: {
             type: String,
             required: true,
             trim: true,
-            index: true,       // WHY: faster profile and user searches
+            index: true,
         },
 
         email: {
             type: String,
             trim: true,
-            default: null,     // WHY: GitHub email can be private
+            lowercase: true,
+            default: null,
+        },
+
+        // Developers sign in with GitHub, recruiters with Google or work email.
+        // Recruiters get a synthetic githubId ("recruiter:<id>") so the existing
+        // unique index keeps working with zero migration.
+        role: {
+            type: String,
+            enum: ['developer', 'recruiter'],
+            default: 'developer',
+            index: true,
+        },
+
+        authProvider: {
+            type: String,
+            enum: ['github', 'google', 'password'],
+            default: 'github',
+        },
+
+        passwordHash: { type: String, default: null, select: false },
+        googleId: { type: String, default: null, index: { unique: true, sparse: true } },
+
+        recruiter: {
+            organization: { type: String, trim: true, default: '' },
+            acceptedResponsibleUseAt: { type: Date, default: null },
         },
 
         avatarUrl: {
@@ -30,69 +53,58 @@ const userSchema = new mongoose.Schema(
             default: null,
         },
 
-        // WHY: store access token to call GitHub API on behalf of user
-        //      this is what gives us private repo access and dedicated 5,000 req/hr quota
         githubAccessToken: {
             type: String,
             default: null,
         },
 
-        // WHY: track Pro status
         isPro: {
             type: Boolean,
             default: false,
             index: true,
         },
 
-        // WHY: specific tier bought ('roaster' = Pro monthly, 'historian' = Pro lifetime)
         proPlan: {
             type: String,
             enum: ['none', 'roaster', 'historian'],
             default: 'none',
         },
 
-        // WHY: when did they go Pro — for subscription tracking
         proSince: {
             type: Date,
             default: null,
         },
 
-        // WHY: optional subscription expiry timestamp (null = lifetime/active)
         proExpiresAt: {
             type: Date,
             default: null,
         },
 
-        // WHY: count roasts for rate limiting free users
         roastCount: {
             type: Number,
             default: 0,
         },
 
-        // WHY: track last roast date for daily limit enforcement
         lastRoastDate: {
             type: Date,
             default: null,
         },
 
-        // ── Future-Proofing & Dynamic UI/UX Fields ──────────────────
-        // WHY badges: allows rendering dynamic achievement badges in UI (e.g. 'early_adopter', 'pro', 'battle_champ')
         badges: {
             type: [String],
             default: [],
         },
 
-        // WHY customPreferences: lets users configure their card aesthetic and default burn level
         customPreferences: {
             defaultIntensity: {
                 type: String,
-                enum: ['mild', 'savage', 'nuclear'],
-                default: 'savage',
+                enum: ['warm', 'crispy', 'nuclear', 'mild', 'savage'],
+                default: 'crispy',
             },
             defaultPersona: {
                 type: String,
-                enum: ['classic', 'hinglish', 'techbro', 'ramsay', 'shakespearean'],
-                default: 'classic',
+                enum: ['staff_engineer', 'chaos_intern', 'historian', 'classic', 'hinglish', 'techbro', 'ramsay', 'shakespearean'],
+                default: 'staff_engineer',
             },
             cardTheme: {
                 type: String,
@@ -104,7 +116,6 @@ const userSchema = new mongoose.Schema(
             },
         },
 
-        // WHY stats: aggregated telemetry for user profile display and social proof
         stats: {
             totalRoasts: { type: Number, default: 0 },
             battlesWon: { type: Number, default: 0 },
@@ -113,38 +124,29 @@ const userSchema = new mongoose.Schema(
         },
     },
     {
-        // WHY timestamps: auto-adds createdAt + updatedAt fields
         timestamps: true,
     }
 )
 
-// Compound index for fast Pro customer querying and subscription auditing
 userSchema.index({ isPro: 1, proSince: -1 });
 
-// ─── Instance method: can this user roast today? ──────────
-// WHY method on schema: logic travels with the model,
-//     not scattered in route files
 userSchema.methods.canRoastToday = function () {
-    // Pro users: unlimited
     if (this.isPro) return true
 
-    // Free users: 1 roast per day
     if (!this.lastRoastDate) return true
 
     const todayUtc = new Date().toISOString().slice(0, 10)
     const lastRoastUtc = new Date(this.lastRoastDate).toISOString().slice(0, 10)
 
-    // WHY: compare ISO UTC date strings (YYYY-MM-DD) to enforce standard midnight UTC reset
     return todayUtc !== lastRoastUtc
 }
 
-// ─── Instance method: safe user object for frontend ───────
-// WHY: NEVER send githubAccessToken to the frontend
-//      this method strips sensitive fields while providing rich UI metadata
 userSchema.methods.toSafeObject = function () {
     return {
         id: this._id,
-        githubId: this.githubId,
+        githubId: this.role === 'recruiter' ? null : this.githubId,
+        role: this.role || 'developer',
+        organization: this.recruiter?.organization || '',
         username: this.username,
         email: this.email,
         avatarUrl: this.avatarUrl,
@@ -153,8 +155,8 @@ userSchema.methods.toSafeObject = function () {
         proSince: this.proSince,
         badges: this.badges || [],
         customPreferences: {
-            defaultIntensity: this.customPreferences?.defaultIntensity || 'savage',
-            defaultPersona: this.customPreferences?.defaultPersona || 'classic',
+            defaultIntensity: normalizeIntensity(this.customPreferences?.defaultIntensity),
+            defaultPersona: normalizePersona(this.customPreferences?.defaultPersona),
             cardTheme: this.customPreferences?.cardTheme || 'fire',
             hideFromLeaderboard: Boolean(this.customPreferences?.hideFromLeaderboard),
         },
@@ -168,3 +170,4 @@ userSchema.methods.toSafeObject = function () {
 }
 
 module.exports = mongoose.model('User', userSchema)
+

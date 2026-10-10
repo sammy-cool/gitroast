@@ -3,9 +3,9 @@ import LandingPageClient from "./LandingPageClient";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://gitroast.dev";
 
 export const metadata = {
-  title: "GitRoast 🔥 — Get Your GitHub Brutally Roasted | Top AI Code Roaster",
+  title: "GitRoast — Your GitHub has a story. We brought matches.",
   description:
-    "Paste any GitHub username and get savagely roasted by AI. Discover developer sins, commit shame, repo grades, and compete on the global Wall of Shame.",
+    "AI-powered satire grounded in public code. Get the laugh, see the evidence, and leave with a better developer story.",
   keywords: [
     "github roast",
     "roast my github",
@@ -127,3 +127,4 @@ export default function HomePage() {
     </>
   );
 }
+

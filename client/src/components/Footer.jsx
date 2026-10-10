@@ -1,122 +1,49 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import Logo from "@/components/Logo";
+import { hidesSiteChrome } from "@/components/SiteHeader";
+
+const COLUMNS = [
+  { title: "Play", links: [["Roast", "/"], ["Battles", "/battle"], ["Universe", "/universe"]] },
+  { title: "Discover", links: [["Wall of Shame", "/leaderboard"], ["Pricing", "/pricing"], ["Dashboard", "/dashboard"]] },
+  { title: "Trust", links: [["Methodology", "/about#methodology"], ["Privacy", "/about#privacy"], ["Contact", "/contact"], ["Sitemap", "/sitemap.xml"]] },
+];
 
 export default function Footer() {
-  const year = new Date().getFullYear()
-  const pathname = usePathname() || ''
-
-  // WHY: The 3D solar system viewport (/universe/:username) is a full-screen WebGL scene
-  //      with an interactive bottom ticker and dock at bottom: 0. Hiding the fixed footer
-  //      prevents pointer event blockage on orbital planet selections and HUD controls.
-  if (pathname.startsWith('/universe/') && pathname !== '/universe') {
-    return null
-  }
-
-  function isActive(href) {
-    if (href === '/') return pathname === '/'
-    return pathname === href || pathname.startsWith(`${href}/`)
-  }
+  const pathname = usePathname() || "";
+  if (hidesSiteChrome(pathname)) return null;
+  const year = new Date().getFullYear();
 
   return (
-    <footer className="site-footer font-mono">
-
-      <div className="footer-inner">
-
-        {/* Brand */}
-        <div className="footer-brand">
-          <span className="footer-logo">GITROAST 🔥</span>
-          <span className="footer-tagline">
-            Made with 🔥 in India
-          </span>
+    <footer className="gr-footer">
+      <div className="gr-footer__inner">
+        <div className="gr-footer__brand">
+          <Logo dark size={32} />
+          <p className="gr-footer__tag">Public code. Private cringe. Better stories.</p>
         </div>
-
-        {/* Links */}
-        <div className="footer-links">
-          <Link
-            href="/leaderboard"
-            className={`footer-link ${isActive('/leaderboard') ? 'footer-link--active' : ''}`}
-          >
-            Wall of Shame
-          </Link>
-          <Link
-            href="/battle"
-            className={`footer-link ${isActive('/battle') ? 'footer-link--active' : ''}`}
-          >
-            Battle
-          </Link>
-          <Link
-            href="/universe"
-            className={`footer-link ${isActive('/universe') ? 'footer-link--active' : ''}`}
-          >
-            3D Universe
-          </Link>
-          <Link
-            href="/pricing"
-            className={`footer-link ${isActive('/pricing') ? 'footer-link--active' : ''}`}
-          >
-            Pricing
-          </Link>
-          <Link
-            href="/dashboard"
-            className={`footer-link ${isActive('/dashboard') ? 'footer-link--active' : ''}`}
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/about"
-            className={`footer-link ${isActive('/about') ? 'footer-link--active' : ''}`}
-          >
-            About
-          </Link>
-          <Link
-            href="/contact"
-            className={`footer-link ${isActive('/contact') ? 'footer-link--active' : ''}`}
-          >
-            Contact
-          </Link>
-          <a
-            href="/sitemap.xml"
-            className="footer-link"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Dynamic XML Sitemap"
-          >
-            Sitemap
-          </a>
-        </div>
-
-        {/* Copyright & reCAPTCHA */}
-        <div className="footer-meta">
-          <p className="footer-copy">
-            © {year} GitRoast · All your repos are belong to us
-          </p>
-          <span className="footer-recaptcha font-mono">
-            Protected by reCAPTCHA (
-            <a
-              href="https://policies.google.com/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-legal-link"
-            >
-              Privacy
-            </a>
-            {" · "}
-            <a
-              href="https://policies.google.com/terms"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="footer-legal-link"
-            >
-              Terms
-            </a>
-            )
-          </span>
-        </div>
-
+        {COLUMNS.map((col) => (
+          <nav key={col.title} aria-label={col.title} className="gr-footer__col">
+            <h2 className="gr-footer__heading">{col.title}</h2>
+            {col.links.map(([label, href]) => (
+              <Link key={label} href={href} aria-current={pathname === href ? "page" : undefined}>
+                {label}
+              </Link>
+            ))}
+          </nav>
+        ))}
       </div>
-
+      <div className="gr-footer__bar">
+        <span>© {year} GitRoast</span>
+        <span className="gr-footer__share">Share the pain. Not the personal data.</span>
+        <span>
+          Protected by reCAPTCHA ·{" "}
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Privacy</a>
+          {" · "}
+          <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer">Terms</a>
+        </span>
+      </div>
     </footer>
-  )
+  );
 }

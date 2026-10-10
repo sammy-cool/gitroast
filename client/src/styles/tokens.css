@@ -1,0 +1,98 @@
+/* GitRoast design tokens — "Sunlit editorial arcade" (v1 concept).
+   Named by ROLE so new modules inherit the system. Legacy names at the bottom
+   keep un-migrated pages legible while they are moved over. */
+:root {
+  /* Color roles */
+  --paper: #f3efe8;      /* canvas */
+  --surface: #fffdf8;    /* cards */
+  --surface-2: #ede5d9;  /* muted wells, table headers */
+  --ink: #171711;        /* type + dark sections */
+  --ink-2: #6f6a60;      /* secondary text */
+  --ink-3: #9a9488;      /* tertiary text */
+  --line: #e3dccf;       /* hairlines */
+  --line-strong: #cfc6b5;
+  --ember: #e84e2a;      /* action */
+  --ember-hover: #cf4222;
+  --ember-tint: #fbe0d6;
+  --gold: #e6b84a;       /* reward */
+  --gold-tint: #f8e9c8;
+  --mint: #cfe6d6;       /* evidence */
+  --mint-ink: #1f6b3d;
+  --blue: #dde8f0;       /* info */
+  --blue-ink: #1f5f86;
+  --error-tint: #f8dad8; /* failure */
+  --error-ink: #b3261e;
+  --warn-ink: #8a5a00;
+
+  /* Type */
+  --font-serif: var(--font-serif-loaded, "Instrument Serif", Georgia, serif);
+  --font-sans: var(--font-sans-loaded, "Inter", system-ui, -apple-system, "Segoe UI", sans-serif);
+  --font-code: var(--font-code-loaded, "IBM Plex Mono", ui-monospace, "Courier New", monospace);
+
+  /* Radius: 6 / 10 / 16 / 24 / pill */
+  --r-1: 6px; --r-2: 10px; --r-3: 16px; --r-4: 24px; --r-pill: 999px;
+
+  /* Elevation: border first, soft shadow for interactive lift, deep only for overlays */
+  --shadow-1: 0 1px 2px rgba(23, 23, 17, 0.05);
+  --shadow-2: 0 6px 20px rgba(23, 23, 17, 0.08);
+  --shadow-3: 0 18px 48px rgba(23, 23, 17, 0.18);
+
+  /* Motion: fast 120 / standard 220 / celebratory 480. Ease-out for entry. */
+  --t-fast: 120ms; --t-std: 220ms; --t-cele: 480ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Touch target minimum */
+  --hit: 44px;
+
+  /* Layout */
+  --page-max: 1200px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* ── Legacy aliases (old pages) ── */
+  --bg-primary: var(--paper);
+  --bg-card: var(--surface);
+  --bg-elevated: var(--surface-2);
+  --bg-input: var(--surface);
+  --border: var(--line);
+  --border-hover: var(--line-strong);
+  --border-focus: rgba(232, 78, 42, 0.5);
+  --fire: var(--ember);
+  --fire-mid: var(--ember);
+  --fire-warm: var(--gold);
+  --fire-grad: linear-gradient(135deg, var(--ember), var(--ember));
+  --bad: var(--error-ink);
+  --good: var(--mint-ink);
+  --warn: var(--warn-ink);
+  --info: var(--blue-ink);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-2);
+  --text-muted: var(--ink-3);
+  --text-ghost: var(--line-strong);
+  --font-display: var(--font-serif);
+  --font-mono: var(--font-code);
+  --font-body: var(--font-sans);
+  --radius-sm: var(--r-1); --radius-md: var(--r-2); --radius-lg: var(--r-3); --radius-xl: var(--r-4);
+  --ease: all 0.18s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 0ms; --t-std: 0ms; --t-cele: 0ms; }
+}
+
+/* ── Legacy dark scope (temporary) ──
+   Pages not yet migrated keep their original dark look by re-declaring the old tokens. */
+.gr-legacy-dark {
+  --bg-primary: #070707; --bg-card: #0f0f0f; --bg-elevated: #141414; --bg-input: #0a0a0a;
+  --border: #1c1c1c; --border-hover: #2e2e2e; --border-focus: rgba(255, 69, 0, 0.5);
+  --fire: #ff4500; --fire-mid: #ff6b00; --fire-warm: #ffb700;
+  --fire-grad: linear-gradient(135deg, #ff4500 0%, #ff6b00 50%, #ffb700 100%);
+  --bad: #ff3d3d; --good: #00e676; --warn: #ffb700; --info: #ff6b00;
+  --text-primary: #f5f5f5; --text-secondary: #a3a3a3; --text-muted: #737373; --text-ghost: #383838;
+  --font-display: var(--font-legacy-display, "Impact", sans-serif);
+  --font-mono: var(--font-legacy-mono, "Courier New", monospace);
+  --font-body: var(--font-legacy-body, "Segoe UI", system-ui, sans-serif);
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 14px; --radius-xl: 20px;
+  background: #070707; color: #f5f5f5; font-family: var(--font-body);
+}
+.gr-legacy-dark .btn-primary { background: var(--fire-grad); color: #fff; }

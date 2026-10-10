@@ -15,28 +15,19 @@ const { logger } = require("../utils/logger");
 const rawClientUrl = process.env.CLIENT_URL || "http://localhost:3000";
 const CLIENT_URL = rawClientUrl.split(",")[0].trim().replace(/\/$/, "");
 
-// ─── STEP 1: Redirect user to GitHub ─────────────────────
-// WHY: user clicks "Connect GitHub" → hits this route
-//      → we redirect them to GitHub's OAuth page with CSRF state token
-// GET /api/auth/github
 router.get("/github", authLimiter, (req, res) => {
   const state = crypto.randomBytes(16).toString("hex");
 
-  // WHY httpOnly + sameSite: prevents client-side JS access & cross-site tampering
   res.cookie("oauth_state", state, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 10 * 60 * 1000, // 10 minutes
+    maxAge: 10 * 60 * 1000,
   });
 
   const params = new URLSearchParams({
     client_id: process.env.GITHUB_CLIENT_ID,
     redirect_uri: process.env.GITHUB_CALLBACK_URL,
-    // WHY scope:
-    //   'read:user' = profile info (name, avatar, email)
-    //   'repo'      = private repos (Pro feature)
-    //   we request both upfront so user only approves once
     scope: "read:user user:email repo",
     state,
   });
@@ -45,18 +36,12 @@ router.get("/github", authLimiter, (req, res) => {
   res.redirect(githubAuthUrl);
 });
 
-// ─── STEP 2: GitHub redirects back with a code ───────────
-// WHY: after user approves, GitHub calls this URL with ?code=xxx&state=yyy
-//      we exchange that code for an access token after validating state
-// GET /api/auth/github/callback
 router.get("/github/callback", authLimiter, async (req, res) => {
   const { code, error, state } = req.query;
   const savedState = req.cookies?.oauth_state;
 
-  // Clear cookie immediately
   res.clearCookie("oauth_state");
 
-  // WHY state check: prevents Login CSRF attacks per RFC 6749 Section 10.12
   if (!state || !savedState || state !== savedState) {
     logger.warn("Auth", "OAuth CSRF state mismatch or missing", {
       hasQueryState: Boolean(state),
@@ -65,15 +50,11 @@ router.get("/github/callback", authLimiter, async (req, res) => {
     return res.redirect(`${CLIENT_URL}/auth/callback?auth_error=csrf_detected`);
   }
 
-  // WHY: user denied permission on GitHub
   if (error || !code) {
     return res.redirect(`${CLIENT_URL}/auth/callback?auth_error=access_denied`);
   }
 
   try {
-    // Exchange code for access token
-    // WHY: code is single-use + short-lived (10 min)
-    // we must exchange it for a real token immediately
     const tokenRes = await fetch(
       "https://github.com/login/oauth/access_token",
       {
@@ -99,7 +80,6 @@ router.get("/github/callback", authLimiter, async (req, res) => {
 
     const accessToken = tokenData.access_token;
 
-    // ── Fetch GitHub profile with the token ────────────
     const profileRes = await fetch("https://api.github.com/user", {
       headers: {
         Authorization: `token ${accessToken}`,
@@ -109,21 +89,6 @@ router.get("/github/callback", authLimiter, async (req, res) => {
     });
     const profile = await profileRes.json();
 
-    // ── Safe GitHub Profile Payload Validation ──────────────────
-    // ── WHAT: ────────────────────────────────────────────────────
-    // Validates that the GitHub API returned a successful HTTP status and
-    // a valid profile payload containing both an id and a username (login).
-    // ── WHY: ─────────────────────────────────────────────────────
-    // If GitHub returns an error payload (e.g. rate limit, bad credentials),
-    // profile.id would be undefined, causing String(profile.id) to evaluate to
-    // "undefined". An upsert would then overwrite existing records for githubId "undefined",
-    // corrupting user accounts and security boundaries.
-    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-    // Immediately after receiving the user profile response from GitHub OAuth.
-    // ── USE CASES: ───────────────────────────────────────────────
-    // User OAuth authorization callback.
-    // ── WHEN NOT TO USE: ─────────────────────────────────────────
-    // Internal user lookups with already-validated database IDs.
     if (!profileRes.ok || !profile || !profile.id || !profile.login) {
       logger.error("Auth", "Invalid or missing GitHub profile payload", {
         status: profileRes.status,
@@ -132,7 +97,6 @@ router.get("/github/callback", authLimiter, async (req, res) => {
       return res.redirect(`${CLIENT_URL}/auth/callback?auth_error=profile_failed`);
     }
 
-    // ── Fetch email (may be private) ───────────────────
     let email = profile.email;
     if (!email) {
       try {
@@ -144,36 +108,14 @@ router.get("/github/callback", authLimiter, async (req, res) => {
           },
         });
         const emails = await emailRes.json();
-        // ── Safe Email Array Validation ─────────────────────────────
-        // ── WHAT: ────────────────────────────────────────────────────
-        // Verifies that the GitHub /user/emails response is an array before invoking .find().
-        //
-        // ── WHY: ─────────────────────────────────────────────────────
-        // Prevents TypeError if GitHub returns an API error payload ({ message: "..." })
-        // or rate limit notice rather than the expected array of email objects.
-        //
-        // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-        // In external API consumers expecting array responses.
-        //
-        // ── USE CASES: ───────────────────────────────────────────────
-        // Ingesting user profile contact info during OAuth callback.
-        //
-        // ── WHEN NOT TO USE: ─────────────────────────────────────────
-        // Do not use when the payload is guaranteed an array by strict schema validators.
         const primary = Array.isArray(emails)
           ? emails.find((e) => e.primary && e.verified)
           : null;
         email = primary?.email || null;
       } catch {
-        // WHY: email is optional — never block login for it
       }
     }
 
-    // ── Upsert user in MongoDB ─────────────────────────
-    // WHY findOneAndUpdate with upsert:
-    //   - existing user → update their token + info
-    //   - new user      → create their record
-    //   one operation handles both cases
     const user = await User.findOneAndUpdate(
       { githubId: String(profile.id) },
       {
@@ -181,39 +123,22 @@ router.get("/github/callback", authLimiter, async (req, res) => {
           username: profile.login,
           email: email,
           avatarUrl: profile.avatar_url,
-          // WHY: always update access token on login
-          //      token can expire or be revoked — refresh it
           githubAccessToken: accessToken,
         },
-        // WHY $setOnInsert: only set these on first creation
-        //     don't overwrite isPro if they're already Pro
         $setOnInsert: {
           isPro: false,
           roastCount: 0,
         },
       },
-      // WHY returnDocument: 'after' instead of new: true:
-      //     Mongoose deprecated new: true in recent versions
-      //     returnDocument: 'after' = same behaviour
-      //     returns the document AFTER the update is applied
-      //     'before' would return the original pre-update doc
       { upsert: true, returnDocument: "after", runValidators: true },
     );
 
-    // WHY: JWT only stores userId for lookup
-    //      isPro is NOT stored in JWT — always read fresh from DB
-    //      this fixes the stale isPro issue completely
     const jwt = createToken({
       userId: user._id,
       githubId: user.githubId,
       username: user.username,
-      // WHY isPro NOT included: reading from DB in middleware
-      //     is the only source of truth for Pro status
     });
 
-    // WHY: redirect to frontend with token in URL param
-    //      frontend grabs it, stores in memory/localStorage
-    //      then immediately cleans the URL
     res.redirect(`${CLIENT_URL}/auth/callback?token=${jwt}`);
   } catch (err) {
     logger.error("Auth", "Callback error", { message: err.message });
@@ -221,51 +146,37 @@ router.get("/github/callback", authLimiter, async (req, res) => {
   }
 });
 
-// ─── GET /api/auth/me ─────────────────────────────────────
-// WHY: frontend calls this on page load to restore session
-//      if valid token exists → returns user profile
 router.get("/me", requireAuth, (req, res) => {
-  // WHY toSafeObject: never expose githubAccessToken to frontend
   res.json({
     success: true,
     user: req.user.toSafeObject(),
   });
 });
 
-// ─── PATCH /api/auth/preferences ──────────────────────────
-/**
- * WHAT: Updates the authenticated user's customization preferences (persona, intensity, theme, leaderboard privacy).
- * WHY: Empowers users to configure their experience and opt into "Ghost Mode" (Wall of Shame leaderboard opt-out).
- * WHERE & WHEN TO USE: In /dashboard user settings panel or landing page persona preference save.
- * USE CASES: User sets default persona to 'hinglish', or toggles 'hideFromLeaderboard' to true.
- * WHEN NOT TO USE: Unauthenticated calls (enforced by requireAuth middleware).
- */
 router.patch("/preferences", requireAuth, async (req, res) => {
   try {
     const { defaultIntensity, defaultPersona, cardTheme, hideFromLeaderboard } = req.body || {};
 
     const updates = {};
-    const VALID_INTENSITIES = new Set(["mild", "savage", "nuclear"]);
-    const VALID_PERSONAS = new Set(["classic", "hinglish", "techbro", "ramsay", "shakespearean"]);
+    const { ALL_INTENSITY_VALUES, ALL_PERSONA_VALUES, normalizeIntensity, normalizePersona } = require("../utils/constants");
 
-    if (defaultIntensity && VALID_INTENSITIES.has(defaultIntensity)) {
-      if (defaultIntensity === "nuclear" && !req.user.isPro) {
+    if (defaultIntensity && ALL_INTENSITY_VALUES.includes(String(defaultIntensity).toLowerCase())) {
+      if (normalizeIntensity(defaultIntensity) === "nuclear" && !req.user.isPro) {
         return res.status(403).json({
           error: "PRO_REQUIRED",
           message: "Nuclear intensity preference is reserved for Pro members.",
         });
       }
-      updates["customPreferences.defaultIntensity"] = defaultIntensity;
+      updates["customPreferences.defaultIntensity"] = normalizeIntensity(defaultIntensity);
     }
-    if (defaultPersona && VALID_PERSONAS.has(defaultPersona)) {
-      updates["customPreferences.defaultPersona"] = defaultPersona;
+    if (defaultPersona && ALL_PERSONA_VALUES.includes(String(defaultPersona).toLowerCase())) {
+      updates["customPreferences.defaultPersona"] = normalizePersona(defaultPersona);
     }
     if (typeof cardTheme === "string" && cardTheme.trim()) {
       updates["customPreferences.cardTheme"] = cardTheme.trim().slice(0, 30);
     }
     if (typeof hideFromLeaderboard === "boolean") {
       updates["customPreferences.hideFromLeaderboard"] = hideFromLeaderboard;
-      // Synchronize existing roasts for this user so leaderboard accurately reflects preference
       const safeUsername = (req.user.username || "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       await Roast.updateMany(
         { username: new RegExp(`^${safeUsername}$`, "i") },
@@ -294,10 +205,94 @@ router.patch("/preferences", requireAuth, async (req, res) => {
   }
 });
 
-// ─── POST /api/auth/logout ────────────────────────────────
-// WHY: clears session — frontend removes token on its side
 router.post("/logout", (req, res) => {
   res.json({ success: true, message: "Logged out." });
+});
+
+
+// ── Recruiter workspace auth (Google or work email) ──────────────
+const {
+  hashPassword,
+  verifyPassword,
+  validateSignup,
+  orgFromEmail,
+  verifyGoogleIdToken,
+} = require("../services/recruiterAuthService");
+
+function recruiterSession(user) {
+  return { success: true, token: createToken({ userId: user._id.toString() }), user: user.toSafeObject() };
+}
+
+router.post("/recruiter/signup", authLimiter, async (req, res) => {
+  const { email, password, acceptResponsibleUse } = req.body || {};
+  const problem = validateSignup({ email, password });
+  if (problem) return res.status(400).json({ error: "INVALID_INPUT", message: problem });
+  if (acceptResponsibleUse !== true) {
+    return res.status(400).json({ error: "CONSENT_REQUIRED", message: "Please agree to the responsible-use terms." });
+  }
+  try {
+    const normalized = String(email).toLowerCase().trim();
+    if (await User.findOne({ email: normalized, role: "recruiter" }).select("_id")) {
+      return res.status(409).json({ error: "DUPLICATE_ENTRY", message: "A workspace already exists for this email. Sign in instead." });
+    }
+    const id = crypto.randomUUID();
+    const user = await User.create({
+      githubId: `recruiter:${id}`,
+      username: normalized.split("@")[0].slice(0, 39),
+      email: normalized,
+      role: "recruiter",
+      authProvider: "password",
+      passwordHash: hashPassword(password),
+      recruiter: { organization: orgFromEmail(normalized), acceptedResponsibleUseAt: new Date() },
+    });
+    return res.status(201).json(recruiterSession(user));
+  } catch (err) {
+    logger.error("Auth", "recruiter signup failed", { message: err.message });
+    return res.status(500).json({ error: "SERVER_ERROR", message: "Could not create the workspace." });
+  }
+});
+
+router.post("/recruiter/login", authLimiter, async (req, res) => {
+  const { email, password } = req.body || {};
+  try {
+    const user = await User.findOne({ email: String(email || "").toLowerCase().trim(), role: "recruiter" }).select("+passwordHash");
+    if (!user || !verifyPassword(String(password || ""), user.passwordHash)) {
+      return res.status(401).json({ error: "INVALID_CREDENTIALS", message: "Email or password is incorrect." });
+    }
+    return res.json(recruiterSession(user));
+  } catch (err) {
+    return res.status(500).json({ error: "SERVER_ERROR", message: "Could not sign in." });
+  }
+});
+
+router.post("/recruiter/google", authLimiter, async (req, res) => {
+  const { credential, acceptResponsibleUse } = req.body || {};
+  if (!credential) return res.status(400).json({ error: "INVALID_INPUT", message: "Missing Google credential." });
+  try {
+    const g = await verifyGoogleIdToken(credential);
+    let user = await User.findOne({ role: "recruiter", $or: [{ googleId: g.googleId }, { email: g.email }] });
+    if (!user) {
+      if (acceptResponsibleUse !== true) {
+        return res.status(400).json({ error: "CONSENT_REQUIRED", message: "Please agree to the responsible-use terms." });
+      }
+      user = await User.create({
+        githubId: `recruiter:${crypto.randomUUID()}`,
+        username: g.email.split("@")[0].slice(0, 39),
+        email: g.email,
+        avatarUrl: g.picture,
+        role: "recruiter",
+        authProvider: "google",
+        googleId: g.googleId,
+        recruiter: { organization: orgFromEmail(g.email), acceptedResponsibleUseAt: new Date() },
+      });
+    } else if (!user.googleId) {
+      user.googleId = g.googleId;
+      await user.save();
+    }
+    return res.json(recruiterSession(user));
+  } catch (err) {
+    return res.status(err.statusCode || 500).json({ error: "GOOGLE_AUTH_FAILED", message: err.message || "Google sign-in failed." });
+  }
 });
 
 module.exports = router;

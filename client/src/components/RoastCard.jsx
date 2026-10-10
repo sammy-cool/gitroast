@@ -1,732 +1,314 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import Link from 'next/link'
 import { toast } from '@/utils/toast'
-import StatsGrid from './StatsGrid'
-import CommitShame from './CommitShame'
-import ShareButtons from './ShareButtons'
+import Icon from '@/components/Icon'
 import RoastReactions from './RoastReactions'
 import { trackView } from '@/services/roastService'
+import useRoastShare, { badgeMarkdown } from '@/hooks/useRoastShare'
+import { intensityLabel, personaLabel } from '@/utils/vocab'
+import dynamic from 'next/dynamic'
+import './roast-result.css'
+
+const RoastCertificate = dynamic(() => import('./RoastCertificate'), { ssr: false })
+const GitHubWrapped = dynamic(() => import('./GitHubWrapped'), { ssr: false })
 
 const TYPING_SPEED = 18
+const ANATOMY = [
+  { key: 'depth', label: 'Project depth', tone: '' },
+  { key: 'consistency', label: 'Consistency', tone: 'gold' },
+  { key: 'collaboration', label: 'Collaboration', tone: 'mint' },
+  { key: 'documentation', label: 'Documentation', tone: 'blue' },
+]
 
-export default function RoastCard({ data, onProClick }) {
+function firstSentence(text = '') {
+  const m = text.match(/^[\s\S]*?[.!?](?=\s|$)/)
+  return (m ? m[0] : text).trim()
+}
+
+function Meter({ label, signal, tone }) {
+  const has = signal && typeof signal.value === 'number'
+  return (
+    <div className="gr-meter">
+      <div className="gr-meter__head"><span>{label}</span><b>{has ? signal.value : '—'}</b></div>
+      <div className="gr-meter__track" role="img" aria-label={has ? `${label} ${signal.value} out of 100` : `${label}: not enough public evidence`}>
+        <div className={`gr-meter__fill${tone ? ` gr-meter__fill--${tone}` : ''}`} style={{ width: has ? `${signal.value}%` : '0%' }} />
+      </div>
+    </div>
+  )
+}
+
+export default function RoastCard({ data, onProClick, onRoastAnother, historyHref }) {
   const [displayedText, setDisplayedText] = useState('')
   const [typingDone, setTypingDone] = useState(false)
-  const [showCursor, setShowCursor] = useState(true)
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
+  const [badgeStyle, setBadgeStyle] = useState('card')
   const intervalRef = useRef(null)
-  const cursorTimerRef = useRef(null)
 
   const roastText = data?.roast || ''
   const roastTargetId = data?.roastId || data?._id
 
-  // Track view for database social proof
+  const share = useRoastShare({
+    username: data?.username,
+    roastId: roastTargetId,
+    roastText,
+    isPro: data?.isPro,
+    onProClick,
+  })
+
   useEffect(() => {
-    if (roastTargetId) {
-      trackView(roastTargetId)
-    }
+    if (roastTargetId) trackView(roastTargetId)
   }, [roastTargetId])
 
-  // Cancel speech on unmount
-  useEffect(() => {
-    return () => {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel()
-      }
-    }
+  useEffect(() => () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel()
   }, [])
+
+  // Typing effect. Reduced-motion users get the full text immediately.
+  useEffect(() => {
+    setDisplayedText('')
+    setTypingDone(false)
+    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (reduce || !roastText) {
+      setDisplayedText(roastText)
+      setTypingDone(true)
+      return undefined
+    }
+    let i = 0
+    intervalRef.current = setInterval(() => {
+      i += 1
+      setDisplayedText(roastText.slice(0, i))
+      if (i >= roastText.length) {
+        clearInterval(intervalRef.current)
+        setTypingDone(true)
+      }
+    }, TYPING_SPEED)
+    return () => clearInterval(intervalRef.current)
+  }, [roastText])
 
   function handleVoiceRoast() {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
-      toast.warning('Speech synthesis is not supported on this device/browser.')
+      toast.warning('Voice is not supported here', { description: 'Try a different browser or device.' })
       return
     }
-
     if (isPlayingAudio) {
       window.speechSynthesis.cancel()
       setIsPlayingAudio(false)
       return
     }
-
     window.speechSynthesis.cancel()
     const utterance = new SpeechSynthesisUtterance(roastText)
     utterance.rate = 0.92
     utterance.pitch = 0.88
-
     const voices = window.speechSynthesis.getVoices()
-    const englishVoice =
-      voices.find(v => v.lang.startsWith('en') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('UK') || v.name.includes('Daniel') || v.name.includes('Aaron'))) ||
-      voices.find(v => v.lang.startsWith('en'))
-
-    if (englishVoice) {
-      utterance.voice = englishVoice
-    }
-
+    const voice =
+      voices.find((v) => v.lang.startsWith('en') && /Google|Natural|UK|Daniel|Aaron/.test(v.name)) ||
+      voices.find((v) => v.lang.startsWith('en'))
+    if (voice) utterance.voice = voice
     utterance.onstart = () => setIsPlayingAudio(true)
     utterance.onend = () => setIsPlayingAudio(false)
     utterance.onerror = () => setIsPlayingAudio(false)
-
     window.speechSynthesis.speak(utterance)
-
-    toast.info('🔊 Playing roast aloud... Turn up the volume!')
   }
 
-  useEffect(() => {
-    setDisplayedText('')
-    setTypingDone(false)
-    setShowCursor(true)
+  const headline = useMemo(() => firstSentence(roastText), [roastText])
+  if (!data) return null
 
-    let currentIndex = 0
-
-    intervalRef.current = setInterval(() => {
-      currentIndex += 1
-      setDisplayedText(roastText.slice(0, currentIndex))
-
-      if (currentIndex >= roastText.length) {
-        clearInterval(intervalRef.current)
-        setTypingDone(true)
-
-        let blinks = 0
-        cursorTimerRef.current = setInterval(() => {
-          setShowCursor(prev => !prev)
-          blinks++
-          if (blinks >= 6) {
-            clearInterval(cursorTimerRef.current)
-            setShowCursor(false)
-          }
-        }, 400)
-      }
-    }, TYPING_SPEED)
-
-    return () => {
-      clearInterval(intervalRef.current)
-      clearInterval(cursorTimerRef.current)
-    }
-  }, [roastText])
- 
-  // ── Defensive Data Guard ────────────────────────────────────
-  // ── WHAT: ──────────────────────────────────────────────────
-  // Safeguards the component from rendering when roast data is not yet available or null.
-  //
-  // ── WHY: ───────────────────────────────────────────────────
-  // Prevents TypeError: Cannot read properties of undefined/null (reading 'score')
-  // while strictly preserving React hook call order across renders.
-  //
-  // ── WHERE & WHEN TO USE: ───────────────────────────────────
-  // Directly after all React hooks (useState, useRef, useEffect) have been invoked.
-  //
-  // ── USE CASES: ─────────────────────────────────────────────
-  // Handling asynchronous state transitions or empty cache responses.
-  //
-  // ── WHEN NOT TO USE: ───────────────────────────────────────
-  // Never place before React hook declarations (violates Rules of Hooks).
-  if (!data) return null;
-
-  const scoreColor =
-    data.score < 40 ? 'var(--bad)' :
-      data.score < 70 ? 'var(--warn)' :
-        'var(--good)'
-
-  const scoreExplain =
-    data.score < 40 ? 'Catastrophic — your GitHub is a disaster' :
-      data.score < 70 ? 'Rough — needs serious work' :
-        data.score < 85 ? 'Decent — but still roastable' :
-          'Respectable — we had to dig for this roast'
+  const stats = Array.isArray(data.stats) ? data.stats : []
+  const commits = Array.isArray(data.shameCommits) ? data.shameCommits : []
+  const signals = data.anatomy?.signals || {}
+  const hasAnatomy = Object.keys(signals).length > 0
+  const plan = Array.isArray(data.redemptionPlan) ? data.redemptionPlan : []
+  const roastId = roastTargetId
+  const badgeSrc = badgeStyle === 'shield' ? `/api/badge/${data.username}?style=shield` : `/api/badge/${data.username}`
 
   return (
-    <div className="roast-card card">
-
-      <div id="roast-card-capture">
-
-        {/* ── Header ── */}
-        <div className="card-header">
-          <div className="profile-info">
-            <div className="avatar-box">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={data.avatarUrl || `https://avatars.githubusercontent.com/${data.username}?s=96`}
-                alt={`@${data.username}`}
-                className="avatar-img"
-                crossOrigin="anonymous"
-                loading="eager"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  if (e.currentTarget.nextSibling) {
-                    e.currentTarget.nextSibling.style.display = 'flex';
-                  }
-                }}
-              />
-              <div className="avatar-fallback font-display" style={{ display: 'none' }}>
-                {data.username[0]?.toUpperCase() || '?'}
+    <div className="rr">
+      {/* ── Hero (this block is what "Download card" captures) ── */}
+      <div id="roast-card-capture" className="rr-capture">
+        <section className="rr-hero" aria-label="Roast summary">
+          <div className="rr-hero__top">
+            <div className="rr-id">
+              <span className="rr-avatar">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={data.avatarUrl || `https://avatars.githubusercontent.com/${data.username}?s=96`}
+                  alt=""
+                  crossOrigin="anonymous"
+                  width={56}
+                  height={56}
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+                <b aria-hidden="true">{data.username?.slice(0, 2).toUpperCase()}</b>
+              </span>
+              <div>
+                <p className="rr-name">{data.username}</p>
+                <p className="rr-meta">
+                  Public profile • Member since {data.joinYear} • {data.totalRepos} repos
+                </p>
               </div>
             </div>
+          </div>
+
+          <div className="rr-hero__body">
             <div>
-              <p className="profile-name">@{data.username}</p>
-              <p className="profile-meta font-mono">
-                Member since {data.joinYear} · {data.totalRepos} repos
+              <p className="rr-tags">
+                {intensityLabel(data.intensity)} • {personaLabel(data.persona)} persona
+                {data.roastSource === 'ai' ? ' • AI' : ''}
               </p>
+              <h1 className="rr-quote">&ldquo;{headline}&rdquo;</h1>
+              <p className="rr-sub">Grade {data.grade}. Humor does not affect the score — it is built from public signals only.</p>
+            </div>
+            <div className="gr-score rr-score" role="img" aria-label={`Roast score ${data.score} out of 100`}>
+              <b>{data.score}</b>
+              <small>Roast score / 100</small>
             </div>
           </div>
+          <p className="rr-brand">gitroast.dev</p>
+        </section>
+      </div>
 
-          <div
-            className="score-block"
-            title={`Roast Score: ${data.score}/100 — ${scoreExplain}`}
-          >
-            <div className="score-number font-display" style={{ color: scoreColor }}>
-              {data.score}
-            </div>
-            <div className="score-label font-mono">/100 ROAST SCORE</div>
-            <div className="score-hint font-mono">
-              {data.score < 50 ? 'lower = more roastable' : 'higher = better dev'}
-            </div>
-            <div className="grade-badge font-mono" style={{ color: 'var(--bad)' }}>
-              GRADE: {data.grade}
-            </div>
-          </div>
-        </div>
+      {/* Hero actions (outside capture so they never render into the PNG) */}
+      <div className="rr-actions">
+        <button type="button" className="gr-btn gr-btn--primary" onClick={share.shareLink}><Icon name="share" /> Share the pain</button>
+        <button type="button" className="gr-btn gr-btn--outline" onClick={share.download} disabled={share.downloading}>{share.downloading ? 'Rendering…' : 'Download card'}</button>
+        <button type="button" className="gr-btn gr-btn--outline" onClick={() => document.getElementById('rr-badge')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}>Add badge</button>
+        <button type="button" className="gr-btn gr-btn--quiet" onClick={share.shareX}>Share on X</button>
+        {historyHref && <Link href={historyHref} className="gr-btn gr-btn--quiet">History</Link>}
+        {onRoastAnother && <button type="button" className="gr-btn gr-btn--quiet" onClick={onRoastAnother}>Roast another</button>}
+      </div>
 
-        {/* ── Stats ── */}
-        <StatsGrid stats={data.stats} />
-
-        {/* ── Shame commits ── */}
-        <CommitShame commits={data.shameCommits} />
-
-        {/* ── Bio vs Reality Contrast (Roast to Resume Contrast) ── */}
-        {data.bioContrast && data.bioContrast.reality && (
-          <div className="bio-contrast-box">
-            <div className="bio-contrast-header font-mono">
-              <span className="bio-contrast-tag">🎭 BIO VS REALITY</span>
-              <span className="bio-contrast-sub">Resume Claim vs Git Truth</span>
+      {/* Metrics */}
+      {stats.length > 0 && (
+        <section className="rr-metrics" aria-label="Key metrics">
+          {stats.map((s) => (
+            <div key={s.label} className="gr-card rr-metric">
+              <span className="gr-eyebrow rr-metric__k">{s.label}</span>
+              <b className={`rr-metric__v${s.bad ? ' rr-metric__v--bad' : ''}`}>{s.value}</b>
+              <span className="gr-help">{s.note}</span>
             </div>
-            <div className="bio-contrast-grid">
-              <div className="bio-contrast-card bio-claimed">
-                <span className="bio-card-label font-mono">💼 Resume / Bio:</span>
-                <p className="bio-card-text font-mono">&ldquo;{data.bioContrast.claimed}&rdquo;</p>
+          ))}
+        </section>
+      )}
+
+      <div className="rr-cols">
+        <div className="rr-main">
+          {/* The roast, typed */}
+          <section className="gr-card rr-roast" aria-labelledby="rr-roast-h">
+            <div className="rr-roast__head">
+              <div>
+                <p className="gr-eyebrow">The roast</p>
+                <h2 id="rr-roast-h" className="gr-h3">Full read-out</h2>
               </div>
-              <div className="bio-contrast-card bio-reality">
-                <span className="bio-card-label font-mono">🔍 Hard Truth:</span>
-                <p className="bio-card-text font-mono">{data.bioContrast.reality}</p>
-              </div>
-            </div>
-            {data.bioContrast.verdict && (
-              <div className="bio-verdict font-mono">
-                ⚖️ <span className="verdict-text">{data.bioContrast.verdict}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── Roast text with typewriter ── */}
-        <div className="roast-text-block">
-          <div className="roast-text-header">
-            <div className="roast-header-left">
-              <p className="roast-text-label font-mono">🔥 The Roast</p>
-              {data.roastSource === 'ai' && (
-                <span className="ai-badge font-mono">⚡ AI Roast</span>
-              )}
-              {data.persona && data.persona !== 'classic' && (
-                <span className="persona-badge font-mono">
-                  {data.persona === 'hinglish' && '🇮🇳 Desi Hinglish'}
-                  {data.persona === 'techbro' && '👔 Tech Bro'}
-                  {data.persona === 'ramsay' && '👨‍🍳 Gordon Ramsay'}
-                  {data.persona === 'shakespearean' && '🎭 Shakespearean'}
-                </span>
+              {typingDone && (
+                <button type="button" className="gr-btn gr-btn--outline" aria-pressed={isPlayingAudio} onClick={handleVoiceRoast}>
+                  {isPlayingAudio ? 'Stop voice' : 'Voice roast'}
+                </button>
               )}
             </div>
-            {typingDone && (
-              <button
-                type="button"
-                className={`voice-roast-btn font-mono ${isPlayingAudio ? 'voice-roast-btn--active' : ''}`}
-                onClick={handleVoiceRoast}
-                title={isPlayingAudio ? 'Stop reading' : 'Read roast aloud with sarcastic voice'}
-              >
-                {isPlayingAudio ? (
-                  <>
-                    <span className="voice-pulse" /> Stop Voice
-                  </>
-                ) : (
-                  <>🔊 Voice Roast</>
-                )}
-              </button>
-            )}
-          </div>
-          <p className="roast-text">
-            &ldquo;{displayedText}
-            {!typingDone && <span className="typing-cursor animate-blink" />}
-            {typingDone && showCursor && <span className="typing-cursor" />}
-            &rdquo;
-          </p>
+            <p className="rr-roast__text" aria-live="off">
+              {displayedText}
+              {!typingDone && <span className="rr-caret" aria-hidden="true" />}
+            </p>
+            {typingDone && <button type="button" className="gr-btn gr-btn--quiet" onClick={share.copyText}>Copy roast text</button>}
+          </section>
+
+          {/* Charges / receipts */}
+          {(commits.length > 0 || data.bioContrast?.reality) && (
+            <section aria-labelledby="rr-charges-h" className="rr-charges">
+              <p className="gr-eyebrow">The charges</p>
+              <h2 id="rr-charges-h" className="gr-h2">Developer sins, with receipts.</h2>
+              {commits.length > 0 && (
+                <article className="gr-card rr-charge">
+                  <div className="rr-charge__head">
+                    <h3>Commit confetti</h3>
+                    <span className="gr-pill gr-pill--blue">{commits.length} recent commits</span>
+                  </div>
+                  <ul className="rr-commits">
+                    {commits.map((m, i) => <li key={i} className="gr-mono">&ldquo;{m}&rdquo;</li>)}
+                  </ul>
+                  <a className="rr-evidence" href={`https://github.com/${data.username}`} target="_blank" rel="noopener noreferrer">Inspect public evidence →</a>
+                </article>
+              )}
+              {data.bioContrast?.reality && (
+                <article className="gr-card gr-card--ember rr-charge">
+                  <div className="rr-charge__head">
+                    <h3>Bio vs reality</h3>
+                    <span className="gr-pill gr-pill--ember">Resume claim vs git truth</span>
+                  </div>
+                  <p><b>Claimed:</b> &ldquo;{data.bioContrast.claimed}&rdquo;</p>
+                  <p><b>Hard truth:</b> {data.bioContrast.reality}</p>
+                  {data.bioContrast.verdict && <p className="rr-verdict">{data.bioContrast.verdict}</p>}
+                </article>
+              )}
+            </section>
+          )}
+
+          {typingDone && plan.length > 0 && (
+            <section className="gr-card gr-card--gold" aria-labelledby="rr-plan-h">
+              <p className="gr-eyebrow">AI action items</p>
+              <h2 id="rr-plan-h" className="gr-h3">Architect redemption plan</h2>
+              <ol className="rr-plan">
+                {plan.map((item, i) => <li key={i}><span className="gr-mono">0{i + 1}</span>{item}</li>)}
+              </ol>
+            </section>
+          )}
+
+          {typingDone && roastId && (
+            <section className="gr-card"><RoastReactions roastId={roastId} initialReactions={data.reactions || {}} /></section>
+          )}
         </div>
 
-        {/* ── AI Redemption Plan ── */}
-        {/* WHAT: Displays 3 actionable, humorous tips to help developer recover from the roast */}
-        {/* WHY: Delivers immense value beyond humor — elevates roast into an actionable improvement roadmap */}
-        {/* WHERE & WHEN TO USE: Rendered after typing completes when redemptionPlan is present */}
-        {/* USE CASES: Pro AI roasts, viral portfolio improvements, team code quality initiatives */}
-        {/* WHEN NOT TO USE: Never render while typing is in progress or when plan is empty */}
-        {typingDone && data?.redemptionPlan && data.redemptionPlan.length > 0 && (
-          <div className="redemption-container">
-            <div className="redemption-header font-mono">
-              <span className="redemption-badge">🛠️ ARCHITECT REDEMPTION PLAN</span>
-              <span className="redemption-pill">AI ACTION ITEMS</span>
+        <aside className="rr-rail">
+          <section className="gr-card" aria-labelledby="rr-anatomy-h">
+            <p className="gr-eyebrow">Score anatomy</p>
+            <h2 id="rr-anatomy-h" className="rr-rail__title">What shaped the score</h2>
+            {hasAnatomy ? (
+              <div className="rr-anatomy">
+                {ANATOMY.map((a) => <Meter key={a.key} label={a.label} tone={a.tone} signal={signals[a.key]} />)}
+              </div>
+            ) : (
+              <p className="gr-help">Not enough public evidence to break this score down.</p>
+            )}
+            <p className="gr-help">Weighted public signals. Collaboration needs review data and is shown only when available. Humor does not affect score.</p>
+            <Link href="/about#methodology" className="gr-btn gr-btn--outline gr-btn--block">View methodology</Link>
+          </section>
+
+          <section id="rr-badge" className="gr-card gr-card--gold" aria-labelledby="rr-badge-h">
+            <div className="rr-badge-preview">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={badgeSrc} alt={`@${data.username} GitRoast badge`} loading="lazy" />
             </div>
-            <div className="redemption-list">
-              {data.redemptionPlan.map((item, idx) => (
-                <div key={idx} className="redemption-row">
-                  <span className="redemption-index font-mono">0{idx + 1}</span>
-                  <span className="redemption-text">{item}</span>
-                </div>
+            <h2 id="rr-badge-h" className="rr-rail__title">Wear the evidence</h2>
+            <p className="gr-help">Copy Markdown for your README. The badge links back to dated methodology.</p>
+            <div className="gr-seg" role="tablist" aria-label="Badge style">
+              {['card', 'shield'].map((s) => (
+                <button key={s} type="button" role="tab" aria-selected={badgeStyle === s} onClick={() => setBadgeStyle(s)}>{s === 'card' ? 'Card' : 'Shield'}</button>
               ))}
             </div>
-          </div>
-        )}
+            <code className="gr-mono rr-code">{badgeMarkdown(data.username, badgeStyle)}</code>
+            <button type="button" className="gr-btn gr-btn--dark gr-btn--block" onClick={() => share.copyBadge(badgeStyle)}>Copy badge Markdown</button>
+          </section>
 
-        {/* WHY reactions INSIDE capture div:
-            Downloaded PNG shows how many people reacted
-            Social proof visible in every shared image
-            Adds credibility + curiosity for viewers */}
-        {typingDone && (data.roastId || data._id) && (
-          <RoastReactions
-            roastId={data.roastId || data._id}
-            initialReactions={data.reactions || {}}
-          />
-        )}
+          {!data.isPro && onProClick && (
+            <section className="gr-card gr-card--dark" aria-labelledby="rr-pro-h">
+              <span className="gr-pill gr-pill--ember">Pro Roaster</span>
+              <h2 id="rr-pro-h" className="gr-h3 rr-pro-title">Remember every burn.</h2>
+              <p className="rr-pro-text">Unlock full history, custom personas, private comparisons and Ghost Mode.</p>
+              <button type="button" className="gr-btn gr-btn--primary gr-btn--block" onClick={onProClick}>See Pro, no jump scare</button>
+            </section>
+          )}
 
-        {/* Brand row — always last inside capture */}
-        <div className="card-brand font-mono">
-          gitroast 🔥
-        </div>
+          <section className="gr-card rr-extras">
+            <RoastCertificate username={data.username} score={data.score} grade={data.grade} roastText={data.roast} isPro={data.isPro} />
+            <GitHubWrapped username={data.username} isPro={data.isPro} />
+            <Link href={`/universe/${data.username}`} className="gr-btn gr-btn--outline gr-btn--block">Launch 3D code solar system</Link>
+          </section>
 
-      </div>{/* end #roast-card-capture */}
-
-      {/* ── Nuclear Mode Pro Conversion Teaser (Outside image capture) ── */}
-      {/* WHAT: High-converting sneak peek displaying Gemini 2.5 AI Nuclear roast potential */}
-      {/* WHY: Showing users a blurred preview of what they are missing converts 5x better than static pricing */}
-      {/* WHERE & WHEN TO USE: Rendered immediately after typing finishes for unauthenticated or Free users */}
-      {/* USE CASES: Converting viral free roast viewers into paying Pro supporters */}
-      {/* WHEN NOT TO USE: Never render for active Pro subscribers (data.isPro === true) or inside PNG capture */}
-      {typingDone && !data.isPro && onProClick && (
-        <div className="nuclear-teaser-card">
-          <div className="nuclear-teaser-header font-mono">
-            <span className="nuclear-teaser-badge">☢️ NUCLEAR BURN PREVIEW</span>
-            <span className="nuclear-pro-pill">PRO ONLY</span>
-          </div>
-          <div className="nuclear-teaser-body">
-            <p className="nuclear-quote font-mono">
-              &ldquo;Google Gemini AI deep architectural analysis: your repository looks like a prototype that accidentally slipped into production...&rdquo;
-            </p>
-            <div className="nuclear-glass-overlay">
-              <div className="nuclear-lock-info font-mono">
-                <span className="nuclear-lock-icon">🔒</span>
-                <span className="nuclear-lock-text">Gemini AI Nuclear roast & private repos locked</span>
-              </div>
-              <button
-                type="button"
-                className="btn btn-primary nuclear-upgrade-btn font-mono"
-                onClick={onProClick}
-                title="Unlock AI roasts and watermark-free downloads"
-              >
-                ⚡ Unlock Nuclear Burn — ₹99
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Share buttons — outside capture */}
-      {typingDone && (
-        <ShareButtons
-          username={data.username}
-          roastId={data.roastId || data._id}
-          roastText={data.roast}
-          isPro={data.isPro}
-          onProClick={onProClick}
-          score={data.score}
-          grade={data.grade}
-        />
-      )}
-
-      <style jsx>{`
-        .roast-card { width: 100%; max-width: 580px; }
-
-        .card-header {
-          padding:         1.25rem 1.5rem;
-          background:      linear-gradient(160deg, #111 0%, #180800 100%);
-          border-bottom:   1px solid var(--border);
-          display:         flex;
-          justify-content: space-between;
-          align-items:     center;
-          gap:             1rem;
-          flex-wrap:       wrap;
-        }
-        .profile-info {
-          display:     flex;
-          align-items: center;
-          gap:         12px;
-          min-width:   0;
-        }
-        .avatar-box {
-          width:           46px;
-          height:          46px;
-          border-radius:   50%;
-          background:      #161616;
-          border:          2px solid rgba(255, 69, 0, 0.4);
-          overflow:        hidden;
-          display:         flex;
-          align-items:     center;
-          justify-content: center;
-          flex-shrink:     0;
-        }
-        .avatar-img {
-          width:       100%;
-          height:      100%;
-          object-fit:  cover;
-          border-radius: 50%;
-        }
-        .avatar-fallback {
-          width:           100%;
-          height:          100%;
-          display:         flex;
-          align-items:     center;
-          justify-content: center;
-          font-size:       18px;
-          color:           var(--fire);
-        }
-        .profile-name {
-          font-weight:   600;
-          font-size:     15px;
-          margin:        0;
-          overflow:      hidden;
-          text-overflow: ellipsis;
-          white-space:   nowrap;
-          max-width:     200px;
-        }
-        .profile-meta { color: var(--text-secondary); font-size: 11px; margin: 2px 0 0; }
-
-        .score-block  { text-align: right; flex-shrink: 0; cursor: help; }
-        .score-number { font-size: clamp(36px, 8vw, 52px); line-height: 1; }
-        .score-label  { color: var(--text-muted); font-size: 10px; }
-        .score-hint   { color: var(--text-muted); font-size: 9px; margin-top: 2px; }
-        .grade-badge  {
-          display:       inline-block;
-          margin-top:    4px;
-          padding:       2px 8px;
-          background:    rgba(255, 61, 61, 0.12);
-          border:        1px solid rgba(255, 61, 61, 0.25);
-          border-radius: var(--radius-sm);
-          font-size:     11px;
-          font-weight:   600;
-        }
-
-        .roast-text-block {
-          padding:       1.4rem 1.5rem;
-          border-bottom: 1px solid var(--border);
-          border-left:   3px solid var(--fire);
-          background:    linear-gradient(135deg, #110900 0%, #0F0F0F 100%);
-          min-height:    120px;
-        }
-        .roast-text-header {
-          display:         flex;
-          align-items:     center;
-          justify-content: space-between;
-          margin-bottom:   10px;
-          gap:             8px;
-        }
-        .roast-header-left {
-          display:     flex;
-          align-items: center;
-          gap:         8px;
-        }
-        .voice-roast-btn {
-          display:       flex;
-          align-items:   center;
-          gap:           6px;
-          padding:       4px 10px;
-          font-size:     11px;
-          background:    var(--bg-elevated);
-          border:        1px solid var(--border);
-          border-radius: var(--radius-sm);
-          color:         var(--text-secondary);
-          cursor:        pointer;
-          transition:    all 0.15s ease;
-        }
-        .voice-roast-btn:hover {
-          border-color: var(--fire);
-          color:        var(--fire);
-          background:   rgba(255, 69, 0, 0.08);
-        }
-        .voice-roast-btn--active {
-          border-color: var(--bad);
-          color:        var(--bad);
-          background:   rgba(255, 61, 61, 0.12);
-        }
-        .voice-pulse {
-          width:         6px;
-          height:        6px;
-          border-radius: 50%;
-          background:    var(--bad);
-          animation:     voiceBlink 0.8s infinite alternate;
-        }
-        @keyframes voiceBlink {
-          from { opacity: 0.3; transform: scale(0.8); }
-          to   { opacity: 1;   transform: scale(1.2); }
-        }
-        .roast-text-label {
-          color:          var(--fire);
-          font-size:      9px;
-          text-transform: uppercase;
-          letter-spacing: 2px;
-        }
-        .roast-text {
-          color:       var(--text-primary);
-          font-size:   14px;
-          line-height: 1.8;
-          font-style:  italic;
-          min-height:  48px;
-        }
-        .typing-cursor {
-          display:        inline-block;
-          width:          2px;
-          height:         14px;
-          background:     var(--fire);
-          vertical-align: middle;
-          margin-left:    2px;
-          border-radius:  1px;
-        }
-        .ai-badge {
-          font-size:      9px;
-          padding:        2px 8px;
-          background:     rgba(255, 183, 0, 0.12);
-          border:         1px solid rgba(255, 183, 0, 0.35);
-          border-radius:  4px;
-          color:          var(--fire-warm);
-          letter-spacing: 1px;
-        }
-        .persona-badge {
-          font-size:      9px;
-          padding:        2px 8px;
-          background:     rgba(255, 107, 0, 0.12);
-          border:         1px solid rgba(255, 107, 0, 0.35);
-          border-radius:  4px;
-          color:          var(--fire);
-          letter-spacing: 0.5px;
-        }
-        .card-brand {
-          padding:        8px 1.5rem;
-          font-size:      10px;
-          color:          var(--fire);
-          text-align:     right;
-          letter-spacing: 1px;
-          background:     #080808;
-          border-top:     1px solid var(--border);
-        }
-
-        .redemption-container {
-          padding: 1.2rem 1.5rem;
-          border-bottom: 1px solid var(--border);
-          background: linear-gradient(180deg, rgba(24, 12, 4, 0.5) 0%, rgba(10, 10, 10, 0.6) 100%);
-        }
-        .redemption-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 12px;
-          gap: 8px;
-        }
-        .redemption-badge {
-          font-size: 11px;
-          color: #ffaa55;
-          letter-spacing: 1px;
-          font-weight: 700;
-        }
-        .redemption-pill {
-          font-size: 9px;
-          padding: 2px 7px;
-          background: rgba(255, 69, 0, 0.12);
-          border: 1px solid rgba(255, 69, 0, 0.3);
-          border-radius: 4px;
-          color: var(--fire);
-          letter-spacing: 0.8px;
-        }
-        .redemption-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .redemption-row {
-          display: flex;
-          align-items: flex-start;
-          gap: 10px;
-          padding: 8px 10px;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: var(--radius-sm);
-        }
-        .redemption-index {
-          font-size: 11px;
-          color: var(--fire-warm);
-          font-weight: 700;
-          line-height: 1.4;
-          flex-shrink: 0;
-        }
-        .redemption-text {
-          font-size: 12px;
-          line-height: 1.45;
-          color: var(--text-primary);
-        }
-
-        .bio-contrast-box {
-          padding:       1.2rem 1.5rem;
-          border-bottom: 1px solid var(--border);
-          background:    rgba(0, 0, 0, 0.35);
-        }
-        .bio-contrast-header {
-          display:         flex;
-          align-items:     center;
-          justify-content: space-between;
-          margin-bottom:   10px;
-          flex-wrap:       wrap;
-          gap:             6px;
-        }
-        .bio-contrast-tag {
-          font-size:      10px;
-          color:          #ffaa55;
-          letter-spacing: 1.5px;
-          font-weight:    700;
-        }
-        .bio-contrast-sub {
-          font-size:      9px;
-          color:          var(--text-muted);
-        }
-        .bio-contrast-grid {
-          display:               grid;
-          grid-template-columns: 1fr 1fr;
-          gap:                   10px;
-        }
-        .bio-contrast-card {
-          padding:       10px 12px;
-          border-radius: var(--radius-sm);
-          border:        1px solid var(--border);
-          background:    rgba(255, 255, 255, 0.02);
-        }
-        .bio-claimed {
-          border-left: 2px solid #ffb700;
-        }
-        .bio-reality {
-          border-left: 2px solid var(--bad);
-        }
-        .bio-card-label {
-          font-size:     10px;
-          color:         var(--text-muted);
-          display:       block;
-          margin-bottom: 4px;
-        }
-        .bio-card-text {
-          font-size:   11px;
-          line-height: 1.5;
-          color:       var(--text-secondary);
-        }
-        .bio-verdict {
-          margin-top:    10px;
-          font-size:     11px;
-          padding:       6px 10px;
-          background:    rgba(255, 69, 0, 0.08);
-          border:        1px solid rgba(255, 69, 0, 0.2);
-          border-radius: var(--radius-sm);
-          color:         var(--text-primary);
-        }
-        /* ── Nuclear Mode Pro Conversion Teaser ── */
-        .nuclear-teaser-card {
-          margin-top: 1rem;
-          background: #0d0a08;
-          border: 1px solid rgba(255, 69, 0, 0.35);
-          border-radius: var(--radius-md);
-          overflow: hidden;
-          position: relative;
-        }
-        .nuclear-teaser-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 8px 14px;
-          background: rgba(255, 69, 0, 0.08);
-          border-bottom: 1px solid rgba(255, 69, 0, 0.2);
-        }
-        .nuclear-teaser-badge {
-          font-size: 11px;
-          color: var(--fire);
-          letter-spacing: 0.5px;
-          font-weight: 700;
-        }
-        .nuclear-pro-pill {
-          font-size: 9px;
-          padding: 2px 6px;
-          background: var(--fire);
-          color: #fff;
-          border-radius: 4px;
-          font-weight: 700;
-          letter-spacing: 0.5px;
-        }
-        .nuclear-teaser-body {
-          padding: 1rem 1.25rem;
-          position: relative;
-          min-height: 90px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .nuclear-quote {
-          font-size: 12px;
-          line-height: 1.6;
-          color: var(--text-secondary);
-          filter: blur(2.5px);
-          user-select: none;
-          margin: 0;
-          width: 100%;
-          opacity: 0.7;
-        }
-        .nuclear-glass-overlay {
-          position: absolute;
-          inset: 0;
-          background: rgba(13, 10, 8, 0.65);
-          backdrop-filter: blur(4px);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          padding: 12px;
-          text-align: center;
-        }
-        .nuclear-lock-info {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 11px;
-          color: var(--text-primary);
-        }
-        .nuclear-lock-icon {
-          font-size: 13px;
-        }
-        .nuclear-upgrade-btn {
-          font-size: 12px;
-          padding: 7px 18px;
-          border-radius: var(--radius-sm);
-          font-weight: 700;
-          box-shadow: 0 0 16px rgba(255, 69, 0, 0.35);
-          cursor: pointer;
-        }
-
-        @media (max-width: 480px) {
-          .bio-contrast-grid { grid-template-columns: 1fr; }
-          .card-header  { flex-direction: column; align-items: flex-start; }
-          .score-block  { text-align: left; }
-          .profile-name { max-width: 100%; }
-          .nuclear-lock-info { font-size: 10px; }
-          .nuclear-upgrade-btn { width: 100%; }
-        }
-      `}</style>
+          <p className="gr-help rr-footnote">Keep it playful. Share public work, not personal information. Report harmful output from the result menu.</p>
+        </aside>
+      </div>
     </div>
   )
 }

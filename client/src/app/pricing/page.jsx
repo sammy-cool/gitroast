@@ -48,7 +48,7 @@ const jsonLd = {
     name: 'GitRoast Pro Pricing & Plans',
     url: `${SITE_URL}/pricing`,
     description:
-        'Pricing and plan options for GitRoast. Upgrade to Pro for Nuclear mode, Gemini AI generative roasts, and unwatermarked downloads.',
+        'Pricing and plan options for GitRoast. Free to get roasted, Pro to remember everything. Prices adjust to your region.',
     mainEntity: {
         '@type': 'Product',
         name: 'GitRoast Pro',
@@ -59,23 +59,23 @@ const jsonLd = {
         },
         offers: {
             '@type': 'AggregateOffer',
-            priceCurrency: 'INR',
-            lowPrice: '99',
-            highPrice: '199',
+            priceCurrency: 'USD',
+            lowPrice: '9',
+            highPrice: '19',
             offerCount: '2',
             offers: [
                 {
                     '@type': 'Offer',
-                    name: 'The Roaster',
-                    price: '99',
-                    priceCurrency: 'INR',
+                    name: 'Pro Roaster',
+                    price: '9',
+                    priceCurrency: 'USD',
                     availability: 'https://schema.org/InStock',
                 },
                 {
                     '@type': 'Offer',
-                    name: 'The Historian',
-                    price: '199',
-                    priceCurrency: 'INR',
+                    name: 'Historian',
+                    price: '19',
+                    priceCurrency: 'USD',
                     availability: 'https://schema.org/InStock',
                 },
             ],
@@ -94,3 +94,4 @@ export default function PricingPage() {
         </>
     )
 }
+

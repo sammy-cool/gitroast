@@ -1,0 +1,43 @@
+.rr { display: grid; gap: 20px; width: 100%; max-width: 1280px; margin: 0 auto; padding: 0 0 56px; }
+.rr-capture { background: var(--ink); }
+.rr-hero { background: var(--ink); color: #fff; padding: 40px 48px 28px; display: grid; gap: 40px; }
+.rr-id { display: flex; align-items: center; gap: 14px; }
+.rr-avatar { position: relative; display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--gold-tint); color: var(--ink); overflow: hidden; flex: none; }
+.rr-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.rr-name { font: 600 18px var(--font-sans); } .rr-meta { font: 400 11px var(--font-code); color: #bdb7a8; text-transform: uppercase; margin-top: 2px; }
+.rr-hero__body { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: center; }
+.rr-tags { font: 600 11px var(--font-code); letter-spacing: .08em; text-transform: uppercase; color: #fff; }
+.rr-quote { font: 400 clamp(32px, 4.4vw, 60px)/1.05 var(--font-serif); margin: 14px 0; color: #fff; }
+.rr-sub { color: #cfc9ba; font-size: 16px; max-width: 54ch; }
+.rr-score { width: clamp(180px, 22vw, 250px); }
+.rr-brand { font: 400 11px var(--font-code); color: #8a8578; justify-self: end; }
+.rr-actions { display: flex; flex-wrap: wrap; gap: 10px; padding: 0 4px; }
+.rr-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.rr-metric { display: grid; gap: 6px; padding: 18px; }
+.rr-metric__k { color: var(--ink-2); font-size: 10px; }
+.rr-metric__v { font: 400 40px/1 var(--font-serif); } .rr-metric__v--bad { color: var(--ember); }
+.rr-cols { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+.rr-main, .rr-rail { display: grid; gap: 16px; }
+.rr-roast__head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 10px; }
+.rr-roast__text { font: 400 17px/1.7 var(--font-sans); white-space: pre-wrap; margin-bottom: 8px; min-height: 5em; }
+.rr-caret { display: inline-block; width: 2px; height: 1em; background: var(--ember); vertical-align: -2px; margin-left: 2px; animation: rr-blink 1s steps(2) infinite; }
+@keyframes rr-blink { 50% { opacity: 0; } }
+.rr-charges { display: grid; gap: 14px; }
+.rr-charge { display: grid; gap: 10px; }
+.rr-charge__head { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
+.rr-charge__head h3 { font: 500 20px var(--font-sans); }
+.rr-commits { list-style: none; display: grid; gap: 6px; } .rr-commits li { font-size: 13px; padding: 8px 12px; background: var(--surface-2); border-radius: var(--r-2); overflow-wrap: anywhere; }
+.rr-evidence { color: var(--ember-hover); font: 600 13px var(--font-sans); text-decoration: none; min-height: 32px; display: inline-flex; align-items: center; }
+.rr-verdict { font: 400 20px/1.3 var(--font-serif); }
+.rr-plan { list-style: none; display: grid; gap: 10px; margin-top: 10px; } .rr-plan li { display: grid; grid-template-columns: 32px 1fr; gap: 8px; font-size: 14px; } .rr-plan span { color: var(--ember-hover); }
+.rr-rail__title { font: 500 20px var(--font-sans); margin: 4px 0 12px; }
+.rr-anatomy { display: grid; gap: 14px; margin-bottom: 14px; }
+.rr-rail .gr-card { display: grid; gap: 10px; }
+.rr-badge-preview { background: var(--ink); border-radius: var(--r-2); padding: 14px; display: grid; place-items: center; min-height: 64px; } .rr-badge-preview img { max-width: 100%; height: auto; }
+.rr-code { display: block; font-size: 11px; background: rgba(23,23,17,.07); padding: 10px; border-radius: var(--r-2); overflow-wrap: anywhere; }
+.rr-pro-title { color: #fff; } .rr-pro-text { color: #cfc9ba; font-size: 14px; }
+.rr-extras :where(button) { width: 100%; }
+.rr-footnote { padding: 0 4px; }
+@media (max-width: 1000px) { .rr-cols { grid-template-columns: 1fr; } .rr-metrics { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 700px) { .rr-hero { padding: 24px 20px 20px; gap: 24px; } .rr-hero__body { grid-template-columns: 1fr; } .rr-score { width: 170px; justify-self: start; } }
+@media (prefers-reduced-motion: reduce) { .rr-caret { animation: none; } }

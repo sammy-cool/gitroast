@@ -1,80 +1,58 @@
-// ============================================================
-// GITROAST — Shared System Constants & Validation Contracts
-// ============================================================
-// ── WHAT: ────────────────────────────────────────────────────
-// Single source of truth defining cross-tier domain constants:
-// • Username validation regexes and character constraints
-// • Roast burn intensity levels (mild, savage, nuclear)
-// • Reaction classifications (savage, destroyed, fire, skull, clown)
-// • Academic letter grade benchmarks (A through F-)
-// • Standardized API error codes
-//
-// ── WHY: ─────────────────────────────────────────────────────
-// 1. Contract Synchronization: Prevents drift between Next.js client inputs and Express validation.
-// 2. DRY (Don't Repeat Yourself): Updates to valid characters or enum lists occur in ONE place.
-// 3. Type & Domain Safety: Guarantees that both client forms and MongoDB schema models agree.
-//
-// ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// • In server validation middleware, Mongoose schema enum arrays, and route controllers.
-// • In client form validators (`UsernameInput.jsx`, `LandingPageClient.jsx`, `roastService.js`).
-//
-// ── USE CASES: ───────────────────────────────────────────────
-// • Validating username format before sending fetch request.
-// • Verifying reaction types in `POST /api/history/:id/react` and `POST /api/battle/:id/react`.
-// • Populating intensity selector options.
-//
-// ── WHEN NOT TO USE: ─────────────────────────────────────────
-// • DO NOT store secrets, environment-dependent URLs, or credentials in this file.
-// ============================================================
-
-/**
- * Valid GitHub username pattern:
- * - Alphanumeric with single hyphens, dots, or underscores
- * - Max length 39 characters (GitHub standard limit)
- */
 const USERNAME_REGEX = /^[a-zA-Z0-9-._]+$/;
 
-/**
- * Burn intensity tiers supported by GitRoast
- */
-const INTENSITY_LEVELS = ["mild", "savage", "nuclear"];
-const DEFAULT_INTENSITY = "savage";
+// ── Intensity ────────────────────────────────────────────────
+// Canonical (design) vocabulary: warm / crispy / nuclear.
+// Legacy values (mild / savage) are still accepted everywhere and are
+// normalised on input, so old Mongo documents and old links keep working.
+const INTENSITY_LEVELS = ["warm", "crispy", "nuclear"];
+const LEGACY_INTENSITY_ALIASES = { mild: "warm", savage: "crispy" };
+const DEFAULT_INTENSITY = "crispy";
+// Roast engines/prompts are still keyed by the legacy names.
+const ENGINE_INTENSITY = { warm: "mild", crispy: "savage", nuclear: "nuclear" };
+const ALL_INTENSITY_VALUES = [...INTENSITY_LEVELS, ...Object.keys(LEGACY_INTENSITY_ALIASES)];
 
-// ── Reaction Constants Synchronization ─────────────────────────
-// ── WHAT: ────────────────────────────────────────────────────
-// Standardized array of allowed emoji reaction classifications:
-// • relatable (😂): Empathetic amusement
-// • destroyed (💀): Severe ego damage
-// • savage (🔥): Maximum brutality endorsement
-//
-// ── WHY: ─────────────────────────────────────────────────────
-// Fixes domain model drift where constants omitted 'relatable' or
-// specified divergent battle types ('fire', 'skull', 'clown') that
-// did not match the Mongoose schema keys (reactions.relatable,
-// reactions.destroyed, reactions.savage).
-//
-// ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// • In server route controllers (/api/history/:id/react, /api/battle/:id/react)
-// • In Mongoose schema validation arrays
-// • In client reaction button state management
-//
-// ── USE CASES: ───────────────────────────────────────────────
-// • Whitelisting client payload properties before performing $inc operations.
-//
-// ── WHEN NOT TO USE: ─────────────────────────────────────────
-// • Do not use as arbitrary user text tags; these are strict enums.
+function normalizeIntensity(raw, fallback = DEFAULT_INTENSITY) {
+  const v = String(raw || "").toLowerCase().trim();
+  if (INTENSITY_LEVELS.includes(v)) return v;
+  if (LEGACY_INTENSITY_ALIASES[v]) return LEGACY_INTENSITY_ALIASES[v];
+  return fallback;
+}
+function toEngineIntensity(raw) {
+  return ENGINE_INTENSITY[normalizeIntensity(raw)];
+}
+
+// ── Personas ─────────────────────────────────────────────────
+// Three featured voices from the design + legacy voices kept as "more voices".
+const PERSONAS = [
+  { id: "staff_engineer", label: "Staff engineer", blurb: "Dry, specific", featured: true },
+  { id: "chaos_intern", label: "Chaos intern", blurb: "Fast, feral", featured: true },
+  { id: "historian", label: "Historian", blurb: "Long memory", featured: true },
+  { id: "hinglish", label: "Desi Tech Lead", blurb: "Hinglish office comedy", featured: false },
+  { id: "ramsay", label: "Chef Ramsay", blurb: "Kitchen fury", featured: false },
+  { id: "shakespearean", label: "Shakespeare", blurb: "Elizabethan tragedy", featured: false },
+];
+const LEGACY_PERSONA_ALIASES = { classic: "staff_engineer", techbro: "chaos_intern" };
+const PERSONA_IDS = PERSONAS.map((p) => p.id);
+const ALL_PERSONA_VALUES = [...PERSONA_IDS, ...Object.keys(LEGACY_PERSONA_ALIASES)];
+const DEFAULT_PERSONA = "staff_engineer";
+
+function normalizePersona(raw, fallback = DEFAULT_PERSONA) {
+  const v = String(raw || "").toLowerCase().trim();
+  if (PERSONA_IDS.includes(v)) return v;
+  if (LEGACY_PERSONA_ALIASES[v]) return LEGACY_PERSONA_ALIASES[v];
+  return fallback;
+}
+
+// ── Roles / plans ────────────────────────────────────────────
+const USER_ROLES = ["developer", "recruiter"];
+const PLAN_IDS = ["roaster", "historian"];
+
 const ROAST_REACTION_TYPES = ["relatable", "destroyed", "savage"];
 const BATTLE_REACTION_TYPES = ["relatable", "destroyed", "savage"];
 const ALL_REACTION_TYPES = [...new Set([...ROAST_REACTION_TYPES, ...BATTLE_REACTION_TYPES])];
 
-/**
- * Academic roast grades calculated from score (1-100)
- */
 const ROAST_GRADES = ["A", "B", "C", "D", "F", "F-"];
 
-/**
- * Standardized API Error Codes returned across endpoints
- */
 const ERROR_CODES = {
   USER_NOT_FOUND: "USER_NOT_FOUND",
   ORGANIZATION_NOT_SUPPORTED: "ORGANIZATION_NOT_SUPPORTED",
@@ -89,12 +67,24 @@ const ERROR_CODES = {
   SERVER_ERROR: "SERVER_ERROR",
 };
 
-// Universal module export supporting CommonJS (Node.js) and ES module environments
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     USERNAME_REGEX,
     INTENSITY_LEVELS,
+    LEGACY_INTENSITY_ALIASES,
+    ALL_INTENSITY_VALUES,
     DEFAULT_INTENSITY,
+    ENGINE_INTENSITY,
+    normalizeIntensity,
+    toEngineIntensity,
+    PERSONAS,
+    PERSONA_IDS,
+    ALL_PERSONA_VALUES,
+    LEGACY_PERSONA_ALIASES,
+    DEFAULT_PERSONA,
+    normalizePersona,
+    USER_ROLES,
+    PLAN_IDS,
     ROAST_REACTION_TYPES,
     BATTLE_REACTION_TYPES,
     ALL_REACTION_TYPES,
@@ -102,3 +92,4 @@ if (typeof module !== "undefined" && module.exports) {
     ERROR_CODES,
   };
 }
+

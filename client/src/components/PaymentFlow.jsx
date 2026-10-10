@@ -1,35 +1,14 @@
 'use client'
 
-// ============================================================
-// GITROAST — PaymentFlow Component
-// ============================================================
-// WHAT: Handles the complete Razorpay payment sequence.
-//       Loads Razorpay SDK → creates order → opens popup →
-//       verifies payment → unlocks Pro.
-//
-// PROPS:
-//   planId   — string: 'roaster' | 'historian'
-//   onClose  — function: called on success OR cancel
-//
-// WHY planId not planKey:
-//   Old system used planKey ('pro_one_time' etc)
-//   New system uses planId ('roaster'/'historian')
-//   Backend /api/payment/create-order now expects { planId }
-//
-// WHY no price prop:
-//   Price comes from backend with the order
-//   Frontend never dictates price — prevents tampering
-// ============================================================
 
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from '@/utils/toast'
+import { detectCountry, formatPrice } from '@/services/roastService'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'
 const RAZORPAY_KEY = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
 
-// WHY local map: display labels for each planId
-//     not fetched from server — just UI strings
 const PLAN_DISPLAY = {
     roaster: { name: 'Roaster', label: 'The Real Roast' },
     historian: { name: 'Historian', label: 'The Long Game' },
@@ -39,25 +18,8 @@ export default function PaymentFlow({ planId, onClose }) {
     const { getToken, user, refreshUser } = useAuth()
     const [status, setStatus] = useState('sdk_loading')
     const [errorMsg, setErrorMsg] = useState('')
-    const [planInfo, setPlanInfo] = useState(null) // WHY: store price from server
+    const [planInfo, setPlanInfo] = useState(null)
 
-    /* 
-      ── WHAT: ────────────────────────────────────────────────────────
-      Timeout reference for delayed modal auto-close after successful payment.
-      
-      ── WHY: ─────────────────────────────────────────────────────────
-      Prevents memory leaks and executing setState/onClose on unmounted components
-      if the user dismisses the dialog manually before the 2-second grace period ends.
-      
-      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-      Any delayed UI transition or navigation following asynchronous flows.
-      
-      ── USE CASES: ───────────────────────────────────────────────────
-      Success toasts, modal dismissal timers, redirect delays.
-      
-      ── WHEN NOT TO USE: ─────────────────────────────────────────────
-      Immediate synchronous transitions.
-    */
     const closeTimerRef = useRef(null)
 
     useEffect(() => {
@@ -68,10 +30,6 @@ export default function PaymentFlow({ planId, onClose }) {
         }
     }, [])
 
-    // ── Load Razorpay SDK ──────────────────────────────────────
-    // WHY load on mount not on click:
-    //   SDK takes ~1s to load — preloading avoids delay when user clicks Pay
-    //   If already loaded → skip
     useEffect(() => {
         if (window.Razorpay) { setStatus('ready'); return }
 
@@ -94,10 +52,6 @@ export default function PaymentFlow({ planId, onClose }) {
         document.body.appendChild(script)
     }, [])
 
-    // ── Create order + open Razorpay popup ────────────────────
-    // WHY server-side order creation:
-    //   Amount must be set on server — user cannot tamper with price
-    //   key_secret stays on server — never exposed to browser
     async function handlePayment() {
         setStatus('creating')
 
@@ -106,25 +60,20 @@ export default function PaymentFlow({ planId, onClose }) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    // WHY Authorization: server needs to know which user is paying
                     Authorization: `Bearer ${getToken()}`,
                 },
-                // WHY planId not plan: new backend expects planId
-                body: JSON.stringify({ planId }),
+                body: JSON.stringify({ planId, country: await detectCountry() }),
             })
 
             const json = await res.json()
             if (!json.success) throw new Error(json.message)
 
-            // WHY store planInfo: show price in UI summary
             setPlanInfo({ amount: json.amount, currency: json.currency })
 
             const options = {
                 key: json.keyId || RAZORPAY_KEY,
                 amount: json.amount,
                 currency: json.currency,
-                // WHY no emojis: Razorpay checkout options only accept ASCII
-                // Emojis in name/description → 400 Bad Request from Razorpay checkout
                 name: 'GitRoast',
                 description: `${PLAN_DISPLAY[planId]?.label || 'Pro Plan'}`,
                 order_id: json.orderId,
@@ -133,11 +82,8 @@ export default function PaymentFlow({ planId, onClose }) {
                     name: user?.username || '',
                 },
                 notes: { planId },
-                theme: { color: '#FF4500' },
+                theme: { color: '#E84E2A' },
 
-                // WHY handler on popup close with success:
-                //   Razorpay calls this after user pays in popup
-                //   We then verify on server before unlocking Pro
                 handler: async function (response) {
                     setStatus('processing')
                     await verifyPayment(response, json.orderId)
@@ -155,16 +101,13 @@ export default function PaymentFlow({ planId, onClose }) {
 
             const rzp = new window.Razorpay(options)
 
-            // WHY payment.failed listener:
-            //   Razorpay popup handles UI for failures
-            //   But we need to reset our state and inform user
             rzp.on('payment.failed', function (response) {
                 toast.paymentError(`Payment failed: ${response.error.description}`)
                 setStatus('ready')
             })
 
             rzp.open()
-            setStatus('ready') // WHY: reset while popup is open
+            setStatus('ready')
 
         } catch (err) {
             setStatus('error')
@@ -173,12 +116,6 @@ export default function PaymentFlow({ planId, onClose }) {
         }
     }
 
-    // ── Verify payment on server ──────────────────────────────
-    // WHY verify server-side:
-    //   Razorpay sends payment details to frontend after popup
-    //   We forward to our server which verifies HMAC signature
-    //   If signature valid → server sets isPro = true in MongoDB
-    //   Without verification: anyone could fake a successful payment
     async function verifyPayment(razorpayResponse, orderId) {
         try {
             const res = await fetch(`${API_BASE}/api/payment/verify`, {
@@ -191,7 +128,6 @@ export default function PaymentFlow({ planId, onClose }) {
                     orderId: razorpayResponse.razorpay_order_id || orderId,
                     paymentId: razorpayResponse.razorpay_payment_id,
                     signature: razorpayResponse.razorpay_signature,
-                    // WHY planId: server logs which plan was purchased
                     planId,
                 }),
             })
@@ -199,31 +135,17 @@ export default function PaymentFlow({ planId, onClose }) {
             const json = await res.json()
             if (!json.success) throw new Error(json.message)
 
-            // WHY refreshUser: immediately updates isPro in AuthContext so whole UI unlocks Pro
             if (refreshUser) {
                 await refreshUser()
             }
 
             setStatus('done')
 
-            /* 
-              ── WHAT: ────────────────────────────────────────────────────────
-              Trigger master Pro payment celebratory toast on verification success.
-              ── WHY: ─────────────────────────────────────────────────────────
-              Provides immediate dopamine and clarifies that Pro features are active.
-              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-              Called only after backend cryptographically verifies the Razorpay signature.
-              ── USE CASES: ───────────────────────────────────────────────────
-              Completing checkout on Roaster or Historian tier.
-              ── WHEN NOT TO USE: ─────────────────────────────────────────────
-              Do not trigger before backend signature validation succeeds.
-            */
             toast.paymentSuccess({
                 message: '⚡ You are now Pro! AI roasts + Nuclear unlocked.',
                 position: 'top-center',
             })
 
-            // WHY 2s delay: let user see success screen before closing
             closeTimerRef.current = setTimeout(() => {
                 if (typeof onClose === 'function') onClose()
             }, 2000)
@@ -231,18 +153,6 @@ export default function PaymentFlow({ planId, onClose }) {
         } catch (err) {
             setStatus('error')
             setErrorMsg(err.message || 'Payment verification failed.')
-            /* 
-              ── WHAT: ────────────────────────────────────────────────────────
-              Display high-priority payment failure toast with reassurance and guidance.
-              ── WHY: ─────────────────────────────────────────────────────────
-              Avoids user panic by confirming no accidental charges and advising next step.
-              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-              In catch block of backend payment verification step.
-              ── USE CASES: ───────────────────────────────────────────────────
-              Tampered signatures, network drops, or rejected payments.
-              ── WHEN NOT TO USE: ─────────────────────────────────────────────
-              Do not display on intentional user modal dismissals.
-            */
             toast.paymentError(
                 err.message || 'Verification failed. Contact support with your payment ID.',
                 { position: 'top-center' }
@@ -252,7 +162,6 @@ export default function PaymentFlow({ planId, onClose }) {
 
     const display = PLAN_DISPLAY[planId] || { name: 'Pro', label: '' }
 
-    // ── Loading states ────────────────────────────────────────
     if (status === 'sdk_loading' || status === 'creating') {
         return (
             <div className="pf-center">
@@ -314,11 +223,10 @@ export default function PaymentFlow({ planId, onClose }) {
         )
     }
 
-    // ── Ready state — main payment UI ─────────────────────────
     return (
         <div className="payment-flow">
 
-            {/* Plan summary */}
+            {}
             <div className="pf-summary">
                 <div>
                     <p className="pf-plan-name font-mono">{display.name}</p>
@@ -326,12 +234,12 @@ export default function PaymentFlow({ planId, onClose }) {
                 </div>
                 {planInfo && (
                     <div className="pf-price font-display">
-                        ₹{planInfo.amount / 100}
+                        {formatPrice(planInfo.amount, planInfo.currency)}
                     </div>
                 )}
             </div>
 
-            {/* Payment methods */}
+            {}
             <div className="pf-methods font-mono">
                 <p className="pf-methods-title">Accepted payment methods</p>
                 <div className="pf-methods-list">
@@ -342,7 +250,7 @@ export default function PaymentFlow({ planId, onClose }) {
                 </div>
             </div>
 
-            {/* What unlocks */}
+            {}
             <div className="pf-unlocks font-mono">
                 <p className="pf-unlocks-title">After payment you unlock:</p>
                 <p className="pf-unlock-item">✓ Real Gemini AI roasts — not scripts</p>
@@ -354,7 +262,7 @@ export default function PaymentFlow({ planId, onClose }) {
                 )}
             </div>
 
-            {/* Pay button */}
+            {}
             <button
                 type="button"
                 className="btn btn-primary pf-pay-btn"
@@ -465,3 +373,4 @@ const STYLES = `
   .pf-secure { text-align: center; font-size: 11px; color: var(--text-muted); }
   .pf-cancel { align-self: center; }
 `
+

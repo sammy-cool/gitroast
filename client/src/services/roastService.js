@@ -1,55 +1,5 @@
-// ============================================================
-// GITROAST — Client API Gateway & HTTP Service Layer
-// ============================================================
-// ── WHAT: ────────────────────────────────────────────────────
-// Centralized frontend API abstraction communicating with the GitRoast Express backend.
-// Manages endpoint routing, dynamic timeout management (extended 60s for Render cold-starts),
-// transparent Google reCAPTCHA token injection for unauthenticated guests, idempotency keys,
-// Authorization Bearer headers, and standardized error parsing with HTTP 429 Retry-After.
-//
-// ── WHY: ─────────────────────────────────────────────────────
-// 1. Separation of Concerns: React components remain pure presentation and UI state handlers;
-//    they never formulate raw HTTP requests, fetch options, or header definitions directly.
-// 2. Centralized Fault Tolerance: Implements resilient timeout thresholds, network recovery,
-//    and fail-open CAPTCHA generation without duplicating logic across 12+ pages.
-// 3. Deployment Agility: Changing the API root URL or endpoint query parameters happens
-//    in a single file (`API_BASE`) rather than across dozens of scattered files.
-//
-// ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// • Import named service functions (`getRoast`, `getRoastHistory`, `getLeaderboard`,
-//   `searchLeaderboard`, `startBattle`, etc.) inside React client components and custom hooks.
-//
-// ── USE CASES: ───────────────────────────────────────────────
-// • Fetching roast results with `X-Idempotency-Key` and `X-Captcha-Token` headers.
-// • Paging and searching the Wall of Shame leaderboard.
-// • Dispatching contact messages and support tickets.
-//
-// ── WHEN NOT TO USE: ─────────────────────────────────────────
-// • DO NOT invoke browser-only functions (`getCaptchaToken`, `localStorage`) inside Server Components.
-// • DO NOT hardcode sensitive API keys or private tokens inside this client-facing file.
-// ============================================================
-
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-/* 
-  ── safeParseJson ─────────────────────────────────────────────
-  ── WHAT: ────────────────────────────────────────────────────
-  Safely parses response body as JSON with fallback to plain text or status object.
-  
-  ── WHY: ─────────────────────────────────────────────────────
-  Cloudflare, Render spin-ups, and upstream gateways emit HTML 502/504 pages when
-  backend instances are cold. Calling res.json() directly throws an uncaught SyntaxError,
-  masking res.status and breaking client-side error handling and retry banners.
-  
-  ── WHERE & WHEN TO USE: ─────────────────────────────────────
-  In all HTTP client service methods prior to inspecting response body payloads.
-  
-  ── USE CASES: ───────────────────────────────────────────────
-  Consuming REST API endpoints during transient cold starts or network drops.
-  
-  ── WHEN NOT TO USE: ─────────────────────────────────────────
-  Do not use for binary streams (canvas downloads, SSE event streams).
-*/
 async function safeParseJson(res) {
   const text = await res.text();
   try {
@@ -59,10 +9,6 @@ async function safeParseJson(res) {
   }
 }
 
-// ── getCaptchaToken ───────────────────────────────────────────
-// WHAT: Obtains Google reCAPTCHA v3 token for bot defense
-// WHY: Only executes for unauthenticated users when site key is present
-//      Fails open gracefully if blocked by adblockers or network issues
 async function getCaptchaToken(action = "roast") {
   if (typeof window === "undefined") return null;
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
@@ -88,25 +34,12 @@ async function getCaptchaToken(action = "roast") {
   });
 }
 
-// ── getRoast ──────────────────────────────────────────────────
-// WHAT: Fetches a roast for a GitHub username
-// WHY attach retryAfter to error:
-//   Server sends { retryAfter: 47 } on rate limit (429)
-//   Frontend can show "Try again in 47 seconds" — not hardcoded "60s"
-// ── getRoast ──────────────────────────────────────────────────
-/**
- * WHAT: Fetches an AI or rule-based roast for a GitHub username with intensity and persona tone styling.
- * WHY: Supports user choice of intensity (mild, savage, nuclear) and persona (classic, hinglish, techbro, ramsay, shakespearean).
- * WHERE & WHEN TO USE: In LandingPageClient, RoastPageClient, and dashboard roast actions.
- * USE CASES: Requesting a Desi Tech Lead roast or Silicon Valley roast.
- * WHEN NOT TO USE: In batch jobs or non-profile roast endpoints.
- */
 export async function getRoast(
   username,
   idempotencyKey = null,
   token = null,
-  intensity = "savage",
-  persona = "classic",
+  intensity = "crispy",
+  persona = "staff_engineer",
 ) {
   const headers = { "Content-Type": "application/json" };
 
@@ -124,7 +57,6 @@ export async function getRoast(
   const res = await fetch(url, {
     method: "GET",
     headers,
-    // WHY 60s timeout: accommodates Render free tier cold start (40-50s)
     signal: AbortSignal.timeout(60000),
   });
 
@@ -134,8 +66,6 @@ export async function getRoast(
     const err = new Error(json.message || "Failed to fetch roast");
     err.code = json.error;
     err.status = res.status;
-    // WHY: attach retryAfter so frontend can show exact countdown
-    //      server sends this on 429 — was being ignored before
     err.retryAfter = json.retryAfter || null;
     throw err;
   }
@@ -143,7 +73,6 @@ export async function getRoast(
   return json.data;
 }
 
-// ── getRoastHistory ───────────────────────────────────────────
 export async function getRoastHistory(username) {
   const res = await fetch(`${API_BASE}/api/history/${encodeURIComponent(username)}`, {
     method: "GET",
@@ -155,8 +84,6 @@ export async function getRoastHistory(username) {
   return json;
 }
 
-// ── trackShare ────────────────────────────────────────────────
-// WHY silent: share tracking failure must never affect UX
 export async function trackShare(roastId) {
   if (!roastId) return;
   try {
@@ -165,12 +92,9 @@ export async function trackShare(roastId) {
       signal: AbortSignal.timeout(10000),
     });
   } catch {
-    /* silent */
   }
 }
 
-// ── trackView ─────────────────────────────────────────────────
-// WHAT: Silently records an anonymous roast view
 export async function trackView(roastId) {
   if (!roastId) return;
   try {
@@ -179,12 +103,9 @@ export async function trackView(roastId) {
       signal: AbortSignal.timeout(5000),
     });
   } catch {
-    /* silent */
   }
 }
 
-// ── trackBattleShare ──────────────────────────────────────────
-// WHAT: Silently records a battle share event
 export async function trackBattleShare(battleId) {
   if (!battleId) return;
   try {
@@ -193,12 +114,9 @@ export async function trackBattleShare(battleId) {
       signal: AbortSignal.timeout(5000),
     });
   } catch {
-    /* silent */
   }
 }
 
-// ── trackBattleView ───────────────────────────────────────────
-// WHAT: Silently records a battle view event
 export async function trackBattleView(battleId) {
   if (!battleId) return;
   try {
@@ -207,11 +125,9 @@ export async function trackBattleView(battleId) {
       signal: AbortSignal.timeout(5000),
     });
   } catch {
-    /* silent */
   }
 }
 
-// ── checkHealth ───────────────────────────────────────────────
 export async function checkHealth() {
   try {
     const res = await fetch(`${API_BASE}/health`, {
@@ -223,28 +139,11 @@ export async function checkHealth() {
   }
 }
 
-// ── wakeUpServer ──────────────────────────────────────────────
-// WHAT: Silently pre-warms the Render backend if sleeping on free tier
-// WHY: Render spins down after 15 min of inactivity. Pinging /health
-//      on page load starts the container before user submits a form.
 export function wakeUpServer() {
   if (typeof window === "undefined") return;
   fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(60000) }).catch(() => {});
 }
 
-// ── getBattleRoast ────────────────────────────────────────────
-// ── WHAT: ──────────────────────────────────────────────────────
-// Initiates or fetches head-to-head GitHub developer roast battle comparison.
-// Appends '?rematch=true' when rematch flag is passed to bypass cloud cache.
-// ── WHY: ───────────────────────────────────────────────────────
-// Distinguishes initial page views from intentional rematch resets,
-// allowing server to increment rematch count and produce fresh roasts.
-// ── WHERE & WHEN TO USE: ───────────────────────────────────────
-// In BattlePageClient when resolving battle match promises.
-// ── USE CASES: ─────────────────────────────────────────────────
-// Rivalry showdowns, swap & rematch actions, rematch buttons.
-// ── WHEN NOT TO USE: ───────────────────────────────────────────
-// Non-battle roast operations.
 export async function getBattleRoast(user1, user2, token = null, rematch = false) {
   const headers = { "Content-Type": "application/json" };
   if (token) {
@@ -273,12 +172,6 @@ export async function getBattleRoast(user1, user2, token = null, rematch = false
   return json.data;
 }
 
-// ── reactToRoast ──────────────────────────────────────────────
-// WHAT: Sends a reaction (relatable/destroyed/savage) to a roast
-// WHY silent on error: reaction failure must never break UX
-//     same pattern as trackShare
-// WHY returns data: component updates counts from response
-//     avoids separate fetch after reacting
 export async function reactToRoast(roastId, type) {
   try {
     const res = await fetch(`${API_BASE}/api/history/${roastId}/react`, {
@@ -291,14 +184,10 @@ export async function reactToRoast(roastId, type) {
     const json = await safeParseJson(res);
     return json;
   } catch {
-    // WHY: silently fail — reaction is non-critical
     return null;
   }
 }
 
-// ── reactToBattle ─────────────────────────────────────────────
-// WHAT: Sends an emoji reaction (relatable/destroyed/savage) to a battle
-// WHY: Persists battle reactions in MongoDB and updates social proof counts
 export async function reactToBattle(battleId, type) {
   try {
     const res = await fetch(`${API_BASE}/api/battle/${battleId}/react`, {
@@ -311,13 +200,10 @@ export async function reactToBattle(battleId, type) {
     const json = await safeParseJson(res);
     return json;
   } catch {
-    // WHY: silently fail — reaction is non-critical for UX continuity
     return null;
   }
 }
 
-// ── getWrapped ────────────────────────────────────────────────
-// WHAT: Fetches GitHub Wrapped year-in-review roast
 export async function getWrapped(username, year = 2025, token = null) {
   const headers = { "Content-Type": "application/json" };
   if (token) {
@@ -343,8 +229,6 @@ export async function getWrapped(username, year = 2025, token = null) {
   return json.wrapped;
 }
 
-// ── getLeaderboard ────────────────────────────────────
-// WHAT: Fetches paginated Wall of Shame leaderboard
 export async function getLeaderboard(page = 1, limit = 10) {
   const res = await fetch(
     `${API_BASE}/api/history/leaderboard/worst?page=${page}&limit=${limit}`,
@@ -366,8 +250,6 @@ export async function getLeaderboard(page = 1, limit = 10) {
   return json;
 }
 
-// ── searchLeaderboard ──────────────────────────────────────────
-// WHAT: Searches the Wall of Shame by username prefix/substring
 export async function searchLeaderboard(query, page = 1, limit = 10) {
   const res = await fetch(
     `${API_BASE}/api/history/leaderboard/search?q=${encodeURIComponent(query)}&page=${page}&limit=${limit}`,
@@ -386,8 +268,6 @@ export async function searchLeaderboard(query, page = 1, limit = 10) {
   return json;
 }
 
-// ── getRoastFeed ──────────────────────────────────────────────
-// WHAT: Fetches last 10 public roasts for live feed on homepage
 export async function getRoastFeed() {
   try {
     const res = await fetch(`${API_BASE}/api/roast/feed`, {
@@ -401,8 +281,6 @@ export async function getRoastFeed() {
   }
 }
 
-// ── getRoastStats ─────────────────────────────────────────────
-// WHAT: Fetches total number of roasts generated
 export async function getRoastStats() {
   try {
     const res = await fetch(`${API_BASE}/api/roast/stats`, {
@@ -416,8 +294,6 @@ export async function getRoastStats() {
   }
 }
 
-// ── getCompanyLeaderboard ─────────────────────────────────────
-// WHAT: Fetches curated tech giant rankings and chaos scores
 export async function getCompanyLeaderboard() {
   try {
     const res = await fetch(`${API_BASE}/api/history/leaderboard/companies`, {
@@ -431,8 +307,6 @@ export async function getCompanyLeaderboard() {
   }
 }
 
-// ── getRoastOfTheDay ──────────────────────────────────────────
-// WHAT: Fetches top-reacted burn for homepage feature
 export async function getRoastOfTheDay() {
   try {
     const res = await fetch(`${API_BASE}/api/history/daily-burn`, {
@@ -446,28 +320,14 @@ export async function getRoastOfTheDay() {
   }
 }
 
-// ── getRepoRoast ──────────────────────────────────────────────
-// WHAT: Fetches repository-level deep roast (Pillar 3)
 export async function getRepoRoast(
   owner,
   repo,
   token = null,
-  intensity = "savage",
+  intensity = "crispy",
   idempotencyKey = null,
 ) {
   const headers = { "Content-Type": "application/json" };
-  // ── X-Idempotency-Key Header Injection ──────────────────────
-  // ── WHAT: ────────────────────────────────────────────────────
-  // Attaches stable client-generated idempotency token to request headers.
-  // ── WHY: ─────────────────────────────────────────────────────
-  // Allows backend to deduplicate duplicate incoming analysis requests via
-  // Upstash Redis and in-memory cache, avoiding double API tokens & rate burning.
-  // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-  // In API service methods for intensive generation/roasting operations.
-  // ── USE CASES: ───────────────────────────────────────────────
-  // Component remounts, React 19 StrictMode double invokes, duplicate button clicks.
-  // ── WHEN NOT TO USE: ─────────────────────────────────────────
-  // Simple read-only listings, health checks, or metrics pings.
   if (idempotencyKey) headers["X-Idempotency-Key"] = idempotencyKey;
 
   if (token) {
@@ -487,24 +347,6 @@ export async function getRepoRoast(
 
   const json = await safeParseJson(res);
   if (!res.ok) {
-    /* 
-      ── WHAT: ────────────────────────────────────────────────────────
-      Attaches retryAfter duration and standardized error codes to repository roast errors.
-      
-      ── WHY: ─────────────────────────────────────────────────────────
-      When unauthenticated guests hit GitHub API rate limits or Cloudflare thresholds
-      during deep repository analysis, parsing json.retryAfter allows RepoRoastClient
-      to launch an exact countdown banner rather than a generic failure toast.
-      
-      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-      Inside client API gateway service methods in client/src/services/roastService.js.
-      
-      ── USE CASES: ───────────────────────────────────────────────────
-      Surfacing countdown banner when roasting popular public repositories.
-      
-      ── WHEN NOT TO USE: ─────────────────────────────────────────────
-      When the HTTP status is 200 OK.
-    */
     const err = new Error(json.message || "Failed to fetch repository roast");
     err.code = json.error;
     err.status = res.status;
@@ -514,8 +356,6 @@ export async function getRepoRoast(
   return json.data;
 }
 
-// ── dispatchContactMessage ────────────────────────────────────
-// WHAT: Dispatches a user contact inquiry or bug report to the server
 export async function dispatchContactMessage({
   category,
   name,
@@ -544,39 +384,12 @@ export async function dispatchContactMessage({
   return json;
 }
 
-// ── streamRoast ───────────────────────────────────────────────
-// ── WHAT: ─────────────────────────────────────────────────────
-// Asynchronous client stream consumer that connects to the Server-Sent Events (SSE)
-// endpoint (`/api/roast/:username/stream`). Reads chunked network byte streams via
-// Fetch `ReadableStream` and `TextDecoder`, dynamically executing callbacks for
-// initial metadata (profile stats, avatar), incremental text chunks, and final payload.
-//
-// ── WHY: ──────────────────────────────────────────────────────
-// Traditional REST roast generation blocks for 3 to 6 seconds while Gemini AI synthesizes
-// the roast, forcing the user to endure a static spinner. SSE streaming delivers initial
-// metadata immediately and streams tokens in real-time as Gemini produces them, dropping
-// TTFB (Time to First Token) to < 500ms and enabling a live typewriter effect.
-//
-// ── WHERE & WHEN TO USE: ──────────────────────────────────────
-// • In `RoastPageClient` or preview modals when the user requests an interactive,
-//   progressive roast generation experience.
-// • When immediate feedback and low perceived latency are critical for user retention.
-//
-// ── USE CASES: ────────────────────────────────────────────────
-// • Real-time typewriter output of AI roast lines as they are generated by Gemini.
-// • Progressive rendering of GitHub profile metrics while the roast text streams in.
-//
-// ── WHEN NOT TO USE: ──────────────────────────────────────────
-// • DO NOT use in Server Components or static build routines (`getStaticProps`, `generateStaticParams`).
-// • DO NOT use if the browser environment lacks `ReadableStream` or `TextDecoder` support (ancient browsers).
-// • DO NOT use for batch operations or automated keep-alive cron jobs.
-// ──────────────────────────────────────────────────────────────
 export async function streamRoast(
   username,
-  intensity = "savage",
+  intensity = "crispy",
   token = null,
   callbacks = {},
-  persona = "classic",
+  persona = "staff_engineer",
 ) {
   const { onMetadata, onChunk, onDone, onError } = callbacks;
   const headers = { Accept: "text/event-stream" };
@@ -588,11 +401,6 @@ export async function streamRoast(
     if (captchaToken) headers["X-Captcha-Token"] = captchaToken;
   }
 
-  // ── WHAT: Appends both intensity and comedic persona parameters to the SSE stream URL.
-  // ── WHY: Ensures streaming roasts honor user's chosen comedic persona (Gordon Ramsay, Hinglish, etc.).
-  // ── WHERE & WHEN TO USE: In live typewriter stream requests.
-  // ── USE CASES: Progressive AI roast generation with persona voice styling.
-  // ── WHEN NOT TO USE: Non-streaming REST endpoints.
   const url = `${API_BASE}/api/roast/${encodeURIComponent(username)}/stream?intensity=${encodeURIComponent(intensity)}&persona=${encodeURIComponent(persona)}`;
 
   try {
@@ -618,23 +426,6 @@ export async function streamRoast(
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
 
-    // ── WHATWG Stream Lock Lifecycle Protection ──────────────────
-    // ── WHAT: ────────────────────────────────────────────────────
-    // Consumes stream chunks and releases the ReadableStreamDefaultReader lock
-    // via reader.releaseLock() inside a finally block.
-    //
-    // ── WHY: ─────────────────────────────────────────────────────
-    // If the consumer aborts, cancels, or encounters a network drop during streaming,
-    // failing to release the lock leaves the underlying response stream pinned in memory.
-    //
-    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-    // In any client service utilizing fetch response.body.getReader().
-    //
-    // ── USE CASES: ───────────────────────────────────────────────
-    // Real-time SSE roast streaming into React typewriter states.
-    //
-    // ── WHEN NOT TO USE: ─────────────────────────────────────────
-    // Do not use for standard res.json() calls where body is consumed atomically.
     try {
       while (true) {
         const { value, done } = await reader.read();
@@ -676,7 +467,6 @@ export async function streamRoast(
               throw streamErr;
             }
           } catch {
-            // Ignore JSON parse errors for non-JSON or heartbeat chunks
           }
         }
       }
@@ -689,45 +479,9 @@ export async function streamRoast(
   }
 }
 
-// ── Export Aliases for Cross-Component Ergonomics ────────────
-/* 
-  ── WHAT: ────────────────────────────────────────────────────────
-  Backward-compatible aliases for core roast fetching methods.
-  
-  ── WHY: ─────────────────────────────────────────────────────────
-  Provides ergonomic naming matching both historical and current route nomenclature
-  without forcing refactoring of existing battle or daily burn consumers.
-  
-  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-  Any client component importing `getBattle` or `getDailyBurn`.
-  
-  ── USE CASES: ───────────────────────────────────────────────────
-  Battle card displays, daily burn banners, quick-fetch hooks.
-  
-  ── WHEN NOT TO USE: ─────────────────────────────────────────────
-  Server-side scripts or Node.js background workers.
-*/
 export const getBattle = getBattleRoast;
 export const getDailyBurn = getRoastOfTheDay;
 
-// ── getRateLimitStatus ────────────────────────────────────────
-/* 
-  ── WHAT: ────────────────────────────────────────────────────────
-  Queries the backend rate-limit-status endpoint for remaining quota, Pro status, and reset window.
-  
-  ── WHY: ─────────────────────────────────────────────────────────
-  Allows the frontend to accurately render countdown banners, remaining roast credits,
-  and Pro upgrade triggers without guessing or maintaining duplicate client-side countdown clocks.
-  
-  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-  Invoked on landing page mount, rate limit warning banners, and profile cards.
-  
-  ── USE CASES: ───────────────────────────────────────────────────
-  Displaying "1 of 1 free daily roasts remaining" or "Unlimited Pro Roasting Active".
-  
-  ── WHEN NOT TO USE: ─────────────────────────────────────────────
-  Do not poll rapidly or in tight loops (mount-time check or post-action verification only).
-*/
 export async function getRateLimitStatus(token = null) {
   const headers = { "Content-Type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -749,14 +503,6 @@ export async function getRateLimitStatus(token = null) {
   return json;
 }
 
-// ── updateUserPreferences ─────────────────────────────────────
-/**
- * WHAT: Updates the authenticated user's preferences (default persona, intensity, card theme, Ghost Mode privacy).
- * WHY: Synchronizes user preferences across devices and persists leaderboard privacy choices.
- * WHERE & WHEN TO USE: In /dashboard user settings panel or landing page persona selector.
- * USE CASES: User toggles Ghost Mode (hide from leaderboard) or sets default persona to 'hinglish'.
- * WHEN NOT TO USE: When user is unauthenticated (require token).
- */
 export async function updateUserPreferences(preferences, token) {
   if (!token) throw new Error("Authentication required to update preferences.");
 
@@ -781,15 +527,6 @@ export async function updateUserPreferences(preferences, token) {
   return json;
 }
 
-// ── getUniverse ───────────────────────────────────────────────
-/**
- * WHAT: Fetches structured 3D celestial solar system data for a developer profile.
- * WHY: Powers the interactive WebGL 3D Code Solar System experience, mapping repositories to
- *      planets, technical debt to black holes, and active repos to volcanic inferno worlds.
- * WHERE & WHEN TO USE: In /universe/[username] client page.
- * USE CASES: Rendering real-time 3D planetary orbits, solar flares, and celestial roasts.
- * WHEN NOT TO USE: For organization accounts or non-GitHub handles.
- */
 export async function getUniverse(username, token = null) {
   const cleanUsername = (username || "").trim().toLowerCase();
   if (!cleanUsername) throw new Error("Username is required.");
@@ -816,5 +553,50 @@ export async function getUniverse(username, token = null) {
     throw err;
   }
 
+  return json;
+}
+
+
+// ── Regional pricing ────────────────────────────────────────────
+export async function detectCountry() {
+  try {
+    const cached = sessionStorage.getItem("gitroast_country");
+    if (cached) return cached;
+    const res = await fetch("/api/geo", { signal: AbortSignal.timeout(4000) });
+    const { country } = await res.json();
+    sessionStorage.setItem("gitroast_country", country);
+    return country;
+  } catch {
+    return "US";
+  }
+}
+
+export async function getPlans(country) {
+  const c = country || (await detectCountry());
+  const res = await fetch(`${API_BASE}/api/payment/plans?country=${encodeURIComponent(c)}`, {
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!res.ok) throw new Error("Could not load plans");
+  const json = await res.json();
+  return { country: json.country, currency: json.currency, plans: json.plans || [] };
+}
+
+export function formatPrice(amountMinor, currency) {
+  if (!amountMinor) return new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(0);
+  return new Intl.NumberFormat("en", { style: "currency", currency, maximumFractionDigits: 0 }).format(amountMinor / 100);
+}
+
+// ── Wall of Shame: evidence board ──────────────────────────────
+export async function getEvidenceBoard({ page = 1, limit = 10, weeks = 12, language = "", q = "" } = {}) {
+  const p = new URLSearchParams({ page: String(page), limit: String(limit), weeks: String(weeks) });
+  if (language) p.set("language", language);
+  if (q) p.set("q", q);
+  const res = await fetch(`${API_BASE}/api/history/leaderboard/board?${p}`, { signal: AbortSignal.timeout(15000) });
+  const json = await safeParseJson(res);
+  if (!res.ok) {
+    const err = new Error(json.message || "Failed to fetch the evidence board");
+    err.status = res.status;
+    throw err;
+  }
   return json;
 }

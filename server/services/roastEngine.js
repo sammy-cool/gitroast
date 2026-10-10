@@ -1,19 +1,3 @@
-// ============================================================
-// GITROAST — Roast Engine
-// ============================================================
-// WHAT: Rule-based comedy roast generator.
-//       Intensity-aware tone banks for opener/middle/closer.
-//       Language-specific roast packs for personalization.
-//
-// WHY language packs (Feature 1):
-//   Generic roasts feel like templates.
-//   "Your Python is showing" feels PERSONAL and accurate.
-//   Developers share things that feel uncomfortably true.
-//   Each language has a stereotype — we lean into it.
-//   Zero API cost — pure rule engine, works for free users too.
-// ============================================================
-
-// ── Opener banks ───────────────────────────────────────────────
 const OPENER_BANK = {
   mild: {
     catastrophic: [
@@ -98,7 +82,6 @@ const OPENER_BANK = {
   },
 };
 
-// ── Abandon banks ──────────────────────────────────────────────
 const ABANDON_BANK = {
   mild: [
     `{count} repos never quite made it to version two, which is more common than anyone admits.`,
@@ -116,7 +99,6 @@ const ABANDON_BANK = {
   ],
 };
 
-// ── Commit banks ───────────────────────────────────────────────
 const COMMIT_BANK = {
   mild: [
     `The commit messages could use a little more context — "{sample}" does leave something to the imagination.`,
@@ -134,14 +116,6 @@ const COMMIT_BANK = {
   ],
 };
 
-// ── Language-specific roast packs ─────────────────────────────
-// WHAT: Personalised roast line based on top GitHub language.
-// WHY: Generic roasts feel templated. Language-specific ones feel
-//      uncomfortably accurate — "how did it know?" = shareworthy.
-// WHY stereotypes used carefully:
-//   These are widely known developer community in-jokes.
-//   Every language community jokes about itself this way.
-//   Not punching down — punching sideways at shared experiences.
 const LANGUAGE_PACKS = {
   JavaScript: {
     mild: [
@@ -309,8 +283,6 @@ const LANGUAGE_PACKS = {
     ],
   },
 
-  // WHY default: catches any language not in the list above
-  // e.g. Dart, Elixir, Haskell, Lua, Perl, R, Scala, Shell, etc.
   default: {
     mild: [
       `The language choice here is interesting — not wrong, just interesting, in the way that many life choices are interesting in retrospect.`,
@@ -326,7 +298,6 @@ const LANGUAGE_PACKS = {
   },
 };
 
-// ── Closer banks ───────────────────────────────────────────────
 const CLOSER_BANK = {
   mild: {
     catastrophic: [
@@ -394,7 +365,6 @@ const CLOSER_BANK = {
   },
 };
 
-// ── Helpers ────────────────────────────────────────────────────
 function pick(arr) {
   if (!arr || arr.length === 0) return "";
   return arr[Math.floor(Math.random() * arr.length)];
@@ -416,7 +386,6 @@ function pickN(arr, n) {
   return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
 }
 
-// ── Section builders ───────────────────────────────────────────
 function buildOpener(score, intensity) {
   const tier = getTier(score);
   const bank = OPENER_BANK[intensity]?.[tier] || OPENER_BANK.savage[tier];
@@ -441,15 +410,9 @@ function buildCommitSection(commitAnalysis, intensity) {
   return fill(pick(bank), { sample });
 }
 
-// WHY buildLanguageSection:
-//   Adds a language-specific insult to the roast
-//   Makes the roast feel tailored — "how did it know?"
-//   Only fires when we have a clear top language
-//   Uses default pack for unknown languages (Dart, Elixir, etc.)
 function buildLanguageSection(lang, intensity) {
   if (!lang || lang === "unknown" || lang === "" || lang === "Nothing") return "";
 
-  // WHY case-insensitive match: GitHub API casing can vary (e.g. "javascript", "JavaScript")
   const matchedKey = Object.keys(LANGUAGE_PACKS).find(
     (k) => k.toLowerCase() === lang.toLowerCase()
   );
@@ -470,7 +433,6 @@ function buildCloser(score, repoAnalysis, _raw, intensity) {
   });
 }
 
-// ── Ghost profile bank (zero public repositories) ─────────────
 const GHOST_BANK = {
   mild: [
     "A remarkably pristine GitHub profile untouched by the chaos of actually writing or pushing code. Starting a profile is step one; step two remains on backorder.",
@@ -490,10 +452,6 @@ const GHOST_BANK = {
   ],
 };
 
-// ── External 110-Rule Ruleset Loader ──────────────────────────
-// WHAT: Ingests 110 curated developer roast rules from server/data/roastRules.json
-// WHY:  Eliminates repetitive roast outputs for frequent users and gives rich variety.
-//       Fails safe: if file is ever missing, engine continues with built-in banks.
 let loadedRuleCount = 0;
 try {
   const externalRules = require("../data/roastRules.json");
@@ -541,19 +499,45 @@ try {
     }
   }
 } catch {
-  // Fail-safe: fallback to embedded banks if roastRules.json is unavailable
 }
 
-// ── Persona Adapters for Deterministic Fallback ───────────────
-/**
- * WHAT: Custom persona openers and punchline closers for offline rule-based roasting.
- * WHY: Ensures that even if Google Gemini API key is missing or offline, users still experience
- *      vivid, culturally accurate Hinglish, Tech Bro, Gordon Ramsay, or Shakespearean comedy.
- * WHERE & WHEN TO USE: In generateRoast fallback when persona is specified.
- * USE CASES: Offline development, rate-limited Gemini quotas, deterministic testing.
- * WHEN NOT TO USE: When persona is 'classic' (preserves standard opener/closer balance).
- */
 const PERSONA_FALLBACK_WRAPPERS = {
+  staff_engineer: {
+    prefixes: [
+      "Reviewing the public record,",
+      "Having read the commit log,",
+      "For the design-review notes:",
+    ],
+    suffixes: [
+      "Next step: one README that onboards a stranger in five minutes.",
+      "Useful fix: smaller commits with messages a future maintainer can search.",
+      "Ship the docs before the next feature; the receipts will thank you.",
+    ],
+  },
+  chaos_intern: {
+    prefixes: [
+      "ok so I read everything and,",
+      "no notes, only vibes, but also notes:",
+      "hot take from the intern desk:",
+    ],
+    suffixes: [
+      "anyway I deleted nothing, please commit smaller.",
+      "this is fine. everything is fine. write a README.",
+      "respectfully: touch the docs folder, it misses you.",
+    ],
+  },
+  historian: {
+    prefixes: [
+      "The archive records that",
+      "Across the commit timeline,",
+      "Future scholars will note that",
+    ],
+    suffixes: [
+      "The long arc bends toward documentation, eventually.",
+      "History is patient; the repositories are not.",
+      "Preserve the receipts; the pattern is the story.",
+    ],
+  },
   hinglish: {
     prefixes: [
       "Arre bhai,",
@@ -605,18 +589,9 @@ const PERSONA_FALLBACK_WRAPPERS = {
   },
 };
 
-// ── Main export ────────────────────────────────────────────────
-/**
- * WHAT: Generates a complete deterministic multi-sentence roast using rule banks and optional persona styling.
- * WHY: Provides deterministic, fast, zero-cost roasts with persona support for free users or offline LLM fallbacks.
- * WHERE & WHEN TO USE: Free tier profile roasts or Gemini API fallback in /api/roast/:username.
- * USE CASES: Generating deterministic burns with persona tone customization.
- * WHEN NOT TO USE: In deep repository code reviews (use analyzeRepository instead).
- */
 function generateRoast(data, intensity = "savage", persona = "classic") {
   const { score, _raw, repoAnalysis, commitAnalysis } = data;
 
-  // WHY ghost check: accounts with 0 repos need dedicated roasts instead of template errors
   if (repoAnalysis?.totalOwn === 0) {
     const bank = GHOST_BANK[intensity] || GHOST_BANK.savage;
     const ghostRoast = pick(bank);
@@ -630,11 +605,6 @@ function generateRoast(data, intensity = "savage", persona = "classic") {
   const opener = buildOpener(score, intensity);
   const closer = buildCloser(score, repoAnalysis, _raw, intensity);
 
-  // WHY language section in middles pool:
-  //   Treated like any other middle section
-  //   pickN selects up to 2 middles randomly
-  //   Language line competes with abandon + commit lines
-  //   Prevents roast feeling too crowded with language stereotypes
   const topLang = _raw?.topLanguage || repoAnalysis?.topLanguage;
   const middles = [
     buildLanguageSection(topLang, intensity),
@@ -665,3 +635,4 @@ module.exports = {
   buildLanguageSection,
   getRoastRulesCount: () => loadedRuleCount,
 };
+

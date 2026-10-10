@@ -4,9 +4,9 @@ import LeaderboardClient, { LeaderboardSkeleton } from './LeaderboardClient';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev';
 
 export const metadata = {
-  title: 'Wall of Shame 🏆 — Global GitHub Roast Leaderboard | GitRoast',
+  title: 'Wall of Shame — public evidence board | GitRoast',
   description:
-    'The most brutally roasted GitHub profiles in the world. Explore the lowest developer scores, commit shame, and global rankings.',
+    'Discover developers and companies by visible craft signals. Public evidence, friendly rivalry, zero dunking down.',
   keywords: [
     'github roast leaderboard',
     'wall of shame github',
@@ -100,3 +100,4 @@ export default function LeaderboardPage() {
     </>
   );
 }
+

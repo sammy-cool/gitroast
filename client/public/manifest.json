@@ -4,8 +4,8 @@
   "id": "/",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#070707",
-  "theme_color": "#FF4500",
+  "background_color": "#F3EFE8",
+  "theme_color": "#E84E2A",
   "description": "Savage AI code reviews, developer battles, and GitHub Wrapped reports.",
   "orientation": "portrait-primary",
   "categories": ["developer", "entertainment", "social", "utilities"],
@@ -24,3 +24,4 @@
     }
   ]
 }
+

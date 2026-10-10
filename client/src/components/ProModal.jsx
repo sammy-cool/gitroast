@@ -1,22 +1,5 @@
 'use client'
 
-// ============================================================
-// GITROAST — ProModal
-// ============================================================
-// WHAT: Upgrade prompt — shows plan selection as overlay portal.
-//       When user picks a plan → PaymentModal handles payment.
-//
-// WHY PaymentModal instead of inline PaymentFlow:
-//   PaymentModal is its own portal wrapper (DRY principle)
-//   ProModal doesn't need to manage payment overlay separately
-//   Any page can use PaymentModal independently
-//
-// WHY createPortal for plan selection overlay:
-//   Bypasses parent stacking contexts → position:fixed works
-//
-// WHY scroll lock:
-//   Prevents background page scroll when modal is open
-// ============================================================
 
 import { useState, useEffect, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
@@ -24,6 +7,8 @@ import { useRouter } from 'next/navigation'
 import PaymentModal from './PaymentModal'
 import { useAuth } from '@/context/AuthContext'
 import { toast } from '@/utils/toast'
+import { usePlans } from '@/components/home/PlansSection'
+import { formatPrice } from '@/services/roastService'
 
 const subscribe = () => () => {}
 
@@ -32,7 +17,7 @@ const MODAL_PLANS = [
         id: 'roaster',
         name: '🔥 Roaster',
         tagline: 'The Real Roast',
-        displayPrice: '₹99',
+        displayPrice: '',
         period: '/month',
         badge: 'MOST POPULAR',
         highlight: true,
@@ -49,7 +34,7 @@ const MODAL_PLANS = [
         id: 'historian',
         name: '📈 Historian',
         tagline: 'The Long Game',
-        displayPrice: '₹199',
+        displayPrice: '',
         period: '/month',
         badge: 'POWER USERS',
         highlight: false,
@@ -68,9 +53,10 @@ export default function ProModal({ onClose }) {
     const isClient = useSyncExternalStore(subscribe, () => true, () => false)
     const [selectedPlan, setSelectedPlan] = useState(null)
     const { user, loginWithGitHub } = useAuth()
+    const { plans: livePlans, currency } = usePlans()
+    const regional = Object.fromEntries(livePlans.filter((p) => p.amount).map((p) => [p.id, formatPrice(p.amount, p.currency || currency)]))
     const router = useRouter()
 
-    // WHY scroll lock: prevents background scroll when modal open
     useEffect(() => {
         const prev = document.body.style.overflow
         document.body.style.overflow = 'hidden'
@@ -111,7 +97,7 @@ export default function ProModal({ onClose }) {
 
     return (
         <>
-            {/* Plan selection overlay — always a portal */}
+            {}
             {createPortal(
                 <div className="modal-overlay" onClick={onClose}>
                     <div className="modal-box card" onClick={e => e.stopPropagation()}>
@@ -163,9 +149,8 @@ export default function ProModal({ onClose }) {
                                         </div>
                                         <div className="modal-price-block">
                                             <div className="modal-price-row">
-                                                <span className="font-display modal-currency">₹</span>
                                                 <span className="font-display modal-amount">
-                                                    {plan.displayPrice.replace('₹', '')}
+                                                    {regional[plan.id] || plan.displayPrice}
                                                 </span>
                                             </div>
                                             <p className="font-mono modal-period">{plan.period}</p>
@@ -351,10 +336,7 @@ export default function ProModal({ onClose }) {
                 document.body
             )}
 
-            {/* WHY PaymentModal rendered separately (not inside portal):
-          PaymentModal creates its OWN portal at z-index 9999
-          Sits above ProModal overlay (z-index 9998) automatically
-          Clean separation — each modal manages its own portal */}
+            {}
             {selectedPlan && (
                 <PaymentModal
                     planId={selectedPlan}
@@ -364,3 +346,4 @@ export default function ProModal({ onClose }) {
         </>
     )
 }
+

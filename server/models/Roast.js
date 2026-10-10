@@ -6,8 +6,6 @@ const roastSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      // WHY: index: true removed because compound index { username: 1, createdAt: -1 }
-      //      already indexes username with left-prefix query optimization
     },
 
     roastedBy: {
@@ -43,29 +41,17 @@ const roastSchema = new mongoose.Schema(
 
     intensity: {
       type: String,
-      enum: ["mild", "savage", "nuclear"],
-      default: "savage",
+      enum: ["warm", "crispy", "nuclear", "mild", "savage"],
+      default: "crispy",
     },
 
-    // ── Persona & Tone Archetype ─────────────────────────────
-    // WHAT: Tracks which comedic persona was chosen for this roast generation.
-    // WHY: Enables frontend badges (e.g. 🇮🇳 Hinglish, 👔 Tech Bro) and filtered leaderboard views.
-    // WHERE & WHEN TO USE: Stored on creation across all profile roasts.
-    // USE CASES: Displaying "Desi Tech Lead Roast" on roast cards and personal dashboard.
-    // WHEN NOT TO USE: In generic repository analysis that has dedicated architect tone.
     persona: {
       type: String,
-      enum: ["classic", "hinglish", "techbro", "ramsay", "shakespearean"],
-      default: "classic",
+      enum: ["staff_engineer", "chaos_intern", "historian", "classic", "hinglish", "techbro", "ramsay", "shakespearean"],
+      default: "staff_engineer",
       index: true,
     },
 
-    // ── Privacy & Leaderboard Visibility ─────────────────────
-    // WHAT: Controls whether this roast appears on public Wall of Shame leaderboards.
-    // WHY: Respects user privacy and Ghost Mode preferences for users who opt out of public ranking.
-    // WHERE & WHEN TO USE: Checked during leaderboard aggregation pipelines.
-    // USE CASES: User toggles "Hide my profile from public Leaderboard" in dashboard.
-    // WHEN NOT TO USE: Do not hide from direct /history/:username URL access if roastId is known.
     isPrivate: {
       type: Boolean,
       default: false,
@@ -122,31 +108,26 @@ const roastSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // WHY viewCount: provides social proof on cards and reports (e.g. "👀 1,420 views")
     viewCount: {
       type: Number,
       default: 0,
     },
 
-    // WHY tags: dynamically renders category labels (e.g. 'abandoned_graveyard', 'ghost_dev')
     tags: {
       type: [String],
       default: [],
     },
 
-    // WHY customTitle: allows assigning hilarious roast archetypes (e.g. 'Senior Git Blame Dodger')
     customTitle: {
       type: String,
       default: null,
     },
 
-    // WHY isPinned: allows users to pin their favorite historical burn to their profile
     isPinned: {
       type: Boolean,
       default: false,
     },
 
-    // WHY aiModel & generationTimeMs: telemetry for LLM auditing and model performance tracking
     aiModel: {
       type: String,
       default: null,
@@ -157,26 +138,15 @@ const roastSchema = new mongoose.Schema(
       default: null,
     },
 
-    // ── AI Redemption Plan ─────────────────────────────────────
-    // WHAT: 3 actionable, humorous tips to help developer or repository recover from their roast.
-    // WHY: Gives positive forward momentum and value beyond pure roasting (Staff Architect insights).
-    // WHERE & WHEN TO USE: Generated on Pro roasts or AI analysis workflows.
-    // USE CASES: Displayed in RoastCard / RepoRoastCard as "Redemption Path".
-    // WHEN NOT TO USE: Never store unvalidated arbitrary user text; only string arrays.
     redemptionPlan: {
       type: [String],
       default: [],
     },
 
-    // ── Reactions ────────────────────────────────────────────
-    // WHAT: Stores emoji reaction counts for this roast
-    // WHY object not array:
-    //   3 fixed reaction types — object lookup is O(1)
-    //   No need to iterate — just reactions.relatable etc.
     reactions: {
-      relatable: { type: Number, default: 0 }, // 😂
-      destroyed: { type: Number, default: 0 }, // 💀
-      savage: { type: Number, default: 0 }, // 🔥
+      relatable: { type: Number, default: 0 },
+      destroyed: { type: Number, default: 0 },
+      savage: { type: Number, default: 0 },
     },
   },
   {
@@ -184,19 +154,14 @@ const roastSchema = new mongoose.Schema(
   },
 );
 
-// ── Indexes for Maximum Query Efficiency ─────────────────────
 roastSchema.index({ username: 1, createdAt: -1 });
 roastSchema.index({ username: 1, isPinned: -1, createdAt: -1 });
 roastSchema.index({ score: 1, createdAt: -1 });
 roastSchema.index({ topLanguage: 1, score: 1 });
 roastSchema.index({ "githubSnapshot.topLanguage": 1 });
 
-// WHY: /api/roast/feed sorts by { createdAt: -1 } with no $match — without
-//      this index, MongoDB performs a full collection scan on every 30s poll
 roastSchema.index({ createdAt: -1 });
 
-// WHY: /api/history/daily-burn sorts by reactions — without a compound index,
-//      MongoDB in-memory sorts the entire collection (32MB limit risk)
 roastSchema.index({ "reactions.savage": -1, "reactions.destroyed": -1, createdAt: -1 });
 
 roastSchema.statics.getHistory = function (username, limit = 10) {
@@ -222,10 +187,7 @@ roastSchema.statics.getLeaderboard = async function (options = {}) {
   const skip = (page - 1) * limit;
 
   const result = await this.aggregate([
-    // WHY $match first: excludes users who opted into Ghost Mode from Wall of Shame
     { $match: { isPrivate: { $ne: true } } },
-    // WHY $project next: reduces data passed to $group and normalizes username casing
-    //     so duplicate case variants (Alice vs alice) don't split rankings
     { $project: { username: { $toLower: "$username" }, score: 1 } },
     {
       $group: {
@@ -267,18 +229,47 @@ roastSchema.statics.getLeaderboard = async function (options = {}) {
   };
 };
 
-// ── Safe Share Increment With ID Validation ─────────────────
-// ── WHAT: ────────────────────────────────────────────────────
-// Atomically increments shareCount for a roast after validating the MongoDB ObjectId.
-// ── WHY: ─────────────────────────────────────────────────────
-// Guarding with mongoose.Types.ObjectId.isValid(id) prevents unhandled CastError exceptions
-// when client sends an invalid or truncated document ID.
-// ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// Invoked by social share tracking endpoints (POST /api/history/:id/share).
-// ── USE CASES: ───────────────────────────────────────────────
-// Telemetry tracking for social share clicks across platforms.
-// ── WHEN NOT TO USE: ─────────────────────────────────────────
-// Do not use when querying by username or composite keys.
+// Evidence board: best-first ranking over the latest public roast per profile.
+// Ghost Mode (isPrivate) profiles are excluded. Ranking uses the roast score only —
+// never follower count, geography or identity.
+roastSchema.statics.getEvidenceBoard = async function ({ page = 1, limit = 10, windowWeeks = 0, language = "" } = {}) {
+  page = Math.max(1, parseInt(page, 10) || 1);
+  limit = Math.min(50, Math.max(1, parseInt(limit, 10) || 10));
+  const match = { isPrivate: { $ne: true } };
+  if (windowWeeks > 0) match.createdAt = { $gte: new Date(Date.now() - windowWeeks * 7 * 864e5) };
+  if (language) match.topLanguage = new RegExp(`^${String(language).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+
+  const result = await this.aggregate([
+    { $match: match },
+    { $sort: { createdAt: -1 } },
+    {
+      $group: {
+        _id: { $toLower: "$username" },
+        username: { $first: "$username" },
+        score: { $first: "$score" },
+        grade: { $first: "$grade" },
+        topLanguage: { $first: "$topLanguage" },
+        githubSnapshot: { $first: "$githubSnapshot" },
+        analyzedAt: { $first: "$createdAt" },
+        roastCount: { $sum: 1 },
+      },
+    },
+    {
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [{ $sort: { score: -1, analyzedAt: -1 } }, { $skip: (page - 1) * limit }, { $limit: limit }],
+      },
+    },
+  ]);
+
+  const total = result[0]?.metadata?.[0]?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  return {
+    entries: result[0]?.data || [],
+    pagination: { page, limit, total, totalPages, hasNext: page < totalPages, hasPrev: page > 1 },
+  };
+};
+
 roastSchema.statics.incrementShare = function (id) {
   if (!mongoose.Types.ObjectId.isValid(id)) return null;
   return this.findByIdAndUpdate(id, { $inc: { shareCount: 1 } });
@@ -293,27 +284,6 @@ roastSchema.statics.incrementView = function (id) {
   );
 };
 
-// WHY static method for reactions:
-//   Atomic $inc — safe for concurrent reactions
-//   Returns updated doc so frontend gets fresh counts
-//   type validated here so route stays clean
-// ── Safe Reaction Increment With ID Validation ──────────────
-// ── WHAT: ────────────────────────────────────────────────────
-// Atomically increments emoji reaction count for a verified roast document ID.
-//
-// ── WHY: ─────────────────────────────────────────────────────
-// 1. Verifying mongoose.Types.ObjectId.isValid(id) prevents unhandled CastError exceptions.
-// 2. Atomic $inc prevents lost update race conditions under high concurrent clicks.
-// 3. Selecting both reactions AND username ensures callers can update User stats.reactionsReceived.
-//
-// ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// In all model static methods handling document updates by dynamic ID.
-//
-// ── USE CASES: ───────────────────────────────────────────────
-// User reaction clicks on public roast permalinks.
-//
-// ── WHEN NOT TO USE: ─────────────────────────────────────────
-// Do not use if arbitrary string identifiers are employed instead of Mongo ObjectIds.
 roastSchema.statics.addReaction = function (id, type) {
   const allowed = ["relatable", "destroyed", "savage"];
   if (!allowed.includes(type)) throw new Error("Invalid reaction type");
@@ -326,3 +296,4 @@ roastSchema.statics.addReaction = function (id, type) {
 };
 
 module.exports = mongoose.model("Roast", roastSchema);
+

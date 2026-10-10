@@ -1,39 +1,21 @@
 'use client'
 
-// ============================================================
-// GITROAST — RoastPageClient
-// ============================================================
-// WHAT: Client component that drives the roast flow:
-//       1. Validates username
-//       2. Checks sessionStorage cache (browser back button)
-//       3. Fetches roast from backend
-//       4. Shows AnalyzingScreen → RoastCard
-//
-// WHY MIN_ANALYSIS_TIME:
-//   GitHub API + roast engine takes ~2s
-//   Animation needs ~5.8s to play fully
-//   Promise.all waits for BOTH → animation always completes
-//
-// WHY idempotencyKey as useRef:
-//   Persists across StrictMode double-mount
-//   Both mounts use same key → server deduplicates
-//   No duplicate DB saves
-// ============================================================
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { toast } from '@/utils/toast'
+import { toast, notify } from '@/utils/toast'
 import { playFireSizzle } from '@/utils/soundFX'
 import AnalyzingScreen from '@/components/AnalyzingScreen'
 import dynamic from 'next/dynamic';
 const RoastCard = dynamic(() => import('@/components/RoastCard'));
 const ProModal = dynamic(() => import('@/components/ProModal'), { ssr: false });
 import Link from 'next/link';
-import Breadcrumb from '@/components/Breadcrumb'
 import { getRoast } from '@/services/roastService'
 import { useAuth } from '@/context/AuthContext'
+import { normalizeIntensity, normalizePersona } from '@/utils/vocab'
 
 const MIN_ANALYSIS_TIME = 5800
+const parsedScore = (d) => d?.score ?? ''
 
 export default function RoastPageClient({ username }) {
   const [view, setView] = useState('analyzing')
@@ -87,40 +69,23 @@ export default function RoastPageClient({ username }) {
         const token = getToken()
         const queryIntensity = searchParams.get('intensity')
         const queryPersona = searchParams.get('persona')
-        const intensity = queryIntensity || sessionStorage.getItem('gitroast_intensity') || 'savage'
-        const persona = queryPersona || sessionStorage.getItem('gitroast_persona') || 'classic'
+        const intensity = normalizeIntensity(queryIntensity || sessionStorage.getItem('gitroast_intensity'))
+        const persona = normalizePersona(queryPersona || sessionStorage.getItem('gitroast_persona'))
 
         const [data] = await Promise.all([
           getRoast(username, idempotencyKey.current, token, intensity, persona),
           new Promise(resolve => setTimeout(resolve, MIN_ANALYSIS_TIME)),
         ])
 
-        // ── Safe SessionStorage Caching ─────────────────────────────
-        // ── WHAT: ────────────────────────────────────────────────────
-        // Stores retrieved roast payload in sessionStorage with timestamp.
-        //
-        // ── WHY: ─────────────────────────────────────────────────────
-        // Wrapping in try/catch prevents uncaught QuotaExceededError or DOMException
-        // in mobile browsers with strict storage partitioning or private mode enabled.
-        //
-        // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-        // When caching non-critical client UI payloads in browser web storage.
-        //
-        // ── USE CASES: ───────────────────────────────────────────────
-        // Browser back-button roast result caching.
-        //
-        // ── WHEN NOT TO USE: ─────────────────────────────────────────
-        // Do not use for security tokens or permanent user preferences.
         try {
           sessionStorage.setItem(cacheKey, JSON.stringify({ data, cachedAt: Date.now() }))
         } catch {
-          // Ignore storage quota exceeded or disabled storage exceptions
         }
         setRoastData(data)
         setView('result')
         playFireSizzle()
 
-        toast.fire(`🔥 @${username}'s roast is ready!`)
+        notify.roastReady({ username, score: parsedScore(data), onAction: () => document.querySelector('.rr')?.scrollIntoView({ behavior: 'smooth' }) })
 
       } catch (err) {
         if (cancelled) return
@@ -148,10 +113,6 @@ export default function RoastPageClient({ username }) {
           const retryAfter = err.retryAfter || 60
           const seconds = `${retryAfter} seconds`
 
-          // WHY store in sessionStorage:
-          //   Homepage reads this on mount → shows RateLimitBanner
-          //   User sees live countdown instead of confusion
-          //   Cleared when timer expires or on next successful roast
           if (isOurLimit && retryAfter) {
             sessionStorage.setItem('gitroast_rate_limit', JSON.stringify({
               retryAfter,
@@ -222,72 +183,21 @@ export default function RoastPageClient({ username }) {
   if (view === 'result' && roastData) {
     return (
       <>
-        <main className="result-page">
-          <div className="result-nav">
-            <div className="font-display nav-logo text-fire">GITROAST 🔥</div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => router.push(`/history/${roastData.username}`)}
-              >
-                📈 History
-              </button>
-              <button type="button" className="btn btn-ghost" onClick={handleRoastAnother}>
-                ← Roast Another
-              </button>
-            </div>
-          </div>
-
-          <div className="breadcrumb-wrap">
-            <Breadcrumb
-              items={[
-                { label: 'Home', href: '/' },
-                { label: 'Roast', href: '/' },
-                { label: `@${roastData.username}` },
-              ]}
-            />
-          </div>
-
+        <main className="roast-result-page">
           <RoastCard
             data={{ ...roastData, isPro }}
             onProClick={() => setShowProModal(true)}
+            onRoastAnother={handleRoastAnother}
+            historyHref={`/history/${roastData.username}`}
           />
 
-          {/* 
-            ── WHAT: ────────────────────────────────────────────────────────
-            Interactive navigation link to the pricing page for the Historian Plan.
-            
-            ── WHY: ─────────────────────────────────────────────────────────
-            Replaces the previous unclickable div with an accessible Next.js Link
-            to drive conversions to paid tiers while preserving layout semantics.
-            
-            ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-            Call-to-action cards promoting subscription upgrades.
-            
-            ── USE CASES: ───────────────────────────────────────────────────
-            Roast results page upsell section.
-            
-            ── WHEN NOT TO USE: ─────────────────────────────────────────────
-            When the user is already on the maximum tier.
-          */}
           {user?.proPlan !== 'historian' && (
-            <Link href="/pricing" className="upsell-link">
-              <div className="upsell-card card">
-                <div>
-                  <p className="upsell-title">📈 Historian Plan</p>
-                  <p className="upsell-sub font-mono">
-                    Monthly report · Score trends · Roast streak tracking.
-                  </p>
-                </div>
-                <div className="upsell-price">
-                  <div className="upsell-amount-row">
-                    <span className="font-display upsell-symbol">₹</span>
-                    <span className="font-display upsell-number">199</span>
-                  </div>
-                  <span className="font-mono upsell-period">/month</span>
-                </div>
+            <Link href="/pricing" className="gr-card gr-card--interactive roast-upsell">
+              <div>
+                <p className="gr-eyebrow">Historian</p>
+                <p className="roast-upsell__title">Monthly report, score trends and roast history.</p>
               </div>
+              <span className="gr-btn gr-btn--outline">See plans</span>
             </Link>
           )}
         </main>
@@ -295,82 +205,10 @@ export default function RoastPageClient({ username }) {
         {showProModal && <ProModal onClose={() => setShowProModal(false)} />}
 
         <style jsx>{`
-          .result-page {
-            min-height:     100vh;
-            display:        flex;
-            flex-direction: column;
-            align-items:    center;
-            /* 
-              ── WHAT: ────────────────────────────────────────────────────────
-              Roast result page layout padding.
-              
-              ── WHY: ─────────────────────────────────────────────────────────
-              Per AGENTS.md Rule 2.3, the fixed site footer requires at least 6.5rem
-              clearance so the upsell card is never obscured by the bottom bar.
-              
-              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-              Top-level page views.
-              
-              ── USE CASES: ───────────────────────────────────────────────────
-              Roast result page viewport clearance.
-              
-              ── WHEN NOT TO USE: ─────────────────────────────────────────────
-              Inside scrollable modal bodies.
-            */
-            padding:        1.5rem 1rem 6.5rem;
-            gap:            1.25rem;
-          }
-          .result-nav {
-            display:         flex;
-            justify-content: space-between;
-            align-items:     center;
-            width:           100%;
-            max-width:       580px;
-          }
-          .breadcrumb-wrap {
-            width:      100%;
-            max-width:  580px;
-            margin-top: -0.5rem;
-          }
-          .nav-logo      { font-size: 22px; }
-          .result-page :global(.upsell-link) {
-            text-decoration: none;
-            color:           inherit;
-            width:           100%;
-            max-width:       580px;
-            display:         block;
-            transition:      transform 0.18s ease;
-          }
-          .result-page :global(.upsell-link:hover) {
-            transform: translateY(-2px);
-          }
-          .upsell-card {
-            width:           100%;
-            max-width:       580px;
-            padding:         1rem 1.5rem;
-            display:         flex;
-            justify-content: space-between;
-            align-items:     center;
-            gap:             1rem;
-            cursor:          pointer;
-            transition:      border-color 0.18s ease, box-shadow 0.18s ease;
-          }
-          .upsell-card:hover {
-            border-color: rgba(255, 69, 0, 0.4);
-            box-shadow: 0 4px 20px rgba(255, 69, 0, 0.08);
-          }
-          .upsell-title  { font-size: 14px; font-weight: 500; margin: 0 0 4px; }
-          .upsell-sub    { color: var(--text-secondary); font-size: 12px; }
-          .upsell-price  { text-align: right; flex-shrink: 0; }
-          .upsell-amount-row {
-            display:         flex;
-            align-items:     baseline;
-            gap:             1px;
-            justify-content: flex-end;
-          }
-          .upsell-symbol { font-size: 16px; color: var(--fire); line-height: 1; }
-          .upsell-number { font-size: 26px; color: var(--fire); line-height: 1; }
-          .upsell-period { font-size: 11px; color: var(--text-secondary); }
+          .roast-result-page { min-height: 100vh; padding: 24px 24px 64px; background: var(--paper); }
+          .roast-upsell { max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; text-decoration: none; color: inherit; }
+          .roast-upsell__title { font: 500 18px var(--font-sans); margin-top: 4px; }
+          @media (max-width: 700px) { .roast-result-page { padding: 12px 12px 48px; } }
         `}</style>
       </>
     )
@@ -378,3 +216,4 @@ export default function RoastPageClient({ username }) {
 
   return null
 }
+

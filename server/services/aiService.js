@@ -1,24 +1,5 @@
 const { logger } = require("../utils/logger");
 
-// ── Gemini Model Normalization & Selection ─────────────────────
-// ── WHAT: ────────────────────────────────────────────────────
-// Normalizes and validates Google Gemini model strings, mapping user-friendly aliases
-// like 'gemini-3.1-pro' to official Google Generative Language v1beta endpoints ('gemini-3.1-pro-preview').
-//
-// ── WHY: ─────────────────────────────────────────────────────
-// 1. Google AI Studio v1beta API exposes Gemini 3.1 Pro as 'gemini-3.1-pro-preview'.
-// 2. Normalizing ensures user settings in Render Dashboard (e.g. GEMINI_MODEL=gemini-3.1-pro)
-//    work seamlessly without 404 endpoint errors.
-// 3. Defaults safely to 'gemini-2.5-flash' when unset, maintaining zero-breakage backward compatibility.
-//
-// ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// Used when constructing Gemini API REST and SSE streaming endpoints across the server.
-//
-// ── USE CASES: ───────────────────────────────────────────────
-// Running Gemini 3.1 Pro previews, Gemini 2.5 Flash, or custom enterprise model strings.
-//
-// ── WHEN NOT TO USE: ─────────────────────────────────────────
-// Do not use for deterministic local rule engine fallback.
 function resolveGeminiModel(rawModel) {
   const model = (rawModel || "").trim();
   if (!model) return "gemini-2.5-flash";
@@ -33,11 +14,6 @@ const GEMINI_MODEL = resolveGeminiModel(RAW_GEMINI_MODEL);
 const GEMINI_API_URL =
   `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
-// ─── Intensity config ─────────────────────────────────────
-// WHY: each intensity changes 3 things:
-//     1. System instruction (comedian vs assassin)
-//     2. Temperature (creativity level)
-//     3. Bad example (what to avoid)
 const INTENSITY_CONFIG = {
   mild: {
     role: "a witty observational comedian",
@@ -67,15 +43,28 @@ const INTENSITY_CONFIG = {
   },
 };
 
-// ── Persona & Cultural Tone Config ────────────────────────────
-/**
- * WHAT: Defines distinct comedic personas, linguistic registers, and cultural roasting styles.
- * WHY: Empowers users to choose their roasting vibe (Hinglish/Desi Tech Lead, Silicon Valley Tech Bro, Gordon Ramsay, Shakespearean, or Classic).
- * WHERE & WHEN TO USE: In buildRoastPrompt and downstream fallback generators.
- * USE CASES: Viral Twitter/LinkedIn shares, regional developer humor, customizable entertainment.
- * WHEN NOT TO USE: Do not apply raw un-sanitized user strings; default to 'classic' when invalid.
- */
 const PERSONA_CONFIG = {
+  staff_engineer: {
+    name: "Staff Engineer",
+    roleModifier: "a dry, precise staff engineer doing a loving but unsparing design review of a developer's public work",
+    languageInstruction: "Write in English. Be specific: cite real numbers, repository names and patterns from the data.",
+    styleGuide: "Dry, evidence-first wit. Every joke points at a concrete public signal and ends with a useful next step.",
+    badExample: "Your GitHub is a sprawling cemetery of unfinished side projects...",
+  },
+  chaos_intern: {
+    name: "Chaos Intern",
+    roleModifier: "a hyperactive, chronically online intern who has read every commit and has zero filter",
+    languageInstruction: "Write in fast, feral, meme-literate English. Short punchy sentences. Never target identity or appearance; only code, commits and habits.",
+    styleGuide: "Chaotic energy, rapid-fire observations, affectionate mockery grounded in the data.",
+    badExample: "lol your repos are kinda bad...",
+  },
+  historian: {
+    name: "Historian",
+    roleModifier: "a patient archivist narrating a developer's public history as if documenting an ancient civilisation",
+    languageInstruction: "Write in English with a long-memory, documentary tone. Compare past and present patterns in the data (trends, abandoned repos, documentation habits).",
+    styleGuide: "Deadpan chronicler. Treats commit history as archaeology; jokes come from long-term patterns.",
+    badExample: "In the beginning there were repositories, and they were abandoned...",
+  },
   classic: {
     name: "Classic Savage",
     roleModifier: "a sharp, cynical senior software architect with biting dark wit",
@@ -127,7 +116,7 @@ function buildRoastPrompt(data, intensity = "savage", persona = "classic") {
   } = data;
 
   const config = INTENSITY_CONFIG[intensity] || INTENSITY_CONFIG.savage;
-  const personaConfig = PERSONA_CONFIG[persona] || PERSONA_CONFIG.classic;
+  const personaConfig = PERSONA_CONFIG[persona] || PERSONA_CONFIG.staff_engineer;
   const worstStat = getWorstStat({
     repoAnalysis,
     commitAnalysis,
@@ -216,24 +205,6 @@ function getWorstStat({ repoAnalysis, commitAnalysis, readme, _raw }) {
   return angles[0];
 }
 
-// ── buildRepoRoastPrompt ─────────────────────────────────────
-// ── WHAT: ────────────────────────────────────────────────────
-// Generates a dedicated comedic prompt tailored specifically for GitHub codebases and repositories.
-//
-// ── WHY: ─────────────────────────────────────────────────────
-// 1. Repositories have architectural and operational signals (test coverage, commit messages,
-//    abandonment months, code smells, issue backlog) that differ significantly from human user bios.
-// 2. Persona: Cynical Staff Principal Architect doing a brutal code review.
-// 3. Produces high-accuracy, technically astute humor that engineering teams love sharing.
-//
-// ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// In generateAIRepoRoast when evaluating /api/roast/repo/:owner/:repo.
-//
-// ── USE CASES: ───────────────────────────────────────────────
-// Open source code reviews, company team repo roasts, and hackathon project audits.
-//
-// ── WHEN NOT TO USE: ─────────────────────────────────────────
-// Do not use for user profile roasts (use buildRoastPrompt instead).
 function buildRepoRoastPrompt(data, intensity = "savage") {
   const {
     fullName,
@@ -282,13 +253,6 @@ Sample Commit Messages: ${shameCommits.slice(0, 3).map((m) => `"${m}"`).join(", 
 Write ONLY the 3-sentence architectural roast:`;
 }
 
-/**
- * WHAT: Generates an AI-powered comedic roast using Google Gemini with tone intensity and persona styling.
- * WHY: Delivers tailored comedic roasts across personas (Hinglish, Tech Bro, Ramsay, Shakespearean, Classic).
- * WHERE & WHEN TO USE: In /api/roast/:username endpoint for Pro users or AI-enabled tiers.
- * USE CASES: Generating viral customized developer roasts.
- * WHEN NOT TO USE: In streaming endpoints (use generateAIRoastStream instead).
- */
 async function generateAIRoast(data, intensity = "savage", persona = "classic") {
   if (!process.env.GEMINI_API_KEY) {
     logger.warn("AI", "No Gemini API key — using rule engine");
@@ -306,21 +270,17 @@ async function generateAIRoast(data, intensity = "savage", persona = "classic") 
         body: JSON.stringify({
           contents: [{ parts: [{ text: buildRoastPrompt(data, intensity, persona) }] }],
           generationConfig: {
-            // maxOutputTokens: 250,
             temperature: config.temperature,
             topP: 0.95,
             topK: 40,
           },
         }),
-        signal: AbortSignal.timeout(50000), // WHY 50s ai took some time to respond: if Gemini doesn't respond in 50s, fall back to rule engine instantly
+        signal: AbortSignal.timeout(50000),
       },
     );
 
     if (!response.ok) {
       logger.error("AI", "Gemini API error", { status: response.status, model: GEMINI_MODEL });
-      // ── Resilient Model Fallback ───────────────────────────────
-      // If a specialized or preview model (e.g. gemini-3.1-pro-preview) returns 404
-      // because it's not yet enabled on the project's tier, seamlessly retry with gemini-2.5-flash
       if (response.status === 404 && GEMINI_MODEL !== "gemini-2.5-flash") {
         logger.warn("AI", `Model ${GEMINI_MODEL} returned 404, falling back to gemini-2.5-flash`);
         try {
@@ -366,12 +326,6 @@ async function generateAIRoast(data, intensity = "savage", persona = "classic") 
   }
 }
 
-// ── generateAIRoastStream ─────────────────────────────────────
-// ── WHAT: Asynchronous generator that yields real-time roast tokens using Gemini SSE streaming.
-// ── WHY: Eliminates perceived waiting latency; streams tokens live to Server-Sent Events client.
-// ── WHERE & WHEN TO USE: In /api/roast/:username/stream endpoint.
-// ── USE CASES: Real-time live AI typing animation on roast results.
-// ── WHEN NOT TO USE: In batch jobs or image certificate generators.
 async function* generateAIRoastStream(data, intensity = "savage", persona = "classic") {
   if (!process.env.GEMINI_API_KEY) {
     logger.warn("AI", "No Gemini API key for stream — fallback requested");
@@ -398,7 +352,6 @@ async function* generateAIRoastStream(data, intensity = "savage", persona = "cla
 
     if (!response.ok) {
       logger.error("AI", "Gemini streaming error", { status: response.status, model: GEMINI_MODEL });
-      // ── Resilient Streaming Model Fallback ─────────────────────
       if (response.status === 404 && GEMINI_MODEL !== "gemini-2.5-flash") {
         logger.warn("AI", `Streaming model ${GEMINI_MODEL} returned 404, falling back to gemini-2.5-flash`);
         const fallbackStreamUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:streamGenerateContent?alt=sse&key=${process.env.GEMINI_API_KEY}`;
@@ -456,25 +409,6 @@ async function* generateAIRoastStream(data, intensity = "savage", persona = "cla
       return;
     }
 
-    // ── WHATWG ReadableStream Lifecycle & Parser ───────────────
-    // ── WHAT: ────────────────────────────────────────────────────
-    // Reads line-delimited Server-Sent Events from the Gemini 2.5 Flash stream,
-    // parses 'data: {...}' envelopes, extracts text chunks, and releases the stream lock.
-    //
-    // ── WHY: ─────────────────────────────────────────────────────
-    // 1. Calling reader.releaseLock() inside a finally block guarantees the stream lock
-    //    is always freed even if consumer generator iteration aborts early.
-    // 2. Flushing any remaining trailing buffer after done: true prevents dropping the
-    //    final token if Gemini sends chunks without a terminating newline.
-    //
-    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-    // In any asynchronous generator consuming WHATWG ReadableStream responses.
-    //
-    // ── USE CASES: ───────────────────────────────────────────────
-    // Token-by-token LLM output pipelines and long-lived SSE streaming routes.
-    //
-    // ── WHEN NOT TO USE: ─────────────────────────────────────────
-    // Do not use for non-streaming atomic JSON endpoints.
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -486,7 +420,7 @@ async function* generateAIRoastStream(data, intensity = "savage", persona = "cla
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
-        buffer = lines.pop(); // Keep incomplete trailing fragment
+        buffer = lines.pop();
 
         for (const line of lines) {
           if (line.startsWith("data: ")) {
@@ -495,20 +429,17 @@ async function* generateAIRoastStream(data, intensity = "savage", persona = "cla
               const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
               if (text) yield text;
             } catch {
-              // Ignore non-json SSE lines
             }
           }
         }
       }
 
-      // Flush remaining trailing line if complete JSON
       if (buffer && buffer.startsWith("data: ")) {
         try {
           const parsed = JSON.parse(buffer.slice(6));
           const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (text) yield text;
         } catch {
-          // Ignore incomplete fragment
         }
       }
     } finally {
@@ -519,24 +450,6 @@ async function* generateAIRoastStream(data, intensity = "savage", persona = "cla
   }
 }
 
-// ── generateAIRepoRoast ───────────────────────────────────────
-// ── WHAT: ────────────────────────────────────────────────────
-// Dedicated AI code review roast engine tailored specifically for GitHub repositories.
-//
-// ── WHY: ─────────────────────────────────────────────────────
-// 1. Repositories have unique signals (code smells, commit hygiene, missing tests, open issues)
-//    that require a distinct system prompt from individual user accounts.
-// 2. Evaluates the codebase from the persona of a cynical Staff Principal Software Architect.
-// 3. Delivers high comedic value and deep architectural insights using Gemini 3.1 Pro / 2.5 Flash.
-//
-// ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// In /api/roast/repo/:owner/:repo when roasting a repository with Pro privileges.
-//
-// ── USE CASES: ───────────────────────────────────────────────
-// Open-source project audits, tech stack roasts, and developer team code reviews.
-//
-// ── WHEN NOT TO USE: ─────────────────────────────────────────
-// Do not use for user profile roasts (use generateAIRoast instead).
 async function generateAIRepoRoast(data, intensity = "savage") {
   if (!process.env.GEMINI_API_KEY) {
     logger.warn("AI", "No Gemini API key for repo roast — using rule engine");
@@ -609,24 +522,6 @@ async function generateAIRepoRoast(data, intensity = "savage") {
   }
 }
 
-// ── generateAIRedemptionPlan ──────────────────────────────────
-// ── WHAT: ────────────────────────────────────────────────────
-// Synthesizes 3 brutally honest, funny, yet genuinely actionable tips from Gemini AI
-// on how the developer can fix their GitHub habits and redeem their profile.
-//
-// ── WHY: ─────────────────────────────────────────────────────
-// 1. Differentiates GitRoast from standard one-dimensional insult generators.
-// 2. High retention and viral value: users love actionable "prescriptions".
-// 3. Perfect showcase for Gemini 3.1 Pro / 2.5 Flash reasoning capabilities.
-//
-// ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// In /api/roast/:username and repository roast endpoints when Pro AI is invoked.
-//
-// ── USE CASES: ───────────────────────────────────────────────
-// "How to Fix Your GitHub" checklist, social media sharing cards, and developer portfolio audits.
-//
-// ── WHEN NOT TO USE: ─────────────────────────────────────────
-// Do not block core roast streaming if redemption plan fails (fail-open pattern).
 async function generateAIRedemptionPlan(data) {
   const isRepo = !!data?.fullName;
   const username = data?.username || data?.fullName || "developer";
@@ -698,7 +593,6 @@ RULES:
     }
   }
 
-  // Deterministic rule fallback if AI fails or times out
   if (isRepo) {
     const repoFallback = [];
     if (!data.hasTests) repoFallback.push("Add automated CI tests so production users don't have to be your QA team.");
