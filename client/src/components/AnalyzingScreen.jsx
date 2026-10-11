@@ -1,214 +1,58 @@
 'use client'
 
-// WHY useState + useEffect: we animate lines appearing
-//     one by one over time — that requires state + timers
 import { useState, useEffect } from 'react'
 
-// WHY: these are the steps shown in the terminal
-//      they match what actually happens behind the scenes
 const ANALYSIS_STEPS = [
-    { text: 'Connecting to GitHub API...', delay: 0 },
-    { text: 'Fetching public repositories...', delay: 700 },
-    { text: 'Scanning commit messages for trauma...', delay: 1400 },
-    { text: 'Judging README quality...', delay: 2100 },
-    { text: 'Counting abandoned repos...', delay: 2800 },
-    { text: 'Analyzing language choices...', delay: 3500 },
-    { text: 'Calculating shame index...', delay: 4200 },
-    { text: 'Crafting your personalized roast...', delay: 4900 },
+  { text: 'Connecting to GitHub', delay: 0 },
+  { text: 'Fetching public repositories', delay: 700 },
+  { text: 'Reading commit messages', delay: 1400 },
+  { text: 'Judging README quality', delay: 2100 },
+  { text: 'Counting abandoned repositories', delay: 2800 },
+  { text: 'Analyzing language choices', delay: 3500 },
+  { text: 'Weighing public evidence', delay: 4200 },
+  { text: 'Writing the roast', delay: 4900 },
 ]
 
-// WHY username prop: so we show "@torvalds" in terminal header
 export default function AnalyzingScreen({ username }) {
-    // WHY: tracks how many steps are currently visible
-    const [visibleSteps, setVisibleSteps] = useState(0)
+  const [visible, setVisible] = useState(0)
 
-    useEffect(() => {
-        // WHY: for each step, set a timer to reveal it at the right delay
-        const timers = ANALYSIS_STEPS.map((step, index) =>
-            setTimeout(() => {
-                // WHY +1: we want to show steps 1 by 1, not all at once
-                setVisibleSteps(index + 1)
-            }, step.delay)
-        )
+  useEffect(() => {
+    const timers = ANALYSIS_STEPS.map((s, i) => setTimeout(() => setVisible(i + 1), s.delay))
+    return () => timers.forEach(clearTimeout)
+  }, [])
 
-        // WHY cleanup: if user navigates away, clear all timers
-        //     prevents memory leaks + state updates on unmounted component
-        return () => timers.forEach(clearTimeout)
-    }, []) // WHY []: run only once when component mounts
+  const progress = Math.round((visible / ANALYSIS_STEPS.length) * 100)
+  const current = ANALYSIS_STEPS[Math.max(0, visible - 1)]
 
-    // WHY: progress = how many steps done out of total
-    const progress = Math.round((visibleSteps / ANALYSIS_STEPS.length) * 100)
+  return (
+    <div className="an" role="status" aria-live="polite">
+      <div className="gr-state gr-state--loading an__card">
+        <span className="gr-state__tag">Loading</span>
+        <h1 className="an__title">Reading the receipts…</h1>
+        <p className="gr-help an__sub">Analyzing public activity for <b className="gr-mono">{username}</b>. This usually takes about 18 seconds.</p>
 
-    return (
-        <div className="analyzing-wrap">
-
-            {/* ── Terminal window ──────────────────────── */}
-            <div className="terminal">
-
-                {/* Terminal title bar — like a real Mac/Linux terminal */}
-                <div className="terminal-bar">
-                    <span className="dot dot-red" />
-                    <span className="dot dot-yellow" />
-                    <span className="dot dot-green" />
-                    <span className="terminal-title font-mono">
-                        gitroast — roasting @{username}
-                    </span>
-                </div>
-
-                {/* Terminal body */}
-                <div className="terminal-body">
-
-                    {/* WHY: first line is always visible — the command itself */}
-                    <p className="terminal-cmd font-mono">
-                        $ gitroast analyze --savage {username}
-                    </p>
-
-                    {/* Render only the visible steps */}
-                    {ANALYSIS_STEPS.slice(0, visibleSteps).map((step, i) => (
-                        <div
-                            key={i}
-                            className="terminal-line animate-fadeUp font-mono"
-                        >
-                            {/* WHY: last visible step gets blinking cursor */}
-                            {i === visibleSteps - 1 ? (
-                                <>
-                                    <span className="step-active">{step.text}</span>
-                                    <span className="cursor animate-blink" />
-                                </>
-                            ) : (
-                                // WHY: completed steps show a checkmark
-                                <span className="step-done">{step.text} ✓</span>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* ── Progress bar ─────────────────────────── */}
-            <div className="progress-wrap">
-                <div className="progress-labels font-mono">
-                    <span>Roasting in progress</span>
-                    <span style={{ color: 'var(--fire)' }}>{progress}%</span>
-                </div>
-                <div className="progress-track">
-                    <div
-                        className="progress-fill"
-                        style={{ width: `${progress}%` }}
-                    />
-                </div>
-            </div>
-
-            <style jsx>{`
-        .analyzing-wrap {
-          min-height:      100vh;
-          display:         flex;
-          flex-direction:  column;
-          align-items:     center;
-          justify-content: center;
-          /* 
-            ── WHAT: ────────────────────────────────────────────────────────
-            Layout padding ensuring bottom clearance above the fixed footer.
-            
-            ── WHY: ─────────────────────────────────────────────────────────
-            Per AGENTS.md Rule 2.3, the fixed site footer (z-index: 50) requires
-            at least 6.5rem bottom clearance so loading progress and indicators
-            are never obscured on mobile or compact viewports.
-            
-            ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-            All page wrappers and full-screen overlay components.
-            
-            ── USE CASES: ───────────────────────────────────────────────────
-            Roast and battle analysis progress screens.
-            
-            ── WHEN NOT TO USE: ─────────────────────────────────────────────
-            Inline cards or modals with their own internal scroll containers.
-          */
-          padding:         2rem 1rem 6.5rem;
-          gap:             1.25rem;
-        }
-        /* ── Terminal ── */
-        .terminal {
-          width:         100%;
-          max-width:     520px;
-          background:    #080808;
-          border:        1px solid var(--border);
-          border-radius: var(--radius-lg);
-          overflow:      hidden;
-        }
-        .terminal-bar {
-          display:       flex;
-          align-items:   center;
-          gap:           7px;
-          padding:       10px 16px;
-          background:    #0E0E0E;
-          border-bottom: 1px solid var(--border);
-        }
-        .dot {
-          width:         11px;
-          height:        11px;
-          border-radius: 50%;
-          opacity:       0.85;
-        }
-        .dot-red    { background: #FF5F56; }
-        .dot-yellow { background: #FFBD2E; }
-        .dot-green  { background: #27C93F; }
-        .terminal-title {
-          margin-left: 8px;
-          color:       var(--text-muted);
-          font-size:   12px;
-        }
-        .terminal-body {
-          padding:    1.25rem 1.5rem;
-          min-height: 220px;
-          display:    flex;
-          flex-direction: column;
-          gap:        2px;
-        }
-        .terminal-cmd {
-          color:         var(--fire);
-          font-size:     13px;
-          margin-bottom: 12px;
-        }
-        .terminal-line {
-          font-size:   13px;
-          line-height: 2;
-        }
-        .step-active { color: var(--text-primary); }
-        .step-done   { color: var(--text-muted);   }
-        .cursor {
-          display:          inline-block;
-          width:            2px;
-          height:           13px;
-          background:       var(--fire);
-          vertical-align:   middle;
-          margin-left:      4px;
-          border-radius:    1px;
-        }
-        /* ── Progress ── */
-        .progress-wrap {
-          width:     100%;
-          max-width: 520px;
-        }
-        .progress-labels {
-          display:         flex;
-          justify-content: space-between;
-          font-size:       12px;
-          color:           var(--text-muted);
-          margin-bottom:   6px;
-        }
-        .progress-track {
-          height:        3px;
-          background:    #111;
-          border-radius: 2px;
-          overflow:      hidden;
-        }
-        .progress-fill {
-          height:        100%;
-          background:    var(--fire-grad);
-          border-radius: 2px;
-          transition:    width 0.5s ease;
-        }
-      `}</style>
+        <div className="gr-meter">
+          <div className="gr-meter__head"><span>{current.text}</span><b>{progress}%</b></div>
+          <div className="gr-meter__track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress} aria-label="Analysis progress">
+            <div className="gr-meter__fill" style={{ width: `${progress}%` }} />
+          </div>
         </div>
-    )
+
+        <ol className="an__steps" aria-hidden="true">
+          {ANALYSIS_STEPS.slice(0, visible).map((s, i) => (
+            <li key={s.text} className={i === visible - 1 ? 'an__step an__step--on' : 'an__step'}>{s.text}{i < visible - 1 ? ' ✓' : '…'}</li>
+          ))}
+        </ol>
+      </div>
+
+      <style jsx>{`
+        .an { min-height: 70vh; display: grid; place-items: center; padding: 32px 16px; }
+        .an__card { width: min(520px, 100%); display: grid; gap: 16px; padding: 28px; }
+        .an__title { font: 400 clamp(32px, 5vw, 44px)/1.05 var(--font-serif); }
+        .an__sub { margin: 0; }
+        .an__steps { list-style: none; display: grid; gap: 6px; font: 400 12px var(--font-code); color: var(--ink-2); }
+        .an__step--on { color: var(--ink); font-weight: 600; }
+      `}</style>
+    </div>
+  )
 }

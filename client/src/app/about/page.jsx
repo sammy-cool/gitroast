@@ -1,21 +1,13 @@
-// ============================================================
-// GITROAST — About Page
-// ============================================================
-// WHAT: Explains the GitRoast mission, forensics engine, scoring
-//       tiers, architecture, and developer FAQ.
-// WHY: Builds trust, boosts SEO, gives context to the comedy,
-//      and educates developers on how we evaluate their code.
-// ============================================================
-
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumb";
+import "./about.css";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://gitroast.dev";
 
 export const metadata = {
-  title: "About GitRoast 🔥 — The Brutal GitHub Code Roast Machine",
+  title: "About GitRoast — Public code, useful satire",
   description:
-    "Learn how GitRoast analyzes your GitHub profile, commit habits, repo graveyards, and stack choices to generate savagely accurate developer roasts.",
+    "How GitRoast reads public GitHub evidence, scores it transparently, and turns patterns into shareable, useful satire.",
   keywords: [
     "about gitroast",
     "how gitroast works",
@@ -27,7 +19,7 @@ export const metadata = {
     canonical: `${SITE_URL}/about`,
   },
   openGraph: {
-    title: "About GitRoast 🔥 — How It Works & Scoring Guide",
+    title: "About GitRoast — How scoring works",
     description:
       "Deep dive into the GitRoast forensic analysis engine, AI prompts, and scoring tiers.",
     url: `${SITE_URL}/about`,
@@ -44,7 +36,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "About GitRoast 🔥 — How It Works",
+    title: "About GitRoast — How it works",
     description: "Deep dive into the GitRoast forensic analysis engine.",
     images: ["/og-default.png"],
     creator: "@gitroast",
@@ -121,536 +113,118 @@ const FAQS = [
 export default function AboutPage() {
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutJsonLd) }}
-      />
-      <main className="about-page">
-      <div className="about-glow" />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutJsonLd) }} />
+      <main className="ab">
+        <div className="gr-page ab-body">
+          <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "About" }]} />
 
-      {/* ── Top Navigation ── */}
-      <nav className="about-nav">
-        <Link href="/" className="font-display nav-logo text-fire" title="GitRoast Home">
-          GITROAST 🔥
-        </Link>
-        <div className="nav-links">
-          <Link href="/leaderboard" className="btn btn-ghost nav-btn">
-            🏆 Wall of Shame
-          </Link>
-          <Link href="/" className="btn btn-ghost nav-btn">
-            ← Home
-          </Link>
-        </div>
-      </nav>
+          <header className="ab-head">
+            <p className="gr-eyebrow">Mission and architecture</p>
+            <h1 className="gr-h1">Humbling developers, one commit at a time.</h1>
+            <p className="gr-lede">GitRoast is the comedy forensic lab for developers. We turn public GitHub activity — and inactivity — into entertaining, evidence-backed roasts.</p>
+          </header>
 
-      {/* ── Breadcrumb ── */}
-      <div className="breadcrumb-wrap">
-        <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "About" }]} />
-      </div>
+          <section className="gr-card ab-sec" aria-labelledby="ab-phil">
+            <h2 id="ab-phil" className="gr-h3">The philosophy</h2>
+            <p>Developer portfolios are full of buzzwords: &ldquo;Passionate 10x Architect,&rdquo; &ldquo;Full-Stack Evangelist,&rdquo; &ldquo;AI Pioneer.&rdquo; GitHub, however, does not lie. Your git log knows you spent six hours debugging a missing semicolon, and remembers the repository named <code className="ab-code">nextjs-billion-dollar-startup</code> that was abandoned after two commits on a Sunday afternoon.</p>
+            <p>GitRoast exists to celebrate that messy, human reality with sharp wit and deep respect for the craft.</p>
+          </section>
 
-      {/* ── Hero ── */}
-      <header className="about-hero">
-        <span className="badge font-mono">MISSION & ARCHITECTURE</span>
-        <h1 className="font-display hero-title text-fire">
-          HUMBLING DEVELOPERS, ONE COMMIT AT A TIME
-        </h1>
-        <p className="hero-lead font-mono">
-          GitRoast is the comedy forensic lab for developers. We turn your
-          GitHub activity—and inactivity—into savagely entertaining roasts.
-        </p>
-      </header>
-
-      {/* ── Philosophy & Story ── */}
-      <section className="card content-card">
-        <h2 className="font-display section-title text-fire">THE PHILOSOPHY</h2>
-        <p className="section-text">
-          Developer portfolios on LinkedIn are full of buzzwords: &ldquo;Passionate
-          10x Architect,&rdquo; &ldquo;Full-Stack Evangelist,&rdquo; and &ldquo;AI Pioneer.&rdquo;
-        </p>
-        <p className="section-text">
-          GitHub, however, does not lie. Your git log knows you spent six hours
-          debugging a missing semicolon. Your commit history remembers the repo
-          named <code className="code-inline">nextjs-billion-dollar-startup</code>{" "}
-          that was abandoned after 2 commits on a Sunday afternoon.
-        </p>
-        <p className="section-text">
-          GitRoast exists to celebrate that messy, human reality with sharp
-          wit, brutal accuracy, and deep respect for the craft of coding.
-        </p>
-      </section>
-
-      {/* ── How it works pipeline ── */}
-      <section className="card content-card">
-        <h2 className="font-display section-title text-fire">HOW IT WORKS</h2>
-        <div className="pipeline-grid">
-          <div className="pipeline-step">
-            <span className="step-num font-mono">01</span>
-            <h3 className="step-title font-display">FORENSIC EXTRACTION</h3>
-            <p className="step-desc font-mono">
-              We query the GitHub REST API for your repos, recent push dates,
-              language breakdowns, star counts, and commit message hygiene.
-            </p>
-          </div>
-          <div className="pipeline-step">
-            <span className="step-num font-mono">02</span>
-            <h3 className="step-title font-display">SHAME INDEX SCORING</h3>
-            <p className="step-desc font-mono">
-              Our deterministic scoring engine computes a composite score (0–100)
-              penalizing graveyard ratios, low stars, and abandoned experiments.
-            </p>
-          </div>
-          <div className="pipeline-step">
-            <span className="step-num font-mono">03</span>
-            <h3 className="step-title font-display">AI SYNTHESIS</h3>
-            <p className="step-desc font-mono">
-              Google Gemini Flash crafts personalized comedic insults based on
-              your exact stack tropes (Python indents, Rust borrow checkers, JavaScript framework churn).
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Scoring Guide ── */}
-      <section className="card content-card">
-        <h2 className="font-display section-title text-fire">THE SCORING GUIDE</h2>
-        <p className="section-sub font-mono">
-          How our Shame Authority grades your digital footprint:
-        </p>
-        <div className="tiers-list">
-          {SCORING_TIERS.map((tier) => (
-            <div key={tier.grade} className="tier-row">
-              <div className="tier-header">
-                <span className="tier-grade font-display" style={{ color: tier.color }}>
-                  Grade {tier.grade}
-                </span>
-                <span className="tier-score font-mono">{tier.score} pts</span>
-              </div>
-              <p className="tier-label font-mono text-fire">{tier.label}</p>
-              <p className="tier-desc">{tier.desc}</p>
+          <section className="ab-sec" aria-labelledby="ab-how">
+            <h2 id="ab-how" className="gr-h2">How it works</h2>
+            <div className="ab-grid ab-grid--3">
+              {[["01", "Forensic extraction", "We query the GitHub API for your public repositories, recent push dates, languages, stars and commit message hygiene."],
+                ["02", "Transparent scoring", "A deterministic engine computes a 0–100 score from public signals. Humor never changes the number."],
+                ["03", "AI synthesis", "Google Gemini writes the roast from your computed data and your chosen intensity and persona."]].map(([n, t, d], i) => (
+                <article key={n} className={`gr-card${i === 1 ? " gr-card--dark" : ""}`}><span className="gr-eyebrow">{n}</span><h3 className="ab-h3">{t}</h3><p className="ab-p">{d}</p></article>
+              ))}
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
 
-      {/* ── Features Breakdown ── */}
-      <section className="card content-card">
-        <h2 className="font-display section-title text-fire">THE ARSENAL</h2>
-        <div className="features-grid">
-          <div className="feature-box">
-            <div className="feature-icon">🔥</div>
-            <h3 className="feature-title font-display">PROFILE ROAST</h3>
-            <p className="feature-desc font-mono">
-              Single developer analysis with Mild, Savage, and Pro Nuclear intensity modes.
-            </p>
-          </div>
-          <div className="feature-box">
-            <div className="feature-icon">⚔️</div>
-            <h3 className="feature-title font-display">ROAST BATTLE</h3>
-            <p className="feature-desc font-mono">
-              Head-to-head developer comparison. See who abandoned more repos and declare the loser.
-            </p>
-          </div>
-          <div className="feature-box">
-            <div className="feature-icon">🏆</div>
-            <h3 className="feature-title font-display">WALL OF SHAME</h3>
-            <p className="feature-desc font-mono">
-              Global leaderboard tracking the most roasted GitHub profiles on the planet.
-            </p>
-          </div>
-          <div className="feature-box">
-            <div className="feature-icon">📜</div>
-            <h3 className="feature-title font-display">SHAME CERTIFICATE</h3>
-            <p className="feature-desc font-mono">
-              Official verifiable certificate with QR code for framing or sharing on LinkedIn.
-            </p>
-          </div>
-        </div>
-      </section>
+          <section id="methodology" className="gr-card gr-card--blue ab-sec" aria-labelledby="ab-meth">
+            <h2 id="ab-meth" className="gr-h3">Methodology</h2>
+            <p>Every score links to the public signal, time window and weight behind it, and we show uncertainty when the evidence is thin.</p>
+            <ul className="ab-list">
+              <li><b>Signals:</b> public repositories and maintenance, stars, README presence, commit message quality, and public pull-request and review activity from the last 12 months.</li>
+              <li><b>Score anatomy:</b> project depth, consistency, collaboration and documentation, each shown with its value on the result page.</li>
+              <li><b>Sparse evidence:</b> a signal without enough public data is labeled &ldquo;insufficient evidence&rdquo; and left out. It is never penalized by assumption, because private and internal work is invisible to us.</li>
+              <li><b>Roast versus evidence:</b> playful roast copy never appears in recruiter talent evidence, and humor does not affect any score.</li>
+              <li><b>Versioning:</b> recruiter evidence uses a versioned model and shows its sources and weights.</li>
+            </ul>
+          </section>
 
-      {/* ── Badges Section ── */}
-      <section className="card content-card">
-        <h2 className="font-display section-title text-fire">🛡️ GITHUB README PROFILE BADGES</h2>
-        <p className="section-text">
-          Wear your roast like a badge of honor! GitRoast generates live, auto-updating SVG badges you can embed directly into your GitHub profile or repository <code className="code-inline">README.md</code>.
-        </p>
-        <div className="badge-guide-grid">
-          <div className="badge-guide-card">
-            <h3 className="font-display badge-guide-title">🔥 CARD STYLE (RECOMMENDED)</h3>
-            <p className="font-mono badge-guide-sub">Eye-catching 320×78px fiery dark card with avatar, score &amp; grade.</p>
-            <code className="code-block font-mono">
-              [![GitRoast Score](https://gitroast.dev/api/badge/your-username)](https://gitroast.dev/history/your-username)
-            </code>
-          </div>
-          <div className="badge-guide-card">
-            <h3 className="font-display badge-guide-title">🛡️ SHIELD STYLE</h3>
-            <p className="font-mono badge-guide-sub">Clean, compact shields.io pill badge matching popular open-source badges.</p>
-            <code className="code-block font-mono">
-              [![GitRoast Score](https://gitroast.dev/api/badge/your-username?style=shield)](https://gitroast.dev/history/your-username)
-            </code>
-          </div>
-        </div>
-        <p className="section-text-sub font-mono">
-          💡 Tip: You can also copy your personalized badge with 1 click directly from your roast result card or profile history page!
-        </p>
-      </section>
+          <section id="privacy" className="gr-card gr-card--mint ab-sec" aria-labelledby="ab-priv">
+            <h2 id="ab-priv" className="gr-h3">Privacy and responsible use</h2>
+            <ul className="ab-list">
+              <li>Public data only. We do not infer age, gender, ethnicity, health, location or private employment data.</li>
+              <li>Ghost Mode hides you from discovery, the Wall of Shame, battles and recruiter search at any time.</li>
+              <li>You can ask us to remove a public roast page without a paid plan: <Link href="/contact" className="rc-link">contact us</Link>.</li>
+              <li>Rankings exclude identity, geography, follower count and private activity.</li>
+              <li>Recruiter evidence supports human review; it is not a hiring recommendation.</li>
+            </ul>
+          </section>
 
-      {/* ── FAQ ── */}
-      <section className="card content-card">
-        <h2 className="font-display section-title text-fire">FREQUENTLY ASKED QUESTIONS</h2>
-        <div className="faqs-list">
-          {FAQS.map((faq, i) => (
-            <div key={i} className="faq-item">
-              <h3 className="faq-q font-mono text-fire">Q: {faq.q}</h3>
-              <p className="faq-a">{faq.a}</p>
+          <section className="gr-card ab-sec" aria-labelledby="ab-tiers">
+            <h2 id="ab-tiers" className="gr-h3">The scoring guide</h2>
+            <p className="gr-help">How the score maps to grades:</p>
+            <div className="ab-tiers">
+              {SCORING_TIERS.map((tier) => (
+                <div key={tier.grade} className="ab-tier">
+                  <b className="ab-tier__g">Grade {tier.grade}</b>
+                  <span className="gr-mono ab-tier__s">{tier.score} pts</span>
+                  <p className="ab-tier__l">{tier.label}</p>
+                  <p className="ab-p">{tier.desc}</p>
+                </div>
+              ))}
             </div>
-          ))}
+          </section>
+
+          <section className="ab-sec" aria-labelledby="ab-arsenal">
+            <h2 id="ab-arsenal" className="gr-h2">The arsenal</h2>
+            <div className="ab-grid ab-grid--2">
+              {[["Profile roast", "Single developer analysis with Warm-up, Crispy and Pro Nuclear intensity and a choice of voices."],
+                ["Developer battles", "Head-to-head comparison on public evidence. Friendly rivalry, zero dunking down."],
+                ["Wall of Shame", "A public, opt-out board of roasted profiles ranked on balanced evidence."],
+                ["Shame certificate", "A shareable certificate with a QR code for framing or posting."]].map(([t, d]) => (
+                <article key={t} className="gr-card"><h3 className="ab-h3">{t}</h3><p className="ab-p">{d}</p></article>
+              ))}
+            </div>
+          </section>
+
+          <section className="gr-card gr-card--gold ab-sec" aria-labelledby="ab-badges">
+            <h2 id="ab-badges" className="gr-h3">README profile badges</h2>
+            <p>Wear your roast like a badge of honor. GitRoast generates live SVG badges you can embed in your profile or repository <code className="ab-code">README.md</code>.</p>
+            <div className="ab-grid ab-grid--2">
+              <div><b>Card style (recommended)</b><p className="ab-p">320×78 card with avatar, score and grade.</p>
+                <code className="ab-block gr-mono">[![GitRoast Score](https://gitroast.dev/api/badge/your-username)](https://gitroast.dev/history/your-username)</code></div>
+              <div><b>Shield style</b><p className="ab-p">Compact pill matching popular open-source badges.</p>
+                <code className="ab-block gr-mono">[![GitRoast Score](https://gitroast.dev/api/badge/your-username?style=shield)](https://gitroast.dev/history/your-username)</code></div>
+            </div>
+            <p className="gr-help">Tip: copy your personalized badge in one click from your result page or dashboard.</p>
+          </section>
+
+          <section className="ab-sec" aria-labelledby="ab-faq">
+            <h2 id="ab-faq" className="gr-h2">Frequently asked questions</h2>
+            <div className="ab-faq">
+              {FAQS.map((faq, i) => (
+                <details key={i} className="ab-faq__item">
+                  <summary>{faq.q}</summary>
+                  <p>{faq.a}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+
+          <section className="gr-card gr-card--dark ab-cta">
+            <h2 className="gr-h2 ab-cta__h">Ready to get humbled?</h2>
+            <p className="ab-cta__p">Enter your GitHub handle and see what your public code says about you.</p>
+            <div className="ab-cta__row">
+              <Link href="/" className="gr-btn gr-btn--primary">Roast your GitHub</Link>
+              <Link href="/battle" className="gr-btn gr-btn--outline">Start a battle</Link>
+            </div>
+          </section>
         </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <div className="about-cta-card card">
-        <h2 className="font-display cta-heading text-fire">READY TO GET HUMBLED?</h2>
-        <p className="cta-sub font-mono">
-          Enter your GitHub handle and find out what your code really says about you.
-        </p>
-        <div className="cta-buttons">
-          <Link href="/" className="btn btn-primary cta-btn">
-            🔥 Roast Your GitHub
-          </Link>
-          <Link href="/battle" className="btn btn-ghost cta-btn">
-            ⚔️ Start a Roast Battle
-          </Link>
-        </div>
-      </div>
-
-      <style>{`
-        .about-page {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          padding: 1.5rem 1rem 7rem;
-          gap: 1.75rem;
-          max-width: 780px;
-          margin: 0 auto;
-          position: relative;
-          color: var(--text-primary);
-        }
-
-        .about-glow {
-          position: absolute;
-          inset: 0;
-          background: radial-gradient(
-            ellipse 70% 35% at 50% 0%,
-            rgba(255, 69, 0, 0.12) 0%,
-            transparent 100%
-          );
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        .about-nav {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          width: 100%;
-          position: relative;
-          z-index: 1;
-        }
-        .nav-logo {
-          font-size: 22px;
-          text-decoration: none;
-          letter-spacing: 0.5px;
-        }
-        .nav-links {
-          display: flex;
-          gap: 8px;
-        }
-        .nav-btn {
-          font-size: 13px;
-          text-decoration: none;
-        }
-        .breadcrumb-wrap {
-          width: 100%;
-          position: relative;
-          z-index: 1;
-          margin-top: -0.5rem;
-        }
-
-        .about-hero {
-          text-align: center;
-          position: relative;
-          z-index: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 10px;
-          margin-top: 0.5rem;
-        }
-        .badge {
-          font-size: 10px;
-          letter-spacing: 2px;
-          padding: 3px 10px;
-          background: rgba(255, 69, 0, 0.12);
-          border: 1px solid rgba(255, 69, 0, 0.28);
-          border-radius: var(--radius-sm);
-          color: var(--fire);
-        }
-        .hero-title {
-          font-size: clamp(34px, 8vw, 54px);
-          line-height: 1.05;
-          letter-spacing: 0.5px;
-        }
-        .hero-lead {
-          max-width: 600px;
-          font-size: 13px;
-          color: var(--text-secondary);
-          line-height: 1.6;
-        }
-
-        .content-card {
-          width: 100%;
-          padding: 1.75rem 2rem;
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          position: relative;
-          z-index: 1;
-        }
-
-        .section-title {
-          font-size: 24px;
-          letter-spacing: 0.5px;
-        }
-        .section-sub {
-          font-size: 12px;
-          color: var(--text-secondary);
-          margin-top: -6px;
-        }
-        .section-text {
-          font-size: 14px;
-          line-height: 1.7;
-          color: var(--text-secondary);
-        }
-        .code-inline {
-          background: rgba(255, 255, 255, 0.06);
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-family: var(--font-mono, monospace);
-          font-size: 12px;
-          color: var(--fire-warm);
-        }
-
-        .pipeline-grid {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1rem;
-          margin-top: 0.5rem;
-        }
-        .pipeline-step {
-          background: #0d0d0d;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          padding: 1.25rem 1rem;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .step-num {
-          font-size: 20px;
-          font-weight: 700;
-          color: var(--fire);
-        }
-        .step-title {
-          font-size: 16px;
-          color: var(--text-primary);
-        }
-        .step-desc {
-          font-size: 11px;
-          color: var(--text-muted);
-          line-height: 1.5;
-        }
-
-        .tiers-list {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          margin-top: 0.5rem;
-        }
-        .tier-row {
-          background: #0d0d0d;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          padding: 1rem 1.25rem;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-        .tier-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .tier-grade {
-          font-size: 20px;
-          letter-spacing: 0.5px;
-        }
-        .tier-score {
-          font-size: 12px;
-          color: var(--text-muted);
-        }
-        .tier-label {
-          font-size: 12px;
-          font-weight: 600;
-        }
-        .tier-desc {
-          font-size: 13px;
-          color: var(--text-secondary);
-          line-height: 1.5;
-        }
-
-        .features-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          margin-top: 0.5rem;
-        }
-        .feature-box {
-          background: #0d0d0d;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          padding: 1.25rem 1rem;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .feature-icon {
-          font-size: 22px;
-        }
-        .feature-title {
-          font-size: 18px;
-          color: var(--text-primary);
-        }
-        .feature-desc {
-          font-size: 11px;
-          color: var(--text-muted);
-          line-height: 1.5;
-        }
-
-        .badge-guide-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 14px;
-          margin-top: 1rem;
-        }
-        .badge-guide-card {
-          background: #0d0d0d;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-md);
-          padding: 1.25rem;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .badge-guide-title {
-          font-size: 18px;
-          color: #ffaa55;
-          letter-spacing: 0.5px;
-        }
-        .badge-guide-sub {
-          font-size: 11px;
-          color: var(--text-muted);
-          line-height: 1.4;
-        }
-        .code-block {
-          background: #050505;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          padding: 8px 10px;
-          border-radius: 6px;
-          font-size: 11px;
-          color: #f0f0f0;
-          word-break: break-all;
-          margin-top: 4px;
-        }
-        .section-text-sub {
-          font-size: 12px;
-          color: #ffb700;
-          margin-top: 1rem;
-        }
-
-        .faqs-list {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-          margin-top: 0.5rem;
-        }
-        .faq-item {
-          padding-bottom: 12px;
-          border-bottom: 1px solid var(--border);
-        }
-        .faq-item:last-child {
-          border-bottom: none;
-          padding-bottom: 0;
-        }
-        .faq-q {
-          font-size: 13px;
-          margin-bottom: 6px;
-        }
-        .faq-a {
-          font-size: 13px;
-          color: var(--text-secondary);
-          line-height: 1.6;
-        }
-
-        .about-cta-card {
-          width: 100%;
-          text-align: center;
-          padding: 2.25rem 1.5rem;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-          background: linear-gradient(135deg, #120800 0%, #0c0c0c 100%);
-          border-color: rgba(255, 69, 0, 0.35);
-        }
-        .cta-heading {
-          font-size: clamp(28px, 6vw, 38px);
-        }
-        .cta-sub {
-          font-size: 13px;
-          color: var(--text-secondary);
-          max-width: 480px;
-        }
-        .cta-buttons {
-          display: flex;
-          gap: 12px;
-          margin-top: 8px;
-          flex-wrap: wrap;
-          justify-content: center;
-        }
-        .cta-btn {
-          padding: 12px 24px;
-          font-size: 14px;
-          text-decoration: none;
-        }
-
-        @media (max-width: 640px) {
-          .pipeline-grid {
-            grid-template-columns: 1fr;
-          }
-          .features-grid {
-            grid-template-columns: 1fr;
-          }
-          .content-card {
-            padding: 1.25rem 1rem;
-          }
-          .cta-btn {
-            width: 100%;
-            text-align: center;
-          }
-        }
-      `}</style>
-    </main>
+      </main>
     </>
   );
 }

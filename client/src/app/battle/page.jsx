@@ -3,7 +3,7 @@ import BattleEntryClient from './BattleEntryClient'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev'
 
 export const metadata = {
-    title: 'Roast Battle Arena ⚔️ — Face Off Two Developers | GitRoast',
+    title: 'Roast Battle Arena — Face Off Two Developers | GitRoast',
     description:
         'Pick any two GitHub profiles and start an AI roast battle. Compare developer sins, commit histories, repo scores, and see who gets crowned Most Roastable.',
     keywords: [
@@ -19,7 +19,7 @@ export const metadata = {
         canonical: `${SITE_URL}/battle`,
     },
     openGraph: {
-        title: 'Roast Battle Arena ⚔️ — Face Off Two Developers',
+        title: 'Roast Battle Arena — Face Off Two Developers',
         description:
             'Two developers enter. One gets crowned Most Roastable. Who has the worse code?',
         url: `${SITE_URL}/battle`,
@@ -36,7 +36,7 @@ export const metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Roast Battle Arena ⚔️ | GitRoast',
+        title: 'Roast Battle Arena | GitRoast',
         description: 'Two developers enter. One gets crowned Most Roastable.',
         images: ['/og-default.png'],
         creator: '@gitroast',
@@ -46,7 +46,7 @@ export const metadata = {
 const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Roast Battle Arena ⚔️ | GitRoast',
+    name: 'Roast Battle Arena | GitRoast',
     url: `${SITE_URL}/battle`,
     description:
         'Head-to-head developer roasting arena comparing two GitHub profiles on commit activity, repository quality, and code sins.',
@@ -80,3 +80,4 @@ export default function BattlePage() {
         </>
     )
 }
+

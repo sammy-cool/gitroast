@@ -3,645 +3,115 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { toast } from '@/utils/toast'
+import { toast, notify } from '@/utils/toast'
 import { useAuth } from '@/context/AuthContext'
 import Breadcrumb from '@/components/Breadcrumb'
+import Icon from '@/components/Icon'
+import './battle-entry.css'
 
 const FEATURED_RIVALRIES = [
-    {
-        title: 'Kernel vs React',
-        tag: 'OS vs Frontend',
-        user1: 'torvalds',
-        user2: 'gaearon',
-        emoji: '🐧 vs ⚛️',
-    },
-    {
-        title: 'Vue vs Svelte',
-        tag: 'Framework War',
-        user1: 'yyx990803',
-        user2: 'rich-harris',
-        emoji: '💚 vs 🧡',
-    },
-    {
-        title: 'UI vs Next.js',
-        tag: 'Modern Web',
-        user1: 'shadcn',
-        user2: 'leerob',
-        emoji: '🎨 vs ▲',
-    },
-    {
-        title: 'NPM vs Node/Go',
-        tag: 'Open Source Titans',
-        user1: 'sindresorhus',
-        user2: 'tj',
-        emoji: '📦 vs 🚀',
-    },
-    {
-        title: 'C vs Rust',
-        tag: 'Systems Clash',
-        user1: 'antirez',
-        user2: 'burntsushi',
-        emoji: '⚡ vs 🦀',
-    },
+  { title: 'Kernel vs React', tag: 'OS vs Frontend', user1: 'torvalds', user2: 'gaearon' },
+  { title: 'Vue vs Svelte', tag: 'Framework war', user1: 'yyx990803', user2: 'rich-harris' },
+  { title: 'UI vs Next.js', tag: 'Modern web', user1: 'shadcn', user2: 'leerob' },
+  { title: 'NPM vs Node/Go', tag: 'Open source titans', user1: 'sindresorhus', user2: 'tj' },
+  { title: 'C vs Rust', tag: 'Systems clash', user1: 'antirez', user2: 'burntsushi' },
 ]
 
+const clean = (raw) =>
+  String(raw || '')
+    .trim()
+    .replace(/^https?:\/\/(?:www\.)?github\.com\//i, '')
+    .replace(/^(?:www\.)?github\.com\//i, '')
+    .replace(/^@+/, '')
+    .replace(/^\/+|\/+$/g, '')
+    .toLowerCase()
+
 export default function BattleEntryClient() {
-    const { user } = useAuth()
-    const [user1, setUser1] = useState('')
-    const [user2, setUser2] = useState('')
-    const router = useRouter()
+  const { user } = useAuth()
+  const router = useRouter()
+  const [user1, setUser1] = useState('')
+  const [user2, setUser2] = useState('')
 
-    /* 
-      ── WHAT: ────────────────────────────────────────────────────────
-      Sanitizes contenders' usernames and triggers route transition to arena matchup.
-      
-      ── WHY: ─────────────────────────────────────────────────────────
-      Users frequently paste full profile links (e.g., https://github.com/torvalds).
-      Stripping protocols and domains prevents 404 navigation traps in /battle/:user1/vs/:user2.
-      
-      ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-      Called when starting a developer battle or clicking quick-match rivalries.
-      
-      ── USE CASES: ───────────────────────────────────────────────────
-      Pasted "github.com/shadcn" -> "shadcn".
-      
-      ── WHEN NOT TO USE: ─────────────────────────────────────────────
-      Single profile roast flows.
-    */
-    function launchBattle(u1, u2) {
-        const raw1 = (u1 || user1 || '').trim()
-        const raw2 = (u2 || user2 || '').trim()
-        const p1 = raw1.replace(/^https?:\/\/(?:www\.)?github\.com\//i, '').replace(/^(?:www\.)?github\.com\//i, '').replace(/^\/+|\/+$/g, '').toLowerCase()
-        const p2 = raw2.replace(/^https?:\/\/(?:www\.)?github\.com\//i, '').replace(/^(?:www\.)?github\.com\//i, '').replace(/^\/+|\/+$/g, '').toLowerCase()
+  function launchBattle(u1, u2) {
+    const p1 = clean(u1 || user1)
+    const p2 = clean(u2 || user2)
+    if (!p1 || !p2) return toast.warning('Enter both usernames', { description: 'A rivalry needs two public GitHub profiles.' })
+    if (p1 === p2) return toast.warning('Pick two different profiles', { description: 'You cannot battle yourself. Or can you? No. You cannot.' })
+    router.push(`/battle/${p1}/vs/${p2}`)
+  }
 
-        if (!p1 || !p2) {
-            toast.warning('Enter both GitHub usernames to start the battle!')
-            return
-        }
+  function handleRandom() {
+    const pick = FEATURED_RIVALRIES[Math.floor(Math.random() * FEATURED_RIVALRIES.length)]
+    setUser1(pick.user1)
+    setUser2(pick.user2)
+    toast.info(`Selected @${pick.user1} vs @${pick.user2}`, { description: 'Ready when you are.', action: { label: 'Fight now', onClick: () => launchBattle(pick.user1, pick.user2) } })
+  }
 
-        if (p1 === p2) {
-            toast.warning('You cannot battle yourself. Or can you? No. You cannot.')
-            return
-        }
+  function handleFillMyself() {
+    if (!user?.username) return
+    setUser1(user.username.toLowerCase())
+    toast.info(`@${user.username} is player 1`, { description: 'Pick your opponent.' })
+  }
 
-        router.push(`/battle/${p1}/vs/${p2}`)
-    }
+  function handleSwap() {
+    setUser1(user2)
+    setUser2(user1)
+  }
 
-    function handleQuickMatch(rivalry) {
-        setUser1(rivalry.user1)
-        setUser2(rivalry.user2)
-        launchBattle(rivalry.user1, rivalry.user2)
-    }
+  return (
+    <main className="be">
+      <section className="be-hero">
+        <div className="gr-page be-hero__inner">
+          <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Battles' }]} />
+          <p className="gr-eyebrow be-on-dark">Developer battles</p>
+          <h1 className="be-title">Settle a rivalry with public evidence.</h1>
+          <p className="be-lede">Two profiles enter. Friendly rivalry, zero dunking down. Only public data is compared.</p>
+        </div>
+      </section>
 
-    function handleRandomBattle() {
-        const pick = FEATURED_RIVALRIES[Math.floor(Math.random() * FEATURED_RIVALRIES.length)]
-        setUser1(pick.user1)
-        setUser2(pick.user2)
-        toast.info(`🎲 Selected: @${pick.user1} vs @${pick.user2}!`, {
-            cta: {
-                label: 'Fight Now ⚔️',
-                onClick: () => launchBattle(pick.user1, pick.user2),
-                autoClose: true,
-            },
-        })
-    }
-
-    function handleFillMyself() {
-        if (!user?.username) return
-        setUser1(user.username.toLowerCase())
-        toast.info(`⚔️ Set @${user.username} as Player 1! Pick your opponent.`)
-    }
-
-    function handleSwap() {
-        if (!user1 && !user2) return
-        const temp = user1
-        setUser1(user2)
-        setUser2(temp)
-    }
-
-    return (
-        <main className="battle-entry">
-            <div className="battle-glow" />
-
-            {/* Top Navigation */}
-            <nav className="battle-top-nav" aria-label="Battle Navigation">
-                <Link
-                    href="/"
-                    className="btn btn-ghost back-btn"
-                    aria-label="Back to GitRoast Home"
-                >
-                    ← Home
-                </Link>
-                <div className="battle-nav-actions">
-                    <button
-                        type="button"
-                        className="btn btn-ghost random-btn"
-                        onClick={handleRandomBattle}
-                        title="Pick random famous rivalry"
-                    >
-                        🎲 Random Rivalry
-                    </button>
-                    {user?.username && (
-                        <button
-                            type="button"
-                            className="btn btn-outline fill-me-btn"
-                            onClick={handleFillMyself}
-                            title={`Set @${user.username} as Player 1`}
-                        >
-                            ⚔️ Battle as Me
-                        </button>
-                    )}
-                </div>
-            </nav>
-
-            <div className="battle-breadcrumb-wrap">
-                <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: 'Battle Arena' }]} />
+      <div className="gr-page be-body">
+        <form className="gr-card gr-card--dark be-setup" onSubmit={(e) => { e.preventDefault(); launchBattle() }} aria-labelledby="be-setup-h">
+          <p className="gr-eyebrow be-on-dark">Rivalry setup</p>
+          <h2 id="be-setup-h" className="gr-h3 be-on-dark">Choose your two profiles.</h2>
+          <div className="be-slots">
+            <div>
+              <label className="gr-label be-on-dark" htmlFor="be-u1">Player 1</label>
+              <input id="be-u1" className="gr-input gr-mono" value={user1} onChange={(e) => setUser1(e.target.value)} placeholder="octavia-labs" autoComplete="off" autoCapitalize="off" spellCheck={false} maxLength={80} />
             </div>
-
-            {/* Header */}
-            <header className="battle-header">
-                <div className="battle-badge font-mono">ARENA DEATHMATCH</div>
-                <h1 className="font-display battle-title text-fire">
-                    ⚔️ ROAST BATTLE
-                </h1>
-                <p className="font-mono battle-sub">
-                    Two developers enter. One roast verdict. Zero survivors.
-                </p>
-            </header>
-
-            {/* Matchmaking Arena Box */}
-            <div className="battle-card card">
-                <div className="battle-inputs">
-                    {/* Player 1 */}
-                    <div className="player-input">
-                        <div className="player-label-wrap">
-                            <label htmlFor="player1-input" className="player-label font-mono">
-                                🔴 PLAYER 1
-                            </label>
-                            {user?.username && user1.toLowerCase() !== user.username.toLowerCase() && (
-                                <button
-                                    type="button"
-                                    className="use-my-handle-link font-mono"
-                                    onClick={handleFillMyself}
-                                >
-                                    Use me
-                                </button>
-                            )}
-                        </div>
-                        <div className="input-wrap">
-                            <span className="input-prefix font-mono">github.com/</span>
-                            <input
-                                id="player1-input"
-                                className="battle-input font-mono"
-                                placeholder="e.g. torvalds"
-                                value={user1}
-                                onChange={e => setUser1(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && launchBattle()}
-                                maxLength={39}
-                                autoFocus
-                            />
-                        </div>
-                    </div>
-
-                    {/* VS divider with Swap Button */}
-                    <div className="vs-col">
-                        <div className="vs-divider font-display" aria-hidden="true">VS</div>
-                        <button
-                            type="button"
-                            className="swap-btn font-mono"
-                            onClick={handleSwap}
-                            title="Swap contenders"
-                            aria-label="Swap Player 1 and Player 2"
-                        >
-                            ⇄ Swap
-                        </button>
-                    </div>
-
-                    {/* Player 2 */}
-                    <div className="player-input">
-                        <div className="player-label-wrap">
-                            <label htmlFor="player2-input" className="player-label font-mono">
-                                🔵 PLAYER 2
-                            </label>
-                        </div>
-                        <div className="input-wrap">
-                            <span className="input-prefix font-mono">github.com/</span>
-                            <input
-                                id="player2-input"
-                                className="battle-input font-mono"
-                                placeholder="e.g. gaearon"
-                                value={user2}
-                                onChange={e => setUser2(e.target.value)}
-                                onKeyDown={e => e.key === 'Enter' && launchBattle()}
-                                maxLength={39}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* Battle Action */}
-                <div className="battle-actions">
-                    <button
-                        type="button"
-                        className="btn btn-primary battle-btn font-mono"
-                        onClick={() => launchBattle()}
-                    >
-                        ⚔️ START THE BATTLE 🔥
-                    </button>
-                    <p className="battle-hint font-mono">
-                        Instant commit extraction · Comparative shame metrics · AI declares the loser
-                    </p>
-                </div>
+            <button type="button" className="be-swap" onClick={handleSwap} aria-label="Swap players" title="Swap players">VS</button>
+            <div>
+              <label className="gr-label be-on-dark" htmlFor="be-u2">Player 2</label>
+              <input id="be-u2" className="gr-input gr-mono" value={user2} onChange={(e) => setUser2(e.target.value)} placeholder="aria-moon" autoComplete="off" autoCapitalize="off" spellCheck={false} maxLength={80} />
             </div>
+          </div>
+          <div className="be-actions">
+            <button type="submit" className="gr-btn gr-btn--primary"><Icon name="flame" size={16} /> Preview battle</button>
+            <button type="button" className="gr-btn gr-btn--outline" onClick={handleRandom}>Random rivalry</button>
+            {user?.username && <button type="button" className="gr-btn gr-btn--outline" onClick={handleFillMyself}>Battle as me</button>}
+          </div>
+          <p className="be-fine">Ghost Mode profiles stay out of public battles. Private results stay private.</p>
+        </form>
 
-            {/* ── Featured Rivalries Section ── */}
-            <section className="featured-section" aria-labelledby="featured-heading">
-                <h2 id="featured-heading" className="featured-title font-mono">
-                    🔥 POPULAR RIVALRIES (1-CLICK BATTLE)
-                </h2>
-                <div className="rivalries-grid">
-                    {FEATURED_RIVALRIES.map((riv, i) => (
-                        <button
-                            key={i}
-                            type="button"
-                            className="rivalry-card"
-                            onClick={() => handleQuickMatch(riv)}
-                            title={`Battle @${riv.user1} vs @${riv.user2}`}
-                        >
-                            <div className="rivalry-top">
-                                <span className="rivalry-tag font-mono">{riv.tag}</span>
-                                <span className="rivalry-emoji">{riv.emoji}</span>
-                            </div>
-                            <div className="rivalry-names font-mono">
-                                <span className="riv-u1">@{riv.user1}</span>
-                                <span className="riv-vs text-fire font-display">VS</span>
-                                <span className="riv-u2">@{riv.user2}</span>
-                            </div>
-                            <div className="rivalry-cta font-mono">Launch Battle →</div>
-                        </button>
-                    ))}
-                </div>
-            </section>
+        <section aria-labelledby="be-feat-h">
+          <p className="gr-eyebrow">Featured rivalries</p>
+          <h2 id="be-feat-h" className="gr-h2 be-h">Classic matchups.</h2>
+          <div className="be-grid">
+            {FEATURED_RIVALRIES.map((r) => (
+              <button key={r.title} type="button" className="gr-card gr-card--interactive be-card" onClick={() => { setUser1(r.user1); setUser2(r.user2); launchBattle(r.user1, r.user2) }}>
+                <span className="gr-pill gr-pill--blue">{r.tag}</span>
+                <b className="be-card__t">{r.title}</b>
+                <span className="gr-mono be-card__u">@{r.user1} vs @{r.user2}</span>
+                <span className="rc-link">Start battle →</span>
+              </button>
+            ))}
+          </div>
+        </section>
 
-            {/* ── Arena Rules / How It Works ── */}
-            <section className="rules-section" aria-labelledby="rules-heading">
-                <h2 id="rules-heading" className="rules-title font-mono">
-                    ⚖️ ARENA RULES & JUDGING CRITERIA
-                </h2>
-                <div className="rules-grid">
-                    <div className="rule-card">
-                        <div className="rule-icon">📉</div>
-                        <h3 className="rule-name font-display">Shame Differential</h3>
-                        <p className="rule-desc font-mono">
-                            We pull live repository data for both developers. The developer with the lowest score is officially crowned Most Roastable.
-                        </p>
-                    </div>
-                    <div className="rule-card">
-                        <div className="rule-icon">🧟</div>
-                        <h3 className="rule-name font-display">Graveyard Index</h3>
-                        <p className="rule-desc font-mono">
-                            Abandoned tutorial clones, 0-star hobby repos, and dead forks severely penalize the contender&apos;s defense rating.
-                        </p>
-                    </div>
-                    <div className="rule-card">
-                        <div className="rule-icon">🤖</div>
-                        <h3 className="rule-name font-display">AI Head-to-Head Verdict</h3>
-                        <p className="rule-desc font-mono">
-                            Gemini AI conducts a comparative analysis of both code histories and synthesizes a brutal verdict declaring the ultimate loser.
-                        </p>
-                    </div>
-                </div>
-            </section>
-
-            <style jsx>{`
-        .battle-entry {
-          min-height:      100vh;
-          display:         flex;
-          flex-direction:  column;
-          align-items:     center;
-          justify-content: flex-start;
-          padding:         1.25rem 1rem 6.5rem;
-          gap:             2rem;
-          position:        relative;
-          overflow-x:      hidden;
-          width:           100%;
-        }
-        .battle-glow {
-          position:       absolute;
-          inset:          0;
-          background:     radial-gradient(
-            ellipse 80% 40% at 50% 0%,
-            rgba(255, 69, 0, 0.18) 0%,
-            transparent 100%
-          );
-          pointer-events: none;
-        }
-
-        /* Top Nav */
-        .battle-top-nav {
-          display:         flex;
-          justify-content: space-between;
-          align-items:     center;
-          width:           100%;
-          max-width:       800px;
-          z-index:         10;
-        }
-        .battle-breadcrumb-wrap {
-          width:     100%;
-          max-width: 800px;
-          margin-top: -0.25rem;
-        }
-        .battle-nav-actions {
-          display:     flex;
-          align-items: center;
-          gap:         8px;
-          flex-wrap:   wrap;
-        }
-        .random-btn, .fill-me-btn {
-          font-size: 12px;
-          padding:   6px 12px;
-          height:    34px;
-        }
-
-        /* Header */
-        .battle-header {
-          text-align:     center;
-          display:        flex;
-          flex-direction: column;
-          align-items:    center;
-          gap:            8px;
-          margin-top:     -0.5rem;
-        }
-        .battle-badge {
-          font-size:      10px;
-          letter-spacing: 2px;
-          color:          var(--fire);
-          background:     rgba(255, 69, 0, 0.1);
-          border:         1px solid rgba(255, 69, 0, 0.3);
-          padding:        2px 8px;
-          border-radius:  var(--radius-sm);
-        }
-        .battle-title {
-          font-size:   clamp(38px, 9vw, 68px);
-          line-height: 1;
-        }
-        .battle-sub {
-          color:     var(--text-secondary);
-          font-size: 14px;
-          max-width: 460px;
-        }
-
-        /* Main Battle Card */
-        .battle-card {
-          width:          100%;
-          max-width:      800px;
-          padding:        1.75rem;
-          display:        flex;
-          flex-direction: column;
-          gap:            1.5rem;
-          background:     var(--bg-card);
-          border:         1px solid var(--border);
-          border-radius:  var(--radius-lg);
-          box-shadow:     0 8px 32px rgba(0, 0, 0, 0.4);
-          z-index:        5;
-        }
-
-        /* Inputs layout */
-        .battle-inputs {
-          display:     flex;
-          align-items: center;
-          gap:         1.25rem;
-          width:       100%;
-        }
-        .player-input {
-          display:        flex;
-          flex-direction: column;
-          gap:            8px;
-          flex:           1;
-          min-width:      0;
-        }
-        .player-label-wrap {
-          display:         flex;
-          justify-content: space-between;
-          align-items:     center;
-        }
-        .player-label {
-          font-size:      11px;
-          text-transform: uppercase;
-          letter-spacing: 1.5px;
-          color:          var(--text-muted);
-          font-weight:    600;
-        }
-        .use-my-handle-link {
-          background:  none;
-          border:      none;
-          color:       var(--fire);
-          font-size:   11px;
-          cursor:      pointer;
-          padding:     0;
-          text-decoration: underline;
-        }
-        .input-wrap {
-          display:       flex;
-          align-items:   center;
-          background:    var(--bg-input);
-          border:        1px solid var(--border);
-          border-radius: var(--radius-md);
-          overflow:      hidden;
-          transition:    border-color 0.18s;
-        }
-        .input-wrap:focus-within {
-          border-color: var(--fire);
-          box-shadow:   0 0 12px rgba(255, 69, 0, 0.2);
-        }
-        .input-prefix {
-          padding:      0 10px;
-          font-size:    12px;
-          color:        var(--text-muted);
-          white-space:  nowrap;
-          border-right: 1px solid var(--border);
-        }
-        .battle-input {
-          flex:       1;
-          padding:    12px 14px;
-          background: transparent;
-          border:     none;
-          outline:    none;
-          color:      var(--text-primary);
-          font-size:  14px;
-          min-width:  0;
-        }
-        .battle-input::placeholder { color: var(--text-muted); }
-
-        .vs-col {
-          display:        flex;
-          flex-direction: column;
-          align-items:    center;
-          gap:            4px;
-          flex-shrink:    0;
-        }
-        .vs-divider {
-          font-size: 28px;
-          color:     var(--fire);
-          line-height: 1;
-        }
-        .swap-btn {
-          background:    transparent;
-          border:        1px solid var(--border);
-          color:         var(--text-secondary);
-          font-size:     10px;
-          padding:       2px 6px;
-          border-radius: var(--radius-sm);
-          cursor:        pointer;
-          transition:    all 0.15s ease;
-        }
-        .swap-btn:hover {
-          border-color: var(--fire);
-          color:        var(--text-primary);
-        }
-
-        /* Action Buttons */
-        .battle-actions {
-          display:        flex;
-          flex-direction: column;
-          align-items:    center;
-          gap:            10px;
-          width:          100%;
-        }
-        .battle-btn {
-          padding:        14px 32px;
-          font-size:      16px;
-          width:          100%;
-          max-width:      360px;
-          font-weight:    700;
-          letter-spacing: 0.5px;
-        }
-        .battle-hint {
-          font-size:  12px;
-          color:      var(--text-muted);
-          text-align: center;
-        }
-
-        /* Featured Rivalries */
-        .featured-section {
-          width:     100%;
-          max-width: 800px;
-          display:   flex;
-          flex-direction: column;
-          gap:       12px;
-        }
-        .featured-title {
-          font-size:      11px;
-          letter-spacing: 1.5px;
-          color:          var(--text-muted);
-        }
-        .rivalries-grid {
-          display:               grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap:                   10px;
-          width:                 100%;
-        }
-        .rivalry-card {
-          background:    var(--bg-elevated);
-          border:        1px solid var(--border);
-          border-radius: var(--radius-md);
-          padding:       12px 14px;
-          display:       flex;
-          flex-direction: column;
-          gap:           6px;
-          cursor:        pointer;
-          text-align:    left;
-          transition:    all 0.18s ease;
-        }
-        .rivalry-card:hover {
-          border-color: var(--fire);
-          transform:    translateY(-2px);
-          box-shadow:   0 6px 20px rgba(255, 69, 0, 0.12);
-        }
-        .rivalry-top {
-          display:         flex;
-          justify-content: space-between;
-          align-items:     center;
-        }
-        .rivalry-tag {
-          font-size:      9px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          color:          var(--text-muted);
-        }
-        .rivalry-emoji {
-          font-size: 14px;
-        }
-        .rivalry-names {
-          display:     flex;
-          align-items: center;
-          gap:         6px;
-          font-size:   13px;
-          color:       var(--text-primary);
-        }
-        .riv-vs {
-          font-size: 15px;
-        }
-        .rivalry-cta {
-          font-size:  10px;
-          color:      var(--fire);
-          margin-top: 2px;
-        }
-
-        /* Rules section */
-        .rules-section {
-          width:     100%;
-          max-width: 800px;
-          display:   flex;
-          flex-direction: column;
-          gap:       12px;
-        }
-        .rules-title {
-          font-size:      11px;
-          letter-spacing: 1.5px;
-          color:          var(--text-muted);
-        }
-        .rules-grid {
-          display:               grid;
-          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-          gap:                   12px;
-        }
-        .rule-card {
-          background:    var(--bg-card);
-          border:        1px solid var(--border);
-          border-radius: var(--radius-md);
-          padding:       16px;
-          display:       flex;
-          flex-direction: column;
-          gap:           6px;
-        }
-        .rule-icon { font-size: 22px; }
-        .rule-name { font-size: 18px; color: var(--text-primary); }
-        .rule-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
-
-        @media (max-width: 640px) {
-          .battle-inputs {
-            flex-direction: column;
-            gap: 1rem;
-          }
-          .vs-col {
-            flex-direction: row;
-            gap: 12px;
-          }
-          .battle-top-nav {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 10px;
-          }
-          .battle-nav-actions {
-            width: 100%;
-            justify-content: space-between;
-          }
-          .battle-btn {
-            max-width: 100%;
-          }
-        }
-      `}</style>
-        </main>
-    )
+        <section className="gr-card gr-card--blue be-how">
+          <h2 className="rc-card-title">How a battle works</h2>
+          <p className="gr-help">We read both public profiles, compare repositories, commit quality and documentation, then write a verdict. Rankings never use identity, geography or follower count. <Link href="/about#methodology" className="rc-link">Read the methodology →</Link></p>
+        </section>
+      </div>
+    </main>
+  )
 }

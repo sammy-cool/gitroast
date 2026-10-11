@@ -1,0 +1,14 @@
+@import "../../../components/recruiter/recruiter.css";
+.hp { background: var(--paper); min-height: 100vh; }
+.hp-hero { background: var(--ink); color: #fff; }
+.hp-hero__inner { padding-top: 28px; padding-bottom: 36px; display: grid; gap: 20px; justify-items: start; }
+.hp-id { display: flex; gap: 18px; align-items: center; }
+.hp-avatar { width: 64px; height: 64px; }
+.hp-on-dark { color: #fff !important; }
+.hp-name { font: 400 clamp(32px, 5vw, 56px)/1.05 var(--font-serif); overflow-wrap: anywhere; }
+.hp-body { padding-top: 28px; padding-bottom: 72px; display: grid; gap: 18px; max-width: 1000px; }
+.hp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.hp-list { margin-top: 8px; padding: 0; }
+.hp-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.hp-skel { height: 120px; } .hp-skel--sm { height: 96px; } .hp-skel--lg { height: 260px; }
+@media (max-width: 760px) { .hp-stats { grid-template-columns: 1fr 1fr; } }

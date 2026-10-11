@@ -1,662 +1,177 @@
 'use client'
 
-// ============================================================
-// GITROAST — RepoRoastCard Component
-// ============================================================
-// WHAT: Card displaying deep repository roast results:
-//       - Repo metadata (stars, forks, language, open issues)
-//       - Architecture code smells list
-//       - Commit hygiene analysis
-//       - Typewriter roast display with Voice Roast audio
-// ============================================================
-
 import { useState, useEffect, useRef } from 'react'
-import { toast } from '@/utils/toast'
 import Link from 'next/link'
+import { toast, notify } from '@/utils/toast'
+import './roast-result.css'
 
 const TYPING_SPEED = 18
 
 export default function RepoRoastCard({ data, onProClick }) {
   const [displayedText, setDisplayedText] = useState('')
   const [typingDone, setTypingDone] = useState(false)
-  const [showCursor, setShowCursor] = useState(true)
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
-
   const intervalRef = useRef(null)
-  const cursorTimerRef = useRef(null)
-
   const roastText = data?.roast || ''
 
-  // Cancel speech on unmount
-  // WHY: Prevents audio from continuing to play globally if user closes or navigates away
-  useEffect(() => {
-    return () => {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel()
-      }
-    }
+  useEffect(() => () => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel()
   }, [])
 
-  // Typewriter effect
   useEffect(() => {
-    if (!roastText) return
-
-    let currentIndex = 0
+    setDisplayedText('')
+    setTypingDone(false)
+    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (reduce || !roastText) {
+      setDisplayedText(roastText)
+      setTypingDone(true)
+      return undefined
+    }
+    let i = 0
     intervalRef.current = setInterval(() => {
-      currentIndex += 1
-      setDisplayedText(roastText.slice(0, currentIndex))
-
-      if (currentIndex >= roastText.length) {
+      i += 1
+      setDisplayedText(roastText.slice(0, i))
+      if (i >= roastText.length) {
         clearInterval(intervalRef.current)
         setTypingDone(true)
-
-        let blinks = 0
-        cursorTimerRef.current = setInterval(() => {
-          setShowCursor((prev) => !prev)
-          blinks++
-          if (blinks >= 6) {
-            clearInterval(cursorTimerRef.current)
-            setShowCursor(false)
-          }
-        }, 400)
       }
     }, TYPING_SPEED)
-
-    return () => {
-      clearInterval(intervalRef.current)
-      clearInterval(cursorTimerRef.current)
-    }
+    return () => clearInterval(intervalRef.current)
   }, [roastText])
 
-  // Voice roast with Web Speech API
   function handleVoiceRoast() {
-    if (typeof window === 'undefined') return
-    if (!('speechSynthesis' in window)) {
-      toast.warning('Speech synthesis is not supported on this browser.')
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      toast.warning('Voice is not supported here', { description: 'Try a different browser or device.' })
       return
     }
-
     if (isPlayingAudio) {
       window.speechSynthesis.cancel()
       setIsPlayingAudio(false)
       return
     }
-
     window.speechSynthesis.cancel()
-    const cleanText = roastText.replace(/[`*#_~]/g, '')
-    const utterance = new SpeechSynthesisUtterance(cleanText)
-
+    const utterance = new SpeechSynthesisUtterance(roastText.replace(/[`*#_~]/g, ''))
     utterance.rate = 0.92
     utterance.pitch = 0.88
-
     const voices = window.speechSynthesis.getVoices()
-    const englishVoice =
-      voices.find((v) => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Daniel'))) ||
-      voices.find((v) => v.lang.startsWith('en'))
-
-    if (englishVoice) utterance.voice = englishVoice
-
-    utterance.onstart = () => {
-      setIsPlayingAudio(true)
-      toast.info('🔊 Playing Voice Roast...')
-    }
-
+    const voice = voices.find((v) => v.lang.startsWith('en') && /Natural|Google|Daniel/.test(v.name)) || voices.find((v) => v.lang.startsWith('en'))
+    if (voice) utterance.voice = voice
+    utterance.onstart = () => setIsPlayingAudio(true)
     utterance.onend = () => setIsPlayingAudio(false)
     utterance.onerror = () => setIsPlayingAudio(false)
-
     window.speechSynthesis.speak(utterance)
   }
 
   function handleCopyShare() {
-    if (typeof window === 'undefined') return
-    const url = window.location.href
-    navigator.clipboard.writeText(url).then(() => {
-      toast.copy('📋 Repository roast link copied to clipboard!')
-    })
+    navigator.clipboard
+      .writeText(window.location.href)
+      .then(() => notify.copied({ what: 'Repository roast link' }))
+      .catch(() => toast.error('Could not copy the link', { description: 'Copy it from the address bar instead.' }))
   }
- 
-  // ── Defensive Data Guard ────────────────────────────────────
-  // ── WHAT: ──────────────────────────────────────────────────
-  // Safeguards RepoRoastCard from rendering when repo roast data is not yet loaded.
-  //
-  // ── WHY: ───────────────────────────────────────────────────
-  // Prevents unhandled TypeError crashes on data.score while respecting React Rules of Hooks.
-  //
-  // ── WHERE & WHEN TO USE: ───────────────────────────────────
-  // Positioned directly after all React hooks (useState, useRef, useEffect) have executed.
-  //
-  // ── USE CASES: ─────────────────────────────────────────────
-  // Initial page mount, repo state changes, and offline network reconnects.
-  //
-  // ── WHEN NOT TO USE: ───────────────────────────────────────
-  // Never place before React hooks.
-  if (!data) return null;
 
-  const scoreColor =
-    data.score < 40 ? 'var(--bad)' : data.score < 70 ? 'var(--warn)' : 'var(--good)'
+  if (!data) return null
+
+  const firstSentence = (roastText.match(/^[\s\S]*?[.!?](?=\s|$)/)?.[0] || roastText).trim()
+  const stats = [
+    ['Language', data.language || '—', 'Primary language'],
+    ['Stars', data.stars ?? 0, 'Public signal, not score input'],
+    ['Open issues', data.openIssues ?? 0, 'As of analysis'],
+    ['Commit hygiene', `${data.commitQuality ?? 0}%`, 'Message quality'],
+  ]
 
   return (
-    <div className="repo-card card">
-      {/* ── Header ── */}
-      <div className="card-header">
-        <div className="repo-meta-left">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={data.avatarUrl || `https://avatars.githubusercontent.com/${data.owner}?s=96`}
-            alt={data.owner}
-            className="repo-avatar"
-            crossOrigin="anonymous"
-            loading="eager"
-            onError={(e) => {
-              /* 
-                ── WHAT: ────────────────────────────────────────────────────────
-                Safe inline SVG fallback on avatar load failure.
-                
-                ── WHY: ─────────────────────────────────────────────────────────
-                Prevents browser broken image icons and avoids infinite onError
-                loops by unsetting onerror before assigning the data URI fallback.
-                
-                ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-                All user and organization avatar img tags.
-                
-                ── USE CASES: ───────────────────────────────────────────────────
-                Offline mode, rate limits, or network partitions.
-                
-                ── WHEN NOT TO USE: ─────────────────────────────────────────────
-                Do not use heavy external HTTP image URLs for fallbacks.
-              */
-              e.currentTarget.onerror = null;
-              e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="54" height="54" viewBox="0 0 54 54"><rect width="54" height="54" rx="12" fill="%231a1a1a"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="20" fill="%23ff6b00">📦</text></svg>';
-            }}
-          />
-          <div>
-            <div className="repo-title font-display">
-              <a
-                href={data.url || `https://github.com/${data.owner}/${data.repoName}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="repo-link"
-              >
-                {data.fullName} ↗
-              </a>
+    <div className="rr">
+      <div className="rr-capture">
+        <section className="rr-hero" aria-label="Repository roast summary">
+          <div className="rr-id">
+            <span className="rr-avatar">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={data.avatarUrl || `https://avatars.githubusercontent.com/${data.owner}?s=96`} alt="" width={56} height={56} crossOrigin="anonymous" onError={(e) => { e.currentTarget.style.display = 'none' }} />
+              <b aria-hidden="true">{String(data.owner || '?').slice(0, 2).toUpperCase()}</b>
+            </span>
+            <div>
+              <p className="rr-name">
+                <a href={data.url || `https://github.com/${data.owner}/${data.repoName}`} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>{data.fullName} ↗</a>
+              </p>
+              {data.description && <p className="rr-meta">{data.description}</p>}
             </div>
-            <p className="repo-desc font-mono">{data.description}</p>
           </div>
-        </div>
-
-        <div className="score-block" title={`Repo Roast Score: ${data.score}/100`}>
-          <div className="score-number font-display" style={{ color: scoreColor }}>
-            {data.score}
+          <div className="rr-hero__body">
+            <div>
+              <p className="rr-tags">Repository roast{data.roastSource === 'ai' ? ' • AI' : ''}</p>
+              <h1 className="rr-quote">&ldquo;{firstSentence}&rdquo;</h1>
+              <p className="rr-sub">Grade {data.grade}. Built from public repository signals only.</p>
+            </div>
+            <div className="gr-score rr-score" role="img" aria-label={`Repository score ${data.score} out of 100`}>
+              <b>{data.score}</b>
+              <small>Repo score / 100</small>
+            </div>
           </div>
-          <div className="score-label font-mono">/100 REPO SCORE</div>
-          <div className="grade-badge font-mono" style={{ color: 'var(--bad)' }}>
-            GRADE: {data.grade}
-          </div>
-        </div>
+          <p className="rr-brand">gitroast.dev</p>
+        </section>
       </div>
 
-      {/* ── Key Indicators Bar ── */}
-      <div className="repo-stats-bar font-mono">
-        <div className="stat-pill">
-          <span className="pill-key">Lang:</span>
-          <span className="pill-val">{data.language}</span>
-        </div>
-        <div className="stat-pill">
-          <span className="pill-key">Stars:</span>
-          <span className="pill-val">{data.stars}</span>
-        </div>
-        <div className="stat-pill">
-          <span className="pill-key">Issues:</span>
-          <span className="pill-val">{data.openIssues}</span>
-        </div>
-        <div className="stat-pill">
-          <span className="pill-key">Commit Hygiene:</span>
-          <span className="pill-val">{data.commitQuality}%</span>
-        </div>
+      <div className="rr-actions">
+        <button type="button" className="gr-btn gr-btn--primary" onClick={handleCopyShare}>Share repo roast</button>
+        <Link href="/" className="gr-btn gr-btn--outline">Roast another</Link>
+        {!data.isPro && onProClick && <button type="button" className="gr-btn gr-btn--quiet" onClick={onProClick}>See Pro</button>}
       </div>
 
-      {/* ── Code Smells ── */}
-      {data.codeSmells && data.codeSmells.length > 0 && (
-        <div className="smells-section">
-          <div className="section-title font-mono">🚩 Architectural Red Flags</div>
-          <div className="smells-list font-mono">
-            {data.codeSmells.map((smell, idx) => (
-              <div key={idx} className="smell-item">
-                <span className="smell-icon">⚠️</span>
-                <span>{smell}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <section className="rr-metrics" aria-label="Key metrics">
+        {stats.map(([k, v, note]) => (
+          <div key={k} className="gr-card rr-metric"><span className="gr-eyebrow rr-metric__k">{k}</span><b className="rr-metric__v">{v}</b><span className="gr-help">{note}</span></div>
+        ))}
+      </section>
 
-      {/* ── Shame Commits ── */}
-      {data.shameCommits && data.shameCommits.length > 0 && (
-        <div className="commits-section">
-          <div className="section-title font-mono">💀 Questionable Commits</div>
-          <div className="commits-list font-mono">
-            {data.shameCommits.map((msg, idx) => (
-              <div key={idx} className="commit-item">
-                <span className="commit-hash">commit #{idx + 1}</span>
-                <span className="commit-msg">&ldquo;{msg}&rdquo;</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <div className="rr-cols">
+        <div className="rr-main">
+          <section className="gr-card rr-roast" aria-labelledby="rrc-h">
+            <div className="rr-roast__head">
+              <div><p className="gr-eyebrow">The roast</p><h2 id="rrc-h" className="gr-h3">Full read-out</h2></div>
+              {typingDone && <button type="button" className="gr-btn gr-btn--outline" aria-pressed={isPlayingAudio} onClick={handleVoiceRoast}>{isPlayingAudio ? 'Stop voice' : 'Voice roast'}</button>}
+            </div>
+            <p className="rr-roast__text">{displayedText}{!typingDone && <span className="rr-caret" aria-hidden="true" />}</p>
+          </section>
 
-      {/* ── The Roast Text Block ── */}
-      <div className="roast-text-block">
-        <div className="roast-text-header">
-          <div className="roast-header-left">
-            <p className="roast-text-label font-mono">🔥 The Repository Roast</p>
-            {data.roastSource === 'ai' && (
-              <span className="ai-badge font-mono">⚡ AI Roast</span>
-            )}
-          </div>
-          {typingDone && (
-            <button
-              type="button"
-              className={`voice-roast-btn font-mono ${isPlayingAudio ? 'voice-roast-btn--active' : ''}`}
-              onClick={handleVoiceRoast}
-              title={isPlayingAudio ? 'Stop reading' : 'Read roast aloud'}
-            >
-              {isPlayingAudio ? (
-                <>
-                  <span className="voice-pulse" /> Stop Voice
-                </>
-              ) : (
-                <>🔊 Voice Roast</>
+          {(data.codeSmells?.length > 0 || data.shameCommits?.length > 0) && (
+            <section className="rr-charges" aria-labelledby="rrc-charges">
+              <p className="gr-eyebrow">The charges</p>
+              <h2 id="rrc-charges" className="gr-h2">Architecture sins, with receipts.</h2>
+              {data.codeSmells?.length > 0 && (
+                <article className="gr-card gr-card--ember rr-charge">
+                  <div className="rr-charge__head"><h3>Architectural red flags</h3><span className="gr-pill gr-pill--ember">{data.codeSmells.length} found</span></div>
+                  <ul className="rr-commits">{data.codeSmells.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                </article>
               )}
-            </button>
+              {data.shameCommits?.length > 0 && (
+                <article className="gr-card rr-charge">
+                  <div className="rr-charge__head"><h3>Questionable commits</h3><span className="gr-pill gr-pill--blue">{data.shameCommits.length} recent</span></div>
+                  <ul className="rr-commits">{data.shameCommits.map((m, i) => <li key={i} className="gr-mono">&ldquo;{m}&rdquo;</li>)}</ul>
+                  <a className="rr-evidence" href={data.url || `https://github.com/${data.owner}/${data.repoName}`} target="_blank" rel="noopener noreferrer">Inspect public evidence →</a>
+                </article>
+              )}
+            </section>
+          )}
+
+          {typingDone && data.redemptionPlan?.length > 0 && (
+            <section className="gr-card gr-card--gold" aria-labelledby="rrc-plan">
+              <p className="gr-eyebrow">Codebase repairs</p>
+              <h2 id="rrc-plan" className="gr-h3">Architect redemption plan</h2>
+              <ol className="rr-plan">{data.redemptionPlan.map((t, i) => <li key={i}><span className="gr-mono">0{i + 1}</span>{t}</li>)}</ol>
+            </section>
           )}
         </div>
-        <p className="roast-text">
-          &ldquo;{displayedText}
-          {!typingDone && <span className="typing-cursor animate-blink" />}
-          {typingDone && showCursor && <span className="typing-cursor" />}
-          &rdquo;
-        </p>
+
+        <aside className="rr-rail">
+          <section className="gr-card gr-card--dark" aria-labelledby="rrc-pro">
+            <span className="gr-pill gr-pill--ember">Pro Roaster</span>
+            <h2 id="rrc-pro" className="gr-h3 rr-pro-title">Remember every burn.</h2>
+            <p className="rr-pro-text">AI repository roasts, history and private repositories.</p>
+            {!data.isPro && onProClick ? <button type="button" className="gr-btn gr-btn--primary gr-btn--block" onClick={onProClick}>See Pro, no jump scare</button> : <Link href="/dashboard" className="gr-btn gr-btn--outline gr-btn--block">Open dashboard</Link>}
+          </section>
+          <p className="gr-help rr-footnote">Keep it playful. Share public work, not personal information.</p>
+        </aside>
       </div>
-
-      {/* ── AI Redemption Plan for Codebase ── */}
-      {/* WHAT: Displays 3 actionable architecture fixes for this codebase */}
-      {/* WHY: Delivers immense value turning repo burn into a prioritized refactoring roadmap */}
-      {/* WHERE & WHEN TO USE: Rendered after typing completes when redemptionPlan is present */}
-      {/* USE CASES: Engineering debt remediation, hackathon improvements, open-source PRs */}
-      {/* WHEN NOT TO USE: Never render while typing is in progress or when plan is empty */}
-      {typingDone && data?.redemptionPlan && data.redemptionPlan.length > 0 && (
-        <div className="redemption-container">
-          <div className="redemption-header font-mono">
-            <span className="redemption-badge">🛠️ ARCHITECT REDEMPTION PLAN</span>
-            <span className="redemption-pill">CODEBASE REPAIRS</span>
-          </div>
-          <div className="redemption-list">
-            {data.redemptionPlan.map((item, idx) => (
-              <div key={idx} className="redemption-row">
-                <span className="redemption-index font-mono">0{idx + 1}</span>
-                <span className="redemption-text">{item}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Brand row & share buttons */}
-      <div className="card-footer">
-        <div className="card-brand font-mono">gitroast 🔥</div>
-        <div className="share-actions">
-          <button
-            type="button"
-            className="action-btn font-mono"
-            onClick={handleCopyShare}
-          >
-            📋 Share Repo Roast
-          </button>
-          <Link href="/" className="action-btn font-mono action-btn--primary">
-            Roast Another →
-          </Link>
-        </div>
-      </div>
-
-      <style jsx>{`
-        .repo-card {
-          width: 100%;
-          max-width: 640px;
-          background: #0d0d0d;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          overflow: hidden;
-        }
-        .card-header {
-          padding: 1.5rem;
-          background: linear-gradient(160deg, #121212 0%, #190a02 100%);
-          border-bottom: 1px solid var(--border);
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 1rem;
-          flex-wrap: wrap;
-        }
-        .repo-meta-left {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          min-width: 0;
-          flex: 1;
-        }
-        .repo-avatar {
-          width: 54px;
-          height: 54px;
-          border-radius: 12px;
-          border: 1px solid var(--border);
-          object-fit: cover;
-        }
-        .repo-title {
-          font-size: 1.5rem;
-          line-height: 1.2;
-        }
-        .repo-link {
-          color: var(--text-primary);
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-        .repo-link:hover {
-          color: #ff6b00;
-        }
-        .repo-desc {
-          font-size: 0.78rem;
-          color: var(--text-muted);
-          margin-top: 4px;
-          max-width: 320px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-        .score-block {
-          text-align: right;
-          background: rgba(0, 0, 0, 0.4);
-          padding: 0.5rem 1rem;
-          border-radius: var(--radius-md);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .score-number {
-          font-size: 2.2rem;
-          line-height: 1;
-        }
-        .score-label {
-          font-size: 0.65rem;
-          color: var(--text-muted);
-          letter-spacing: 1px;
-        }
-        .grade-badge {
-          font-size: 0.8rem;
-          font-weight: 700;
-          margin-top: 2px;
-        }
-        .repo-stats-bar {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          padding: 0.85rem 1.5rem;
-          background: #080808;
-          border-bottom: 1px solid var(--border);
-        }
-        .stat-pill {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 6px;
-          padding: 4px 10px;
-          font-size: 0.75rem;
-          display: flex;
-          gap: 6px;
-        }
-        .pill-key {
-          color: var(--text-muted);
-        }
-        .pill-val {
-          color: #ffb700;
-          font-weight: 600;
-        }
-        .smells-section,
-        .commits-section {
-          padding: 1rem 1.5rem;
-          border-bottom: 1px solid var(--border);
-        }
-        .section-title {
-          font-size: 0.75rem;
-          letter-spacing: 1px;
-          text-transform: uppercase;
-          color: var(--text-muted);
-          margin-bottom: 0.5rem;
-        }
-        .smells-list,
-        .commits-list {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .smell-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 0.82rem;
-          color: #ffaa55;
-          background: rgba(255, 107, 0, 0.06);
-          border: 1px solid rgba(255, 107, 0, 0.15);
-          padding: 6px 10px;
-          border-radius: 6px;
-        }
-        .commit-item {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-size: 0.82rem;
-          background: rgba(255, 255, 255, 0.02);
-          padding: 6px 10px;
-          border-radius: 6px;
-        }
-        .commit-hash {
-          color: var(--text-muted);
-          font-size: 0.72rem;
-        }
-        .commit-msg {
-          color: #ff7777;
-        }
-        .roast-text-block {
-          padding: 1.5rem;
-        }
-        .roast-text-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 0.85rem;
-        }
-        .roast-header-left {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .roast-text-label {
-          font-size: 0.8rem;
-          color: var(--text-muted);
-          letter-spacing: 1px;
-          text-transform: uppercase;
-        }
-        .ai-badge {
-          background: rgba(255, 183, 0, 0.15);
-          color: #ffb700;
-          font-size: 0.7rem;
-          padding: 2px 8px;
-          border-radius: 4px;
-          border: 1px solid rgba(255, 183, 0, 0.3);
-        }
-        .voice-roast-btn {
-          background: rgba(255, 107, 0, 0.1);
-          border: 1px solid rgba(255, 107, 0, 0.3);
-          color: #ff6b00;
-          font-size: 0.75rem;
-          padding: 4px 10px;
-          border-radius: 6px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: all 0.2s;
-        }
-        .voice-roast-btn:hover {
-          background: rgba(255, 107, 0, 0.2);
-          border-color: #ff6b00;
-        }
-        .voice-roast-btn--active {
-          background: #ff4500;
-          color: #fff;
-          border-color: #ff4500;
-        }
-        .voice-pulse {
-          width: 8px;
-          height: 8px;
-          background: #fff;
-          border-radius: 50%;
-          animation: pulse 1s infinite;
-        }
-        @keyframes pulse {
-          0% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.3; transform: scale(1.4); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-        .roast-text {
-          font-size: 1.05rem;
-          line-height: 1.6;
-          color: #f0f0f0;
-          font-style: italic;
-        }
-        .typing-cursor {
-          display: inline-block;
-          width: 2px;
-          height: 1.1em;
-          background: #ff6b00;
-          vertical-align: text-bottom;
-          margin-left: 2px;
-        }
-        .redemption-container {
-          padding: 1.2rem 1.5rem;
-          border-top: 1px solid var(--border);
-          background: linear-gradient(180deg, rgba(24, 12, 4, 0.45) 0%, rgba(10, 10, 10, 0.6) 100%);
-        }
-        .redemption-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 12px;
-          gap: 8px;
-        }
-        .redemption-badge {
-          font-size: 11px;
-          color: #ffaa55;
-          letter-spacing: 1px;
-          font-weight: 700;
-        }
-        .redemption-pill {
-          font-size: 9px;
-          padding: 2px 7px;
-          background: rgba(255, 69, 0, 0.12);
-          border: 1px solid rgba(255, 69, 0, 0.3);
-          border-radius: 4px;
-          color: var(--fire);
-          letter-spacing: 0.8px;
-        }
-        .redemption-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-        .redemption-row {
-          display: flex;
-          align-items: flex-start;
-          gap: 10px;
-          padding: 8px 10px;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          border-radius: var(--radius-sm);
-        }
-        .redemption-index {
-          font-size: 11px;
-          color: var(--fire-warm);
-          font-weight: 700;
-          line-height: 1.4;
-          flex-shrink: 0;
-        }
-        .redemption-text {
-          font-size: 12px;
-          line-height: 1.45;
-          color: var(--text-primary);
-        }
-
-        .card-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 1rem 1.5rem;
-          border-top: 1px solid var(--border);
-          background: #080808;
-          flex-wrap: wrap;
-          gap: 10px;
-        }
-        .card-brand {
-          font-size: 0.8rem;
-          color: var(--text-muted);
-        }
-        .share-actions {
-          display: flex;
-          gap: 8px;
-        }
-        /* 
-          ── WHAT: ────────────────────────────────────────────────────────
-          Styled-JSX parent-scoped :global selector for action buttons and Links.
-          
-          ── WHY: ─────────────────────────────────────────────────────────
-          Per AGENTS.md Rule 12, Next.js <Link> renders as a custom React component,
-          meaning styled-jsx cannot inject its scoped hash class onto the <a> tag.
-          Parent-scoping via .share-actions :global(.action-btn) guarantees consistent styling.
-          
-          ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-          Any Next.js <Link> with CSS classes styled inside <style jsx>.
-          
-          ── USE CASES: ───────────────────────────────────────────────────
-          Repo roast card action buttons.
-          
-          ── WHEN NOT TO USE: ─────────────────────────────────────────────
-          Do not use raw unbounded :global(.action-btn) without parent scoping.
-        */
-        .share-actions :global(.action-btn) {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border);
-          color: var(--text-primary);
-          padding: 6px 14px;
-          border-radius: 6px;
-          font-size: 0.8rem;
-          text-decoration: none;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .share-actions :global(.action-btn:hover) {
-          border-color: #ff6b00;
-          color: #ff6b00;
-        }
-        .share-actions :global(.action-btn--primary) {
-          background: #ff4500;
-          color: #fff;
-          border-color: #ff4500;
-        }
-        .share-actions :global(.action-btn--primary:hover) {
-          background: #ff6b00;
-          color: #fff;
-        }
-      `}</style>
     </div>
   )
 }

@@ -1,39 +1,9 @@
 'use client'
 
-// ============================================================
-// GITROAST — Enhanced RoastReactions Component
-// ============================================================
-// WHAT: Three interactive emoji reaction buttons on every roast card:
-//       😂 Relatable  💀 Destroyed  🔥 Savage
-//
-// WHY & FLOW:
-//   - "Be the first to react" callout with fire amber styling when total == 0
-//   - Immediate tactile feedback (+1 float burst, mobile haptic micro-vibrate)
-//   - LocalStorage persistence across page reloads/sessions so users immediately
-//     see their locked-in reaction (✓) without duplicate server requests
-//   - Dynamic social proof:
-//       - 0 reactions: "🔥 Be the first to react to this burn! 👇"
-//       - User reacted 1st: "🎉 You were the first to react! · 1 reaction"
-//       - User reacted with others: "✓ You reacted · N total reactions"
-//       - User hasn't reacted: "N reactions · How brutal was this? Tap to react 👇"
-//   - Included inside #roast-card-capture so downloaded PNG cards capture
-//     live reactions and social proof!
-// ============================================================
 
-/* 
-  ── WHAT: ────────────────────────────────────────────────────────
-  Standardized GitRoast toast notifications powered by customizable-toast-notification.
-  ── WHY: ─────────────────────────────────────────────────────────
-  Provides consistent styling, dark theme cards, and sound/haptic harmony.
-  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-  For interactive user feedback on emoji reactions and network acknowledgments.
-  ── USE CASES: ───────────────────────────────────────────────────
-  Reaction locked in, cooldown warning, duplicate reaction notice, network error.
-  ── WHEN NOT TO USE: ─────────────────────────────────────────────
-  Not for background silent polling loops.
-*/
 import { useState, useEffect, useCallback } from 'react'
 import { toast } from '@/utils/toast'
+import { reactToRoast, reactToBattle } from '@/services/roastService'
 
 const REACTION_CONFIG = [
     { type: 'relatable', emoji: '😂', label: 'Relatable' },
@@ -52,7 +22,6 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
         ? `gitroast_reacted_battle_${roastId}`
         : `gitroast_reacted_${roastId}`
 
-    // Initialize clicked reactions directly from localStorage on mount (zero cascading renders)
     const [clicked, setClicked] = useState(() => {
         if (!roastId || typeof window === 'undefined') return new Set()
         try {
@@ -64,7 +33,6 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
                 }
             }
         } catch {
-            // LocalStorage inaccessible (Safari strict mode or private browsing)
         }
         return new Set()
     })
@@ -72,23 +40,6 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
     const [loading, setLoading] = useState(null)
     const [justReactedType, setJustReactedType] = useState(null)
 
-    // ── React 19 State Adjustment During Render ───────────────────
-    // ── WHAT: ────────────────────────────────────────────────────
-    // Synchronizes local counts and locked reaction sets when async props update.
-    //
-    // ── WHY: ─────────────────────────────────────────────────────
-    // Complies with React 19 / Next.js 16 guidelines: adjusting state during render
-    // (instead of inside useEffect) avoids cascading renders and re-render thrashing.
-    // Uses value-based comparison to prevent infinite loops when parent passes new object refs.
-    //
-    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-    // When local state must reflect async changes from parent props.
-    //
-    // ── USE CASES: ───────────────────────────────────────────────
-    // Updating reaction counts after server response resolves.
-    //
-    // ── WHEN NOT TO USE: ─────────────────────────────────────────
-    // Do not call setState unconditionally in render (causes infinite loops).
     const [prevInitial, setPrevInitial] = useState(initialReactions)
     const initialChanged = initialReactions &&
         (prevInitial?.relatable !== initialReactions.relatable ||
@@ -116,28 +67,14 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
                     }
                 }
             } catch {
-                // Ignore
             }
         }
     }
 
     async function handleReact(type) {
-        // Prevent double reacting to same emoji type
         if (clicked.has(type) || loading) return
 
         if (!roastId) {
-            /* 
-              ── WHAT: ────────────────────────────────────────────────────────
-              Warn user that card is still writing to MongoDB before accepting reactions.
-              ── WHY: ─────────────────────────────────────────────────────────
-              Avoids orphaned reaction attempts before the document has an _id.
-              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-              Immediately when user clicks reaction on an unsaved live roast card.
-              ── USE CASES: ───────────────────────────────────────────────────
-              Clicking reaction during initial burn stream.
-              ── WHEN NOT TO USE: ─────────────────────────────────────────────
-              Do not show if roastId is already established.
-            */
             toast.warning(`${targetType === 'battle' ? 'Battle' : 'Roast'} is still saving, please wait a moment!`, {
                 position: 'top-center',
                 duration: 2500,
@@ -145,7 +82,6 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
             return
         }
 
-        // Haptic feedback for mobile devices
         if (typeof navigator !== 'undefined' && navigator.vibrate) {
             navigator.vibrate(20)
         }
@@ -154,18 +90,15 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
         setJustReactedType(type)
         setTimeout(() => setJustReactedType(null), 1000)
 
-        // Optimistic UI update
         const prev = counts[type] || 0
         setCounts(c => ({ ...c, [type]: prev + 1 }))
 
         const nextClicked = new Set([...clicked, type])
         setClicked(nextClicked)
 
-        // Persist to localStorage
         try {
             localStorage.setItem(storageKey, JSON.stringify([...nextClicked]))
         } catch {
-            // Ignored
         }
 
         const apiFn = targetType === 'battle' ? reactToBattle : reactToRoast
@@ -173,7 +106,6 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
         setLoading(null)
 
         if (!result) {
-            // Revert on network failure
             setCounts(c => ({ ...c, [type]: prev }))
             setClicked(s => {
                 const n = new Set(s)
@@ -185,20 +117,7 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
                 reverted.delete(type)
                 localStorage.setItem(storageKey, JSON.stringify([...reverted]))
             } catch {
-                // Ignored
             }
-            /* 
-              ── WHAT: ────────────────────────────────────────────────────────
-              Notify user when network drop prevents reaction persistence.
-              ── WHY: ─────────────────────────────────────────────────────────
-              Accompanies state revert so user knows why count reverted.
-              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-              When reaction POST request throws or returns null.
-              ── USE CASES: ───────────────────────────────────────────────────
-              Offline or intermittent mobile connectivity.
-              ── WHEN NOT TO USE: ─────────────────────────────────────────────
-              Do not show if server returned duplicate indicator.
-            */
             toast.error('Failed to record reaction. Check connection.', {
                 position: 'top-center',
                 duration: 3000,
@@ -207,20 +126,7 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
         }
 
         if (result.duplicate) {
-            // Server already recorded this IP — revert count but keep UI disabled
             setCounts(c => ({ ...c, [type]: prev }))
-            /* 
-              ── WHAT: ────────────────────────────────────────────────────────
-              Polite notification that this client/IP already cast this reaction.
-              ── WHY: ─────────────────────────────────────────────────────────
-              Prevents vote brigading while informing user their vote is already counted.
-              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-              When server returns { duplicate: true }.
-              ── USE CASES: ───────────────────────────────────────────────────
-              Repeated taps across tabs or multiple sessions from same IP.
-              ── WHEN NOT TO USE: ─────────────────────────────────────────────
-              On successful fresh reactions.
-            */
             toast.info(`You've already reacted to this ${targetType === 'battle' ? 'battle' : 'roast'}! 🔥`, {
                 position: 'top-center',
                 duration: 3000,
@@ -228,7 +134,6 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
             return
         }
 
-        // Synchronize with server counts (handles concurrent reactions)
         if (result.reactions) {
             setCounts({
                 relatable: result.reactions.relatable || 0,
@@ -238,18 +143,6 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
         }
 
         const config = REACTION_CONFIG.find(r => r.type === type)
-        /* 
-          ── WHAT: ────────────────────────────────────────────────────────
-          Positive reinforcement toast confirming reaction lock-in.
-          ── WHY: ─────────────────────────────────────────────────────────
-          Delightful micro-interaction that rewards engagement.
-          ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-          Immediately after server confirms successful reaction save.
-          ── USE CASES: ───────────────────────────────────────────────────
-          Reacting with Savage, Relatable, or Destroyed.
-          ── WHEN NOT TO USE: ─────────────────────────────────────────────
-          On failed requests or duplicate detections.
-        */
         toast.success(`${config ? config.emoji + ' ' + config.label : 'Reaction'} locked in!`, {
             position: 'top-center',
             duration: 2500,
@@ -269,7 +162,7 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
     return (
         <div className="reactions-wrap">
 
-            {/* ── Social Proof & First React Callout ── */}
+            {}
             <div className="reactions-header">
                 {total === 0 ? (
                     <div className="prompt-badge-wrap animate-pulseGlow">
@@ -307,7 +200,7 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
                 )}
             </div>
 
-            {/* ── Emoji Action Buttons ── */}
+            {}
             <div className="reactions-row">
                 {REACTION_CONFIG.map(({ type, emoji, label }) => {
                     const isClicked = clicked.has(type)
@@ -400,9 +293,9 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
         }
 
         .prompt-badge--reacted {
-          background: rgba(0, 230, 118, 0.08);
-          border-color: rgba(0, 230, 118, 0.28);
-          color: #00e676;
+          background: var(--mint);
+          border-color: var(--mint-ink);
+          color: var(--mint-ink);
         }
 
         .prompt-badge--count {
@@ -516,3 +409,4 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
         </div>
     )
 }
+

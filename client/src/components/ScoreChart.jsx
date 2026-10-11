@@ -1,14 +1,11 @@
 'use client';
-// WHAT: Pure SVG trend line chart rendering roast score history
-// WHY 'use client': styled-jsx scoped styling runtime requires client environment
 
 export default function ScoreChart({ history }) {
-    // WHY: need at least 2 points to draw a line
     if (!history || history.length < 2) {
         return (
             <div className="chart-empty">
                 <p className="font-mono">
-                    Roast at least twice to see your trend 📈
+                    Roast at least twice to see your trend.
                 </p>
                 <style jsx>{`
           .chart-empty {
@@ -22,8 +19,7 @@ export default function ScoreChart({ history }) {
         )
     }
 
-    // ── Chart dimensions ────────────────────────────────────
-    const W = 540    // WHY: matches card max-width
+    const W = 540
     const H = 160
     const PAD_L = 40
     const PAD_R = 20
@@ -32,14 +28,12 @@ export default function ScoreChart({ history }) {
     const chartW = W - PAD_L - PAD_R
     const chartH = H - PAD_T - PAD_B
 
-    // WHY reverse: history[0] = newest, we want oldest → newest left → right
-    // WHY filter: ensure only valid numeric scores are plotted to prevent SVG NaN points
     const sorted = [...history].reverse().filter(r => typeof r?.score === 'number' && !isNaN(r.score))
     if (sorted.length < 2) {
         return (
             <div className="chart-empty">
                 <p className="font-mono">
-                    Roast at least twice to see your trend 📈
+                    Roast at least twice to see your trend.
                 </p>
                 <style jsx>{`
           .chart-empty {
@@ -57,28 +51,22 @@ export default function ScoreChart({ history }) {
     const maxScore = Math.min(100, Math.max(...scores) + 10)
     const scoreRange = maxScore - minScore || 1
 
-    // ── Map score → SVG coordinate ──────────────────────────
     function toX(i) {
         return PAD_L + (i / (sorted.length - 1)) * chartW
     }
     function toY(score) {
-        // WHY invert: SVG Y axis goes top→down, score goes bottom→top
         return PAD_T + ((maxScore - score) / scoreRange) * chartH
     }
 
-    // ── Build polyline points ────────────────────────────────
     const points = sorted
         .map((r, i) => `${toX(i)},${toY(r.score)}`)
         .join(' ')
 
-    // ── Build area fill path ─────────────────────────────────
-    // WHY area: shaded region under line makes trend clearer
     const firstX = toX(0)
     const lastX = toX(sorted.length - 1)
     const baseY = PAD_T + chartH
     const areaPath = `M${firstX},${baseY} L${points.split(' ').map(p => p).join(' L')} L${lastX},${baseY} Z`
 
-    // ── Score color ─────────────────────────────────────────
     function scoreColor(score) {
         if (score < 40) return 'var(--bad)'
         if (score < 70) return 'var(--warn)'
@@ -92,7 +80,7 @@ export default function ScoreChart({ history }) {
                 viewBox={`0 0 ${W} ${H}`}
                 preserveAspectRatio="xMidYMid meet"
             >
-                {/* ── Grid lines ── */}
+                {}
                 {[0, 25, 50, 75, 100].map(val => {
                     const y = toY(val)
                     if (y < PAD_T || y > PAD_T + chartH) return null
@@ -119,14 +107,14 @@ export default function ScoreChart({ history }) {
                     )
                 })}
 
-                {/* ── Area fill under line ── */}
+                {}
                 <path
                     d={areaPath}
                     fill="var(--fire)"
                     opacity="0.06"
                 />
 
-                {/* ── Line ── */}
+                {}
                 <polyline
                     points={points}
                     fill="none"
@@ -136,7 +124,7 @@ export default function ScoreChart({ history }) {
                     strokeLinecap="round"
                 />
 
-                {/* ── Data points + labels ── */}
+                {}
                 {sorted.map((r, i) => {
                     const x = toX(i)
                     const y = toY(r.score)
@@ -146,17 +134,17 @@ export default function ScoreChart({ history }) {
 
                     return (
                         <g key={i}>
-                            {/* Outer ring */}
+                            {}
                             <circle cx={x} cy={y} r={6}
                                 fill="var(--bg-card)"
                                 stroke={color}
                                 strokeWidth="1.5"
                             />
-                            {/* Inner dot */}
+                            {}
                             <circle cx={x} cy={y} r={2.5}
                                 fill={color}
                             />
-                            {/* Score label above point */}
+                            {}
                             <text
                                 x={x} y={y - 12}
                                 textAnchor="middle"
@@ -167,7 +155,7 @@ export default function ScoreChart({ history }) {
                             >
                                 {r.score}
                             </text>
-                            {/* Date label below chart */}
+                            {}
                             <text
                                 x={x} y={H - 4}
                                 textAnchor="middle"
@@ -191,3 +179,4 @@ export default function ScoreChart({ history }) {
         </div>
     )
 }
+

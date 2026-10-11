@@ -5,7 +5,7 @@ import { normalizeIntensity } from '@/utils/vocab'
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { toast } from '@/utils/toast'
+import { toast, notify } from '@/utils/toast'
 import AnalyzingScreen from '@/components/AnalyzingScreen'
 import RepoRoastCard from '@/components/RepoRoastCard'
 import ProModal from '@/components/ProModal'
@@ -71,7 +71,7 @@ export default function RepoRoastClient({ owner, repo }) {
         setRoastData(data)
         setView('result')
 
-        toast.fire(`🔥 Repository "${owner}/${repo}" roasted!`)
+        notify.roastReady({ username: `${owner}/${repo}`, score: data?.score ?? '', line: 'The repository has opinions.' })
       } catch (err) {
         if (cancelled) return
         setView('error')
@@ -98,135 +98,32 @@ export default function RepoRoastClient({ owner, repo }) {
 
   return (
     <main className="repo-page">
-      <div className="landing-glow animate-glow" />
-
-      {view === 'analyzing' && (
-        <AnalyzingScreen username={`${owner}/${repo}`} />
-      )}
+      {view === 'analyzing' && <AnalyzingScreen username={`${owner}/${repo}`} />}
 
       {view === 'result' && roastData && (
-        <div className="result-container animate-fadeUp">
-          <div className="back-nav">
-            <Link href="/" className="back-link font-mono">
-              ← Back to GitRoast
-            </Link>
-          </div>
-          <div className="breadcrumb-wrap">
-            <Breadcrumb
-              items={[
-                { label: 'Home', href: '/' },
-                { label: `@${owner}`, href: `/history/${owner}` },
-                { label: `${repo}` },
-              ]}
-            />
-          </div>
-          <RepoRoastCard
-            data={roastData}
-            onProClick={() => setShowProModal(true)}
-          />
+        <div className="repo-result">
+          <Breadcrumb items={[{ label: 'Home', href: '/' }, { label: `@${owner}`, href: `/history/${owner}` }, { label: `${repo}` }]} />
+          <RepoRoastCard data={roastData} onProClick={() => setShowProModal(true)} />
         </div>
       )}
 
       {view === 'error' && (
-        <div className="error-card card animate-fadeUp">
-          <p className="error-icon">💀</p>
-          <h2 className="error-title font-display">Repo Roasting Failed</h2>
-          <p className="error-msg font-mono">
-            Could not analyze `{owner}/{repo}`. The repo might be private, empty, or rate limited.
-          </p>
-          <div className="error-actions">
-            <Link href="/" className="btn btn-primary font-mono">
-              Try Another Target
-            </Link>
-          </div>
+        <div className="gr-state gr-state--error repo-error" role="alert">
+          <span className="gr-state__tag">Error</span>
+          <h1 className="gr-h3">Repository roast failed</h1>
+          <p className="gr-help">Could not analyze {owner}/{repo}. The repository might be private, empty, or rate limited. Nothing was charged.</p>
+          <Link href="/" className="gr-btn gr-btn--primary">Try another target</Link>
         </div>
       )}
 
-      {showProModal && (
-        <ProModal
-          isOpen={showProModal}
-          onClose={() => setShowProModal(false)}
-        />
-      )}
+      {showProModal && <ProModal isOpen={showProModal} onClose={() => setShowProModal(false)} />}
 
       <style jsx>{`
-        .repo-page {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 2rem 1.5rem 6.5rem;
-          position: relative;
-          overflow-x: hidden;
-        }
-        .landing-glow {
-          position: fixed;
-          top: -200px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 800px;
-          height: 500px;
-          background: radial-gradient(circle, rgba(255, 69, 0, 0.12) 0%, transparent 70%);
-          pointer-events: none;
-          z-index: 0;
-        }
-        .result-container {
-          width: 100%;
-          max-width: 640px;
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-          z-index: 1;
-        }
-        .breadcrumb-wrap {
-          width: 100%;
-          margin-top: -0.5rem;
-        }
-        .back-nav {
-          display: flex;
-          align-items: center;
-        }
-        .back-link {
-          color: var(--text-muted);
-          font-size: 0.85rem;
-          text-decoration: none;
-          transition: color 0.2s;
-        }
-        .back-link:hover {
-          color: #ff6b00;
-        }
-        .error-card {
-          width: 100%;
-          max-width: 480px;
-          padding: 2.5rem 2rem;
-          text-align: center;
-          background: #111;
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          z-index: 1;
-        }
-        .error-icon {
-          font-size: 3rem;
-          margin-bottom: 1rem;
-        }
-        .error-title {
-          font-size: 2rem;
-          margin-bottom: 0.75rem;
-          color: var(--bad);
-        }
-        .error-msg {
-          color: var(--text-muted);
-          font-size: 0.9rem;
-          margin-bottom: 1.5rem;
-          line-height: 1.5;
-        }
-        .error-actions {
-          display: flex;
-          justify-content: center;
-        }
+        .repo-page { min-height: 100vh; padding: 24px 24px 72px; background: var(--paper); }
+        .repo-result { max-width: 1280px; margin: 0 auto; display: grid; gap: 16px; }
+        .repo-error { max-width: 520px; margin: 64px auto; display: grid; gap: 12px; justify-items: start; padding: 28px; }
+        @media (max-width: 700px) { .repo-page { padding: 12px 12px 56px; } }
       `}</style>
     </main>
   )
 }
-

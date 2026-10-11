@@ -196,7 +196,7 @@ export default function ProModal({ onClose }) {
             .modal-overlay {
               position:        fixed;
               inset:           0;
-              background:      rgba(0, 0, 0, 0.88);
+              background:      rgba(23, 23, 17, 0.6);
               display:         flex;
               align-items:     center;
               justify-content: center;

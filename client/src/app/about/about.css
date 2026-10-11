@@ -1,0 +1,22 @@
+.ab { background: var(--paper); }
+.ab-body { padding-top: 28px; padding-bottom: 88px; display: grid; gap: 28px; max-width: 900px; }
+.ab-head { display: grid; gap: 14px; }
+.ab-sec { display: grid; gap: 14px; align-content: start; scroll-margin-top: 96px; }
+.ab-sec > p, .ab-list { font-size: 15px; color: var(--ink-2); }
+.ab-list { display: grid; gap: 10px; margin-left: 18px; }
+.ab-list b { color: var(--ink); }
+.ab-grid { display: grid; gap: 14px; } .ab-grid--3 { grid-template-columns: repeat(3, 1fr); } .ab-grid--2 { grid-template-columns: 1fr 1fr; }
+.ab-h3 { font: 500 18px var(--font-sans); margin: 8px 0 6px; } .ab-p { font-size: 14px; color: var(--ink-2); }
+.gr-card--dark .ab-p { color: #cfc9ba; } .gr-card--dark .ab-h3 { color: #fff; }
+.ab-code { font: 400 12px var(--font-code); background: rgba(23,23,17,.07); padding: 2px 6px; border-radius: 4px; }
+.ab-block { display: block; font-size: 11px; background: rgba(23,23,17,.07); padding: 10px; border-radius: var(--r-2); overflow-wrap: anywhere; margin-top: 8px; }
+.ab-tiers { display: grid; gap: 10px; }
+.ab-tier { display: grid; grid-template-columns: auto 1fr; gap: 2px 14px; padding: 14px 0; border-top: 1px solid var(--line); }
+.ab-tier__g { font: 400 24px var(--font-serif); } .ab-tier__s { font-size: 12px; color: var(--ink-3); align-self: center; }
+.ab-tier__l { grid-column: 1 / -1; font-weight: 600; font-size: 13px; color: var(--ember-hover); } .ab-tier .ab-p { grid-column: 1 / -1; }
+.ab-faq { display: grid; } .ab-faq__item { border-top: 1px solid var(--line-strong); } .ab-faq__item:last-child { border-bottom: 1px solid var(--line-strong); }
+.ab-faq__item summary { min-height: 56px; display: flex; align-items: center; cursor: pointer; font-weight: 600; list-style: none; } .ab-faq__item summary::-webkit-details-marker { display: none; }
+.ab-faq__item p { padding: 0 0 18px; color: var(--ink-2); font-size: 15px; }
+.ab-cta { text-align: center; justify-items: center; padding: 40px 24px; display: grid; gap: 12px; } .ab-cta__h, .ab-cta__p { color: #fff; } .ab-cta__p { color: #cfc9ba; }
+.ab-cta__row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+@media (max-width: 720px) { .ab-grid--3, .ab-grid--2 { grid-template-columns: 1fr; } }

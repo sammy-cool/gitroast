@@ -139,3 +139,13 @@
 @media (max-width: 900px) {
   body { padding-bottom: calc(56px + var(--safe-bottom)); }
 }
+
+/* Status pages (404 / error / loading) */
+.gr-status { min-height: calc(100vh - 76px); display: grid; place-items: center; padding: 48px 20px 72px; background: var(--paper); color: var(--ink); }
+.gr-status__card { width: min(560px, 100%); display: grid; gap: 16px; justify-items: start; }
+.gr-status__code { font: 400 clamp(80px, 16vw, 140px)/0.9 var(--font-serif); color: var(--ember); }
+.gr-status__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.gr-status__dev { font: 400 12px var(--font-code); background: var(--error-tint); color: var(--error-ink); padding: 10px 12px; border-radius: var(--r-2); overflow-wrap: anywhere; width: 100%; }
+.gr-spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--line-strong); border-top-color: var(--ember); animation: gr-spin 0.9s linear infinite; }
+@keyframes gr-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .gr-spinner { animation: none; border-top-color: var(--line-strong); } }

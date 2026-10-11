@@ -7,7 +7,7 @@ export async function generateMetadata({ params }) {
     const ogImageUrl = `${siteUrl}/api/og?username=${encodeURIComponent(username)}`
 
     return {
-        title: `@${username}'s Roast History & Shame Log 📈 — GitRoast`,
+        title: `@${username}'s Roast History & Shame Log — GitRoast`,
         description: `Track @${username}'s GitHub shame over time. Score trends, past roasts, developer sins, and archive on GitRoast.`,
         keywords: [
             `${username} gitroast history`,
@@ -88,3 +88,4 @@ export default async function HistoryPage({ params }) {
         </>
     )
 }
+
