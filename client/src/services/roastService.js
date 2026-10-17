@@ -67,6 +67,7 @@ export async function getRoast(
     err.code = json.error;
     err.status = res.status;
     err.retryAfter = json.retryAfter || null;
+    err.resetsAt = json.resetsAt || null;
     throw err;
   }
 
@@ -166,6 +167,7 @@ export async function getBattleRoast(user1, user2, token = null, rematch = false
     err.code = json.error;
     err.status = res.status;
     err.retryAfter = json.retryAfter || null;
+    err.resetsAt = json.resetsAt || null;
     throw err;
   }
 
@@ -351,6 +353,7 @@ export async function getRepoRoast(
     err.code = json.error;
     err.status = res.status;
     err.retryAfter = json.retryAfter || null;
+    err.resetsAt = json.resetsAt || null;
     throw err;
   }
   return json.data;

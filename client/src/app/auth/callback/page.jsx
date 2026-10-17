@@ -3,63 +3,42 @@
 import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { toast } from '@/utils/toast'
+import { toast, notify } from '@/utils/toast'
+
+const ERRORS = {
+  csrf_detected: 'Security verification failed. Please try again.',
+  access_denied: 'GitHub sign-in was cancelled.',
+  token_failed: 'Sign-in failed. Please try again.',
+  server_error: 'Something went wrong. Please try again.',
+}
 
 export default function AuthCallbackPage() {
-    const router = useRouter()
-    const searchParams = useSearchParams()
-    const { loginWithToken } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { loginWithToken } = useAuth()
 
-    useEffect(() => {
-        const token = searchParams.get('token')
-        const authError = searchParams.get('auth_error')
+  useEffect(() => {
+    const token = searchParams.get('token')
+    const authError = searchParams.get('auth_error')
 
-        // WHY: handle OAuth error from server
-        if (authError || !token) {
-            const messages = {
-                csrf_detected: 'Security verification failed (CSRF mismatch). Please try again.',
-                access_denied: 'GitHub login was cancelled.',
-                token_failed: 'Login failed. Please try again.',
-                server_error: 'Something went wrong. Please try again.',
-            }
-            toast.error(messages[authError] || 'Login failed. Please try again.')
-            router.replace('/')
-            return
-        }
+    if (authError || !token) {
+      toast.error('GitHub sign-in failed', { description: ERRORS[authError] || 'Sign-in failed. Please try again.' })
+      router.replace('/')
+      return
+    }
 
-        // WHY: store token + fetch user profile
-        loginWithToken(token)
+    loginWithToken(token)
+    notify.signedIn()
+    router.replace('/dashboard')
+  }, [searchParams, loginWithToken, router])
 
-        toast.success('🔥 GitHub connected! Welcome to GitRoast.')
-
-        // WHY router.replace not push: removes /auth/callback
-        //     from browser history so back button works cleanly
-        router.replace('/')
-
-    }, [searchParams, loginWithToken, router])
-
-    // WHY: simple loading state while processing
-    return (
-        <div style={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            gap: '1rem',
-        }}>
-            <p style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '32px',
-                background: 'var(--fire-grad)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-            }}>
-                GITROAST 🔥
-            </p>
-            <p style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: '14px' }}>
-                Connecting your GitHub...
-            </p>
-        </div>
-    )
+  return (
+    <main className="gr-status" role="status" aria-live="polite">
+      <div className="gr-status__card" style={{ justifyItems: 'center', textAlign: 'center' }}>
+        <span className="gr-spinner" aria-hidden="true" />
+        <p className="gr-eyebrow">Signing in</p>
+        <p className="gr-help">Connecting your GitHub…</p>
+      </div>
+    </main>
+  )
 }

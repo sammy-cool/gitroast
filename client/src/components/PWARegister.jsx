@@ -1,25 +1,11 @@
 'use client'
 
-// ============================================================
-// GITROAST — PWA Service Worker Registration & Install Controller
-// ============================================================
-/**
- * WHAT: Registers the PWA service worker and handles browser install prompt events.
- * WHY: Enables mobile installation (PWA "Add to Home Screen") and offline caching.
- * WHERE & WHEN TO USE: Mounted once in root layout (`client/src/app/layout.jsx`).
- * USE CASES: Mobile user installs GitRoast as a native app on iOS/Android.
- * WHEN NOT TO USE: During SSR or when serviceWorker is unsupported.
- */
 
 import { useEffect } from 'react'
+import { notify, toast } from '@/utils/toast'
 
 let deferredPrompt = null
 
-/**
- * WHAT: Triggers the native browser PWA installation prompt if available.
- * WHY: Allows user-initiated install from dashboard or footer buttons.
- * @returns {Promise<boolean>} Whether the prompt was shown
- */
 export async function promptPWAInstall() {
   if (!deferredPrompt) return false
   try {
@@ -32,27 +18,56 @@ export async function promptPWAInstall() {
   }
 }
 
-/**
- * Checks whether an installation prompt is pending.
- * @returns {boolean}
- */
 export function isPWAInstallable() {
   return Boolean(deferredPrompt)
 }
 
+const NUDGE_KEY = 'gitroast_install_nudge_at'
+const NUDGE_COOLDOWN_MS = 14 * 24 * 60 * 60 * 1000
+
+// Install with restraint: only after the person has seen value (a finished roast),
+// at most once per 14 days, never when already installed or not installable.
+export function maybeNudgeInstall() {
+  try {
+    if (!deferredPrompt) return
+    if (window.matchMedia?.('(display-mode: standalone)').matches) return
+    const last = Number(localStorage.getItem(NUDGE_KEY) || 0)
+    if (Date.now() - last < NUDGE_COOLDOWN_MS) return
+    localStorage.setItem(NUDGE_KEY, String(Date.now()))
+    notify.installApp({
+      onAction: async () => {
+        if (await promptPWAInstall()) toast.success('GitRoast installed', { description: 'Open it from your home screen.' })
+      },
+    })
+  } catch {
+    /* storage unavailable: skip the nudge */
+  }
+}
+
 export default function PWARegister() {
+  // Offline honesty: say so once, and confirm when we are back.
+  useEffect(() => {
+    const off = () => notify.offline()
+    const on = () => notify.backOnline()
+    window.addEventListener('offline', off)
+    window.addEventListener('online', on)
+    if (!navigator.onLine) off()
+    return () => {
+      window.removeEventListener('offline', off)
+      window.removeEventListener('online', on)
+    }
+  }, [])
+
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
     if (process.env.NODE_ENV !== 'production') return
 
-    // Register service worker after window load to prevent competing with initial paint
     function handleLoad() {
       navigator.serviceWorker
         .register('/sw.js')
         .catch(() => {})
     }
 
-    // Capture beforeinstallprompt for user-initiated install actions
     function handleInstallPrompt(e) {
       e.preventDefault()
       deferredPrompt = e
@@ -74,3 +89,4 @@ export default function PWARegister() {
 
   return null
 }
+

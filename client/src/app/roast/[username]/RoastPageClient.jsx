@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { toast, notify } from '@/utils/toast'
+import { maybeNudgeInstall } from '@/components/PWARegister'
 import { playFireSizzle } from '@/utils/soundFX'
 import AnalyzingScreen from '@/components/AnalyzingScreen'
 import dynamic from 'next/dynamic';
@@ -85,6 +86,15 @@ export default function RoastPageClient({ username }) {
         setView('result')
         playFireSizzle()
 
+        try {
+          const text = String(data?.roast || '')
+          const first = text.match(/^[\s\S]*?[.!?](?=\s|$)/)?.[0] || text.slice(0, 140)
+          localStorage.setItem('gitroast_last_roast', JSON.stringify({ username: data.username, score: data.score, grade: data.grade, headline: first.trim(), savedAt: Date.now() }))
+        } catch { /* storage unavailable */ }
+        setTimeout(maybeNudgeInstall, 6000)
+        if (data?.quota?.exhausted) {
+          setTimeout(() => notify.aiQuotaUsed({ resetsAt: data.quota.resetsAt, onAction: () => router.push('/pricing') }), 1200)
+        }
         notify.roastReady({ username, score: parsedScore(data), onAction: () => document.querySelector('.rr')?.scrollIntoView({ behavior: 'smooth' }) })
 
       } catch (err) {
@@ -104,6 +114,12 @@ export default function RoastPageClient({ username }) {
               autoClose: true,
             },
           })
+          router.push('/')
+          return
+        }
+
+        if (err.code === 'DAILY_LIMIT_REACHED') {
+          notify.dailyLimit({ resetsAt: err.resetsAt, onAction: () => router.push('/pricing') })
           router.push('/')
           return
         }

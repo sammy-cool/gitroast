@@ -17,6 +17,12 @@ const redisService = require("../services/redisService");
 const { logger } = require("../utils/logger");
 const { normalizeIntensity, toEngineIntensity, normalizePersona } = require("../utils/constants");
 const { computeSignals, MODEL_VERSION: EVIDENCE_MODEL } = require("../services/talentEvidence");
+const { getAiQuota, canUseAi, afterConsuming } = require("../services/quota");
+
+const nextUtcMidnight = () => {
+  const d = new Date();
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1)).toISOString();
+};
 
 // Explainable score anatomy shown on the result page (same public-evidence model as recruiter view).
 function anatomyOf(data) {
@@ -28,6 +34,7 @@ function anatomyOf(data) {
       totalStars: data._raw?.totalStars || 0,
       hasReadme: data.readme?.exists || false,
       commitQuality: data.commitAnalysis?.qualityScore || 0,
+      collab: data.collab || null,
     }),
   };
 }
@@ -232,7 +239,8 @@ router.get("/repo/:owner/:repo", optionalAuth, verifyCaptcha, async (req, res) =
     if (!canRoast) {
       return res.status(429).json({
         error: "DAILY_LIMIT_REACHED",
-        message: "Free users get 1 roast per day. Go Pro for unlimited! ⚡",
+        message: "Free accounts get 1 roast per day. It resets at midnight UTC.",
+        resetsAt: nextUtcMidnight(),
       });
     }
   }
@@ -314,7 +322,8 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
     if (!canRoast) {
       return res.status(429).json({
         error: "DAILY_LIMIT_REACHED",
-        message: "Free users get 1 roast per day. Go Pro for unlimited! ⚡",
+        message: "Free accounts get 1 roast per day. It resets at midnight UTC.",
+        resetsAt: nextUtcMidnight(),
       });
     }
   }
@@ -381,7 +390,8 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
       clientAborted = true;
     });
 
-    if (isPro && process.env.GEMINI_API_KEY) {
+    const aiQuota = await getAiQuota(req.user).catch(() => null);
+    if (process.env.GEMINI_API_KEY && canUseAi(aiQuota)) {
       roastSource = "ai";
       for await (const chunk of generateAIRoastStream(data, toEngineIntensity(intensity), persona)) {
         if (clientAborted || res.writableEnded || res.destroyed) break;
@@ -459,6 +469,7 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
           fullRoast,
           roastSource,
           redemptionPlan,
+          quota: roastSource === "ai" ? afterConsuming(aiQuota) : aiQuota,
         })}\n\n`
       );
       res.end();
@@ -485,9 +496,12 @@ router.get("/rate-limit-status", optionalAuth, async (req, res) => {
     remainingToday = canRoast ? 1 : 0;
   }
 
+  const aiQuota = await getAiQuota(req.user).catch(() => null);
+
   return res.status(200).json({
     success: true,
     authenticated: isAuthenticated,
+    aiQuota,
     isPro,
     canRoast,
     remainingToday: isPro ? "unlimited" : remainingToday,
@@ -538,7 +552,8 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
     if (!canRoast) {
       return res.status(429).json({
         error: "DAILY_LIMIT_REACHED",
-        message: "Free users get 1 roast per day. Go Pro for unlimited! ⚡",
+        message: "Free accounts get 1 roast per day. It resets at midnight UTC.",
+        resetsAt: nextUtcMidnight(),
       });
     }
   }
@@ -551,7 +566,8 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
     let roast = null;
     let roastSource = "rules";
 
-    if (isPro) {
+    const aiQuota = await getAiQuota(req.user).catch(() => null);
+    if (canUseAi(aiQuota)) {
       roast = await generateAIRoast(data, toEngineIntensity(intensity), persona);
       if (roast) {
         roastSource = "ai";
@@ -608,6 +624,7 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
           commitQuality: data.commitAnalysis?.qualityScore || 0,
           totalStars: data._raw?.totalStars || 0,
           hasReadme: data.readme?.exists || false,
+          collab: data.collab || null,
         },
         stats: data.stats,
         shameCommits: data.shameCommits,
@@ -637,6 +654,8 @@ router.get("/:username", optionalAuth, verifyCaptcha, async (req, res) => {
 
     data.isPro = isPro;
     data.watermark = !isPro;
+    data.roastSource = roastSource;
+    data.quota = roastSource === "ai" ? afterConsuming(aiQuota) : aiQuota;
     const responseData = { success: true, data };
 
     if (idempotencyKey) {

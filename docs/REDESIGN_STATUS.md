@@ -9,6 +9,11 @@
 ## Phase 2 (done)
 Repo roast (+ AnalyzingScreen, RepoRoastCard), Battles (entry, loading, result card), History (+ chart, monthly comparison, cards), Universe entry, About (new #methodology and #privacy sections), Contact, 404 / error / loading / payment redirect, shared modal color fixes. Fixed a latent bug: RoastReactions used reactToRoast/reactToBattle without importing them.
 
+## Phase 3 (done)
+- PWA / offline: service worker v2 (static cache-first, pages network-first with offline fallback, API never cached), `/offline` page showing the last saved roast, offline / back-online toasts, install prompt "with restraint" (only after a finished roast, at most once per 14 days, never when installed).
+- Toast moments wired: Signed in, Session expired (auto-detected on a 401), You hit today's limit (with real reset time). Server daily-limit message corrected (it still promised "unlimited" Pro) and now returns `resetsAt` (next UTC midnight).
+- Sign-in callback page restyled.
+
 ## Still in the legacy dark scope (by design)
 `/universe/[username]` (immersive WebGL page, has its own HUD) and any route not listed in `components/ThemeScope.jsx`. Restyle later if you want it in the light system.
 

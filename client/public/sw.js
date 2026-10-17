@@ -1,73 +1,60 @@
-// ============================================================
-// GITROAST — Progressive Web App (PWA) Service Worker
-// ============================================================
-// WHAT: Lightweight service worker providing offline caching for static assets
-//       while prioritizing real-time network requests for API routes and dynamic pages.
-//
-// WHY: Enables mobile 'Add to Home Screen' PWA installation and faster asset loading
-//      without breaking real-time AI streaming or Express API contracts.
-// ============================================================
+// GitRoast service worker v2 — offline-aware, never caches API calls.
+const STATIC_CACHE = 'gitroast-static-v2'
+const PAGE_CACHE = 'gitroast-pages-v2'
+const PRECACHE_ASSETS = ['/offline', '/manifest.json']
 
-const CACHE_NAME = 'gitroast-static-v1'
-const PRECACHE_ASSETS = [
-  '/',
-  '/manifest.json',
-  '/icon.svg',
-  '/favicon.ico',
-  '/apple-touch-icon.png',
-]
-
-// ── Install Event ─────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS)
-    }).then(() => self.skipWaiting())
+    caches.open(STATIC_CACHE)
+      // Best effort: one missing asset must not break installation.
+      .then((cache) => Promise.all(PRECACHE_ASSETS.map((u) => cache.add(u).catch(() => null))))
+      .then(() => self.skipWaiting()),
   )
 })
 
-// ── Activate Event ────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      )
-    }).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== STATIC_CACHE && k !== PAGE_CACHE).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
   )
 })
 
-// ── Fetch Event (Network-First for APIs, Cache-First for Assets) ───
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url)
+  const req = event.request
+  const url = new URL(req.url)
+  if (req.method !== 'GET' || url.origin !== self.location.origin) return
+  if (url.pathname.includes('/stream') || url.pathname.startsWith('/api/')) return
 
-  // Skip non-GET requests and SSE streaming
-  if (event.request.method !== 'GET') return
-  if (url.pathname.includes('/stream') || url.pathname.startsWith('/api/')) {
-    return // Pure network pass-through for API requests
-  }
-
-  // Static Assets (fonts, images, manifest, icons): Cache-first with network fallback
-  if (
-    url.pathname.match(/\.(svg|png|jpg|jpeg|gif|ico|webp|woff|woff2|ttf)$/) ||
-    url.pathname === '/manifest.json'
-  ) {
+  // Static assets: cache-first.
+  if (url.pathname.startsWith('/_next/static/') || /\.(svg|png|jpg|jpeg|gif|ico|webp|woff2?|ttf)$/.test(url.pathname) || url.pathname === '/manifest.json') {
     event.respondWith(
-      caches.match(event.request).then((cached) => {
+      caches.match(req).then((cached) => {
         if (cached) return cached
-        return fetch(event.request).then((response) => {
-          if (!response || response.status !== 200) return response
-          const responseClone = response.clone()
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone))
-          return response
-        }).catch(() => null)
-      })
+        return fetch(req).then((res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone()
+            caches.open(STATIC_CACHE).then((c) => c.put(req, copy))
+          }
+          return res
+        })
+      }),
     )
     return
   }
 
-  // Navigation & HTML: Network-first with cache fallback
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  )
+  // Page navigations: network first, then the last good copy, then the offline page.
+  if (req.mode === 'navigate') {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone()
+            caches.open(PAGE_CACHE).then((c) => c.put(req, copy))
+          }
+          return res
+        })
+        .catch(() => caches.match(req).then((cached) => cached || caches.match('/offline'))),
+    )
+  }
 })

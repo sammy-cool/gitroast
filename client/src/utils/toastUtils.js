@@ -78,6 +78,13 @@ export const toast = {
   },
 };
 
+const hoursUntil = (iso) => {
+  const ms = iso ? new Date(iso).getTime() - Date.now() : NaN;
+  if (!Number.isFinite(ms) || ms <= 0) return "a few hours";
+  const h = Math.ceil(ms / 36e5);
+  return h <= 1 ? "under an hour" : `${h} hours`;
+};
+
 // ── Message catalog: "Fifteen moments, one voice." ──
 export const notify = {
   roastReady: ({ username, score, line = "The tiny commits survived.", onAction } = {}) => show("success", "Roast ready", { description: `${username} scored ${score}. ${line}`, action: { label: "View", onClick: onAction } }),
@@ -92,8 +99,14 @@ export const notify = {
   ghostModeOn: ({ onAction } = {}) => show("success", "Ghost Mode is on", { description: "You are hidden from discovery and public battles.", action: { label: "Review", onClick: onAction } }),
   reading: ({ commits, next = "Documentation", onAction } = {}) => show("loading", "Reading the receipts…", { description: commits ? `${commits} commits analyzed. ${next} is next.` : "Commits in, conclusions shortly.", action: { label: "Cancel", onClick: onAction } }),
   signedIn: () => show("success", "Signed in", { description: "Welcome back. Your history is synced." }),
-  dailyLimit: ({ resetsIn = "6 hours", onAction } = {}) => show("warning", "You hit today's limit", { description: `Free roasts reset in ${resetsIn}.`, action: { label: "See plans", onClick: onAction } }),
+  dailyLimit: ({ resetsAt, resetsIn, onAction } = {}) => show("warning", "You hit today's limit", { description: `Free roasts reset in ${resetsIn || hoursUntil(resetsAt)}.`, action: { label: "See plans", onClick: onAction } }),
   sessionExpired: ({ what = "this shortlist", onAction } = {}) => show("error", "Session expired", { description: `Sign in again to save ${what}.`, action: { label: "Sign in", onClick: onAction } }),
+  aiQuotaUsed: ({ resetsAt, onAction } = {}) => {
+    const when = resetsAt ? new Date(resetsAt).toLocaleDateString(undefined, { month: "short", day: "numeric" }) : "next period";
+    return show("warning", "AI roasts used up", { description: `Rules-engine roasts continue. AI roasts reset ${when}.`, action: { label: "See plans", onClick: onAction } });
+  },
+  offline: () => show("warning", "You are offline", { description: "Saved results stay readable. Fresh analysis waits for a connection." }),
+  backOnline: () => show("success", "Back online", { description: "Fresh analysis is available again." }),
   keepHistory: ({ onAction } = {}) => show("ember", "Keep the whole history", { description: "Pro Roaster adds trends, personas and Ghost Mode.", action: { label: "Learn more", onClick: onAction } }),
 };
 
