@@ -78,6 +78,19 @@ const roastSchema = new mongoose.Schema(
       commitQuality: { type: Number, default: 0 },
       totalStars: { type: Number, default: 0 },
       hasReadme: { type: Boolean, default: false },
+      // Public collaboration evidence, last 12 months (null when unavailable → "insufficient evidence").
+      collab: {
+        type: new mongoose.Schema(
+          {
+            prs: { type: Number, default: 0 },
+            reviews: { type: Number, default: 0 },
+            externalRepos: { type: Number, default: 0 },
+            windowMonths: { type: Number, default: 12 },
+          },
+          { _id: false },
+        ),
+        default: null,
+      },
     },
 
     stats: [
@@ -161,6 +174,7 @@ roastSchema.index({ topLanguage: 1, score: 1 });
 roastSchema.index({ "githubSnapshot.topLanguage": 1 });
 
 roastSchema.index({ createdAt: -1 });
+roastSchema.index({ roastedBy: 1, roastSource: 1, createdAt: -1 }); // AI quota counting
 
 roastSchema.index({ "reactions.savage": -1, "reactions.destroyed": -1, createdAt: -1 });
 

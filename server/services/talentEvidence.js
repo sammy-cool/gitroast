@@ -8,7 +8,7 @@
  *  - humour never affects the score (roast text is not an input)
  *  - this is evidence alignment, not a hiring recommendation
  */
-const MODEL_VERSION = "Role evidence v1.0";
+const MODEL_VERSION = "Role evidence v1.1";
 
 const ROLE_MODELS = {
   "senior-ic": { label: "Senior IC", weights: { depth: 0.35, collaboration: 0.25, documentation: 0.2, consistency: 0.2 } },
@@ -19,6 +19,21 @@ const ROLE_MODELS = {
 const DEFAULT_ROLE = "senior-ic";
 
 const clamp = (n, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, Math.round(n)));
+
+// Collaboration = public PR + review activity in the last 12 months, plus breadth (repos owned by others).
+// Fewer than 3 public events is "insufficient evidence", never a low score: private or internal
+// collaboration is invisible here and must not be penalised.
+const MIN_COLLAB_EVENTS = 3;
+function collaborationSignal(collab) {
+  const source = "public pull requests & reviews (12 months)";
+  if (!collab) return { value: null, source, confidence: "insufficient" };
+  const prs = Number(collab.prs) || 0;
+  const reviews = Number(collab.reviews) || 0;
+  const external = Number(collab.externalRepos) || 0;
+  if (prs + reviews < MIN_COLLAB_EVENTS) return { value: null, source, confidence: "insufficient" };
+  const value = clamp(Math.min(45, Math.log2(reviews + 1) * 9) + Math.min(25, Math.log2(prs + 1) * 6) + Math.min(30, external * 6));
+  return { value, source, confidence: prs + reviews >= 10 ? "high" : "medium" };
+}
 
 function computeSignals(snapshot = {}) {
   const repos = Number(snapshot.totalRepos) || 0;
@@ -46,8 +61,7 @@ function computeSignals(snapshot = {}) {
       confidence: repos >= 5 ? "high" : "medium",
     };
   }
-  // Collaboration needs PR/review data we do not collect yet → labelled, not inferred.
-  signals.collaboration = { value: null, source: "pull-request & review data", confidence: "insufficient" };
+  signals.collaboration = collaborationSignal(snapshot.collab);
   return signals;
 }
 
@@ -68,4 +82,4 @@ function computeFit(signals, roleKey = DEFAULT_ROLE) {
   return { score, label, coverage: Math.round(weight * 100) };
 }
 
-module.exports = { MODEL_VERSION, ROLE_MODELS, DEFAULT_ROLE, computeSignals, computeFit };
+module.exports = { collaborationSignal, MIN_COLLAB_EVENTS, MODEL_VERSION, ROLE_MODELS, DEFAULT_ROLE, computeSignals, computeFit };

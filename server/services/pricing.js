@@ -40,14 +40,14 @@ const PLAN_META = {
     id: "roaster",
     name: "Pro Roaster",
     badge: "Most roasted",
-    tagline: "30 roasts / month",
+    tagline: "30 AI roasts / month",
     features: ["History", "Personas", "Badges", "Ghost Mode"],
   },
   historian: {
     id: "historian",
     name: "Historian",
     badge: null,
-    tagline: "Unlimited personal history",
+    tagline: "Unlimited history + 200 AI roasts",
     features: ["Trend exports", "Comparison", "Priority analysis"],
   },
 };
@@ -84,7 +84,7 @@ function listPlans(country) {
     country,
     currency,
     plans: [
-      { id: "free", name: "Free", amount: 0, currency, tagline: "3 roasts / month", features: ["Public result", "Share card", "Community"] },
+      { id: "free", name: "Free", amount: 0, currency, tagline: "3 AI roasts / month", features: ["Public result", "Share card", "Community"] },
       ...Object.keys(PLAN_META).map((id) => getPlan(id, country)),
     ],
   };

@@ -13,15 +13,15 @@ import './pricing.css'
 const DETAILS = {
   free: {
     cta: 'Start free',
-    points: ['Rule-engine roasts, 3 per month', 'Public result page', 'Share card (watermarked)', 'Community and Wall of Shame'],
+    points: ['3 AI roasts per month, then rules-engine roasts', '1 roast per day (fair-use guard)', 'Public result page and share card', 'Community and Wall of Shame'],
   },
   roaster: {
     cta: 'Go Pro',
-    points: ['AI roasts with Nuclear intensity', 'Personas and Ghost Mode', 'HD card download, no watermark', 'Private repositories analyzed', 'Score history with charts', 'README badges'],
+    points: ['30 AI roasts per billing cycle, then rules-engine roasts', 'Nuclear intensity, personas and Ghost Mode', 'HD card download, no watermark', 'Private repositories analyzed', 'Score history with charts', 'README badges'],
   },
   historian: {
     cta: 'Choose Historian',
-    points: ['Everything in Pro Roaster', 'Monthly report and score trends', 'Roast streak tracking', 'Comparison and trend exports', 'Priority analysis queue'],
+    points: ['Everything in Pro Roaster, 200 AI roasts per cycle', 'Monthly report and score trends', 'Roast streak tracking', 'Comparison and trend exports', 'Priority analysis queue'],
   },
 }
 

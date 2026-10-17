@@ -8,9 +8,9 @@ import { getPlans, formatPrice } from "@/services/roastService";
 const FALLBACK = {
   currency: "USD",
   plans: [
-    { id: "free", name: "Free", amount: 0, tagline: "3 roasts / month", features: ["Public result", "Share card", "Community"] },
-    { id: "roaster", name: "Pro Roaster", amount: 500, badge: "Most roasted", tagline: "30 roasts / month", features: ["History", "Personas", "Badges", "Ghost Mode"] },
-    { id: "historian", name: "Historian", amount: 900, tagline: "Unlimited personal history", features: ["Trend exports", "Comparison", "Priority analysis"] },
+    { id: "free", name: "Free", amount: 0, tagline: "3 AI roasts / month", features: ["Public result", "Share card", "Community"] },
+    { id: "roaster", name: "Pro Roaster", amount: 500, badge: "Most roasted", tagline: "30 AI roasts / month", features: ["History", "Personas", "Badges", "Ghost Mode"] },
+    { id: "historian", name: "Historian", amount: 900, tagline: "Unlimited history + 200 AI roasts", features: ["Trend exports", "Comparison", "Priority analysis"] },
   ],
 };
 

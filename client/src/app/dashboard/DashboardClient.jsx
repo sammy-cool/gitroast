@@ -150,7 +150,7 @@ export default function DashboardClient() {
   const persona = normalizePersona(user.customPreferences?.defaultPersona)
   const ghost = Boolean(user.customPreferences?.hideFromLeaderboard)
   const latest = history[0]
-  const remaining = quota?.remaining
+  const aiQuota = quota?.aiQuota
   const stats = user.stats || {}
   const first = user.username
 
@@ -203,10 +203,16 @@ export default function DashboardClient() {
           </section>
 
           <section className="gr-card gr-card--dark dash-quota" aria-label="Roast quota">
-            <span className="gr-eyebrow dash-gold">{isPro ? (proPlan === 'historian' ? 'Historian' : 'Pro Roaster') : 'Free plan'}</span>
-            <p className="dash-quota__big">{isPro ? 'Unlimited' : remaining != null ? `${remaining} left` : '—'}</p>
-            <p className="dash-quota__sub">{isPro ? 'AI roasts with no daily cooldown' : 'Free roasts reset on a rolling window'}</p>
-            <div className="gr-meter__track dash-quota__track"><div className="gr-meter__fill" style={{ width: isPro ? '100%' : remaining === 0 ? '0%' : '100%' }} /></div>
+            <span className="gr-eyebrow dash-gold">{isPro ? (proPlan === 'historian' ? 'Historian' : 'Pro Roaster') : 'Free plan'} • AI roasts</span>
+            <p className="dash-quota__big">{aiQuota ? (aiQuota.unlimited ? 'Unlimited' : `${aiQuota.remaining} / ${aiQuota.limit}`) : '—'}</p>
+            <p className="dash-quota__sub">
+              {aiQuota
+                ? aiQuota.exhausted
+                  ? `Used up. Rules-engine roasts continue; AI resets ${new Date(aiQuota.resetsAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}.`
+                  : `Resets ${new Date(aiQuota.resetsAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                : 'Loading allowance'}
+            </p>
+            <div className="gr-meter__track dash-quota__track"><div className="gr-meter__fill" style={{ width: aiQuota && !aiQuota.unlimited ? `${Math.round((aiQuota.remaining / aiQuota.limit) * 100)}%` : '100%' }} /></div>
           </section>
         </div>
 

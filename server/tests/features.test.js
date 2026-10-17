@@ -1608,6 +1608,52 @@ describe("Feature #18 — Multi-Tier User Personas & Historian Plan Invariants",
         assert.equal(loadPrices("not json").USD.roaster, 500);
     });
 
+    it("should compute AI quota windows and fall back gracefully", () => {
+        const q = require("../services/quota");
+        const d = (x) => new Date(x);
+        const day = (x) => x.toISOString().slice(0, 10);
+        const free = q.periodFor("free", null, d("2026-10-10T12:00:00Z"));
+        assert.equal(day(free.start), "2026-10-01");
+        assert.equal(day(free.resetsAt), "2026-11-01");
+        const paid = q.periodFor("roaster", { proSince: d("2026-08-18T10:00:00Z") }, d("2026-10-10T12:00:00Z"));
+        assert.equal(day(paid.start), "2026-09-18");
+        assert.equal(day(paid.resetsAt), "2026-10-18");
+        const clamp = q.periodFor("roaster", { proSince: d("2026-08-31T10:00:00Z") }, d("2026-10-10T12:00:00Z"));
+        assert.equal(day(clamp.start), "2026-09-30", "month-end anchors clamp");
+        assert.equal(q.planOf({ isPro: true, proPlan: "none" }), "roaster");
+        assert.equal(q.planOf({ isPro: false }), "free");
+        assert.deepEqual(q.loadLimits(), { free: 3, roaster: 30, historian: 200 });
+        assert.equal(q.loadLimits('{"free":5,"roaster":-1}').free, 5);
+        assert.equal(q.loadLimits('{"free":5,"roaster":-1}').roaster, 30, "invalid override ignored");
+        const used2 = q.buildQuota({ plan: "free", limit: 3, used: 2, period: free });
+        assert.ok(q.canUseAi(used2));
+        const after = q.afterConsuming(used2);
+        assert.equal(after.remaining, 0);
+        assert.ok(after.exhausted);
+        assert.ok(!q.canUseAi(after), "exhausted → rules engine fallback");
+        assert.ok(!q.canUseAi(null), "anonymous → rules engine");
+        assert.equal(q.buildQuota({ plan: "historian", limit: null, used: 999, period: free }).exhausted, false);
+    });
+
+    it("should score collaboration from public PR/review evidence only", () => {
+        const { collaborationSignal, computeSignals } = require("../services/talentEvidence");
+        const { summarizeCollaboration } = require("../services/githubService");
+        assert.equal(collaborationSignal(null).confidence, "insufficient");
+        assert.equal(collaborationSignal({ prs: 1, reviews: 1, externalRepos: 3 }).value, null, "sparse activity is not penalised");
+        const strong = collaborationSignal({ prs: 5, reviews: 20, externalRepos: 4 });
+        assert.ok(strong.value > 70 && strong.confidence === "high");
+        assert.equal(computeSignals({ totalRepos: 3, collab: { prs: 4, reviews: 4, externalRepos: 2 } }).collaboration.confidence, "medium");
+        const sum = summarizeCollaboration("Me", {
+            pullRequestContributionsByRepository: [
+                { repository: { owner: { login: "me" } }, contributions: { totalCount: 3 } },
+                { repository: { owner: { login: "Acme" } }, contributions: { totalCount: 2 } },
+            ],
+            pullRequestReviewContributionsByRepository: [{ repository: { owner: { login: "acme" } }, contributions: { totalCount: 7 } }],
+        });
+        assert.deepEqual(sum, { prs: 5, reviews: 7, externalRepos: 1, windowMonths: 12 });
+        assert.equal(summarizeCollaboration("me", null), null);
+    });
+
     it("should normalise legacy intensity/persona values", () => {
         const c = require("../utils/constants");
         assert.equal(c.normalizeIntensity("mild"), "warm");

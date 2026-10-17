@@ -1,52 +1,11 @@
-// ============================================================
-// GITROAST — GitHub API & Profile Intelligence Engine
-// ============================================================
-// ── WHAT: ────────────────────────────────────────────────────
-// Core data extraction and analysis service interfacing with the GitHub REST API v3.
-// Fetches developer profiles, repository metadata, commit histories, and README documents;
-// computes roast scores, letter grades (A through F-), shame commit indices,
-// bio-versus-reality contrasts, and yearly Spotify-style Wrapped telemetry.
-//
-// ── WHY: ─────────────────────────────────────────────────────
-// 1. Truth in Code: Resumes and LinkedIn profiles frequently exaggerate; Git commit history
-//    and repository abandonment metrics reveal actual engineering habits.
-// 2. Parallelized Performance: Uses `Promise.all` to fetch profile, repos, commits, and READMEs
-//    concurrently, reducing total upstream latency from ~2s to <500ms.
-// 3. Dynamic Rate Limit Adaptation: Seamlessly promotes requests from Render's shared 60 req/hr IP
-//    pool to the authenticated user's dedicated 5,000 req/hr GitHub personal quota.
-//
-// ── WHERE & WHEN TO USE: ─────────────────────────────────────
-// • In `server/routes/roast.js` when generating roast cards (`/api/roast/:username`).
-// • In `server/routes/roast.js` when computing annual wrap-ups (`/api/roast/:username/wrapped`).
-// • In `server/routes/battle.js` when benchmarking two rival developers.
-//
-// ── USE CASES: ───────────────────────────────────────────────
-// • Diagnosing abandoned repos (created vs pushed dates).
-// • Detecting embarrassing commit messages ("fix", "asdf", "test", "wip", "final final").
-// • Quantifying documentation quality (empty vs informative READMEs).
-//
-// ── WHEN NOT TO USE: ─────────────────────────────────────────
-// • DO NOT analyze GitHub Organizations (`profile.type === 'Organization'`), as organization
-//   accounts lack individual developer commit patterns.
-// • DO NOT call `/user/repos` for third-party profiles (always use `/users/:username/repos?type=public`).
-// ============================================================
-
-// WHY: built-in fetch is available in Node 18+
-//      zero extra dependency needed
 const BASE_URL = "https://api.github.com";
 
-// WHY: shared headers for every GitHub request
-//      Accept header tells GitHub we want v3 API JSON
-//      Authorization uses token if available (optional for public)
-// WHY userToken param: Pro users pass their own GitHub token
-//     gives access to their private repos
 function getHeaders(userToken = null) {
   const headers = {
     Accept: "application/vnd.github.v3+json",
     "User-Agent": "GitRoast-App",
   };
 
-  // WHY: Pro user's token takes priority over server token
   const token = userToken || process.env.GITHUB_TOKEN;
   if (token) {
     headers["Authorization"] = `token ${token}`;
@@ -55,23 +14,17 @@ function getHeaders(userToken = null) {
   return headers;
 }
 
-// ─── Helper: safe GitHub fetch ────────────────────────────
-// WHY: centralizes error handling for every GitHub API call
-//      so we don't repeat try/catch everywhere
-// WHY userToken: thread through every fetch call
 async function githubFetch(endpoint, userToken = null) {
   const res = await fetch(`${BASE_URL}${endpoint}`, {
     headers: getHeaders(userToken),
     signal: AbortSignal.timeout(20000),
   });
 
-  // WHY: check rate limit before throwing
   if (res.status === 403) {
     const remaining = res.headers.get("X-RateLimit-Remaining");
     if (remaining === "0" || res.headers.get("retry-after")) {
       throw new Error("RATE_LIMIT_EXCEEDED");
     }
-    // Secondary rate limits and abuse detection
     const bodyText = await res.text().catch(() => "");
     if (bodyText.includes("rate limit") || bodyText.includes("secondary rate limit")) {
       throw new Error("RATE_LIMIT_EXCEEDED");
@@ -79,7 +32,6 @@ async function githubFetch(endpoint, userToken = null) {
     throw new Error("RATE_LIMIT_EXCEEDED");
   }
 
-  // WHY: 404 means user doesn't exist on GitHub
   if (res.status === 404) {
     throw new Error("USER_NOT_FOUND");
   }
@@ -91,17 +43,10 @@ async function githubFetch(endpoint, userToken = null) {
   return res.json();
 }
 
-// ─── 1. Fetch user profile ────────────────────────────────
-// WHY: gives us name, bio, followers, public_repos, created_at
 async function fetchProfile(username, userToken) {
   return githubFetch(`/users/${encodeURIComponent(username)}`, userToken);
 }
 
-// ─── 2. Fetch repositories ───────────────────────────────
-// WHY sort=pushed: most recently active repos first
-//     per_page=100: get as many as possible in one call
-// WHY isOwnProfileAndPro: ONLY call /user/repos when roasting the authenticated Pro user themselves
-//     otherwise, roasting another user while logged in would return the caller's repos instead of target's!
 async function fetchRepos(username, userToken = null, isOwnProfileAndPro = false) {
   const endpoint = isOwnProfileAndPro
     ? `/user/repos?sort=pushed&per_page=100&visibility=all`
@@ -109,16 +54,11 @@ async function fetchRepos(username, userToken = null, isOwnProfileAndPro = false
   return githubFetch(endpoint, userToken);
 }
 
-// ─── 3. Fetch recent commits from most active repo ────────
-// WHY: we want real commit messages to roast
-//      we pick the most recently pushed repo for best results
 async function fetchRecentCommits(username, repos, userToken) {
-  // WHY: filter out forks — we want THEIR commits not copied ones
   const ownRepos = repos.filter((r) => !r.fork);
 
   if (ownRepos.length === 0) return [];
 
-  // WHY: pick the most recently pushed repo
   const mostActive = ownRepos[0];
 
   try {
@@ -126,44 +66,18 @@ async function fetchRecentCommits(username, repos, userToken) {
       `/repos/${encodeURIComponent(username)}/${encodeURIComponent(mostActive.name)}/commits?per_page=15`,
       userToken,
     );
-    // ── Defensive Array Validation for External Payloads ─────────
-    // WHAT: Ensures the commits payload is an array before invoking array methods.
-    // WHY: GitHub REST API can return an error object without throwing a network error.
-    // WHERE & WHEN TO USE: Immediately after fetching collections from external APIs.
-    // USE CASES: Parsing commits, issue lists, and paginated responses.
-    // WHEN NOT TO USE: When strict schema validation has already guaranteed the type.
     if (!Array.isArray(commits)) {
       return [];
     }
     return commits
       .map((c) => c.commit?.message?.split("\n")[0]?.trim())
-      .filter(Boolean); // remove any undefined/empty
+      .filter(Boolean);
   } catch {
-    // WHY: commits endpoint can fail on empty repos — that's fine
     return [];
   }
 }
 
-// ─── 4. Check README quality ─────────────────────────────
-// WHY: a missing or tiny README is prime roast material
 async function checkReadmeQuality(username, repos, userToken) {
-  /* 
-    ── WHAT: ────────────────────────────────────────────────────────
-    Selects top repository for README inspection, prioritizing own non-forked repos.
-    
-    ── WHY: ─────────────────────────────────────────────────────────
-    Forked repositories contain upstream author READMEs. Filtering for own repos
-    first ensures the roast evaluates the developer's actual documentation efforts.
-    
-    ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-    Profile documentation analysis.
-    
-    ── USE CASES: ───────────────────────────────────────────────────
-    Checking if developer creates comprehensive project READMEs.
-    
-    ── WHEN NOT TO USE: ─────────────────────────────────────────────
-    When user has exclusively forked repositories (falls back to pool).
-  */
   const ownRepos = (repos || []).filter((r) => !r.fork);
   const candidates = ownRepos.length > 0 ? ownRepos : (repos || []);
   const sorted = [...candidates].sort(
@@ -178,39 +92,30 @@ async function checkReadmeQuality(username, repos, userToken) {
       `/repos/${encodeURIComponent(username)}/${encodeURIComponent(topRepo.name)}/readme`,
       userToken,
     );
-    // WHY: readme content is base64 encoded by GitHub
     const content = Buffer.from(readme.content, "base64").toString("utf-8");
     return {
       exists: true,
       length: content.length,
-      // WHY: under 200 chars = basically empty
       isEmpty: content.length < 200,
       repoName: topRepo.name,
     };
   } catch {
-    // WHY: no readme = 404 from GitHub, we catch and return empty
     return { exists: false, length: 0, isEmpty: true, repoName: topRepo?.name };
   }
 }
 
-// ─── 5. Analyze repositories ─────────────────────────────
-// WHY: extract roastable signals from repo list
 function analyzeRepos(repos) {
   const safeRepos = Array.isArray(repos) ? repos : [];
   const ownRepos = safeRepos.filter((r) => !r.fork);
   const totalOwn = ownRepos.length;
 
-  // WHY: repos with zero commits after creation = abandoned
-  //      we use pushed_at vs created_at as proxy
   const abandoned = ownRepos.filter((r) => {
     const created = new Date(r.created_at);
     const pushed = new Date(r.pushed_at);
     const daysDiff = (pushed - created) / (1000 * 60 * 60 * 24);
-    // WHY: pushed within 1 day of creation = likely abandoned
     return daysDiff < 1;
   });
 
-  // WHY: language frequency map → find dominant language
   const languageMap = {};
   ownRepos.forEach((r) => {
     if (r.language) {
@@ -218,15 +123,12 @@ function analyzeRepos(repos) {
     }
   });
 
-  // Sort languages by count
   const languages = Object.entries(languageMap)
     .sort((a, b) => b[1] - a[1])
     .map(([lang]) => lang);
 
-  // WHY: repos with no description = lazy developer
   const noDescription = ownRepos.filter((r) => !r.description).length;
 
-  // WHY: total stars across all repos
   const totalStars = ownRepos.reduce((sum, r) => sum + (r.stargazers_count || 0), 0);
 
   return {
@@ -242,8 +144,6 @@ function analyzeRepos(repos) {
   };
 }
 
-// ─── 6. Analyze commit messages ──────────────────────────
-// WHY: find the most roastable commit patterns
 function analyzeCommits(commits) {
   if (commits.length === 0) {
     return {
@@ -253,7 +153,6 @@ function analyzeCommits(commits) {
     };
   }
 
-  // WHY: these patterns = bad commit messages
   const shamePatterns = [
     /fix/i,
     /fixed/i,
@@ -284,58 +183,45 @@ function analyzeCommits(commits) {
     shamePatterns.some((p) => p.test(msg)),
   );
 
-  // WHY: quality score = % of NON-shame commits
   const qualityScore = Math.round(
     ((commits.length - shameCommits.length) / commits.length) * 100,
   );
 
   return {
     total: commits.length,
-    // WHY: top 5 most shameful for display
     shameList: shameCommits.slice(0, 5),
     qualityScore,
   };
 }
 
-// ─── 7. Calculate join year ──────────────────────────────
 function getJoinYear(profile) {
   return new Date(profile.created_at).getFullYear();
 }
 
-// ─── 8. Calculate roast score (0-100, lower = worse) ─────
-// WHY: this is the headline number on the card
-//      combines multiple signals into one score
 function calculateRoastScore(repoAnalysis, commitAnalysis, readme) {
-  // WHY: Ghost account with 0 repos cannot be evaluated as average/decent
   if (repoAnalysis.totalOwn === 0) {
-    return 15; // Grade F-
+    return 15;
   }
 
   let score = 100;
 
-  // Abandoned repos penalty (max -35)
   score -= Math.min(35, Math.round(repoAnalysis.abandonedPct * 0.35));
 
-  // Commit quality penalty (max -30)
   const commitPenalty = 100 - commitAnalysis.qualityScore;
   score -= Math.round(commitPenalty * 0.3);
 
-  // README penalty (max -20)
   if (!readme.exists) score -= 20;
   else if (readme.isEmpty) score -= 12;
 
-  // No descriptions penalty (max -15)
   const descPenalty =
     repoAnalysis.totalOwn > 0
       ? repoAnalysis.noDescription / repoAnalysis.totalOwn
       : 0;
   score -= Math.round(descPenalty * 15);
 
-  // WHY: clamp between 1-99 — 0 and 100 are too absolute
   return Math.max(1, Math.min(99, score));
 }
 
-// ─── 9. Calculate grade from score ───────────────────────
 function getGrade(score) {
   if (score >= 85) return "A";
   if (score >= 70) return "B";
@@ -345,9 +231,6 @@ function getGrade(score) {
   return "F-";
 }
 
-// ─── 9.5 Generate Bio vs Reality (Roast to Resume Contrast) ─────
-// WHAT: Compares user's LinkedIn/GitHub bio claims against hard Git reality
-// WHY: Hilarious contrast highlighting discrepancy between bio buzzwords & actual code
 function generateBioContrast(profile, repoAnalysis, commitAnalysis) {
   const bio = (profile.bio || "").trim();
   const lowerBio = bio.toLowerCase();
@@ -404,9 +287,62 @@ function generateBioContrast(profile, repoAnalysis, commitAnalysis) {
   };
 }
 
-// ─── MAIN EXPORT: Full profile analysis ──────────────────
-// WHY: one function call → everything about a user
-//      called by the route, returns clean structured data
+// ── Collaboration evidence (public only, last 12 months) ─────────────
+// Uses GitHub GraphQL (needs a token). Sums the PER-REPOSITORY contribution lists, which only
+// contain public repositories, instead of the totals (which can include opted-in private activity).
+const COLLAB_QUERY = `
+query($login: String!) {
+  user(login: $login) {
+    contributionsCollection {
+      pullRequestContributionsByRepository(maxRepositories: 100) {
+        repository { owner { login } }
+        contributions { totalCount }
+      }
+      pullRequestReviewContributionsByRepository(maxRepositories: 100) {
+        repository { owner { login } }
+        contributions { totalCount }
+      }
+    }
+  }
+}`;
+
+function summarizeCollaboration(login, collection) {
+  if (!collection) return null;
+  const own = String(login).toLowerCase();
+  const sum = (list) => (list || []).reduce((n, r) => n + (r.contributions?.totalCount || 0), 0);
+  const external = new Set();
+  for (const list of [collection.pullRequestContributionsByRepository, collection.pullRequestReviewContributionsByRepository]) {
+    for (const r of list || []) {
+      const owner = r.repository?.owner?.login;
+      if (owner && owner.toLowerCase() !== own) external.add(owner.toLowerCase());
+    }
+  }
+  return {
+    prs: sum(collection.pullRequestContributionsByRepository),
+    reviews: sum(collection.pullRequestReviewContributionsByRepository),
+    externalRepos: external.size,
+    windowMonths: 12,
+  };
+}
+
+async function fetchCollaboration(username, userToken = null) {
+  const token = userToken || process.env.GITHUB_TOKEN;
+  if (!token) return null; // GraphQL requires auth → signal stays "insufficient evidence"
+  try {
+    const res = await fetch("https://api.github.com/graphql", {
+      method: "POST",
+      headers: { Authorization: `bearer ${token}`, "Content-Type": "application/json", "User-Agent": "GitRoast-App" },
+      body: JSON.stringify({ query: COLLAB_QUERY, variables: { login: username } }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return summarizeCollaboration(username, json?.data?.user?.contributionsCollection);
+  } catch {
+    return null; // never block a roast on optional evidence
+  }
+}
+
 async function analyzeProfile(
   username,
   userToken = null,
@@ -419,24 +355,21 @@ async function analyzeProfile(
       username.toLowerCase() === authUsername.toLowerCase(),
   );
 
-  // WHY Promise.all: fetch profile + repos at the SAME TIME
-  //     instead of waiting for each one. Saves ~500ms.
   const [profile, repos] = await Promise.all([
     fetchProfile(username, userToken),
     fetchRepos(username, userToken, isOwnProfileAndPro),
   ]);
 
-  // WHY: GitRoast only roasts individual developers — organizations don't have individual developer patterns
   if (profile.type === "Organization") {
     const orgErr = new Error("ORGANIZATION_NOT_SUPPORTED");
     orgErr.code = "ORGANIZATION_NOT_SUPPORTED";
     throw orgErr;
   }
 
-  // WHY: these depend on repos so they run after
-  const [commits, readme] = await Promise.all([
+  const [commits, readme, collab] = await Promise.all([
     fetchRecentCommits(username, repos, userToken),
     checkReadmeQuality(username, repos, userToken),
+    fetchCollaboration(username, userToken),
   ]);
 
   const repoAnalysis = analyzeRepos(repos);
@@ -445,7 +378,6 @@ async function analyzeProfile(
   const grade = getGrade(score);
   const isGhost = repoAnalysis.totalOwn === 0;
 
-  // WHY: build stats array in the exact shape our StatsGrid expects
   const stats = [
     {
       label: "Commit Quality",
@@ -493,7 +425,6 @@ async function analyzeProfile(
 
   const bioContrast = generateBioContrast(profile, repoAnalysis, commitAnalysis);
 
-  // WHY: return clean shape — matches exactly what RoastCard expects
   return {
     username,
     score,
@@ -511,7 +442,7 @@ async function analyzeProfile(
     commitAnalysis,
     readme,
     bioContrast,
-    // WHY: raw data passed to roast engine in Phase 4
+    collab,
     _raw: {
       topLanguage: repoAnalysis.topLanguage,
       languages: repoAnalysis.languages,
@@ -524,10 +455,6 @@ async function analyzeProfile(
   };
 }
 
-// ─── 10. Analyze GitHub Wrapped ───────────────────────────
-// WHY: Spotify-Wrapped style year-in-review roast
-//      Analyzes total commits, worst month, streaks, most abandoned repo,
-//      and developer archetype.
 async function analyzeWrapped(
   username,
   year = 2025,
@@ -555,7 +482,6 @@ async function analyzeWrapped(
     return new Date(r.pushed_at).getFullYear() === targetYear;
   });
 
-  // Most abandoned repo created in targetYear (or overall if none in targetYear)
   let mostAbandonedRepo = null;
   if (reposCreatedInYear.length > 0) {
     const sorted = [...reposCreatedInYear].sort((a, b) => {
@@ -607,7 +533,6 @@ async function analyzeWrapped(
     };
   }
 
-  // Fetch commits for target year from top active repos
   const commitDates = [];
   const commitMessages = [];
   const reposToInspect = reposPushedInYear.slice(0, 4);
@@ -636,7 +561,6 @@ async function analyzeWrapped(
     if (c.message) commitMessages.push(c.message);
   });
 
-  // Monthly breakdown
   const monthNames = [
     "Jan", "Feb", "Mar", "Apr", "May", "Jun",
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
@@ -668,7 +592,6 @@ async function analyzeWrapped(
         : `${worstMonthCount} commit${worstMonthCount === 1 ? "" : "s"} — minimal vital signs detected`,
   };
 
-  // Best streak
   const uniqueDays = Array.from(
     new Set(
       commitDates
@@ -711,7 +634,6 @@ async function analyzeWrapped(
       })
     : `Never started in ${targetYear}`;
 
-  // Weekend & Night stats
   let nightCommits = 0;
   let weekendCommits = 0;
   commitDates.forEach((d) => {
@@ -725,7 +647,6 @@ async function analyzeWrapped(
   const commitAnalysis = analyzeCommits(commitMessages);
   const repoAnalysis = analyzeRepos(repos || []);
 
-  // Archetype determination
   let archetype = "";
   let archetypeEmoji = "⚡";
   let archetypeDesc = "";
@@ -806,26 +727,6 @@ async function analyzeWrapped(
   };
 }
 
-// ─── 11. Analyze 3D Code Universe / Solar System ─────────────
-/* 
-  ── WHAT: ────────────────────────────────────────────────────────
-  Transforms a developer profile and their top repositories into a rich,
-  physically structured 3D celestial solar system (star + orbiting planets + black holes).
-  
-  ── WHY: ─────────────────────────────────────────────────────────
-  Powers the interactive WebGL 3D Code Solar System experience, turning abstract
-  metrics (commit frequency, stars, tech debt, abandonment) into intuitive cosmic phenomena
-  (blazing inferno planets, ringed gas giants, frozen cryo-worlds, and supermassive black holes).
-  
-  ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-  Invoked in `server/routes/roast.js` for `GET /api/roast/:username/universe`.
-  
-  ── USE CASES: ───────────────────────────────────────────────────
-  3D planetary system exploration, interactive orbit inspection, space-themed roasts.
-  
-  ── WHEN NOT TO USE: ─────────────────────────────────────────────
-  Do not call for Organization accounts (rejects with ORGANIZATION_NOT_SUPPORTED).
-*/
 async function analyzeUniverse(
   username,
   userToken = null,
@@ -858,7 +759,6 @@ async function analyzeUniverse(
   const score = Math.max(10, Math.min(99, rawScore));
   const grade = getGrade(score);
 
-  // ── Star Classification (The Developer) ──────────────────────
   let spectralClass = "G-Type Yellow Solar";
   let starColor = "#FFB700";
   let coronaColor = "rgba(255, 183, 0, 0.4)";
@@ -910,11 +810,9 @@ async function analyzeUniverse(
     following: profile.following ?? 0,
   };
 
-  // ── Celestial Bodies / Orbiting Planets (Top Repositories) ──
   const validRepos = (repos || []).filter((r) => !r.fork);
   const pool = validRepos.length > 0 ? validRepos : (repos || []);
 
-  // Sort by combination of stars and recent activity (safely guarding invalid/empty dates)
   const sortedRepos = [...pool].sort((a, b) => {
     const starDiff = (b.stargazers_count || 0) - (a.stargazers_count || 0);
     if (starDiff !== 0) return starDiff;
@@ -1006,7 +904,6 @@ async function analyzeUniverse(
     };
   });
 
-  // If user has 0 repos, generate a placeholder asteroid belt
   if (planets.length === 0) {
     planets.push({
       id: "planet-void",
@@ -1062,5 +959,5 @@ async function analyzeUniverse(
   };
 }
 
-module.exports = { analyzeProfile, analyzeWrapped, analyzeUniverse };
+module.exports = { analyzeProfile, analyzeWrapped, analyzeUniverse, summarizeCollaboration };
 
