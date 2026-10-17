@@ -105,6 +105,13 @@ router.get("/talent/:username", async (req, res) => {
     const docs = await latestPublicProfiles({ q: username });
     const doc = docs.find((x) => x._id === username.toLowerCase());
     if (!doc) return res.status(404).json({ error: "PROFILE_NOT_FOUND", message: "No public evidence for this profile." });
+    // Public score history for "Growth signals" (oldest → newest, max 12).
+    const history = await Roast.find({ username: new RegExp(`^${esc(username)}$`, "i"), isPrivate: { $ne: true } })
+      .sort({ createdAt: -1 })
+      .limit(12)
+      .select("score createdAt")
+      .lean();
+    const trend = history.reverse().map((h) => ({ score: h.score, at: h.createdAt }));
     const saved = await TalentSave.exists({ recruiterId: req.user._id, username: username.toLowerCase() });
     const candidate = shapeCandidate({ ...doc, _id: doc._id }, roleKey, saved ? new Set([doc._id]) : new Set());
     res.json({
@@ -112,6 +119,7 @@ router.get("/talent/:username", async (req, res) => {
       model: MODEL_VERSION,
       role: { id: roleKey, label: ROLE_MODELS[roleKey].label, weights: ROLE_MODELS[roleKey].weights },
       candidate,
+      trend,
       snapshot: doc.githubSnapshot || {},
       disclaimer: "Evidence alignment, not a hiring recommendation. Sparse private work is not inferred.",
     });

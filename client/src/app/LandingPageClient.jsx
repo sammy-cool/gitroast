@@ -21,6 +21,8 @@ import "./home.css";
 const ProModal = dynamic(() => import("@/components/ProModal"), { ssr: false });
 const WelcomeConsentModal = dynamic(() => import("@/components/WelcomeConsentModal"), { ssr: false });
 
+const RECRUIT_MODEL_VERSION = "v1.1"
+
 const STEPS = [
   ["01", "Choose the heat", "Pick an intensity and a voice. Nuclear is optional; clarity is not."],
   ["02", "We read the public evidence", "Commits, repositories, cadence and collaboration signals — dated and sourced."],
@@ -255,6 +257,10 @@ export default function LandingPageClient() {
               <div><dt>Profiles roasted</dt><dd>{totalRoasts ? totalRoasts.toLocaleString() : "—"}</dd></div>
               <div><dt>Status</dt><dd>{serverStatus === "online" ? "Online" : serverStatus === "offline" ? "Waking up" : "Checking"}</dd></div>
             </dl>
+            <ul className="home-pulse__list">
+              <li><span className={`home-pulse__dot home-pulse__dot--${serverStatus}`} aria-hidden="true" />GitHub ingestion {serverStatus === "online" ? "healthy" : serverStatus === "offline" ? "recovering" : "checking"}</li>
+              <li><span className="home-pulse__dot home-pulse__dot--online" aria-hidden="true" />Scoring {RECRUIT_MODEL_VERSION}</li>
+            </ul>
           </aside>
         </div>
       </section>

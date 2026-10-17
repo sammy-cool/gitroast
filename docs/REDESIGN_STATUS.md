@@ -14,6 +14,11 @@ Repo roast (+ AnalyzingScreen, RepoRoastCard), Battles (entry, loading, result c
 - Toast moments wired: Signed in, Session expired (auto-detected on a 401), You hit today's limit (with real reset time). Server daily-limit message corrected (it still promised "unlimited" Pro) and now returns `resetsAt` (next UTC midnight).
 - Sign-in callback page restyled.
 
+## Design audit pass (done)
+Compared every Figma screen with the implementation and closed the gaps: roast result now shows the four evidence signals as metric cards; dashboard has the score-trend chart; recruiter profile has Notable public projects, Collaboration indicators and Growth signals (needs roasts made after this release for projects/collaboration); recruiter table becomes cards on mobile; Wall of Shame shows "Updated … ago"; home "System pulse" shows ingestion and scoring version. Also fixed: the stream route did not save collab data in the roast snapshot.
+
+Intentionally not done: status icons in toasts (the toast package has none), repository-highlight quote card on the result page (needs a per-repo roast), persona nickname per leaderboard row (not generated yet).
+
 ## Still in the legacy dark scope (by design)
 `/universe/[username]` (immersive WebGL page, has its own HUD) and any route not listed in `components/ThemeScope.jsx`. Restyle later if you want it in the light system.
 

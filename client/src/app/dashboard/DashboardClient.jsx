@@ -12,6 +12,7 @@ import Logo from '@/components/Logo'
 import Icon from '@/components/Icon'
 import { PERSONAS, personaLabel, intensityLabel, normalizePersona } from '@/utils/vocab'
 import { badgeMarkdown as buildBadge } from '@/hooks/useRoastShare'
+import TrendBars from '@/components/TrendBars'
 import './dashboard.css'
 
 const NAV = [
@@ -153,6 +154,11 @@ export default function DashboardClient() {
   const aiQuota = quota?.aiQuota
   const stats = user.stats || {}
   const first = user.username
+  const recent = history.slice(0, 8).reverse()
+  const trendValues = recent.map((r) => r.score)
+  const trendLabels = recent.map((r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short' }) : ''))
+  const trendDelta = trendValues.length >= 2 ? trendValues[trendValues.length - 1] - trendValues[0] : null
+  const trendHeadline = trendDelta === null ? 'Your trend appears after two roasts.' : trendDelta > 0 ? `Up ${trendDelta} points across your recent roasts.` : trendDelta < 0 ? `Down ${Math.abs(trendDelta)} points, with room to recover.` : 'Holding steady across your recent roasts.'
 
   return (
     <div className="gr-shell dash">
@@ -225,6 +231,12 @@ export default function DashboardClient() {
           ].map(([k, v, s]) => (
             <div key={k} className="gr-card rc-stat"><span className="gr-eyebrow rc-stat__k">{k}</span><b className="rc-stat__v">{v}</b><span className="gr-help">{s}</span></div>
           ))}
+        </section>
+
+        <section className="gr-card" aria-labelledby="dtr-h">
+          <p className="gr-eyebrow">Score trend</p>
+          <h2 id="dtr-h" className="gr-h3">{trendHeadline}</h2>
+          <TrendBars values={trendValues} labels={trendLabels} ariaLabel="Roast score trend" caption={trendValues.length >= 2 ? `Your last ${trendValues.length} roasts • same methodology version • public data only` : ''} />
         </section>
 
         <div className="dash-cols">

@@ -35,3 +35,4 @@
 .lb-skel { display: grid; gap: 12px; } .lb-skel__row { height: 72px; }
 @media (max-width: 1000px) { .lb-cols { grid-template-columns: 1fr; } }
 @media (max-width: 720px) { .lb-row { grid-template-columns: 32px 1fr auto; } .lb-signal, .lb-tag { display: none; } .lb-challenge { grid-column: 1 / -1; justify-self: stretch; } .lb-hero__inner { padding: 36px 16px; } .lb-hero__stats { gap: 28px; } }
+.lb-updated { color: var(--ink-3); margin-bottom: 6px; }

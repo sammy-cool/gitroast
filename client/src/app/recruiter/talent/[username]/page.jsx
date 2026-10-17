@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast, notify } from "@/utils/toast";
 import { getCandidate, saveTalent, unsaveTalent } from "@/services/recruiterService";
 import { Avatar, SignalMeter, SIGNALS, StateCard } from "@/components/recruiter/parts";
+import TrendBars from "@/components/TrendBars";
 
 export default function CandidateProfile({ params }) {
   const { username } = use(params);
@@ -33,6 +34,11 @@ export default function CandidateProfile({ params }) {
   const weights = d.role.weights;
   const snap = d.snapshot || {};
   const pct = (k) => Math.round((weights[k] || 0) * 100);
+  const collab = snap.collab;
+  const topRepos = snap.topRepos || [];
+  const trendValues = (d.trend || []).map((t) => t.score);
+  const trendLabels = (d.trend || []).map((t) => new Date(t.at).toLocaleDateString(undefined, { month: "short" }));
+  const reviewLevel = collab ? (collab.reviews >= 20 ? "High" : collab.reviews >= 5 ? "Moderate" : collab.reviews > 0 ? "Some" : "None visible") : "Unknown";
 
   async function toggle() {
     const next = !saved;
@@ -50,6 +56,8 @@ export default function CandidateProfile({ params }) {
       ...SIGNALS.map((s) => `- ${s.label}: ${typeof c.signals[s.key]?.value === "number" ? c.signals[s.key].value : "insufficient public evidence"} (${c.signals[s.key]?.source})`),
       "",
       `Public repositories: ${snap.totalRepos ?? 0}; abandoned: ${snap.abandonedCount ?? 0}; stars: ${snap.totalStars ?? 0}.`,
+      snap.collab ? `Public collaboration (last ${snap.collab.windowMonths || 12} months): ${snap.collab.prs} pull requests, ${snap.collab.reviews} reviews, ${snap.collab.externalRepos} other owners.` : "Public collaboration: insufficient evidence.",
+      ...(snap.topRepos || []).map((r) => `Notable project: ${r.name} (${r.stars} stars) - ${r.description || "no description"}`),
       "",
       "Evidence alignment, not a hiring recommendation. No contact details are inferred.",
     ];
@@ -84,6 +92,7 @@ export default function CandidateProfile({ params }) {
       </section>
 
       <div className="rc-cols rc-cols--profile">
+        <div className="rc-stack">
         <section className="gr-card" aria-labelledby="fit-h">
           <div className="rc-fit-head">
             <div>
@@ -97,18 +106,6 @@ export default function CandidateProfile({ params }) {
           </div>
           <p className="gr-help">This is evidence alignment, not a hiring recommendation. Sparse private work is not inferred.</p>
         </section>
-
-        <aside className="gr-card gr-card--blue">
-          <h2 className="rc-card-title"><Icon name="book" /> Why {c.fit.score ?? "this score"}?</h2>
-          <p className="gr-help">For this role: project depth {pct("depth")}%, collaboration {pct("collaboration")}%, documentation {pct("documentation")}%, consistency {pct("consistency")}%. Signals without evidence are excluded and the remaining weights are renormalized (coverage {c.fit.coverage}%).</p>
-          <dl className="rc-kv">
-            <div><dt>Sources</dt><dd>{c.publicRepositories} repos</dd></div>
-            <div><dt>Model</dt><dd>{d.model}</dd></div>
-            <div><dt>Analyzed</dt><dd>{c.analyzedAt ? new Date(c.analyzedAt).toLocaleDateString() : "—"}</dd></div>
-          </dl>
-          <Link href="/recruiter/methodology" className="gr-btn gr-btn--outline gr-btn--block">Open full methodology</Link>
-        </aside>
-
         <section className="gr-card" aria-labelledby="sig-h">
           <p className="gr-eyebrow">Public signals</p>
           <h2 id="sig-h" className="gr-h3">What the public work shows</h2>
@@ -118,8 +115,49 @@ export default function CandidateProfile({ params }) {
             <li><b>{snap.hasReadme ? "README present" : "No README on the profile repository"}</b><span>Used for the documentation signal.</span></li>
           </ul>
         </section>
-
+        <section className="gr-card" aria-labelledby="proj-h">
+          <p className="gr-eyebrow">Project depth</p>
+          <h2 id="proj-h" className="gr-h3">Notable public projects</h2>
+          {topRepos.length === 0 ? (
+            <p className="gr-help">Project details appear after this profile is analyzed again.</p>
+          ) : (
+            <ul className="rc-signals">
+              {topRepos.map((r) => (
+                <li key={r.name}>
+                  <b>{r.name} <span className="gr-mono rc-sub">{r.stars} stars{r.language ? ` • ${r.language}` : ""}</span></b>
+                  <span>{r.description || "No description provided."}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section className="gr-card" aria-labelledby="grow-h">
+          <p className="gr-eyebrow">Growth signals</p>
+          <h2 id="grow-h" className="gr-h3">Visible change over time</h2>
+          <TrendBars values={trendValues} labels={trendLabels} ariaLabel="Public score trend" caption={trendValues.length >= 2 ? "Public roast scores • same methodology • oldest to newest" : ""} />
+        </section>
+        </div>
         <aside className="rc-rail">
+        <section className="gr-card gr-card--blue">
+          <h2 className="rc-card-title"><Icon name="book" /> Why {c.fit.score ?? "this score"}?</h2>
+          <p className="gr-help">For this role: project depth {pct("depth")}%, collaboration {pct("collaboration")}%, documentation {pct("documentation")}%, consistency {pct("consistency")}%. Signals without evidence are excluded and the remaining weights are renormalized (coverage {c.fit.coverage}%).</p>
+          <dl className="rc-kv">
+            <div><dt>Sources</dt><dd>{c.publicRepositories} repos</dd></div>
+            <div><dt>Model</dt><dd>{d.model}</dd></div>
+            <div><dt>Analyzed</dt><dd>{c.analyzedAt ? new Date(c.analyzedAt).toLocaleDateString() : "—"}</dd></div>
+          </dl>
+          <Link href="/recruiter/methodology" className="gr-btn gr-btn--outline gr-btn--block">Open full methodology</Link>
+        </section>
+          <section className="gr-card" aria-labelledby="collab-h">
+            <p className="gr-eyebrow">Collaboration indicators</p>
+            <h2 id="collab-h" className="sr-only-h gr-sr-only">Collaboration indicators</h2>
+            <dl className="rc-kv rc-kv--list">
+              <div><dt>Review activity</dt><dd>{reviewLevel}<small>{collab ? `${collab.reviews} reviews` : "no data"}</small></dd></div>
+              <div><dt>Pull requests</dt><dd>{collab ? collab.prs : "—"}<small>last {collab?.windowMonths || 12} months</small></dd></div>
+              <div><dt>Contributor breadth</dt><dd>{collab ? (collab.externalRepos >= 5 ? "Strong" : collab.externalRepos >= 2 ? "Moderate" : collab.externalRepos > 0 ? "Some" : "None visible") : "—"}<small>{collab ? `${collab.externalRepos} other owners` : "no data"}</small></dd></div>
+            </dl>
+            <p className="gr-help">Public repositories only. Private or internal collaboration is not visible and is never penalized.</p>
+          </section>
           <section className="gr-card gr-card--gold">
             <h2 className="rc-card-title">Questions for human review</h2>
             <p className="gr-help">Ask about team context, constraints and private work directly. Do not treat public activity volume as availability or motivation.</p>

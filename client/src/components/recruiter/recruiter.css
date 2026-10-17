@@ -47,6 +47,8 @@
 .rc-meters { display: grid; gap: 16px; margin: 16px 0; } .rc-insuff { margin: 0; }
 .rc-kv { display: grid; gap: 6px; margin: 14px 0; font-size: 13px; } .rc-kv div { display: flex; justify-content: space-between; } .rc-kv dt { color: var(--ink-2); } .rc-kv dd { font-family: var(--font-code); }
 .rc-signals { list-style: none; display: grid; gap: 14px; margin-top: 12px; } .rc-signals li { display: grid; gap: 2px; padding-top: 14px; border-top: 1px solid var(--line); } .rc-signals span { color: var(--ink-2); font-size: 14px; }
+.rc-kv--list div { padding: 10px 0; border-top: 1px solid var(--line); align-items: baseline; }
+.rc-kv--list dd { text-align: right; font-weight: 600; display: grid; } .rc-kv--list dd small { font: 400 11px var(--font-code); color: var(--ink-3); }
 .rc-list { display: grid; gap: 12px; }
 .rc-list-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .rc-compare { display: grid; gap: 16px; }
@@ -54,3 +56,15 @@
 .rc-method li { margin: 8px 0 8px 18px; }
 @media (max-width: 1000px) { .rc-cols, .rc-cols--profile { grid-template-columns: 1fr; } .rc-stats { grid-template-columns: 1fr 1fr; } .rc-pair { grid-template-columns: 1fr; } }
 @media (max-width: 560px) { .rc-stats { grid-template-columns: 1fr; } .rc-bigscore { font-size: 52px; } }
+
+/* Compact journeys: no tiny desktop table — rows become cards under 640px */
+@media (max-width: 640px) {
+  .rc-table { overflow-x: visible; }
+  .rc-row { min-width: 0; grid-template-columns: 1fr auto; grid-template-areas: "cand fit" "ev ev" "act act"; gap: 10px 12px; }
+  .rc-row--head { display: none; }
+  .rc-row > :nth-child(1) { grid-area: cand; }
+  .rc-row > :nth-child(2) { grid-area: ev; }
+  .rc-row > :nth-child(3) { grid-area: fit; justify-items: end; }
+  .rc-row > :nth-child(4) { grid-area: act; justify-content: space-between; }
+}
+.rc-stack { display: grid; gap: 18px; min-width: 0; }

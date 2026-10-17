@@ -306,6 +306,20 @@ query($login: String!) {
   }
 }`;
 
+// Top public repositories by stars (own, non-fork) for the talent profile "Notable public projects".
+function pickTopRepos(repos, n = 3) {
+  return (repos || [])
+    .filter((r) => !r.fork)
+    .sort((a, b) => (b.stargazers_count || 0) - (a.stargazers_count || 0))
+    .slice(0, n)
+    .map((r) => ({
+      name: String(r.name || "").slice(0, 100),
+      stars: r.stargazers_count || 0,
+      description: String(r.description || "").slice(0, 140),
+      language: r.language || "",
+    }));
+}
+
 function summarizeCollaboration(login, collection) {
   if (!collection) return null;
   const own = String(login).toLowerCase();
@@ -443,6 +457,7 @@ async function analyzeProfile(
     readme,
     bioContrast,
     collab,
+    topRepos: pickTopRepos(repos),
     _raw: {
       topLanguage: repoAnalysis.topLanguage,
       languages: repoAnalysis.languages,
@@ -959,5 +974,5 @@ async function analyzeUniverse(
   };
 }
 
-module.exports = { analyzeProfile, analyzeWrapped, analyzeUniverse, summarizeCollaboration };
+module.exports = { analyzeProfile, analyzeWrapped, analyzeUniverse, summarizeCollaboration, pickTopRepos };
 

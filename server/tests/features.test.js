@@ -1654,6 +1654,20 @@ describe("Feature #18 — Multi-Tier User Personas & Historian Plan Invariants",
         assert.equal(summarizeCollaboration("me", null), null);
     });
 
+    it("should pick top public repos for the talent profile", () => {
+        const { pickTopRepos } = require("../services/githubService");
+        const top = pickTopRepos([
+            { name: "a", stargazers_count: 5, fork: false, description: "x", language: "JS" },
+            { name: "b", stargazers_count: 99, fork: true },
+            { name: "c", stargazers_count: 7, fork: false },
+            { name: "d", stargazers_count: 1, fork: false },
+            { name: "e", stargazers_count: 0, fork: false },
+        ]);
+        assert.deepEqual(top.map((r) => r.name), ["c", "a", "d"], "forks excluded, sorted by stars, max 3");
+        assert.equal(top[1].description, "x");
+        assert.deepEqual(pickTopRepos(null), []);
+    });
+
     it("should normalise legacy intensity/persona values", () => {
         const c = require("../utils/constants");
         assert.equal(c.normalizeIntensity("mild"), "warm");

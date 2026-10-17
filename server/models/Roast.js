@@ -78,6 +78,15 @@ const roastSchema = new mongoose.Schema(
       commitQuality: { type: Number, default: 0 },
       totalStars: { type: Number, default: 0 },
       hasReadme: { type: Boolean, default: false },
+      topRepos: {
+        type: [
+          new mongoose.Schema(
+            { name: String, stars: { type: Number, default: 0 }, description: String, language: String },
+            { _id: false },
+          ),
+        ],
+        default: [],
+      },
       // Public collaboration evidence, last 12 months (null when unavailable → "insufficient evidence").
       collab: {
         type: new mongoose.Schema(

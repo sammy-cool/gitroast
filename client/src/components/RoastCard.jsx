@@ -179,7 +179,28 @@ export default function RoastCard({ data, onProClick, onRoastAnother, historyHre
         {onRoastAnother && <button type="button" className="gr-btn gr-btn--quiet" onClick={onRoastAnother}>Roast another</button>}
       </div>
 
-      {/* Metrics */}
+      {/* Evidence signals (design: four metric cards) */}
+      {hasAnatomy && (
+        <section className="rr-metrics" aria-label="Evidence signals">
+          {[
+            ['Project depth', 'depth', `${data.totalRepos ?? 0} public repositories`],
+            ['Consistency', 'consistency', 'Commit message quality'],
+            ['Collaboration', 'collaboration', data.collab ? `${(data.collab.prs || 0) + (data.collab.reviews || 0)} public PRs and reviews` : 'Needs public PR data'],
+            ['Documentation', 'documentation', 'README and maintained repositories'],
+          ].map(([label, key, note]) => {
+            const v = signals[key]?.value
+            return (
+              <div key={key} className="gr-card rr-metric">
+                <span className="gr-eyebrow rr-metric__k">{label}</span>
+                <b className={`rr-metric__v${typeof v === 'number' && v < 60 ? ' rr-metric__v--bad' : ''}`}>{typeof v === 'number' ? v : '—'}</b>
+                <span className="gr-help">{typeof v === 'number' ? note : 'Insufficient public evidence'}</span>
+              </div>
+            )
+          })}
+        </section>
+      )}
+
+      {/* Roast stats */}
       {stats.length > 0 && (
         <section className="rr-metrics" aria-label="Key metrics">
           {stats.map((s) => (

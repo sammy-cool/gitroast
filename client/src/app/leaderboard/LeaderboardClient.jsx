@@ -35,12 +35,15 @@ export default function LeaderboardClient() {
   const [rival1, setRival1] = useState('');
   const [rival2, setRival2] = useState('');
   const [total, setTotal] = useState(null);
+  const [fetchedAt, setFetchedAt] = useState(null);
+  const [, tick] = useState(0);
 
   const load = useCallback(async () => {
     setState('loading');
     try {
       const res = await getEvidenceBoard({ page, limit: PAGE_SIZE, weeks, language, q: q.trim() });
       setData(res);
+      setFetchedAt(Date.now());
       setState('ready');
     } catch {
       setState('error');
@@ -52,6 +55,12 @@ export default function LeaderboardClient() {
   useEffect(() => {
     if (tab === 'companies' && companies === null) getCompanyLeaderboard().then(setCompanies);
   }, [tab, companies]);
+
+  useEffect(() => {
+    const t = setInterval(() => tick((n) => n + 1), 30000);
+    return () => clearInterval(t);
+  }, []);
+  const updatedLabel = fetchedAt ? (() => { const m = Math.floor((Date.now() - fetchedAt) / 60000); return m < 1 ? 'Updated just now' : `Updated ${m} min ago`; })() : '';
 
   const goPage = (n) => router.push(n <= 1 ? '/leaderboard' : `/leaderboard?page=${n}`);
 
@@ -108,6 +117,7 @@ export default function LeaderboardClient() {
           <section aria-labelledby="lb-h">
             <p className="gr-eyebrow">Season 08</p>
             <h2 id="lb-h" className="gr-h2 lb-h">{tab === 'developers' ? 'The evidence board' : 'Company board'}</h2>
+            {tab === 'developers' && updatedLabel && <p className="gr-eyebrow lb-updated">{updatedLabel}</p>}
             <p className="lb-note">{tab === 'developers' ? 'Ranking favors balanced, recent public evidence — not raw activity volume.' : 'Companies ranked by public chaos score from roasted contributors.'}</p>
 
             {tab === 'developers' && state === 'loading' && <LeaderboardSkeleton />}
