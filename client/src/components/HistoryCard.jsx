@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 const tone = (s) => (s >= 70 ? 'mint' : s >= 40 ? 'gold' : 'ember')
 
 export default function HistoryCard({ roast, index }) {

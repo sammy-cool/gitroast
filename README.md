@@ -52,7 +52,7 @@ Users can:
 - **Choose comedy personas**: Classic Fire 🔥, Gordon Ramsay 👨‍🍳, Desi / Hinglish 🌶️, Tech Bro 🚀, Shakespeare 📜
 - **Explore their 3D Code Solar System**: Interactive WebGL galaxy mapping repositories as orbiting celestial worlds
 - **Track their developer stats** in the authenticated personal `/dashboard` with Ghost Mode privacy
-- **Choose intensity**: Mild 🌶 / Savage 🔥 / Nuclear ☢️ (Pro)
+- **Choose intensity**: Warm-up / Crispy / Nuclear (Pro)
 - **Battle head-to-head** with another developer's GitHub profile
 - **Download cards & certificates**: Shareable PNG roast cards and printable Certificates of GitHub Shame
 - **React to roasts**: Community emoji reactions (😂 Relatable, 💀 Destroyed, 🔥 Savage) with IP-based deduplication
@@ -355,7 +355,7 @@ gitroast/
 ### Free User Flow
 ```
 1. User enters GitHub username on homepage
-2. Selects intensity: Mild 🌶 or Savage 🔥 (Nuclear is locked)
+2. Selects intensity: Warm-up or Crispy (Nuclear is Pro)
 3. Frontend calls GET /api/roast/:username?intensity=savage with X-Idempotency-Key
 4. Server fetches profile, repos, commits, and README via GitHub REST API
 5. Scoring engine calculates 1–99 score and assigns letter grade (A to F-)
@@ -420,11 +420,15 @@ score = Math.max(1, Math.min(99, score));
 
 ## 🌶 Intensity System
 
-| Intensity | Access | AI Temp | Comedian Persona | Example Style |
-| --------- | ------ | ------- | ---------------- | ------------- |
-| 🌶 **Mild** | Free / Pro | 0.7 | Witty Observational Friend | Gentle, self-aware; jokes that make you laugh with the audience. |
-| 🔥 **Savage** | Free / Pro | 1.0 | Stand-Up Comedian | Brutal, specific punchlines with comedic timing. The default mode. |
-| ☢️ **Nuclear** | **Pro Only** | 1.2 | Comedy Assassin | Scorched-earth devastation targeting commit history and abandoned repos. |
+Canonical names are **Warm-up / Crispy / Nuclear** (legacy `mild` / `savage` are still accepted and normalised, so old links and stored data keep working). Single source of truth: `shared/constants.js`, mirrored in `client/src/utils/vocab.js` and kept in sync by a test.
+
+| Intensity | Access | Engine key | Style |
+| --------- | ------ | ---------- | ----- |
+| **Warm-up** | Free / Pro | `mild` | Gentle, self-aware observations. |
+| **Crispy** | Free / Pro | `savage` | Sharp, specific punchlines. The default. |
+| **Nuclear** | **Pro only** | `nuclear` | Scorched-earth commentary on commit history and abandoned repos. |
+
+Personas: **Staff engineer**, **Chaos intern**, **Historian** (featured), plus Desi Tech Lead, Chef Ramsay and Shakespeare ("more voices"). Legacy `classic` / `techbro` map to the first two.
 
 ---
 
@@ -449,14 +453,16 @@ Users can generate and download a formal, printable **Certificate of GitHub Sham
 
 ## 💰 Monetization
 
-GitRoast offers flexible INR pricing powered by Razorpay:
+Regional pricing, computed **on the server** (the client only displays what `GET /api/payment/plans?country=XX` returns). Launch defaults are USD $5 / $9; India keeps ₹99 / ₹199. Change prices without a deploy via `PRICING_OVERRIDES_JSON`, for example `{"USD":{"roaster":500,"historian":900}}` (amounts in cents/paise). Non-INR checkout requires **International Payments** enabled on the Razorpay account.
 
-| Plan | Price | Billing | Features |
-| ---- | ----- | ------- | -------- |
-| **Free** | ₹0 | Forever | 1 roast/day, rule-based engine, watermarked cards & certificates |
-| **🔥 Roaster** | ₹99 | Monthly | Real Gemini AI roasts, Nuclear ☢️ mode, HD watermark-free cards, private repo analysis, unlimited roasts, Pro badge |
-| **📈 Historian** | ₹199 | Monthly | All Roaster features + monthly email reports, score trend tracking, roast streaks, priority AI generation |
-| **⚔️ Squad** | — | Coming Soon | Organization-wide roasting, team leaderboards, All-vs-All battle tournaments |
+| Plan | Price (US default) | AI roasts | Features |
+| ---- | ------------------ | --------- | -------- |
+| **Free** | $0 | 3 / calendar month | 1 roast per day (abuse guard), rules-engine roasts after the AI allowance, watermarked cards |
+| **Pro Roaster** | $5 / month | 30 / billing cycle | Nuclear, personas, HD cards, private repos, history, Ghost Mode, badges |
+| **Historian** | $9 / month | 200 / billing cycle (fair use) | Everything in Pro Roaster + monthly reports, trends, comparison |
+| **Squad** | — | Coming soon | Team roasting and leaderboards |
+
+**AI-roast quota.** Separate from the abuse guard (per-IP / per-day limits). When the AI allowance is used up the roast falls back to the rules engine instead of blocking, and the API returns `quota { limit, used, remaining, resetsAt }`. Override with `QUOTA_OVERRIDES_JSON='{"free":3,"roaster":30,"historian":200}'`.
 
 ### Payment Flow
 1. User clicks upgrade on the Pricing page or Pro modal.
@@ -506,6 +512,13 @@ RECAPTCHA_SECRET_KEY=your_recaptcha_v3_secret_key
 # Razorpay Payments
 RAZORPAY_KEY_ID=rzp_live_your_key_id
 RAZORPAY_KEY_SECRET=your_razorpay_secret_key
+
+# Google Sign-In for the recruiter workspace (must equal the client value)
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+
+# Optional runtime overrides (no redeploy needed to change numbers)
+PRICING_OVERRIDES_JSON={"USD":{"roaster":500,"historian":900}}
+QUOTA_OVERRIDES_JSON={"free":3,"roaster":30,"historian":200}
 ```
 
 ### Frontend Configuration (`client/.env.local`)
@@ -515,6 +528,7 @@ NEXT_PUBLIC_API_URL=https://gitroast-latest.onrender.com
 NEXT_PUBLIC_SITE_URL=https://gitroast-dev.vercel.app
 NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_live_your_key_id
 NEXT_PUBLIC_GITHUB_CLIENT_ID=your_github_client_id
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_oauth_client_id
 ```
 
 ---
@@ -567,6 +581,25 @@ npm run dev                        # Starts Next.js on http://localhost:3000
 ---
 
 ## 📡 API Reference
+
+### New in the redesign
+```http
+GET  /api/payment/plans?country=IN           → { country, currency, plans: [ { id, name, amount, currency, tagline, features } ] }
+GET  /api/history/leaderboard/board?page=1&weeks=12&language=&q=   → evidence board (best-first, Ghost Mode excluded)
+
+POST /api/auth/recruiter/signup   { email, password, acceptResponsibleUse }
+POST /api/auth/recruiter/login    { email, password }
+POST /api/auth/recruiter/google   { credential, acceptResponsibleUse }
+
+# Recruiter workspace — Authorization: Bearer <recruiter jwt>
+GET    /api/recruiter/talent?q=&role=senior-ic&language=
+GET    /api/recruiter/talent/:username?role=
+POST   /api/recruiter/saved/:username          DELETE /api/recruiter/saved/:username     GET /api/recruiter/saved
+GET    /api/recruiter/shortlists               POST /api/recruiter/shortlists            PATCH|DELETE /api/recruiter/shortlists/:id
+GET    /api/recruiter/compare?u=a,b,c&role=
+GET    /api/recruiter/methodology
+```
+Roast responses now also include `anatomy` (project depth, consistency, collaboration, documentation), `quota`, `repoHighlight`, `topRepos` and `collab`. Evidence is public-only; a signal without enough data is reported as insufficient, never as a low score.
 
 ### Roast Endpoints
 ```http
@@ -739,6 +772,14 @@ GET /api/og-battle?user1=:u1&user2=:u2
 
 ---
 
+## 🎨 Design System & Redesign
+
+The UI follows the "Sunlit editorial arcade" system: tokens in `client/src/styles/tokens.css`, primitives (`gr-*`) in `client/src/styles/ds.css`. See `docs/DESIGN_SYSTEM.md` for how to build new screens, `docs/REDESIGN_STATUS.md` for scope and known limits, and `docs/SETUP_GUIDE.md` for applying and verifying changes. Toasts use the `customizable-toast-notification` package through `client/src/utils/toastUtils.js`.
+
+Quality gates: `node scripts/verify-imports.js` (every import resolves), `npm test` in `client/` and `server/`, and the CI workflow in `.github/workflows/ci.yml`.
+
+---
+
 ## 🏗 Architecture Decisions
 
 - **Edge Runtime Dynamic OpenGraph Cards (`/api/og`, `/api/og-battle`)**: Social sharing cards render dynamically on the edge using Next.js `ImageResponse` (Satori). Shared links on Twitter, WhatsApp, or Discord immediately display the user's score and roast snippet without pre-generating static assets.
@@ -758,3 +799,4 @@ Built solo with passion and fire by **Priyanshu**.
 **[gitroast](https://gitroast-dev.vercel.app/)** · Made with 🔥 in India
 
 </div>
+

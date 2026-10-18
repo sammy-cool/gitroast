@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import { toast, notify } from '@/utils/toast'
 import BattleCard from '@/components/BattleCard'
 import Breadcrumb from '@/components/Breadcrumb'

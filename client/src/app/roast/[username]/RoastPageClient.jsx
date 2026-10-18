@@ -127,7 +127,6 @@ export default function RoastPageClient({ username }) {
         if (err.code === 'RATE_LIMIT_EXCEEDED') {
           const isOurLimit = err.status === 429
           const retryAfter = err.retryAfter || 60
-          const seconds = `${retryAfter} seconds`
 
           if (isOurLimit && retryAfter) {
             sessionStorage.setItem('gitroast_rate_limit', JSON.stringify({

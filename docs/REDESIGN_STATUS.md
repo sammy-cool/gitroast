@@ -29,6 +29,9 @@ Intentionally not done: status icons in toasts (the toast package has none), per
 - Shared GitHub input parsing (`utils/githubTarget.js`, tested) used by Home and Battles; invalid handles are rejected on the client before any request.
 - Tests: client suite is 47/47 (updated the PWA manifest test to the new brand colours; added tests for target parsing, reset-time formatting, toast options, vocab sync). Server: updated the Roast default test (persona is now staff_engineer, intensity crispy) and added coverage that every persona the UI can send has a config and an offline fallback. Run `npm test` in server/ on your machine (it needs MongoDB drivers installed).
 
+## Phase 7 — ship-readiness (done)
+CI workflow (`.github/workflows/ci.yml`: import check, server tests, client tests, client build), README updated (intensity/persona vocabulary, regional pricing, AI quota, new env vars, new API endpoints, design system), `docs/DEPLOYMENT.md` (env, external setup, deploy order, smoke test, rollback), unused imports removed from changed files.
+
 ## Known limits
 - Quota is counted from saved AI roasts (source of truth); two simultaneous requests can exceed the limit by one. Repo-roast AI is still Pro-only and not counted.
 - Package gaps vs design: mobile max 2 visible and queue cap 5 are not controllable; status icons not available.

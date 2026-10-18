@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/context/AuthContext'
-import { toast, notify } from '@/utils/toast'
+import { toast } from '@/utils/toast'
 import PaymentModal from '@/components/PaymentModal'
 import Faq from '@/components/home/Faq'
 import { usePlans } from '@/components/home/PlansSection'

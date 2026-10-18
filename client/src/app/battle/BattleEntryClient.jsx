@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { toast, notify } from '@/utils/toast'
+import { toast } from '@/utils/toast'
 import { useAuth } from '@/context/AuthContext'
 import Breadcrumb from '@/components/Breadcrumb'
 import Icon from '@/components/Icon'

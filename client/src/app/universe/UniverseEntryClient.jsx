@@ -3,7 +3,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { toast, notify } from '@/utils/toast'
 import { playWarpSpeed } from '@/utils/soundFX'
 import Breadcrumb from '@/components/Breadcrumb'
