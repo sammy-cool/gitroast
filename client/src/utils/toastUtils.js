@@ -6,7 +6,7 @@ import {
   toastPromise as pkgToastPromise,
   dismiss as pkgDismiss,
 } from "customizable-toast-notification";
-import { buildToastOptions, cleanCopy, DURATIONS } from "./toastOptions";
+import { buildToastOptions, cleanCopy, hoursUntil, DURATIONS } from "./toastOptions";
 
 export const TOAST_COLORS = {
   success: "#1F6B3D", error: "#B3261E", warning: "#8A5A00", info: "#1F5F86", fire: "#E84E2A", darkBg: "#171711", textLight: "#FFFFFF",
@@ -76,13 +76,6 @@ export const toast = {
   paymentError(message = "Payment failed. No money was deducted. Please try again.", extra = {}) {
     return show("error", "Payment failed", { description: cleanCopy(message), ...extra });
   },
-};
-
-const hoursUntil = (iso) => {
-  const ms = iso ? new Date(iso).getTime() - Date.now() : NaN;
-  if (!Number.isFinite(ms) || ms <= 0) return "a few hours";
-  const h = Math.ceil(ms / 36e5);
-  return h <= 1 ? "under an hour" : `${h} hours`;
 };
 
 // ── Message catalog: "Fifteen moments, one voice." ──

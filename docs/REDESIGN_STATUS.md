@@ -23,8 +23,11 @@ Intentionally not done: status icons in toasts (the toast package has none), per
 - Universe 3D page (`/universe/[username]`) restyled: HUD, inspector, ticker, loading and error states use the design tokens; emoji removed; reduced motion starts with orbit paused and planets frozen ("Motion off" is now a speed option); mobile layout moves the inspector to a bottom sheet. The WebGL scene itself is unchanged.
 - Repository highlight card on the result page (best own, non-fork repo; quote is deterministic and built only from public facts) and History comparison (trend bars from your public roast history). New roasts only for the highlight; the comparison works for existing history.
 
-## Legacy dark scope
-None left: every route is on the new design system. Unknown paths (404) render their own light page.
+## Phase 6 — hardening (done)
+- Removed the temporary legacy dark scope (ThemeScope, three legacy Google fonts, legacy tokens): every route is on the design system, pages load fewer fonts.
+- Brand: new `public/icon.svg` (ember square + flame), manifest colours/description aligned, robots.txt now blocks /auth, /recruiter, /offline and /api/.
+- Shared GitHub input parsing (`utils/githubTarget.js`, tested) used by Home and Battles; invalid handles are rejected on the client before any request.
+- Tests: client suite is 47/47 (updated the PWA manifest test to the new brand colours; added tests for target parsing, reset-time formatting, toast options, vocab sync). Server: updated the Roast default test (persona is now staff_engineer, intensity crispy) and added coverage that every persona the UI can send has a config and an offline fallback. Run `npm test` in server/ on your machine (it needs MongoDB drivers installed).
 
 ## Known limits
 - Quota is counted from saved AI roasts (source of truth); two simultaneous requests can exceed the limit by one. Repo-roast AI is still Pro-only and not counted.

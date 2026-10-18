@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildToastOptions, resolveDuration, escapeHtml, cleanCopy, PERSIST_MS } from "../toastOptions.js";
+import { buildToastOptions, resolveDuration, escapeHtml, cleanCopy, hoursUntil, PERSIST_MS } from "../toastOptions.js";
 
 describe("toastOptions (design spec → package options)", () => {
   it("timing: success/info 5s, warning 7s, error/loading/actionable persist", () => {
@@ -44,4 +44,12 @@ describe("toastOptions (design spec → package options)", () => {
   });
   it("strips decorative leading emoji", () => assert.equal(cleanCopy("🔥 Roast ready"), "Roast ready"));
   it("loading shows the package loader", () => assert.equal(buildToastOptions({ type: "loading", title: "Reading" }).options.showLoader, true));
+  it("formats reset times", () => {
+    const now = Date.UTC(2026, 9, 18, 18, 0, 0);
+    assert.equal(hoursUntil(new Date(now + 6 * 36e5).toISOString(), now), "6 hours");
+    assert.equal(hoursUntil(new Date(now + 10 * 60e3).toISOString(), now), "under an hour");
+    assert.equal(hoursUntil(null, now), "a few hours");
+    assert.equal(hoursUntil("garbage", now), "a few hours");
+    assert.equal(hoursUntil(new Date(now - 1000).toISOString(), now), "a few hours");
+  });
 });

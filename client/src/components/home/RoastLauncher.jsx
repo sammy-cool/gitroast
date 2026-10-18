@@ -2,18 +2,9 @@
 
 import { useState } from "react";
 import { INTENSITIES, PERSONAS } from "@/utils/vocab";
+import { cleanGithubTarget, isGithubRepo, isGithubUser } from "@/utils/githubTarget";
 
-const USER_RE = /^(?:https?:\/\/)?(?:(?:www\.)?github\.com\/)?[a-zA-Z0-9-._]+\/?$/;
-const REPO_RE = /^(?:https?:\/\/)?(?:(?:www\.)?github\.com\/)?[a-zA-Z0-9-._]+\/[a-zA-Z0-9-._]+\/?$/;
-
-export function cleanTarget(raw) {
-  return String(raw || "")
-    .trim()
-    .replace(/^https?:\/\/(?:www\.)?github\.com\//i, "")
-    .replace(/^(?:www\.)?github\.com\//i, "")
-    .replace(/^@+/, "")
-    .replace(/^\/+|\/+$/g, "");
-}
+export const cleanTarget = cleanGithubTarget
 
 export default function RoastLauncher({ intensity, persona, user, onIntensity, onPersona, onSubmit }) {
   const [mode, setMode] = useState("profile");
@@ -29,7 +20,7 @@ export default function RoastLauncher({ intensity, persona, user, onIntensity, o
     e.preventDefault();
     const v = cleanTarget(value);
     if (!v) return setError("Enter a GitHub username or repository first.");
-    const ok = mode === "repository" ? REPO_RE.test(v) : USER_RE.test(v);
+    const ok = mode === "repository" ? isGithubRepo(v) : isGithubUser(v);
     if (!ok) return setError(mode === "repository" ? "Use owner/repo, for example torvalds/linux." : "Use a public GitHub username, for example octavia-labs.");
     setError("");
     onSubmit(v);

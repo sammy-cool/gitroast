@@ -7,6 +7,7 @@ import { toast, notify } from '@/utils/toast'
 import { useAuth } from '@/context/AuthContext'
 import Breadcrumb from '@/components/Breadcrumb'
 import Icon from '@/components/Icon'
+import { cleanGithubTarget, isGithubUser } from '@/utils/githubTarget'
 import './battle-entry.css'
 
 const FEATURED_RIVALRIES = [
@@ -17,14 +18,7 @@ const FEATURED_RIVALRIES = [
   { title: 'C vs Rust', tag: 'Systems clash', user1: 'antirez', user2: 'burntsushi' },
 ]
 
-const clean = (raw) =>
-  String(raw || '')
-    .trim()
-    .replace(/^https?:\/\/(?:www\.)?github\.com\//i, '')
-    .replace(/^(?:www\.)?github\.com\//i, '')
-    .replace(/^@+/, '')
-    .replace(/^\/+|\/+$/g, '')
-    .toLowerCase()
+const clean = (raw) => cleanGithubTarget(raw).toLowerCase()
 
 export default function BattleEntryClient() {
   const { user } = useAuth()
@@ -36,6 +30,7 @@ export default function BattleEntryClient() {
     const p1 = clean(u1 || user1)
     const p2 = clean(u2 || user2)
     if (!p1 || !p2) return toast.warning('Enter both usernames', { description: 'A rivalry needs two public GitHub profiles.' })
+    if (!isGithubUser(p1) || !isGithubUser(p2)) return toast.warning('Check the usernames', { description: 'Use public GitHub usernames, for example octavia-labs.' })
     if (p1 === p2) return toast.warning('Pick two different profiles', { description: 'You cannot battle yourself. Or can you? No. You cannot.' })
     router.push(`/battle/${p1}/vs/${p2}`)
   }

@@ -5,13 +5,12 @@ import { usePathname } from "next/navigation";
 import Icon from "@/components/Icon";
 import { useAuth } from "@/context/AuthContext";
 import { hidesSiteChrome } from "@/components/SiteHeader";
-import { isMigrated } from "@/components/ThemeScope";
 
 // Compact journeys: touch-first bottom navigation (Home / Roast / Saved / Me). ≥44px targets.
 export default function MobileTabBar() {
   const pathname = usePathname() || "/";
   const { user } = useAuth();
-  if (hidesSiteChrome(pathname) || !isMigrated(pathname)) return null;
+  if (hidesSiteChrome(pathname)) return null;
 
   const me = user ? (user.role === "recruiter" ? "/recruiter" : "/dashboard") : "/auth";
   const tabs = [

@@ -1,16 +1,3 @@
-// ============================================================
-// GITROAST — Sound FX & PWA Contract Tests
-// ============================================================
-/**
- * WHAT: Unit and contract tests for SoundFX utility and PWA web app manifest.
- * WHY: Ensures audio synthesizer state handles missing AudioContext safely (SSR / headless),
- *      preserves user mute preference in localStorage, and verifies PWA manifest conforms
- *      to W3C Web App Manifest specifications for installability.
- * WHERE & WHEN TO USE: Executed as part of client test suite (`npm test --prefix client`).
- * USE CASES: CI/CD test runner verification of Sound FX engine and PWA manifest assets.
- * WHEN NOT TO USE: Do not play real hardware audio in headless CI environments.
- */
-
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -75,7 +62,6 @@ describe("Sound FX & Audio Delight Engine", () => {
   });
 
   it("should fail gracefully when AudioContext is unavailable (headless or SSR)", () => {
-    // None of these should throw in headless Node.js
     assert.doesNotThrow(() => playClick());
     assert.doesNotThrow(() => playSuccess());
     assert.doesNotThrow(() => playFireSizzle());
@@ -97,8 +83,8 @@ describe("Progressive Web App (PWA) Manifest & Service Worker", () => {
     assert.equal(manifest.short_name, "GitRoast");
     assert.equal(manifest.start_url, "/");
     assert.equal(manifest.display, "standalone");
-    assert.equal(manifest.theme_color, "#FF4500");
-    assert.equal(manifest.background_color, "#070707");
+    assert.equal(manifest.theme_color, "#E84E2A");
+    assert.equal(manifest.background_color, "#F3EFE8");
     assert.ok(Array.isArray(manifest.icons) && manifest.icons.length > 0, "manifest must declare icons");
   });
 
@@ -120,3 +106,4 @@ describe("Progressive Web App (PWA) Manifest & Service Worker", () => {
     assert.match(iconContent, /<svg/);
   });
 });
+

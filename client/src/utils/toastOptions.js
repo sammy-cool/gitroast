@@ -24,6 +24,14 @@ export const escapeHtml = (s = "") =>
 export const cleanCopy = (s) =>
   typeof s === "string" ? s.replace(/^[\p{Extended_Pictographic}\uFE0F\u200d\u2713\s]+/u, "").trim() : s;
 
+// "6 hours", "under an hour" — for reset notices. Falls back gracefully on bad input.
+export function hoursUntil(iso, now = Date.now()) {
+  const ms = iso ? new Date(iso).getTime() - now : NaN;
+  if (!Number.isFinite(ms) || ms <= 0) return "a few hours";
+  const h = Math.ceil(ms / 36e5);
+  return h <= 1 ? "under an hour" : `${h} hours`;
+}
+
 export function resolveDuration({ type, duration, hasAction }) {
   if (duration === null || duration === Infinity) return PERSIST_MS;
   if (typeof duration === "number") return duration;

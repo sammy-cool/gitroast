@@ -1,9 +1,8 @@
 import Script from "next/script";
-import { Inter, Instrument_Serif, IBM_Plex_Mono, Bebas_Neue, Fira_Code, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, Instrument_Serif, IBM_Plex_Mono } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { Suspense } from "react";
 import SiteHeader from "@/components/SiteHeader";
-import ThemeScope from "@/components/ThemeScope";
 import MobileTabBar from "@/components/MobileTabBar";
 import Footer from "@/components/Footer";
 import HydrationWrapper from "@/components/HydrationWrapper";
@@ -29,11 +28,6 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
   variable: "--font-code-loaded",
 });
-
-// Legacy fonts: only for not-yet-migrated screens (loaded lazily, not preloaded).
-const legacyDisplay = Bebas_Neue({ weight: "400", subsets: ["latin"], display: "swap", preload: false, variable: "--font-legacy-display" });
-const legacyMono = Fira_Code({ weight: ["300", "400", "500"], subsets: ["latin"], display: "swap", preload: false, variable: "--font-legacy-mono" });
-const legacyBody = Plus_Jakarta_Sans({ weight: ["400", "500", "600", "700"], subsets: ["latin"], display: "swap", preload: false, variable: "--font-legacy-body" });
 
 export const viewport = {
   themeColor: "#E84E2A",
@@ -94,9 +88,7 @@ export default function RootLayout({ children }) {
         ${instrumentSerif.variable}
         ${inter.variable}
         ${plexMono.variable}
-        ${legacyDisplay.variable}
-        ${legacyMono.variable}
-        ${legacyBody.variable}
+
       `}
     >
       <head>
@@ -126,11 +118,9 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <SiteHeader />
           {}
-          <ThemeScope>
-            <Suspense fallback={null}>
-              <HydrationWrapper>{children}</HydrationWrapper>
-            </Suspense>
-          </ThemeScope>
+          <Suspense fallback={null}>
+            <HydrationWrapper>{children}</HydrationWrapper>
+          </Suspense>
           <MobileTabBar />
         </AuthProvider>
 

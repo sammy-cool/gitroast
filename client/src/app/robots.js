@@ -6,9 +6,10 @@ export default function robots() {
             {
                 userAgent: '*',
                 allow: '/',
-                disallow: ['/auth/callback', '/api/payment/'],
+                disallow: ['/auth', '/recruiter', '/offline', '/api/'],
             },
         ],
         sitemap: `${siteUrl}/sitemap.xml`,
     }
 }
+

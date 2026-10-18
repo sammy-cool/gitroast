@@ -1769,6 +1769,24 @@ describe("Feature #19 — Roast Personas, User Preferences & Ghost Mode Invarian
     const Roast = require("../models/Roast");
     const authRoute = require("../routes/auth");
 
+    it("should have a config and an offline fallback for every persona the UI can send", () => {
+        const { PERSONA_IDS, ALL_PERSONA_VALUES } = require("../utils/constants");
+        for (const id of ALL_PERSONA_VALUES) {
+            assert.ok(PERSONA_CONFIG[id], `PERSONA_CONFIG must define ${id}`);
+        }
+        const mockData = {
+            score: 25,
+            grade: "F",
+            _raw: { topLanguage: "JavaScript", totalStars: 0 },
+            repoAnalysis: { totalOwn: 5, abandonedCount: 4, abandonedPct: 80 },
+            commitAnalysis: { qualityScore: 20, shameList: ["fix bug", "wip"] },
+        };
+        for (const id of PERSONA_IDS) {
+            const text = generateRoast(mockData, "savage", id);
+            assert.ok(text && text.length > 20, `rules-engine fallback must work for ${id}`);
+        }
+    });
+
     it("should export all 5 canonical persona archetypes in PERSONA_CONFIG", () => {
         assert.ok(PERSONA_CONFIG.classic, "Classic persona must exist");
         assert.ok(PERSONA_CONFIG.hinglish, "Hinglish persona must exist");
@@ -1847,7 +1865,7 @@ describe("Feature #19 — Roast Personas, User Preferences & Ghost Mode Invarian
         assert.equal(responseData.error, "INVALID_PREFERENCES");
     });
 
-    it("should initialize Roast with default persona 'classic' and isPrivate false", () => {
+    it("should initialize Roast with default persona 'staff_engineer' and isPrivate false", () => {
         const roast = new Roast({
             username: "testuser",
             score: 50,
@@ -1855,7 +1873,8 @@ describe("Feature #19 — Roast Personas, User Preferences & Ghost Mode Invarian
             roastText: "Average code.",
         });
 
-        assert.equal(roast.persona, "classic");
+        assert.equal(roast.persona, "staff_engineer");
+        assert.equal(roast.intensity, "crispy");
         assert.equal(roast.isPrivate, false);
     });
 });
