@@ -320,6 +320,34 @@ function pickTopRepos(repos, n = 3) {
     }));
 }
 
+// "Repository highlight": the strongest public repo plus one deterministic, kind-but-pointed line.
+// Deterministic on purpose: no extra AI cost, same input gives the same card, and every claim is a fact.
+function buildRepoHighlight(repos, now = Date.now()) {
+  const own = (repos || []).filter((r) => r && !r.fork && r.name);
+  if (!own.length) return null;
+  const score = (r) => {
+    const days = r.pushed_at ? (now - new Date(r.pushed_at).getTime()) / 864e5 : 9999;
+    return (r.stargazers_count || 0) * 2 + (r.forks_count || 0) + (days < 90 ? 5 : 0) - (r.archived ? 50 : 0);
+  };
+  const best = [...own].sort((a, b) => score(b) - score(a))[0];
+  const stars = best.stargazers_count || 0;
+  const forks = best.forks_count || 0;
+  const issues = best.open_issues_count || 0;
+  const daysSincePush = best.pushed_at ? Math.max(0, Math.floor((now - new Date(best.pushed_at).getTime()) / 864e5)) : null;
+  const description = String(best.description || "").slice(0, 160);
+  const name = String(best.name).slice(0, 100);
+
+  let quote;
+  if (!description) quote = `${name} has ${stars} stars and no description. Mystery is a strategy.`;
+  else if (daysSincePush !== null && daysSincePush > 365) quote = `${name} was last touched ${daysSincePush} days ago. The code is aging quietly, and so is its issue tracker.`;
+  else if (issues > Math.max(10, stars)) quote = `${issues} open issues for ${stars} stars. Users are engaged; the maintainer is buffering.`;
+  else if (stars >= 1000) quote = `${stars} stars and a description that fits on one line. Respectable restraint.`;
+  else if (daysSincePush !== null && daysSincePush <= 14) quote = `Pushed ${daysSincePush === 0 ? "today" : `${daysSincePush} days ago`}. ${name} is the repository that still gets the good commits.`;
+  else quote = `${name} is where the effort went. The rest of the profile is taking notes.`;
+
+  return { name, description, stars, forks, openIssues: issues, language: best.language || "", daysSincePush, quote };
+}
+
 function summarizeCollaboration(login, collection) {
   if (!collection) return null;
   const own = String(login).toLowerCase();
@@ -458,6 +486,7 @@ async function analyzeProfile(
     bioContrast,
     collab,
     topRepos: pickTopRepos(repos),
+    repoHighlight: buildRepoHighlight(repos),
     _raw: {
       topLanguage: repoAnalysis.topLanguage,
       languages: repoAnalysis.languages,
@@ -974,5 +1003,5 @@ async function analyzeUniverse(
   };
 }
 
-module.exports = { analyzeProfile, analyzeWrapped, analyzeUniverse, summarizeCollaboration, pickTopRepos };
+module.exports = { analyzeProfile, analyzeWrapped, analyzeUniverse, summarizeCollaboration, pickTopRepos, buildRepoHighlight };
 

@@ -1668,6 +1668,26 @@ describe("Feature #18 — Multi-Tier User Personas & Historian Plan Invariants",
         assert.deepEqual(pickTopRepos(null), []);
     });
 
+    it("should build a deterministic repository highlight from public facts", () => {
+        const { buildRepoHighlight } = require("../services/githubService");
+        const now = new Date("2026-10-18T00:00:00Z").getTime();
+        const day = (n) => new Date(now - n * 864e5).toISOString();
+        assert.equal(buildRepoHighlight([], now), null);
+        assert.equal(buildRepoHighlight([{ name: "forked", fork: true, stargazers_count: 99 }], now), null, "forks are never highlighted");
+        const h = buildRepoHighlight([
+            { name: "small", stargazers_count: 1, pushed_at: day(3), description: "tiny" },
+            { name: "big", stargazers_count: 1800, forks_count: 40, pushed_at: day(5), description: "A tiny compiler" },
+        ], now);
+        assert.equal(h.name, "big");
+        assert.equal(h.stars, 1800);
+        assert.match(h.quote, /1800 stars/);
+        const old = buildRepoHighlight([{ name: "old", stargazers_count: 4, pushed_at: day(400), description: "x" }], now);
+        assert.match(old.quote, /400 days ago/);
+        const nodesc = buildRepoHighlight([{ name: "mystery", stargazers_count: 2, pushed_at: day(10) }], now);
+        assert.match(nodesc.quote, /no description/);
+        assert.deepEqual(buildRepoHighlight([{ name: "a", stargazers_count: 5, pushed_at: day(1), description: "d" }], now), buildRepoHighlight([{ name: "a", stargazers_count: 5, pushed_at: day(1), description: "d" }], now), "deterministic");
+    });
+
     it("should normalise legacy intensity/persona values", () => {
         const c = require("../utils/constants");
         assert.equal(c.normalizeIntensity("mild"), "warm");

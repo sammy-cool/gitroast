@@ -87,6 +87,17 @@ const roastSchema = new mongoose.Schema(
         ],
         default: [],
       },
+      repoHighlight: {
+        type: new mongoose.Schema(
+          {
+            name: String, description: String, language: String, quote: String,
+            stars: { type: Number, default: 0 }, forks: { type: Number, default: 0 },
+            openIssues: { type: Number, default: 0 }, daysSincePush: { type: Number, default: null },
+          },
+          { _id: false },
+        ),
+        default: null,
+      },
       // Public collaboration evidence, last 12 months (null when unavailable → "insufficient evidence").
       collab: {
         type: new mongoose.Schema(

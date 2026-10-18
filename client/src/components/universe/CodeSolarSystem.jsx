@@ -1,24 +1,9 @@
 'use client'
 
-// ============================================================
-// GITROAST — 3D Code Solar System (WebGL Three.js Canvas)
-// ============================================================
-/**
- * WHAT: Interactive 3D WebGL solar system simulator transforming a developer's GitHub
- *       repositories into an interactive universe with orbiting planets, black holes, and central star.
- * WHY: Delivers an unprecedented, jaw-dropping cosmic visualization of technical debt, active repos,
- *      and code health that is visually arresting and 100% unique in the global dev ecosystem.
- * WHERE & WHEN TO USE: In /universe/[username] interactive solar system client view.
- * USE CASES: 3D planetary exploration, click-to-inspect repos, interactive orbital simulation.
- * WHEN NOT TO USE: In server-side rendering (SSR) environments (guarded via client mount).
- */
 
 import { useRef, useEffect } from 'react'
 import * as THREE from 'three'
 
-/**
- * Creates an offscreen procedural radial glow canvas texture.
- */
 function createGlowTexture(colorStr) {
   const canvas = document.createElement('canvas')
   canvas.width = 128
@@ -40,9 +25,6 @@ function createGlowTexture(colorStr) {
   return texture
 }
 
-/**
- * Creates a procedural striped/cratered planetary surface canvas texture.
- */
 function createPlanetTexture(planetType, baseColorStr) {
   const canvas = document.createElement('canvas')
   canvas.width = 256
@@ -54,13 +36,11 @@ function createPlanetTexture(planetType, baseColorStr) {
   ctx.fillRect(0, 0, 256, 128)
 
   if (planetType === 'gas_giant') {
-    // Jupiter/Saturn style atmospheric bands
     for (let i = 0; i < 128; i += 6) {
       ctx.fillStyle = i % 12 === 0 ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.18)'
       ctx.fillRect(0, i, 256, 4)
     }
   } else if (planetType === 'inferno') {
-    // Magma cracks and fiery veins
     ctx.strokeStyle = '#FFEE58'
     ctx.lineWidth = 2
     for (let i = 0; i < 8; i++) {
@@ -70,20 +50,17 @@ function createPlanetTexture(planetType, baseColorStr) {
       ctx.stroke()
     }
   } else if (planetType === 'habitable') {
-    // Ocean blue + green continents
     ctx.fillStyle = '#1B5E20'
     for (let i = 0; i < 7; i++) {
       ctx.beginPath()
       ctx.arc(Math.random() * 256, Math.random() * 128, 18 + Math.random() * 25, 0, Math.PI * 2)
       ctx.fill()
     }
-    // Atmospheric white clouds
     ctx.fillStyle = 'rgba(255,255,255,0.3)'
     for (let i = 0; i < 5; i++) {
       ctx.fillRect(Math.random() * 256, Math.random() * 128, 60, 6)
     }
   } else if (planetType === 'frozen_ice') {
-    // Glacier fissures and frozen frost
     ctx.strokeStyle = '#FFFFFF'
     ctx.lineWidth = 1.5
     for (let i = 0; i < 12; i++) {
@@ -108,7 +85,6 @@ export default function CodeSolarSystem({
 }) {
   const containerRef = useRef(null)
 
-  // Dynamic interaction and playback refs (prevents tearing down Three.js WebGL canvas on prop updates)
   const selectedPlanetIdRef = useRef(selectedPlanetId)
   const isCinematicRef = useRef(isCinematic)
   const speedMultiplierRef = useRef(speedMultiplier)
@@ -121,7 +97,6 @@ export default function CodeSolarSystem({
     onSelectPlanetRef.current = onSelectPlanet
   }, [selectedPlanetId, isCinematic, speedMultiplier, onSelectPlanet])
 
-  // Interactive camera control state
   const stateRef = useRef({
     isDragging: false,
     dragStartPos: { x: 0, y: 0 },
@@ -141,7 +116,6 @@ export default function CodeSolarSystem({
     const width = container.clientWidth || window.innerWidth
     const height = container.clientHeight || window.innerHeight
 
-    // ── 1. Scene, Camera, Renderer ──────────────────────────────
     const scene = new THREE.Scene()
     scene.fog = new THREE.FogExp2(0x050508, 0.0009)
 
@@ -154,7 +128,6 @@ export default function CodeSolarSystem({
     renderer.outputColorSpace = THREE.SRGBColorSpace
     container.appendChild(renderer.domElement)
 
-    // ── 2. Lights ───────────────────────────────────────────────
     const ambientLight = new THREE.AmbientLight(0x222233, 1.2)
     scene.add(ambientLight)
 
@@ -162,7 +135,6 @@ export default function CodeSolarSystem({
     sunLight.position.set(0, 0, 0)
     scene.add(sunLight)
 
-    // ── 3. Starfield (2,000 Cosmic Dust Particles) ──────────────
     const starCount = 2000
     const starGeo = new THREE.BufferGeometry()
     const starCoords = new Float32Array(starCount * 3)
@@ -195,7 +167,6 @@ export default function CodeSolarSystem({
     const starField = new THREE.Points(starGeo, starMat)
     scene.add(starField)
 
-    // ── 4. Central Sun (The Developer) ──────────────────────────
     const starData = universeData.star
     const sunRadius = starData.radius || 18
     const sunGeo = new THREE.SphereGeometry(sunRadius, 32, 32)
@@ -205,7 +176,6 @@ export default function CodeSolarSystem({
     const sunMesh = new THREE.Mesh(sunGeo, sunMat)
     scene.add(sunMesh)
 
-    // Sun Corona Halo Sprite
     const coronaTexture = createGlowTexture(starData.coronaColor || 'rgba(255,183,0,0.45)')
     if (coronaTexture) {
       const coronaMat = new THREE.SpriteMaterial({
@@ -218,12 +188,10 @@ export default function CodeSolarSystem({
       sunMesh.add(coronaSprite)
     }
 
-    // ── 5. Planets & Orbital Rings ──────────────────────────────
     const planets = universeData.planets || []
     const planetMeshes = new Map()
 
     planets.forEach((p, idx) => {
-      // Orbital Track Ring
       const orbitGeo = new THREE.BufferGeometry()
       const segments = 96
       const points = []
@@ -240,7 +208,6 @@ export default function CodeSolarSystem({
       const orbitLine = new THREE.LineLoop(orbitGeo, orbitMat)
       scene.add(orbitLine)
 
-      // Planet Mesh
       const pRadius = p.sizeScale || 3.2
       const pGeo = new THREE.SphereGeometry(pRadius, 24, 24)
       const texture = createPlanetTexture(p.planetType, p.themeColor)
@@ -262,7 +229,6 @@ export default function CodeSolarSystem({
       scene.add(pMesh)
       planetMeshes.set(p.id, pMesh)
 
-      // Gas Giant Saturn-like Ring
       if (p.hasRings) {
         const ringGeo = new THREE.RingGeometry(pRadius * 1.4, pRadius * 2.3, 32)
         const ringMat = new THREE.MeshBasicMaterial({
@@ -276,7 +242,6 @@ export default function CodeSolarSystem({
         pMesh.add(ringMesh)
       }
 
-      // Black Hole Accretion Disk
       if (p.planetType === 'black_hole') {
         const diskGeo = new THREE.RingGeometry(pRadius * 1.5, pRadius * 3.4, 32)
         const diskMat = new THREE.MeshBasicMaterial({
@@ -290,7 +255,6 @@ export default function CodeSolarSystem({
         pMesh.add(diskMesh)
       }
 
-      // Tiny moons
       if (p.moonsCount > 0) {
         for (let m = 0; m < p.moonsCount; m++) {
           const moonGeo = new THREE.SphereGeometry(pRadius * 0.28, 12, 12)
@@ -301,7 +265,6 @@ export default function CodeSolarSystem({
         }
       }
 
-      // Initialize initial random orbit angle
       if (!stateRef.current.planetAngles[p.id]) {
         stateRef.current.planetAngles[p.id] = (idx / planets.length) * Math.PI * 2
       }
@@ -309,7 +272,6 @@ export default function CodeSolarSystem({
 
     stateRef.current.planetMeshes = planetMeshes
 
-    // ── 6. Mouse, Drag, and Raycasting ──────────────────────────
     const raycaster = new THREE.Raycaster()
     const mouse = new THREE.Vector2()
 
@@ -386,7 +348,6 @@ export default function CodeSolarSystem({
     }
     dom.addEventListener('webglcontextlost', onContextLost)
 
-    // Window Resize Handler
     function handleResize() {
       if (!container) return
       const w = container.clientWidth || window.innerWidth
@@ -397,35 +358,28 @@ export default function CodeSolarSystem({
     }
     window.addEventListener('resize', handleResize)
 
-    // ── 7. Animation Loop ───────────────────────────────────────
     let animId
     function animate() {
       animId = requestAnimationFrame(animate)
 
-      // Rotate Sun
       sunMesh.rotation.y += 0.003
 
-      // Rotate Starfield slowly
       starField.rotation.y += 0.0002
 
-      // Animate Planets Orbits & Rotations
       planets.forEach((p) => {
         const mesh = planetMeshes.get(p.id)
         if (!mesh) return
 
-        const activeSpeed = speedMultiplierRef.current || 1
+        const activeSpeed = speedMultiplierRef.current ?? 1
 
-        // Update angle
         stateRef.current.planetAngles[p.id] += p.orbitSpeed * activeSpeed
         const angle = stateRef.current.planetAngles[p.id]
 
         mesh.position.x = Math.cos(angle) * p.orbitDistance
         mesh.position.z = Math.sin(angle) * p.orbitDistance
 
-        // Day/night spin
         mesh.rotation.y += p.rotationSpeed * activeSpeed
 
-        // Animate moons
         mesh.children.forEach((child) => {
           if (child.userData?.moonDist) {
             child.userData.angle += child.userData.moonSpeed * activeSpeed
@@ -435,21 +389,18 @@ export default function CodeSolarSystem({
         })
       })
 
-      const activeSpeed = speedMultiplierRef.current || 1
+      const activeSpeed = speedMultiplierRef.current ?? 1
       const activeCinematic = isCinematicRef.current
       const currentSelectedId = selectedPlanetIdRef.current
 
-      // Cinematic Auto-Orbit camera rotation when not user-dragging and not focused on planet
       if (activeCinematic && !stateRef.current.isDragging && !currentSelectedId) {
         stateRef.current.spherical.theta += 0.0018 * activeSpeed
       }
 
-      // Smooth Camera Positioning & Lerp
       let targetX, targetY, targetZ
       const sph = stateRef.current.spherical
 
       if (currentSelectedId && planetMeshes.has(currentSelectedId)) {
-        // Focus on selected planet
         const selMesh = planetMeshes.get(currentSelectedId)
         stateRef.current.targetLookAt.copy(selMesh.position)
 
@@ -457,7 +408,6 @@ export default function CodeSolarSystem({
         targetY = selMesh.position.y + 12
         targetZ = selMesh.position.z + 24
       } else {
-        // Orbit overview
         stateRef.current.targetLookAt.set(0, 0, 0)
         targetX = sph.radius * Math.sin(sph.phi) * Math.sin(sph.theta)
         targetY = sph.radius * Math.cos(sph.phi)
@@ -473,7 +423,6 @@ export default function CodeSolarSystem({
 
     animate()
 
-    // ── 8. Cleanup & Memory Safety ──────────────────────────────
     return () => {
       cancelAnimationFrame(animId)
       window.removeEventListener('resize', handleResize)
@@ -488,7 +437,6 @@ export default function CodeSolarSystem({
         container.removeChild(renderer.domElement)
       }
 
-      // Dispose Geometries, Materials, and Textures
       scene.traverse((obj) => {
         if (obj.geometry) obj.geometry.dispose()
         if (obj.material) {
@@ -519,3 +467,4 @@ export default function CodeSolarSystem({
     />
   )
 }
+

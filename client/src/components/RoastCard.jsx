@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { toast } from '@/utils/toast'
 import Icon from '@/components/Icon'
 import RoastReactions from './RoastReactions'
-import { trackView } from '@/services/roastService'
+import { trackView, getRoastHistory } from '@/services/roastService'
+import TrendBars from '@/components/TrendBars'
 import useRoastShare, { badgeMarkdown } from '@/hooks/useRoastShare'
 import { intensityLabel, personaLabel } from '@/utils/vocab'
 import dynamic from 'next/dynamic'
@@ -44,6 +45,7 @@ export default function RoastCard({ data, onProClick, onRoastAnother, historyHre
   const [typingDone, setTypingDone] = useState(false)
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
   const [badgeStyle, setBadgeStyle] = useState('card')
+  const [pastRoasts, setPastRoasts] = useState([])
   const intervalRef = useRef(null)
 
   const roastText = data?.roast || ''
@@ -60,6 +62,16 @@ export default function RoastCard({ data, onProClick, onRoastAnother, historyHre
   useEffect(() => {
     if (roastTargetId) trackView(roastTargetId)
   }, [roastTargetId])
+
+  // Score history for "History comparison" (public roasts only; silent if unavailable).
+  useEffect(() => {
+    if (!data?.username) return undefined
+    let alive = true
+    getRoastHistory(data.username)
+      .then((res) => alive && setPastRoasts(res?.history || res?.roasts || []))
+      .catch(() => {})
+    return () => { alive = false }
+  }, [data?.username])
 
   useEffect(() => () => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.cancel()
@@ -121,6 +133,10 @@ export default function RoastCard({ data, onProClick, onRoastAnother, historyHre
   const hasAnatomy = Object.keys(signals).length > 0
   const plan = Array.isArray(data.redemptionPlan) ? data.redemptionPlan : []
   const roastId = roastTargetId
+  const recentPast = [...pastRoasts].slice(0, 8).reverse()
+  const historyValues = recentPast.map((r) => r.score).filter((v) => typeof v === 'number')
+  const historyLabels = recentPast.map((r) => (r.createdAt ? new Date(r.createdAt).toLocaleDateString(undefined, { month: 'short' }) : ''))
+  const historyDelta = historyValues.length >= 2 ? historyValues[historyValues.length - 1] - historyValues[0] : 0
   const badgeSrc = badgeStyle === 'shield' ? `/api/badge/${data.username}?style=shield` : `/api/badge/${data.username}`
 
   return (
@@ -263,6 +279,32 @@ export default function RoastCard({ data, onProClick, onRoastAnother, historyHre
                   {data.bioContrast.verdict && <p className="rr-verdict">{data.bioContrast.verdict}</p>}
                 </article>
               )}
+            </section>
+          )}
+
+          {data.repoHighlight && (
+            <section className="gr-card rr-highlight" aria-labelledby="rr-hl-h">
+              <div className="rr-highlight__top">
+                <p className="gr-eyebrow">Repository highlight</p>
+                <span className="gr-pill gr-pill--mint">Best evidence</span>
+              </div>
+              <h2 id="rr-hl-h" className="rr-highlight__name">
+                <a href={`https://github.com/${data.username}/${data.repoHighlight.name}`} target="_blank" rel="noopener noreferrer">{data.username} / {data.repoHighlight.name}</a>
+              </h2>
+              <blockquote className="rr-highlight__quote">&ldquo;{data.repoHighlight.quote}&rdquo;</blockquote>
+              <dl className="rr-highlight__stats">
+                <div><dt>Stars</dt><dd>{data.repoHighlight.stars.toLocaleString()}</dd><small>Public signal, not score input</small></div>
+                <div><dt>Forks</dt><dd>{data.repoHighlight.forks.toLocaleString()}</dd><small>{data.repoHighlight.language || 'Mixed languages'}</small></div>
+                <div><dt>Last push</dt><dd>{data.repoHighlight.daysSincePush === null ? '—' : data.repoHighlight.daysSincePush === 0 ? 'Today' : `${data.repoHighlight.daysSincePush}d ago`}</dd><small>{data.repoHighlight.openIssues} open issues</small></div>
+              </dl>
+            </section>
+          )}
+
+          {historyValues.length >= 2 && (
+            <section className="gr-card" aria-labelledby="rr-hist-h">
+              <p className="gr-eyebrow">History comparison</p>
+              <h2 id="rr-hist-h" className="gr-h3">{historyDelta > 0 ? 'Less chaos. Better score.' : historyDelta < 0 ? 'A bumpier stretch. Room to recover.' : 'Steady. Same Tuesday.'}</h2>
+              <TrendBars values={historyValues} labels={historyLabels} ariaLabel="Score history" caption="Score trend • same methodology version • public data" />
             </section>
           )}
 
