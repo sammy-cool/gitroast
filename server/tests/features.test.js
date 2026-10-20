@@ -1688,6 +1688,20 @@ describe("Feature #18 — Multi-Tier User Personas & Historian Plan Invariants",
         assert.deepEqual(buildRepoHighlight([{ name: "a", stargazers_count: 5, pushed_at: day(1), description: "d" }], now), buildRepoHighlight([{ name: "a", stargazers_count: 5, pushed_at: day(1), description: "d" }], now), "deterministic");
     });
 
+    it("should summarize repo momentum and nickname profiles from evidence", () => {
+        const { summarizeParticipation } = require("../services/githubService");
+        const { nicknameFor } = require("../services/talentEvidence");
+        const up = summarizeParticipation([...Array(26).fill(0).map((_, i) => (i < 13 ? 2 : 4))]);
+        assert.deepEqual(up, { last13: 52, prior13: 26, pct: 100 });
+        assert.equal(summarizeParticipation([...Array(26).fill(0)]), null, "no activity → not enough evidence");
+        assert.equal(summarizeParticipation([1, 2, 3]), null, "short series → null");
+        assert.equal(summarizeParticipation(Array(26).fill(0).map((_, i) => (i < 13 ? 0 : 1))).pct, null, "no prior commits → pct unknown, not infinity");
+        assert.equal(nicknameFor({ documentation: { value: 90 }, consistency: { value: 60 } }), "Documentation menace");
+        assert.equal(nicknameFor({ consistency: { value: 88 }, depth: { value: 70 } }), "Tiny-commit tactician");
+        assert.equal(nicknameFor({ depth: { value: 30 } }), "Mystery maintainer", "weak evidence → neutral label");
+        assert.equal(nicknameFor({}), "Mystery maintainer");
+    });
+
     it("should normalise legacy intensity/persona values", () => {
         const c = require("../utils/constants");
         assert.equal(c.normalizeIntensity("mild"), "warm");

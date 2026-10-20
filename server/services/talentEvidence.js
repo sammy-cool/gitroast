@@ -82,4 +82,20 @@ function computeFit(signals, roleKey = DEFAULT_ROLE) {
   return { score, label, coverage: Math.round(weight * 100) };
 }
 
-module.exports = { collaborationSignal, MIN_COLLAB_EVENTS, MODEL_VERSION, ROLE_MODELS, DEFAULT_ROLE, computeSignals, computeFit };
+// Playful, evidence-based nickname for the Wall of Shame, from the strongest public signal.
+// Never uses identity attributes; falls back to a neutral label when evidence is thin.
+const NICKNAMES = {
+  documentation: "Documentation menace",
+  consistency: "Tiny-commit tactician",
+  depth: "Refactor romantic",
+  collaboration: "Review ritualist",
+};
+function nicknameFor(signals = {}) {
+  const best = Object.entries(NICKNAMES)
+    .map(([key, name]) => ({ name, value: signals[key]?.value }))
+    .filter((x) => typeof x.value === "number")
+    .sort((a, b) => b.value - a.value)[0];
+  return best && best.value >= 50 ? best.name : "Mystery maintainer";
+}
+
+module.exports = { nicknameFor, NICKNAMES, collaborationSignal, MIN_COLLAB_EVENTS, MODEL_VERSION, ROLE_MODELS, DEFAULT_ROLE, computeSignals, computeFit };

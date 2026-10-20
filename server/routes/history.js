@@ -46,7 +46,7 @@ router.get("/leaderboard/worst", async (req, res) => {
   }
 });
 
-const { computeSignals } = require("../services/talentEvidence");
+const { computeSignals, nicknameFor } = require("../services/talentEvidence");
 const SIGNAL_LABELS = { depth: "Project depth", consistency: "Consistency", documentation: "Documentation", collaboration: "Collaboration" };
 
 // Wall of Shame — evidence board (best-first, Ghost Mode excluded).
@@ -76,6 +76,7 @@ router.get("/leaderboard/board", async (req, res) => {
         topLanguage: e.topLanguage || "",
         roastCount: e.roastCount,
         analyzedAt: e.analyzedAt,
+        nickname: nicknameFor(signals),
         topSignal: best ? { label: SIGNAL_LABELS[best[0]], value: best[1].value } : null,
       };
     });

@@ -294,7 +294,11 @@ export default function RoastCard({ data, onProClick, onRoastAnother, historyHre
               <blockquote className="rr-highlight__quote">&ldquo;{data.repoHighlight.quote}&rdquo;</blockquote>
               <dl className="rr-highlight__stats">
                 <div><dt>Stars</dt><dd>{data.repoHighlight.stars.toLocaleString()}</dd><small>Public signal, not score input</small></div>
-                <div><dt>Forks</dt><dd>{data.repoHighlight.forks.toLocaleString()}</dd><small>{data.repoHighlight.language || 'Mixed languages'}</small></div>
+                <div>
+                  <dt>Momentum</dt>
+                  <dd>{data.repoHighlight.momentum?.pct != null ? `${data.repoHighlight.momentum.pct > 0 ? '+' : ''}${data.repoHighlight.momentum.pct}%` : data.repoHighlight.forks.toLocaleString()}</dd>
+                  <small>{data.repoHighlight.momentum ? `Commits, last 13 weeks vs prior 13 (${data.repoHighlight.momentum.last13} vs ${data.repoHighlight.momentum.prior13})` : `Forks • ${data.repoHighlight.language || 'mixed languages'}`}</small>
+                </div>
                 <div><dt>Last push</dt><dd>{data.repoHighlight.daysSincePush === null ? '—' : data.repoHighlight.daysSincePush === 0 ? 'Today' : `${data.repoHighlight.daysSincePush}d ago`}</dd><small>{data.repoHighlight.openIssues} open issues</small></div>
               </dl>
             </section>

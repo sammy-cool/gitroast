@@ -348,6 +348,32 @@ function buildRepoHighlight(repos, now = Date.now()) {
   return { name, description, stars, forks, openIssues: issues, language: best.language || "", daysSincePush, quote };
 }
 
+// Momentum = commits in the last 13 weeks vs the 13 weeks before (public repo stats, one API call).
+// Returns null when there is too little activity to compare, or GitHub is still computing (HTTP 202).
+function summarizeParticipation(allWeeks) {
+  if (!Array.isArray(allWeeks) || allWeeks.length < 26) return null;
+  const sum = (a) => a.reduce((n, v) => n + (Number(v) || 0), 0);
+  const last13 = sum(allWeeks.slice(-13));
+  const prior13 = sum(allWeeks.slice(-26, -13));
+  if (last13 + prior13 < 5) return null;
+  const pct = prior13 > 0 ? Math.round(((last13 - prior13) / prior13) * 100) : null;
+  return { last13, prior13, pct };
+}
+
+async function fetchRepoMomentum(owner, repo, userToken = null) {
+  try {
+    const res = await fetch(`${BASE_URL}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/stats/participation`, {
+      headers: getHeaders(userToken),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (res.status !== 200) return null; // 202 = still computing; anything else = skip quietly
+    const json = await res.json();
+    return summarizeParticipation(json?.all);
+  } catch {
+    return null; // optional evidence must never block a roast
+  }
+}
+
 function summarizeCollaboration(login, collection) {
   if (!collection) return null;
   const own = String(login).toLowerCase();
@@ -408,10 +434,12 @@ async function analyzeProfile(
     throw orgErr;
   }
 
-  const [commits, readme, collab] = await Promise.all([
+  const highlight = buildRepoHighlight(repos);
+  const [commits, readme, collab, momentum] = await Promise.all([
     fetchRecentCommits(username, repos, userToken),
     checkReadmeQuality(username, repos, userToken),
     fetchCollaboration(username, userToken),
+    highlight ? fetchRepoMomentum(username, highlight.name, userToken) : Promise.resolve(null),
   ]);
 
   const repoAnalysis = analyzeRepos(repos);
@@ -486,7 +514,7 @@ async function analyzeProfile(
     bioContrast,
     collab,
     topRepos: pickTopRepos(repos),
-    repoHighlight: buildRepoHighlight(repos),
+    repoHighlight: highlight ? { ...highlight, momentum } : null,
     _raw: {
       topLanguage: repoAnalysis.topLanguage,
       languages: repoAnalysis.languages,
@@ -1003,5 +1031,5 @@ async function analyzeUniverse(
   };
 }
 
-module.exports = { analyzeProfile, analyzeWrapped, analyzeUniverse, summarizeCollaboration, pickTopRepos, buildRepoHighlight };
+module.exports = { analyzeProfile, analyzeWrapped, analyzeUniverse, summarizeCollaboration, pickTopRepos, buildRepoHighlight, summarizeParticipation };
 

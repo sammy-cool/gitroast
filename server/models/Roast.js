@@ -93,6 +93,7 @@ const roastSchema = new mongoose.Schema(
             name: String, description: String, language: String, quote: String,
             stars: { type: Number, default: 0 }, forks: { type: Number, default: 0 },
             openIssues: { type: Number, default: 0 }, daysSincePush: { type: Number, default: null },
+            momentum: { type: new mongoose.Schema({ last13: Number, prior13: Number, pct: { type: Number, default: null } }, { _id: false }), default: null },
           },
           { _id: false },
         ),

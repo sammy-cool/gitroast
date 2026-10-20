@@ -134,7 +134,7 @@ export default function LeaderboardClient() {
                     <span className="lb-rank">{e.rank}</span>
                     <Link href={`/history/${e.username}`} className="lb-who">
                       <span className="rc-avatar" style={{ width: 40, height: 40, fontSize: 13 }}>{initials(e.username)}</span>
-                      <span><b>{e.username}</b><small>{e.topLanguage || 'Mixed'} • {e.roastCount} roast{e.roastCount > 1 ? 's' : ''}</small></span>
+                      <span><b>{e.username}</b><small>{e.nickname ? `${e.nickname} • ` : ''}{e.topLanguage || 'Mixed'} • {e.roastCount} roast{e.roastCount > 1 ? 's' : ''}</small></span>
                     </Link>
                     {e.topSignal && <span className="gr-pill gr-pill--mint lb-signal">{e.topSignal.label} {e.topSignal.value}</span>}
                     <span className="lb-score"><b>{e.score}</b><small>BALANCED</small></span>
