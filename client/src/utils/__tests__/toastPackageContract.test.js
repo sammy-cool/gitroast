@@ -6,7 +6,7 @@ let pkg = null;
 try { pkg = await import("customizable-toast-notification"); } catch { /* not installed here */ }
 
 describe("customizable-toast-notification contract", { skip: !pkg && "package not installed" }, () => {
-  for (const name of ["createToast", "toastPromise", "dismiss", "setDefaultColors", "setDefaultMessages"]) {
+  for (const name of ["createToast", "toastPromise", "dismiss", "setConfig", "setDefaultColors", "setDefaultMessages"]) {
     it(`exports ${name}`, () => assert.equal(typeof pkg[name], "function"));
   }
 });

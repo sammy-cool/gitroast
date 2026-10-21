@@ -2,15 +2,32 @@
 // Same call shape as before: toast.success(msg, extra). Extra: { title, description, action:{label,onClick,autoClose},
 // duration, ... }. Legacy `cta` still works. Design rules live in ./toastOptions.js.
 import {
+  setConfig as pkgSetConfig,
   createToast as pkgCreateToast,
   toastPromise as pkgToastPromise,
   dismiss as pkgDismiss,
 } from "customizable-toast-notification";
-import { buildToastOptions, cleanCopy, hoursUntil, DURATIONS } from "./toastOptions";
+import { buildToastOptions, cleanCopy, hoursUntil, globalConfig, DURATIONS } from "./toastOptions";
 
 export const TOAST_COLORS = {
   success: "#1F6B3D", error: "#B3261E", warning: "#8A5A00", info: "#1F5F86", fire: "#E84E2A", darkBg: "#171711", textLight: "#FFFFFF",
 };
+
+// One-time global setup (client only): design limits + mobile awareness.
+let configured = false;
+function configureToasts() {
+  if (configured || typeof window === "undefined") return;
+  configured = true;
+  try {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const apply = () => pkgSetConfig(globalConfig({ mobile: mq.matches }));
+    apply();
+    mq.addEventListener?.("change", apply);
+  } catch {
+    /* never let toast setup break the app */
+  }
+}
+configureToasts();
 
 const reduced = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 

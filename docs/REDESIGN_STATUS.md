@@ -17,7 +17,7 @@ Repo roast (+ AnalyzingScreen, RepoRoastCard), Battles (entry, loading, result c
 ## Design audit pass (done)
 Compared every Figma screen with the implementation and closed the gaps: roast result now shows the four evidence signals as metric cards; dashboard has the score-trend chart; recruiter profile has Notable public projects, Collaboration indicators and Growth signals (needs roasts made after this release for projects/collaboration); recruiter table becomes cards on mobile; Wall of Shame shows "Updated … ago"; home "System pulse" shows ingestion and scoring version. Also fixed: the stream route did not save collab data in the roast snapshot.
 
-Intentionally not done: status icons in toasts (the toast package has none yet). Persona nicknames on the Wall of Shame and the MOMENTUM metric on the repository highlight are now implemented (nickname from the strongest public signal; momentum = commits in the last 13 weeks vs the prior 13, shown only when GitHub has the data).
+Toast status icons are now wired through the package's `icon` option (3.17+). Persona nicknames on the Wall of Shame and the MOMENTUM metric on the repository highlight are now implemented (nickname from the strongest public signal; momentum = commits in the last 13 weeks vs the prior 13, shown only when GitHub has the data).
 
 ## Phase 5 (done)
 - Universe 3D page (`/universe/[username]`) restyled: HUD, inspector, ticker, loading and error states use the design tokens; emoji removed; reduced motion starts with orbit paused and planets frozen ("Motion off" is now a speed option); mobile layout moves the inspector to a bottom sheet. The WebGL scene itself is unchanged.
@@ -34,5 +34,5 @@ CI workflow (`.github/workflows/ci.yml`: import check, server tests, client test
 
 ## Known limits
 - Quota is counted from saved AI roasts (source of truth); two simultaneous requests can exceed the limit by one. Repo-roast AI is still Pro-only and not counted.
-- Package gaps vs design: mobile max 2 visible and queue cap 5 are not controllable; status icons not available.
+- Toast package (>= 3.17): max visible (3 desktop / 2 mobile), queue cap (5), top-center, reduced motion and pause-on-hover are set through `setConfig`; status icons through `icon`.
 - GITHUB_TOKEN (or the user's token) is required for the collaboration signal.

@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { buildToastOptions, resolveDuration, escapeHtml, cleanCopy, hoursUntil, PERSIST_MS } from "../toastOptions.js";
+import { buildToastOptions, resolveDuration, escapeHtml, cleanCopy, hoursUntil, iconFor, globalConfig, PERSIST_MS } from "../toastOptions.js";
 
 describe("toastOptions (design spec → package options)", () => {
   it("timing: success/info 5s, warning 7s, error/loading/actionable persist", () => {
@@ -51,5 +51,21 @@ describe("toastOptions (design spec → package options)", () => {
     assert.equal(hoursUntil(null, now), "a few hours");
     assert.equal(hoursUntil("garbage", now), "a few hours");
     assert.equal(hoursUntil(new Date(now - 1000).toISOString(), now), "a few hours");
+  });
+  it("passes design status icons (SVG, coloured per type); loading uses the spinner", () => {
+    for (const type of ["success", "error", "warning", "info", "ember"]) {
+      const { options } = buildToastOptions({ type, title: "x" });
+      assert.match(options.icon, /^<svg[^>]+viewBox="0 0 24 24"/, `${type} icon is an SVG string`);
+      assert.ok(options.icon.includes('stroke-width="1.75"'));
+    }
+    assert.ok(iconFor("success").includes("#1F6B3D"));
+    assert.ok(iconFor("error").includes("#B3261E"));
+    assert.equal(iconFor("loading"), false);
+    assert.equal(buildToastOptions({ type: "loading", title: "x" }).options.icon, false);
+    assert.equal(buildToastOptions({ type: "loading", title: "x" }).options.showLoader, true);
+  });
+  it("global config follows the spec (3 desktop / 2 mobile, queue 5, top-center)", () => {
+    assert.deepEqual(globalConfig(), { maxVisible: 3, maxQueueSize: 5, defaultPosition: "top-center", reducedMotion: "auto", pauseOnHover: true, sound: false });
+    assert.equal(globalConfig({ mobile: true }).maxVisible, 2);
   });
 });
