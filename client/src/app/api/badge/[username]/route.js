@@ -1,26 +1,20 @@
-// ============================================================
-// GITROAST — Dynamic SVG GitHub README Badge
-// ============================================================
-// WHAT: Generates an embeddable SVG badge for GitHub README.md profiles.
-//       Supports:
-//       1. Card style (default): 380x110 sleek dark card with fire gradient, score, and grade
-//       2. Shield style (?style=shield): Compact 180x28 shield badge
-//
-// WHY SVG:
-//   - Pixel-perfect crisp rendering on retina displays
-//   - Zero image libraries required (pure XML string)
-//   - Fast rendering, low bandwidth (< 3KB)
-//   - Caches smoothly with GitHub's Camo CDN proxy
-//
-// USAGE:
-//   [![GitRoast Score](https://gitroast.dev/api/badge/torvalds)](https://gitroast.dev/history/torvalds)
-// ============================================================
+import { intensityLabel } from '@/utils/vocab';
 
 export const runtime = 'edge';
 
+// README badge in the GitRoast design system: ink surface, ember flame mark, honest public score.
+const INK = '#171711';
+const LINE = '#2E2D24';
+const TEXT = '#F3EFE8';
+const MUTED = '#A9A395';
+const EMBER = '#E84E2A';
+const FLAME = 'M12 3c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-1.7.8-3 1.7-4 .2 1.2.9 2 1.8 2.2C10.2 8.2 10.5 5.6 12 3z';
+const SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+const MONO = "ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace";
+
 function escapeXml(unsafe) {
     if (!unsafe) return '';
-    return unsafe
+    return String(unsafe)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -28,22 +22,34 @@ function escapeXml(unsafe) {
         .replace(/'/g, '&apos;');
 }
 
-function getScoreColor(score) {
-    if (score === null || score === undefined) return '#FF6B00';
-    if (score < 40) return '#FF3D3D';
-    if (score < 70) return '#FFB700';
-    return '#00E676';
+// Readable on the ink surface (not the light-theme accents).
+function truncateAtWord(text, max) {
+    if (text.length <= max) return text;
+    const cut = text.slice(0, max - 3);
+    const lastSpace = cut.lastIndexOf(' ');
+    return `${(lastSpace > 20 ? cut.slice(0, lastSpace) : cut).trimEnd()}...`;
 }
+
+function getScoreColor(score) {
+    if (score === null || score === undefined) return MUTED;
+    if (score < 40) return '#F0705A';
+    if (score < 70) return '#E6B84A';
+    return '#7FD3A0';
+}
+
+const HEADERS = {
+    'Content-Type': 'image/svg+xml; charset=utf-8',
+    'Cache-Control': 'public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400',
+};
 
 export async function GET(request, { params }) {
     const resolvedParams = await params;
     const username = (resolvedParams?.username || '').trim().toLowerCase();
     const { searchParams } = new URL(request.url);
-    const style = searchParams.get('style') || 'card';
+    const style = searchParams.get('style') === 'shield' ? 'shield' : 'card';
 
     let roast = null;
-
-    if (username) {
+    if (/^[a-z0-9-]{1,39}$/.test(username)) {
         try {
             const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://gitroast-latest.onrender.com';
             const res = await fetch(`${apiBase}/api/history/${encodeURIComponent(username)}`, {
@@ -55,7 +61,7 @@ export async function GET(request, { params }) {
                 roast = data?.history?.[0] || null;
             }
         } catch {
-            // Silently fall back to unroasted / placeholder badge
+            /* an unreachable API renders the "not roasted yet" badge */
         }
     }
 
@@ -64,94 +70,59 @@ export async function GET(request, { params }) {
     const color = getScoreColor(score);
     const safeUser = escapeXml(username || 'developer');
 
-    // ── SHIELD STYLE (Compact 190x28) ──────────────────────────
     if (style === 'shield') {
-        const labelText = `gitroast`;
-        const valueText = score !== null ? `score ${score}/100 🔥` : `unroasted 🔥`;
-
+        const intensity = roast?.intensity ? intensityLabel(roast.intensity) : '';
+        const label = 'GitRoast';
+        const value = score !== null ? `${score}${intensity ? ` • ${intensity}` : ''}` : 'not roasted yet';
+        const labelW = 22 + label.length * 7.2;
+        const valueW = 10 + value.length * 6.7;
+        const width = Math.round(labelW + valueW + 4);
         const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="190" height="28" viewBox="0 0 190 28" role="img" aria-label="${safeUser} gitroast score">
-  <linearGradient id="grad" x1="0" y1="0" x2="1" y2="0">
-    <stop offset="0%" stop-color="#FF4500" />
-    <stop offset="100%" stop-color="#FF8C00" />
-  </linearGradient>
-  <clipPath id="r">
-    <rect width="190" height="28" rx="6" fill="#fff" />
-  </clipPath>
-  <g clip-path="url(#r)">
-    <rect width="70" height="28" fill="#141414" />
-    <rect x="70" width="120" height="28" fill="#0A0A0A" />
-    <rect x="70" width="120" height="28" fill="${color}" fill-opacity="0.12" />
-    <line x1="70" y1="0" x2="70" y2="28" stroke="#262626" stroke-width="1" />
-  </g>
-  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600">
-    <text x="12" y="18" fill="#888888">${labelText}</text>
-    <text x="80" y="18" fill="${color}">${valueText}</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="28" viewBox="0 0 ${width} 28" role="img" aria-label="${safeUser} GitRoast score ${score ?? 'not available'}">
+  <title>${safeUser} on GitRoast</title>
+  <rect width="${width}" height="28" rx="14" fill="${INK}"/>
+  <rect x="0.5" y="0.5" width="${width - 1}" height="27" rx="13.5" fill="none" stroke="${LINE}"/>
+  <g transform="translate(8 5) scale(0.75)" fill="none" stroke="${EMBER}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="${FLAME}"/></g>
+  <g font-size="11" font-weight="600">
+    <text x="30" y="18" font-family="${SANS}" fill="${TEXT}">${label}</text>
+    <text x="${Math.round(labelW + 6)}" y="18" font-family="${MONO}" fill="${color}">${escapeXml(value)}</text>
   </g>
 </svg>`.trim();
-
-        return new Response(svg, {
-            headers: {
-                'Content-Type': 'image/svg+xml; charset=utf-8',
-                'Cache-Control': 'public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400',
-            },
-        });
+        return new Response(svg, { headers: HEADERS });
     }
 
-    // ── CARD STYLE (Default 380x112) ────────────────────────────
     const displayScore = score !== null ? `${score}` : '--';
-    const displayGrade = score !== null ? `GRADE: ${grade}` : 'NOT ROASTED YET';
+    const displayGrade = score !== null ? `GRADE ${grade}` : 'NOT ROASTED YET';
+    const gradeW = Math.max(74, 18 + displayGrade.length * 6.4);
     const rawSnippet = roast?.roastText
-        ? (roast.roastText.length > 55 ? roast.roastText.slice(0, 52) + '...' : roast.roastText)
-        : 'Dare to get your GitHub brutally roasted?';
+        ? truncateAtWord(roast.roastText, 58)
+        : 'Your GitHub has a story. We brought matches.';
     const safeSnippet = escapeXml(rawSnippet);
 
     const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="380" height="112" viewBox="0 0 380 112" role="img" aria-label="${safeUser} roast badge">
-  <defs>
-    <linearGradient id="fireGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FF4500" />
-      <stop offset="50%" stop-color="#FF6B00" />
-      <stop offset="100%" stop-color="#FFB700" />
-    </linearGradient>
-    <linearGradient id="cardBg" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#141414" />
-      <stop offset="100%" stop-color="#0A0A0A" />
-    </linearGradient>
-  </defs>
+<svg xmlns="http://www.w3.org/2000/svg" width="380" height="112" viewBox="0 0 380 112" role="img" aria-label="${safeUser} GitRoast score ${score ?? 'not available'}">
+  <title>${safeUser} on GitRoast</title>
+  <defs><clipPath id="card"><rect x="0.75" y="0.75" width="378.5" height="110.5" rx="14"/></clipPath></defs>
+  <rect x="0.75" y="0.75" width="378.5" height="110.5" rx="14" fill="${INK}"/>
+  <rect x="0" y="0" width="380" height="4" fill="${EMBER}" clip-path="url(#card)"/>
+  <rect x="0.75" y="0.75" width="378.5" height="110.5" rx="14" fill="none" stroke="${LINE}" stroke-width="1.5"/>
 
-  <!-- Background Card -->
-  <rect x="1" y="1" width="378" height="110" rx="10" fill="url(#cardBg)" stroke="#222222" stroke-width="1.5" />
-  
-  <!-- Accent Top Border -->
-  <path d="M 1 11 A 10 10 0 0 1 11 1 L 369 1 A 10 10 0 0 1 379 11 L 379 3 L 1 3 Z" fill="url(#fireGrad)" />
+  <g transform="translate(18 16)">
+    <rect width="24" height="24" rx="7" fill="${EMBER}"/>
+    <g transform="translate(5 5) scale(0.58)" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="${FLAME}"/></g>
+  </g>
+  <text x="50" y="33" font-family="${SANS}" font-size="14" font-weight="600" fill="${TEXT}">GitRoast</text>
+  <text x="18" y="62" font-family="${MONO}" font-size="13" font-weight="600" fill="${MUTED}">@${safeUser}</text>
 
-  <!-- Logo + User Header -->
-  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif">
-    <text x="18" y="26" font-size="12" font-weight="900" fill="#FF6B00" letter-spacing="1">GITROAST 🔥</text>
-    <text x="18" y="46" font-size="16" font-weight="700" fill="#F5F5F5">@${safeUser}</text>
+  <g text-anchor="end">
+    <text x="362" y="47" font-family="Georgia, 'Times New Roman', serif" font-size="38" fill="${color}">${displayScore}<tspan font-family="${MONO}" font-size="12" fill="${MUTED}">/100</tspan></text>
+    <rect x="${362 - gradeW}" y="55" width="${gradeW}" height="19" rx="9.5" fill="${color}" fill-opacity="0.14" stroke="${color}" stroke-opacity="0.45"/>
+    <text x="${362 - gradeW / 2}" y="68" font-family="${MONO}" font-size="10" font-weight="700" fill="${color}" text-anchor="middle" letter-spacing="0.5">${displayGrade}</text>
   </g>
 
-  <!-- Score & Grade Block -->
-  <g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" text-anchor="end">
-    <text x="362" y="44" font-size="32" font-weight="900" fill="${color}">${displayScore}<tspan font-size="13" font-weight="500" fill="#666">/100</tspan></text>
-    <rect x="274" y="52" width="88" height="18" rx="4" fill="${color}" fill-opacity="0.12" stroke="${color}" stroke-opacity="0.35" stroke-width="1" />
-    <text x="318" y="65" font-size="10" font-weight="700" fill="${color}" text-anchor="middle" letter-spacing="0.5">${displayGrade}</text>
-  </g>
-
-  <!-- Divider -->
-  <line x1="18" y1="76" x2="362" y2="76" stroke="#1F1F1F" stroke-width="1" />
-
-  <!-- Roast Snippet -->
-  <g font-family="Georgia, serif" font-style="italic" font-size="11" fill="#8E8E8E">
-    <text x="18" y="95">"${safeSnippet}"</text>
-  </g>
+  <line x1="18" y1="82" x2="362" y2="82" stroke="${LINE}"/>
+  <text x="18" y="100" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11.5" fill="${MUTED}">&quot;${safeSnippet}&quot;</text>
 </svg>`.trim();
 
-    return new Response(svg, {
-        headers: {
-            'Content-Type': 'image/svg+xml; charset=utf-8',
-            'Cache-Control': 'public, max-age=1800, s-maxage=3600, stale-while-revalidate=86400',
-        },
-    });
+    return new Response(svg, { headers: HEADERS });
 }

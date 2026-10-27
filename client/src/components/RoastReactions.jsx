@@ -194,7 +194,7 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
                         </span>
                         <span className="reactions-dot">•</span>
                         <span className="reactions-sub-cta font-mono">
-                            How brutal was this? Tap to react 👇
+                            How did this one land? Tap to react.
                         </span>
                     </div>
                 )}
@@ -270,10 +270,10 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
           gap: 6px;
           padding: 4px 12px;
           border-radius: 20px;
-          background: rgba(255, 107, 0, 0.08);
-          border: 1px solid rgba(255, 107, 0, 0.25);
+          background: rgba(232, 78, 42, 0.08);
+          border: 1px solid rgba(232, 78, 42, 0.25);
           font-size: 11px;
-          color: var(--fire-warm, #ffb700);
+          color: var(--warn-ink);
           letter-spacing: 0.3px;
           transition: all 0.2s ease;
         }
@@ -283,13 +283,13 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
         }
         @keyframes pulseGlow {
           0%, 100% { opacity: 0.9; transform: scale(1); }
-          50%      { opacity: 1; transform: scale(1.025); box-shadow: 0 0 10px rgba(255, 107, 0, 0.2); }
+          50%      { opacity: 1; transform: scale(1.025); box-shadow: 0 0 10px rgba(232, 78, 42, 0.2); }
         }
 
         .prompt-badge--first {
-          background: rgba(255, 69, 0, 0.12);
-          border-color: rgba(255, 69, 0, 0.4);
-          color: #ff6b00;
+          background: rgba(232, 78, 42, 0.12);
+          border-color: rgba(232, 78, 42, 0.4);
+          color: var(--ember-hover);
         }
 
         .prompt-badge--reacted {
@@ -344,14 +344,14 @@ export default function RoastReactions({ roastId, initialReactions = {}, targetT
 
         .reaction-btn:hover:not(:disabled) {
           border-color: var(--fire);
-          background:   rgba(255, 69, 0, 0.07);
+          background:   rgba(232, 78, 42, 0.07);
           transform:    translateY(-2px);
         }
 
         .reaction-btn--active {
           border-color: var(--fire);
-          background:   rgba(255, 69, 0, 0.1);
-          box-shadow:   0 0 12px rgba(255, 69, 0, 0.2);
+          background:   rgba(232, 78, 42, 0.1);
+          box-shadow:   0 0 12px rgba(232, 78, 42, 0.2);
           cursor:       default;
         }
 

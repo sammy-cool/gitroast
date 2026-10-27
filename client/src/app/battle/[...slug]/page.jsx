@@ -1,12 +1,6 @@
-// ============================================================
-// GITROAST — Battle Result Page (SSR Shell)
-// ============================================================
-// WHAT: Server component that generates per-battle metadata
-//       with dynamic OG image, then hands off to BattlePageClient.
-// ============================================================
-
 import { Suspense } from 'react'
 import BattlePageClient from './BattlePageClient'
+import { jsonLdString } from '@/utils/jsonLd'
 
 export async function generateMetadata({ params }) {
     const resolvedParams = await params
@@ -18,7 +12,7 @@ export async function generateMetadata({ params }) {
     const ogImageUrl = `${siteUrl}/api/og-battle?user1=${encodeURIComponent(user1)}&user2=${encodeURIComponent(user2)}`
 
     return {
-        title: `⚔️ @${user1} vs @${user2} — GitRoast Battle | Head-to-Head Code Roast`,
+        title: `@${user1} vs @${user2} — GitRoast Battle | Head-to-Head Code Roast`,
         description: `Who codes worse? @${user1} or @${user2}? See the full GitHub roast battle breakdown, commit sins, and winner determination.`,
         keywords: [
             `${user1} vs ${user2}`,
@@ -31,7 +25,7 @@ export async function generateMetadata({ params }) {
             canonical: `${siteUrl}/battle/${user1}/vs/${user2}`,
         },
         openGraph: {
-            title: `⚔️ @${user1} vs @${user2} — GitRoast Battle`,
+            title: `@${user1} vs @${user2} — GitRoast Battle`,
             description: `Who codes worse? Find out — then start your own battle.`,
             type: 'website',
             url: `${siteUrl}/battle/${user1}/vs/${user2}`,
@@ -44,7 +38,7 @@ export async function generateMetadata({ params }) {
         },
         twitter: {
             card: 'summary_large_image',
-            title: `⚔️ @${user1} vs @${user2} — GitRoast Battle`,
+            title: `@${user1} vs @${user2} — GitRoast Battle`,
             description: `Who codes worse? See the results.`,
             images: [ogImageUrl],
             creator: '@gitroast',
@@ -105,7 +99,7 @@ export default async function BattleSlugPage({ params }) {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
             />
             <Suspense fallback={null}>
                 <BattlePageClient user1={user1} user2={user2} />
@@ -113,3 +107,4 @@ export default async function BattleSlugPage({ params }) {
         </>
     )
 }
+

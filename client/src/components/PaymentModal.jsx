@@ -1,7 +1,8 @@
 'use client'
 
 
-import { useEffect, useSyncExternalStore } from 'react'
+import { useRef, useSyncExternalStore } from 'react'
+import useModalA11y from '@/hooks/useModalA11y'
 import { createPortal } from 'react-dom'
 import PaymentFlow from './PaymentFlow'
 
@@ -10,22 +11,8 @@ const subscribe = () => () => {}
 export default function PaymentModal({ planId, onClose }) {
     const isClient = useSyncExternalStore(subscribe, () => true, () => false)
 
-    useEffect(() => {
-        const prev = document.body.style.overflow
-        document.body.style.overflow = 'hidden'
-
-        function handleKeyDown(e) {
-            if (e.key === 'Escape' && typeof onClose === 'function') {
-                onClose()
-            }
-        }
-        window.addEventListener('keydown', handleKeyDown)
-
-        return () => {
-            document.body.style.overflow = prev
-            window.removeEventListener('keydown', handleKeyDown)
-        }
-    }, [onClose])
+    const dialogRef = useRef(null)
+    useModalA11y(dialogRef, onClose, isClient)
 
     if (!isClient || typeof document === 'undefined') return null
 
@@ -46,6 +33,10 @@ export default function PaymentModal({ planId, onClose }) {
             onClick={onClose}
         >
             <div
+                ref={dialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Checkout"
                 style={{
                     width: '100%',
                     maxWidth: '560px',

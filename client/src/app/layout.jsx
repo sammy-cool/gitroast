@@ -65,15 +65,15 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "GitRoast 🔥",
-    description: "Get your GitHub brutally roasted.",
+    title: "GitRoast",
+    description: "Your GitHub has a story. We brought matches.",
     images: ["/og-default.png"],
     creator: "@gitroast",
   },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "GitRoast",
   },
   robots: { index: true, follow: true },
@@ -93,6 +93,8 @@ export default function RootLayout({ children }) {
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link
           rel="preconnect"

@@ -2,18 +2,6 @@
 
 import Link from 'next/link';
 
-// ============================================================
-// GITROAST — Dynamic Breadcrumb Navigation
-// ============================================================
-// WHAT: Provides clear hierarchical navigation across the application
-//       with Schema.org BreadcrumbList structured data support.
-// WHY:
-//   - UX: Orient users immediately on deep pages (/battle/user1/vs/user2,
-//     /history/torvalds, /repo/owner/repo).
-//   - SEO: Emits valid JSON-LD / Microdata for Google rich snippet breadcrumbs.
-//   - Consistency: Responsive, accessible colors, mobile scrollable with hidden scrollbar.
-//   - Fluid width: Takes 100% of parent wrapper width to align with page grid.
-// ============================================================
 
 export default function Breadcrumb({ items = [] }) {
   if (!items || items.length <= 1) return null;
@@ -95,22 +83,22 @@ export default function Breadcrumb({ items = [] }) {
           font-weight: 300;
           user-select: none;
         }
-        /* 
+        /*
           ── WHAT: ────────────────────────────────────────────────────────
           Parent-scoped :global selector for breadcrumb navigation Links.
-          
+
           ── WHY: ─────────────────────────────────────────────────────────
           Per AGENTS.md Rule 12, Next.js <Link> renders as a custom React component
           rather than a native DOM element, so styled-jsx does not inject scoped
           hash classes onto it. Scoping via .breadcrumb-item :global(.breadcrumb-link)
           reliably applies color and hover transition states to the anchor.
-          
+
           ── WHERE & WHEN TO USE: ─────────────────────────────────────────
           Any Next.js <Link> rendered inside a styled-jsx list item.
-          
+
           ── USE CASES: ───────────────────────────────────────────────────
           Breadcrumb trail navigation links.
-          
+
           ── WHEN NOT TO USE: ─────────────────────────────────────────────
           Native anchors with plain href if not using Next.js client router.
         */
@@ -120,7 +108,7 @@ export default function Breadcrumb({ items = [] }) {
           transition: color 0.15s ease;
         }
         .breadcrumb-item :global(.breadcrumb-link:hover) {
-          color: var(--fire, #ff4500);
+          color: var(--ember-hover, #cf4222);
         }
         .breadcrumb-current {
           color: var(--text-primary, #f5f5f5);
@@ -130,3 +118,4 @@ export default function Breadcrumb({ items = [] }) {
     </nav>
   );
 }
+

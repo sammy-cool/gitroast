@@ -1,26 +1,5 @@
 'use client'
 
-// ============================================================
-// GITROAST — RateLimitBanner Component
-// ============================================================
-// WHAT: Shows a live countdown timer when user hits rate limit.
-//       Appears at top of landing page — disappears when timer ends.
-//
-// WHY a banner not just a toast:
-//   Toast disappears after a few seconds
-//   User still tries to roast → confused why it doesn't work
-//   Banner stays visible with live countdown → user knows to wait
-//   Disappears automatically when they can roast again ✅
-//
-// HOW countdown works:
-//   Parent passes retryAfter seconds
-//   useEffect runs setInterval every second
-//   Decrements counter → updates display
-//   When reaches 0 → calls onExpired → banner unmounts
-//
-// WHERE: Rendered in home_page.jsx when rate limit hit
-//        Also usable on /battle page
-// ============================================================
 
 import { useState, useEffect } from 'react'
 
@@ -28,12 +7,6 @@ export default function RateLimitBanner({ seconds, onExpired }) {
     const [prevSeconds, setPrevSeconds] = useState(seconds)
     const [remaining, setRemaining] = useState(seconds)
 
-    // ── React 19 Render-Time State Adjustment Pattern ──────────
-    // WHAT: Synchronizes remaining state with changing seconds prop directly during render.
-    // WHY: Eliminates setState in useEffect, preventing cascading renders and ESLint react-hooks/set-state-in-effect violations.
-    // WHERE & WHEN TO USE: Whenever child component state must mirror dynamic parent props.
-    // USE CASES: Countdown resets when a new 429 response or updated rate limit window is received.
-    // WHEN NOT TO USE: When state changes independently from prop changes without reset requirements.
     if (seconds !== prevSeconds) {
         setPrevSeconds(seconds)
         setRemaining(seconds)
@@ -59,7 +32,6 @@ export default function RateLimitBanner({ seconds, onExpired }) {
         return () => clearInterval(timer)
     }, [seconds, onExpired])
 
-    // WHY percentage: drives the progress bar width (safeguard against division by zero)
     const totalSecs = seconds > 0 ? seconds : 1
     const percentage = Math.min(100, Math.max(0, Math.round((remaining / totalSecs) * 100)))
 
@@ -67,7 +39,7 @@ export default function RateLimitBanner({ seconds, onExpired }) {
         <div className="rl-banner">
 
             <div className="rl-content">
-                {/* Icon + message */}
+                {}
                 <span className="rl-icon">⏱</span>
                 <div className="rl-text">
                     <p className="rl-title font-mono">Rate limit reached</p>
@@ -77,13 +49,13 @@ export default function RateLimitBanner({ seconds, onExpired }) {
                     </p>
                 </div>
 
-                {/* Live countdown circle */}
+                {}
                 <div className="rl-timer font-display">
                     {remaining}
                 </div>
             </div>
 
-            {/* Progress bar — drains as countdown decreases */}
+            {}
             <div className="rl-track">
                 <div
                     className="rl-fill"
@@ -95,8 +67,8 @@ export default function RateLimitBanner({ seconds, onExpired }) {
         .rl-banner {
           width:         100%;
           max-width:     460px;
-          background:    rgba(255, 183, 0, 0.06);
-          border:        1px solid rgba(255, 183, 0, 0.25);
+          background:    rgba(230, 184, 74, 0.06);
+          border:        1px solid rgba(230, 184, 74, 0.25);
           border-radius: var(--radius-md);
           overflow:      hidden;
           animation:     fadeIn 0.3s ease forwards;
@@ -134,7 +106,7 @@ export default function RateLimitBanner({ seconds, onExpired }) {
         /* Draining progress bar */
         .rl-track {
           height:     2px;
-          background: rgba(255, 183, 0, 0.15);
+          background: rgba(230, 184, 74, 0.15);
         }
         .rl-fill {
           height:     100%;
@@ -145,3 +117,4 @@ export default function RateLimitBanner({ seconds, onExpired }) {
         </div>
     )
 }
+

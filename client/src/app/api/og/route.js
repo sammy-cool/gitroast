@@ -1,43 +1,19 @@
-// ============================================================
-// GITROAST — Dynamic OG Image Route
-// ============================================================
-// WHAT: Generates a unique 1200×630 PNG preview image per roast.
-//       Called by Twitter/LinkedIn/WhatsApp when a roast link is shared.
-//
-// WHY Next.js Route Handler not Express:
-//   ImageResponse uses Satori — a JSX-to-PNG renderer built into Next.js.
-//   Satori runs on Edge Runtime — globally distributed, fast cold starts.
-//   Express cannot render JSX to PNG without puppeteer (heavy, slow).
-//
-// ⚠️ SATORI RULES (critical — breaks with 500 if violated):
-//   1. Every div with 2+ children MUST have display: 'flex'
-//   2. No CSS shorthand (no margin: '10px 20px' — use marginTop etc.)
-//   3. No CSS variables (no var(--fire) — use raw hex values)
-//   4. No @keyframes or CSS animations
-//   5. Images must be remote URLs or base64 — no local imports
-//   6. Limited font support — only loaded fonts work
-//
-// WHERE: client/src/app/api/og/route.js
-// ============================================================
-
 import { ImageResponse } from "next/og";
 
-// WHY edge runtime: required for ImageResponse/Satori to work
-//     standard Node.js runtime does NOT support ImageResponse
 export const runtime = "edge";
 
 const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
 
 function getScoreColor(score) {
-  if (!score) return "#FF6B00";
-  if (score < 40) return "#FF3D3D";
-  if (score < 70) return "#FFB700";
-  return "#00E676";
+  if (!score) return "#E84E2A";
+  if (score < 40) return "#F0705A";
+  if (score < 70) return "#E6B84A";
+  return "#7FD3A0";
 }
 
 function getSnippet(text) {
-  if (!text) return "Get your GitHub brutally roasted.";
+  if (!text) return "Your GitHub has a story.";
   return text.length > 130 ? text.slice(0, 127) + "..." : text;
 }
 
@@ -63,7 +39,6 @@ export async function GET(request) {
         roastData = json?.history?.[0] || null;
       }
     } catch {
-      // WHY silent: fallback to generic image — never 500 from fetch failure
     }
   }
 
@@ -75,13 +50,12 @@ export async function GET(request) {
   const scoreColor = getScoreColor(score);
 
   return new ImageResponse(
-    // ── Root — WHY display flex: Satori requires flex on ALL multi-child divs
     <div
       style={{
         width: "1200px",
         height: "630px",
-        background: "#070707",
-        display: "flex", // ← REQUIRED by Satori
+        background: "#171711",
+        display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         position: "relative",
@@ -89,7 +63,7 @@ export async function GET(request) {
         fontFamily: '"Courier New", monospace',
       }}
     >
-      {/* Top gradient accent bar */}
+      {}
       <div
         style={{
           position: "absolute",
@@ -97,12 +71,12 @@ export async function GET(request) {
           left: "0",
           right: "0",
           height: "3px",
-          background: "linear-gradient(90deg, #FF4500, #FF6B00, #FFB700)",
-          display: "flex", // WHY: Satori rule — even single-child divs need flex
+          background: "linear-gradient(90deg, #E84E2A, #E84E2A, #E6B84A)",
+          display: "flex",
         }}
       />
 
-      {/* Ambient glow — bottom center */}
+      {}
       <div
         style={{
           position: "absolute",
@@ -111,13 +85,13 @@ export async function GET(request) {
           width: "900px",
           height: "400px",
           background:
-            "radial-gradient(ellipse, rgba(255,69,0,0.18) 0%, transparent 70%)",
+            "radial-gradient(ellipse, rgba(232, 78, 42,0.18) 0%, transparent 70%)",
           borderRadius: "50%",
           display: "flex",
         }}
       />
 
-      {/* Outer border */}
+      {}
       <div
         style={{
           position: "absolute",
@@ -125,12 +99,12 @@ export async function GET(request) {
           left: "0",
           right: "0",
           bottom: "0",
-          border: "1px solid #1C1C1C",
+          border: "1px solid #2E2D24",
           display: "flex",
         }}
       />
 
-      {/* ── Main content area ── */}
+      {}
       <div
         style={{
           display: "flex",
@@ -139,7 +113,7 @@ export async function GET(request) {
           padding: "48px 64px 0 64px",
         }}
       >
-        {/* Header row: logo + badges */}
+        {}
         <div
           style={{
             display: "flex",
@@ -149,21 +123,21 @@ export async function GET(request) {
             marginBottom: "28px",
           }}
         >
-          {/* Logo */}
+          {}
           <div
             style={{
               display: "flex",
               fontSize: "34px",
               fontWeight: "900",
-              fontFamily: 'Impact, "Arial Black", sans-serif',
-              color: "#FF6B00",
+              fontFamily: 'Georgia, serif',
+              color: "#E84E2A",
               letterSpacing: "3px",
             }}
           >
-            GITROAST 🔥
+            GitRoast
           </div>
 
-          {/* Badges */}
+          {}
           <div style={{ display: "flex", flexDirection: "row", gap: "10px" }}>
             {isAI && (
               <div
@@ -171,14 +145,14 @@ export async function GET(request) {
                   display: "flex",
                   fontSize: "13px",
                   padding: "5px 14px",
-                  background: "rgba(255,183,0,0.12)",
-                  border: "1px solid rgba(255,183,0,0.4)",
+                  background: "rgba(230, 184, 74,0.12)",
+                  border: "1px solid rgba(230, 184, 74,0.4)",
                   borderRadius: "6px",
-                  color: "#FFB700",
+                  color: "#E6B84A",
                   letterSpacing: "1px",
                 }}
               >
-                ⚡ AI ROAST
+                AI ROAST
               </div>
             )}
             <div
@@ -187,22 +161,22 @@ export async function GET(request) {
                 fontSize: "13px",
                 padding: "5px 14px",
                 background: isPro
-                  ? "rgba(255,69,0,0.12)"
+                  ? "rgba(232, 78, 42,0.12)"
                   : "rgba(255,255,255,0.04)",
                 border: isPro
-                  ? "1px solid rgba(255,69,0,0.4)"
-                  : "1px solid #1C1C1C",
+                  ? "1px solid rgba(232, 78, 42,0.4)"
+                  : "1px solid #2E2D24",
                 borderRadius: "6px",
-                color: isPro ? "#FF6B00" : "#3A3A3A",
+                color: isPro ? "#E84E2A" : "#3A3A3A",
                 letterSpacing: "1px",
               }}
             >
-              {isPro ? "PRO ⚡" : "FREE ROAST"}
+              {isPro ? "PRO" : "FREE ROAST"}
             </div>
           </div>
         </div>
 
-        {/* Username + score row */}
+        {}
         <div
           style={{
             display: "flex",
@@ -212,7 +186,7 @@ export async function GET(request) {
             marginBottom: "24px",
           }}
         >
-          {/* Left: avatar + username + label */}
+          {}
           <div
             style={{
               display: "flex",
@@ -222,14 +196,13 @@ export async function GET(request) {
             }}
           >
             {username && (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={`https://avatars.githubusercontent.com/${username}?s=120`}
                 width="64"
                 height="64"
                 style={{
                   borderRadius: "50%",
-                  border: "2px solid #FF4500",
+                  border: "2px solid #E84E2A",
                 }}
                 alt={username}
               />
@@ -260,7 +233,7 @@ export async function GET(request) {
             </div>
           </div>
 
-          {/* Right: score + grade */}
+          {}
           {score && (
             <div
               style={{
@@ -275,7 +248,7 @@ export async function GET(request) {
                   display: "flex",
                   fontSize: "92px",
                   fontWeight: "900",
-                  fontFamily: 'Impact, "Arial Black", sans-serif',
+                  fontFamily: 'Georgia, serif',
                   color: scoreColor,
                   lineHeight: "1",
                 }}
@@ -312,14 +285,14 @@ export async function GET(request) {
           )}
         </div>
 
-        {/* Roast snippet */}
+        {}
         <div
           style={{
             display: "flex",
             flex: "1",
             padding: "22px 26px",
             background: "#110900",
-            borderLeft: "4px solid #FF4500",
+            borderLeft: "4px solid #E84E2A",
             borderRadius: "0 10px 10px 0",
             alignItems: "center",
           }}
@@ -339,7 +312,7 @@ export async function GET(request) {
         </div>
       </div>
 
-      {/* Bottom bar */}
+      {}
       <div
         style={{
           display: "flex",
@@ -347,7 +320,7 @@ export async function GET(request) {
           justifyContent: "space-between",
           alignItems: "center",
           padding: "14px 64px",
-          borderTop: "1px solid #1C1C1C",
+          borderTop: "1px solid #2E2D24",
           background: "#080808",
         }}
       >
@@ -368,7 +341,7 @@ export async function GET(request) {
             color: "#3A3A3A",
           }}
         >
-          Get your GitHub roasted too 🔥
+          Your GitHub has a story. Get roasted too.
         </div>
       </div>
     </div>,
@@ -382,3 +355,4 @@ export async function GET(request) {
     },
   );
 }
+

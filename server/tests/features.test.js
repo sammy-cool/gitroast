@@ -1731,6 +1731,8 @@ describe("Feature #18 — Multi-Tier User Personas & Historian Plan Invariants",
         assert.ok(!verifyPassword("wrong", h));
         assert.ok(validateSignup({ email: "a@b.co", password: "short" }));
         assert.equal(validateSignup({ email: "a@northstar.io", password: "longenough123" }), null);
+        assert.ok(validateSignup({ email: "a@northstar.io", password: "x".repeat(129) }), "overlong passwords are rejected");
+        assert.ok(!verifyPassword("x".repeat(129), h), "overlong login attempts never reach scrypt");
         assert.equal(orgFromEmail("a@northstar.io"), "Northstar");
         assert.equal(orgFromEmail("a@gmail.com"), "");
     });

@@ -200,7 +200,8 @@ roastSchema.index({ roastedBy: 1, roastSource: 1, createdAt: -1 }); // AI quota 
 roastSchema.index({ "reactions.savage": -1, "reactions.destroyed": -1, createdAt: -1 });
 
 roastSchema.statics.getHistory = function (username, limit = 10) {
-  return this.find({ username: new RegExp(`^${username}$`, "i") })
+  const safe = String(username).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); // defence in depth: routes already validate
+  return this.find({ username: new RegExp(`^${safe}$`, "i") })
     .sort({ isPinned: -1, createdAt: -1 })
     .limit(limit)
     .lean();

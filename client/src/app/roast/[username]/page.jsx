@@ -1,27 +1,6 @@
-// ============================================================
-// GITROAST — Roast Result Page (SSR Shell)
-// ============================================================
-// WHAT: Server component that generates per-roast metadata
-//       then hands rendering to RoastPageClient.
-//
-// WHY server component:
-//   generateMetadata runs on the server — can fetch roast data
-//   and build custom OG tags per username.
-//   Client component cannot export generateMetadata.
-//
-// WHY dynamic OG image URL:
-//   Each roast gets a unique preview card showing real score/grade.
-//   When @someone shares /roast/torvalds on Twitter:
-//     → Twitter fetches /api/og?username=torvalds
-//     → Gets a 1200×630 PNG with Linus's actual score
-//     → Much more compelling than a generic GitRoast image
-//     → Higher click-through rate → more users → more roasts
-//
-// WHERE: client/src/app/roast/[username]/page.jsx
-// ============================================================
-
 import { Suspense } from 'react'
 import RoastPageClient from './RoastPageClient'
+import { jsonLdString } from '@/utils/jsonLd'
 
 export async function generateMetadata({ params }) {
     const { username } = await params
@@ -29,8 +8,8 @@ export async function generateMetadata({ params }) {
     const ogImageUrl = `${siteUrl}/api/og?username=${encodeURIComponent(username)}`
 
     return {
-        title: `Get @${username} Roasted — GitRoast 🔥`,
-        description: `See @${username}'s GitHub brutally roasted. Score, grade, commit sins, and a savage AI roast. Can you do worse?`,
+        title: `Get @${username} Roasted — GitRoast`,
+        description: `See @${username}'s GitHub roasted. Score, grade, commit sins, and the public evidence behind them. Can you do better?`,
         keywords: [
             `roast ${username}`,
             `${username} github roast`,
@@ -42,7 +21,7 @@ export async function generateMetadata({ params }) {
             canonical: `${siteUrl}/roast/${username}`,
         },
         openGraph: {
-            title: `@${username}'s GitHub got roasted 🔥`,
+            title: `@${username}'s GitHub got roasted`,
             description: `See the score, grade, and roast. Then get roasted yourself.`,
             type: 'website',
             url: `${siteUrl}/roast/${username}`,
@@ -55,7 +34,7 @@ export async function generateMetadata({ params }) {
         },
         twitter: {
             card: 'summary_large_image',
-            title: `@${username}'s GitHub got roasted 🔥`,
+            title: `@${username}'s GitHub got roasted`,
             description: `See the damage. Then get roasted yourself.`,
             images: [ogImageUrl],
             creator: '@gitroast',
@@ -101,7 +80,7 @@ export default async function RoastPage({ params }) {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
             />
             <Suspense fallback={null}>
                 <RoastPageClient username={username} />
@@ -109,3 +88,4 @@ export default async function RoastPage({ params }) {
         </>
     )
 }
+

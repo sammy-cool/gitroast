@@ -1,12 +1,6 @@
-// ============================================================
-// GITROAST — Repository Roast SSR Page
-// ============================================================
-// WHAT: Server component generating dynamic metadata and JSON-LD
-//       schema for repository-level deep roasts.
-// ============================================================
-
 import { Suspense } from 'react'
 import RepoRoastClient from './RepoRoastClient'
+import { jsonLdString } from '@/utils/jsonLd'
 
 export async function generateMetadata({ params }) {
   const { owner, repo } = await params
@@ -14,7 +8,7 @@ export async function generateMetadata({ params }) {
   const repoSlug = `${owner}/${repo}`
 
   return {
-    title: `Roast ${repoSlug} — GitRoast 🔥`,
+    title: `Roast ${repoSlug} — GitRoast`,
     description: `Deep repository roast for ${repoSlug}. Inspect commit sins, missing tests, README emptiness, and code smells.`,
     keywords: [
       `roast ${repoSlug}`,
@@ -27,7 +21,7 @@ export async function generateMetadata({ params }) {
       canonical: `${siteUrl}/repo/${owner}/${repo}`,
     },
     openGraph: {
-      title: `${repoSlug} got roasted on GitRoast 🔥`,
+      title: `${repoSlug} got roasted on GitRoast`,
       description: `Commit hygiene, missing tests, and architectural sins of ${repoSlug} exposed.`,
       type: 'website',
       url: `${siteUrl}/repo/${owner}/${repo}`,
@@ -42,7 +36,7 @@ export async function generateMetadata({ params }) {
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${repoSlug} got roasted on GitRoast 🔥`,
+      title: `${repoSlug} got roasted on GitRoast`,
       description: `Commit hygiene and architectural sins exposed.`,
       creator: '@gitroast',
       images: [`${siteUrl}/api/og?username=${encodeURIComponent(owner)}&score=35&grade=F`],
@@ -82,7 +76,7 @@ export default async function RepoRoastPage({ params }) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
       />
       <Suspense fallback={<div className="loading font-mono">Loading repo analysis...</div>}>
         <RepoRoastClient owner={owner} repo={repo} />
@@ -90,3 +84,4 @@ export default async function RepoRoastPage({ params }) {
     </>
   )
 }
+

@@ -16,3 +16,15 @@ describe("client vocab stays in sync with shared/constants", () => {
     for (const v of ["classic", "techbro", "ramsay", "bogus", undefined]) assert.equal(normalizePersona(v), shared.normalizePersona(v));
   });
 });
+
+import { defaultWrappedYear } from "../wrapped.js";
+describe("wrapped year stays in sync with shared/constants", () => {
+  it("matches for every month of 2026", () => {
+    for (let m = 0; m < 12; m++) {
+      const d = new Date(Date.UTC(2026, m, 15));
+      assert.equal(defaultWrappedYear(d), shared.defaultWrappedYear(d));
+    }
+    assert.equal(defaultWrappedYear(new Date("2026-10-24T00:00:00Z")), 2026);
+    assert.equal(defaultWrappedYear(new Date("2026-03-01T00:00:00Z")), 2025);
+  });
+});

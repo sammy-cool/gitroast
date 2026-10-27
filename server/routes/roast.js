@@ -15,7 +15,7 @@ const Roast = require("../models/Roast");
 const User = require("../models/User");
 const redisService = require("../services/redisService");
 const { logger } = require("../utils/logger");
-const { normalizeIntensity, toEngineIntensity, normalizePersona } = require("../utils/constants");
+const { normalizeIntensity, toEngineIntensity, normalizePersona, defaultWrappedYear } = require("../utils/constants");
 const { computeSignals, MODEL_VERSION: EVIDENCE_MODEL } = require("../services/talentEvidence");
 const { getAiQuota, canUseAi, afterConsuming } = require("../services/quota");
 
@@ -50,7 +50,8 @@ setInterval(() => {
 router.get("/feed", async (req, res) => {
   res.setHeader("Cache-Control", "public, max-age=15, stale-while-revalidate=30");
   try {
-    const feed = await Roast.find({})
+    // Ghost Mode (isPrivate) profiles never appear in public discovery.
+    const feed = await Roast.find({ isPrivate: { $ne: true } })
       .sort({ createdAt: -1 })
       .limit(10)
       .select("username score grade intensity createdAt")
@@ -77,7 +78,7 @@ router.get("/:username/wrapped", optionalAuth, verifyCaptcha, async (req, res) =
 
   const currentYear = new Date().getFullYear();
   const rawYear = parseInt(req.query.year, 10);
-  const year = isNaN(rawYear) || rawYear < 2008 || rawYear > currentYear ? 2025 : rawYear;
+  const year = isNaN(rawYear) || rawYear < 2008 || rawYear > currentYear ? defaultWrappedYear() : rawYear;
 
   if (!username || username.length > 39 || !/^[a-zA-Z0-9-]+$/.test(username)) {
     return res.status(400).json({

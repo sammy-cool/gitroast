@@ -44,6 +44,12 @@ function normalizePersona(raw, fallback = DEFAULT_PERSONA) {
 }
 
 // ── Roles / plans ────────────────────────────────────────────
+// Wrapped season: current year from October on, otherwise the last completed year.
+function defaultWrappedYear(now = new Date()) {
+  const y = now.getUTCFullYear();
+  return now.getUTCMonth() >= 9 ? y : y - 1;
+}
+
 const USER_ROLES = ["developer", "recruiter"];
 const PLAN_IDS = ["roaster", "historian"];
 
@@ -83,6 +89,7 @@ if (typeof module !== "undefined" && module.exports) {
     LEGACY_PERSONA_ALIASES,
     DEFAULT_PERSONA,
     normalizePersona,
+    defaultWrappedYear,
     USER_ROLES,
     PLAN_IDS,
     ROAST_REACTION_TYPES,

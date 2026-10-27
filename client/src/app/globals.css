@@ -68,7 +68,7 @@ body {
 .btn-primary:hover:not(:disabled) {
   opacity: 0.9;
   transform: translateY(-1px);
-  box-shadow: 0 6px 24px rgba(255, 69, 0, 0.3);
+  box-shadow: 0 6px 24px rgba(232, 78, 42, 0.3);
 }
 
 .btn-primary:active:not(:disabled) {
@@ -83,7 +83,7 @@ body {
 }
 
 .btn-outline:hover:not(:disabled) {
-  background: rgba(255, 69, 0, 0.08);
+  background: rgba(232, 78, 42, 0.08);
 }
 
 .btn-ghost {
@@ -205,7 +205,7 @@ body {
 }
 
 ::selection {
-  background: rgba(255, 69, 0, 0.3);
+  background: rgba(232, 78, 42, 0.3);
   color: var(--text-primary);
 }
 
@@ -233,7 +233,8 @@ body.loading {
   align-items: center;
   justify-content: center;
   gap: 1.5rem;
-  background: #070707;
+  background: var(--paper);
+  color: var(--ink);
   position: relative;
   overflow: hidden;
   padding-bottom: 6.5rem;
@@ -243,19 +244,18 @@ body.loading {
   inset: 0;
   background: radial-gradient(
     ellipse 60% 40% at 50% 100%,
-    rgba(255, 69, 0, 0.12) 0%,
+    rgba(232, 78, 42, 0.12) 0%,
     transparent 100%
   );
   pointer-events: none;
 }
 
-.gitroast-loader-text-fire {
-  background: linear-gradient(135deg, #ff4500, #ff6b00, #ffb700);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  font-size: 28px;
+.loading-logo {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 24px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
 }
 
 .loading-card {
@@ -286,6 +286,11 @@ body.loading {
   animation-delay: 0.4s;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .loading-fill { animation: none; transform: none; }
+  .loading-dot { animation: none; opacity: 1; }
+}
+
 @keyframes dotPulse {
   0%,
   80%,
@@ -306,7 +311,7 @@ body.loading {
 }
 .loading-fill {
   height: 100%;
-  background: linear-gradient(135deg, #ff4500, #ff6b00, #ffb700);
+  background: var(--ember);
   border-radius: 2px;
   animation: loadingBar 1.8s ease-in-out infinite;
   width: 100%;

@@ -1,9 +1,10 @@
 import ContactPageClient from './ContactPageClient'
+import { jsonLdString } from '@/utils/jsonLd'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev'
 
 export const metadata = {
-    title: 'Contact & Support 💬 — Developer Feedback & Inquiries | GitRoast',
+    title: 'Contact & Support — Developer Feedback & Inquiries | GitRoast',
     description:
         'Get in touch with the GitRoast team. Submit bug reports, request features, resolve billing inquiries, or dispute a GitHub roast.',
     keywords: [
@@ -17,7 +18,7 @@ export const metadata = {
         canonical: `${SITE_URL}/contact`,
     },
     openGraph: {
-        title: 'Contact & Support 💬 | GitRoast',
+        title: 'Contact & Support | GitRoast',
         description:
             'Have feedback, discovered a bug, or need help with GitRoast Pro? Reach out to the engineering team.',
         url: `${SITE_URL}/contact`,
@@ -34,7 +35,7 @@ export const metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Contact & Support 💬 | GitRoast',
+        title: 'Contact & Support | GitRoast',
         description: 'Have feedback or discovered a bug? Reach out to the team.',
         images: ['/og-default.png'],
         creator: '@gitroast',
@@ -66,9 +67,10 @@ export default function ContactPage() {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
             />
             <ContactPageClient />
         </>
     )
 }
+

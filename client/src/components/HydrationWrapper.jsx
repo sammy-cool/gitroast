@@ -1,17 +1,8 @@
 "use client";
 
-// ============================================================
-// GITROAST — Hydration Wrapper & App Loader
-// ============================================================
-// WHAT: Shows the branded GitRoast loading screen during initial page
-//       hydration to prevent any broken UI or layout shift.
-// WHY:
-//   - Zero broken UI: During SSR, renders the clean loading page so the
-//     browser's first paint is pure branded aesthetic.
-//   - Instant transition: Once client hydrates, seamlessly mounts children.
-// ============================================================
 
 import { useEffect, useState } from "react";
+import { FlameMark } from "@/components/Logo";
 
 export default function HydrationWrapper({ children }) {
   const [hydrated, setHydrated] = useState(false);
@@ -32,26 +23,16 @@ export default function HydrationWrapper({ children }) {
 
   if (!hydrated) {
     return (
-      <div className="loading-page">
+      <div className="loading-page" role="status" aria-live="polite">
         <div className="loading-glow" />
 
-        <p
-          className="font-display loading-logo gitroast-loader-text-fire"
-          style={{
-            background: "linear-gradient(135deg, #FF4500, #FF6B00, #FFB700)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-            fontSize: "28px",
-          }}
-        >
-          GITROAST 🔥
-        </p>
+        <FlameMark size={48} />
+        <p className="loading-logo">GitRoast</p>
 
         <div className="loading-card">
           <p
             className="font-mono loading-text"
-            style={{ color: "var(--text-secondary)", fontSize: "13px" }}
+            style={{ color: "var(--ink-2)", fontSize: "13px" }}
           >
             Loading
             <span className="loading-dot">.</span>
@@ -69,3 +50,4 @@ export default function HydrationWrapper({ children }) {
 
   return <>{children}</>;
 }
+

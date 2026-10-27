@@ -8,7 +8,7 @@ function hashPassword(password) {
 }
 
 function verifyPassword(password, stored) {
-  if (!stored || !stored.startsWith("scrypt$")) return false;
+  if (!stored || !stored.startsWith("scrypt$") || String(password).length > 128) return false; // cap work on hostile input
   const [, salt, hash] = stored.split("$");
   const candidate = crypto.scryptSync(password, salt, 64);
   const expected = Buffer.from(hash, "hex");
@@ -21,6 +21,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 function validateSignup({ email, password }) {
   if (!EMAIL_RE.test(String(email || ""))) return "Enter a valid work email.";
   if (String(password || "").length < 10) return "Use at least 10 characters for your password.";
+  if (String(password).length > 128) return "Use at most 128 characters for your password.";
   return null;
 }
 

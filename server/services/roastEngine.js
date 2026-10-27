@@ -207,7 +207,7 @@ const LANGUAGE_PACKS = {
 
   PHP: {
     mild: [
-      `PHP — a bold choice in 2025, and this developer is committed to it in a way that is almost admirable.`,
+      `PHP — a bold choice these days, and this developer is committed to it in a way that is almost admirable.`,
     ],
     savage: [
       `PHP — the language that has been declared dead every year since 2010 and continues to power 78% of the internet out of sheer stubbornness.`,

@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import LeaderboardClient, { LeaderboardSkeleton } from './LeaderboardClient';
+import { jsonLdString } from '@/utils/jsonLd'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev';
 
@@ -18,9 +19,9 @@ export const metadata = {
     canonical: `${SITE_URL}/leaderboard`,
   },
   openGraph: {
-    title: 'Wall of Shame 🏆 — Global GitHub Roast Leaderboard',
+    title: 'Wall of Shame — Global GitHub Roast Leaderboard',
     description:
-      'The most brutally roasted GitHub profiles. See who got destroyed the worst.',
+      'Discover developers and companies by visible craft signals. Public evidence, friendly rivalry, zero dunking down.',
     url: `${SITE_URL}/leaderboard`,
     siteName: 'GitRoast',
     type: 'website',
@@ -35,8 +36,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Wall of Shame 🏆 | GitRoast',
-    description: 'The most brutally roasted GitHub profiles. Globally.',
+    title: 'Wall of Shame | GitRoast',
+    description: 'Public evidence. Friendly rivalry. Zero dunking down.',
     images: ['/og-default.png'],
     creator: '@gitroast',
   },
@@ -73,7 +74,7 @@ export default function LeaderboardPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
       />
       <Suspense
         fallback={

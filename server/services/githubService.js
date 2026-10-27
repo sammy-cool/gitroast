@@ -1,5 +1,7 @@
 const BASE_URL = "https://api.github.com";
 
+const { defaultWrappedYear } = require("../utils/constants");
+
 function getHeaders(userToken = null) {
   const headers = {
     Accept: "application/vnd.github.v3+json",
@@ -529,12 +531,12 @@ async function analyzeProfile(
 
 async function analyzeWrapped(
   username,
-  year = 2025,
+  year = defaultWrappedYear(),
   userToken = null,
   authUsername = null,
   isPro = false,
 ) {
-  const targetYear = parseInt(year, 10) || 2025;
+  const targetYear = parseInt(year, 10) || defaultWrappedYear();
   const isOwnProfileAndPro = Boolean(
     isPro &&
       authUsername &&

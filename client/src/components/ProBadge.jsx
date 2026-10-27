@@ -1,16 +1,14 @@
 "use client";
 
-// WHY: reusable badge shown wherever Pro status matters
-//      navbar, roast card, leaderboard rows
 export default function ProBadge({ size = "sm" }) {
     return (
         <>
-            <span className={`pro-badge font-mono size-${size}`}>PRO ⚡</span>
+            <span className={`pro-badge font-mono size-${size}`}>PRO</span>
             <style jsx>{`
         .pro-badge {
           display: inline-block;
           padding: 2px 7px;
-          background: rgba(255, 69, 0, 0.12);
+          background: rgba(232, 78, 42, 0.12);
           border: 1px solid var(--fire);
           border-radius: 4px;
           color: var(--fire);
@@ -33,3 +31,4 @@ export default function ProBadge({ size = "sm" }) {
         </>
     );
 }
+

@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback, useRef, useSyncExternalStore } from '
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { toast } from '@/utils/toast'
+import Icon from '@/components/Icon'
 import { WELCOME_CONSENT_KEY } from '@/utils/welcomeConstants'
 
 const subscribe = () => () => {}
@@ -58,7 +59,8 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
     onClose()
 
     if (isFirstTime) {
-      toast.fire('🔥 Welcome to GitRoast! Enter a GitHub username to begin.', {
+      toast.fire('Welcome to GitRoast', {
+        description: 'Enter a GitHub username to begin.',
         duration: 4000,
       })
     }
@@ -169,33 +171,33 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
         {}
         <div className="welcome-header">
           <div className="welcome-badge font-mono">
-            <span className="welcome-flame" aria-hidden="true">🔥</span>
-            <span>COMMUNITY CODE DISCLOSURE</span>
+            <span className="welcome-flame" aria-hidden="true"><Icon name="flame" size={16} /></span>
+            <span>Community note</span>
           </div>
           <h2 id="welcome-modal-title" className="welcome-title font-display">
-            ENTER THE ROAST ZONE
+            Welcome to GitRoast
           </h2>
           <p id="welcome-modal-desc" className="welcome-subtitle">
-            Before your repositories get ruthlessly annihilated, here is the quick lowdown on how GitRoast works:
+            Before we roast your repositories, here is how GitRoast works:
           </p>
         </div>
 
         {}
         <div className="welcome-grid">
           <div className="welcome-item">
-            <div className="welcome-icon" aria-hidden="true">🤖</div>
+            <div className="welcome-icon" aria-hidden="true"><Icon name="search" size={20} /></div>
             <div className="welcome-item-content">
               <h3 className="welcome-item-title font-mono">AI-Powered Satire</h3>
               <p className="welcome-item-text">
-                Gemini 2.5 Flash & TypeSafe AI analyze public commits, messy PRs, and bio claims to generate savage humor. Built for laughs, not tears.
+                Gemini 2.5 Flash & TypeSafe AI analyze public commits, messy PRs, and bio claims to generate sharp, playful humor. Built for laughs, never for harassment.
               </p>
             </div>
           </div>
 
           <div className="welcome-item">
-            <div className="welcome-icon" aria-hidden="true">🛡️</div>
+            <div className="welcome-icon" aria-hidden="true"><Icon name="shield" size={20} /></div>
             <div className="welcome-item-content">
-              <h3 className="welcome-item-title font-mono">100% Public & Safe</h3>
+              <h3 className="welcome-item-title font-mono">Public data only</h3>
               <p className="welcome-item-text">
                 We only inspect public GitHub metadata via the official API. We never touch private repositories or request write permissions without explicit OAuth.
               </p>
@@ -203,11 +205,11 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           </div>
 
           <div className="welcome-item">
-            <div className="welcome-icon" aria-hidden="true">⚡</div>
+            <div className="welcome-icon" aria-hidden="true"><Icon name="flame" size={20} /></div>
             <div className="welcome-item-content">
-              <h3 className="welcome-item-title font-mono">Thick Skin Agreement</h3>
+              <h3 className="welcome-item-title font-mono">Playful, not personal</h3>
               <p className="welcome-item-text">
-                By stepping into the arena, you agree to take the heat with good humor. Roast your own profile, pit rivals in 1v1 Battles, or inspect public repos.
+                Roasts target code, commits and habits, never identity. Roast your own profile, settle a rivalry in a Battle, or inspect a public repository.
               </p>
             </div>
           </div>
@@ -234,7 +236,7 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
             onClick={handleAccept}
             aria-disabled={!agreedSatire}
           >
-            I CAN TAKE IT — LET&apos;S ROAST 🔥
+            I can take it — let&apos;s roast
           </button>
           <div className="welcome-links font-mono">
             <Link
@@ -268,10 +270,10 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           width: 100%;
           max-width: 540px;
           background: var(--surface);
-          border: 1px solid rgba(255, 69, 0, 0.35);
+          border: 1px solid rgba(232, 78, 42, 0.35);
           box-shadow:
             0 20px 50px rgba(23, 23, 17, 0.28),
-            0 0 40px rgba(255, 69, 0, 0.15);
+            0 0 40px rgba(232, 78, 42, 0.15);
           border-radius: var(--radius-lg, 16px);
           padding: 2rem 1.75rem 1.75rem;
           display: flex;
@@ -304,7 +306,7 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           transition: all 0.18s ease;
         }
         .welcome-close:hover {
-          background: rgba(255, 69, 0, 0.15);
+          background: rgba(232, 78, 42, 0.15);
           color: var(--fire);
           border-color: var(--fire);
         }
@@ -329,8 +331,8 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           letter-spacing: 1.5px;
           text-transform: uppercase;
           color: var(--fire);
-          background: rgba(255, 69, 0, 0.1);
-          border: 1px solid rgba(255, 69, 0, 0.25);
+          background: rgba(232, 78, 42, 0.1);
+          border: 1px solid rgba(232, 78, 42, 0.25);
           padding: 4px 10px;
           border-radius: 100px;
         }
@@ -374,8 +376,8 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           transition: border-color 0.2s ease, background 0.2s ease;
         }
         .welcome-item:hover {
-          border-color: rgba(255, 107, 0, 0.3);
-          background: rgba(255, 69, 0, 0.03);
+          border-color: rgba(232, 78, 42, 0.3);
+          background: rgba(232, 78, 42, 0.03);
         }
 
         .welcome-icon {
@@ -418,8 +420,8 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           border: 1px solid transparent;
         }
         .welcome-checkbox-label--warning {
-          border-color: rgba(255, 183, 0, 0.35);
-          background: rgba(255, 183, 0, 0.06);
+          border-color: rgba(230, 184, 74, 0.35);
+          background: rgba(230, 184, 74, 0.06);
         }
 
         .welcome-checkbox {
@@ -452,12 +454,12 @@ export default function WelcomeConsentModal({ isOpen, onClose }) {
           border-radius: var(--radius-md, 12px);
           border: none;
           cursor: pointer;
-          box-shadow: 0 4px 20px rgba(255, 69, 0, 0.35);
+          box-shadow: 0 4px 20px rgba(232, 78, 42, 0.35);
           transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.18s ease, filter 0.18s ease;
         }
         .welcome-cta:hover:not(.welcome-cta--disabled) {
           transform: translateY(-1px);
-          box-shadow: 0 6px 25px rgba(255, 69, 0, 0.45);
+          box-shadow: 0 6px 25px rgba(232, 78, 42, 0.45);
         }
         .welcome-cta:active:not(.welcome-cta--disabled) {
           transform: translateY(0);

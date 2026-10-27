@@ -1,28 +1,3 @@
-// ============================================================
-// GITROAST — Battle OG Image Route
-// ============================================================
-// WHAT: Generates a 1200×630 PNG preview for battle URLs.
-//       When /battle/user1/vs/user2 is shared on Twitter/LinkedIn,
-//       this shows both usernames in a VS-style battle card.
-//
-// WHY separate from /api/og:
-//   Battle card needs a VS layout (two players side by side)
-//   Roast card has single user + score layout
-//   Different visual design = different route
-//
-// WHY Edge runtime:
-//   ImageResponse uses Satori — requires Edge runtime
-//   Cannot use standard Node.js runtime
-//
-// SATORI RULES (must follow — same as /api/og):
-//   Every div with 2+ children MUST have display: 'flex'
-//   No CSS variables — use raw hex values
-//   No CSS shorthand
-//   No animations
-//
-// WHERE: client/src/app/api/og-battle/route.js
-// ============================================================
-
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
@@ -31,10 +6,10 @@ const OG_WIDTH = 1200;
 const OG_HEIGHT = 630;
 
 function getScoreColor(score) {
-  if (!score) return "#FF6B00";
-  if (score < 40) return "#FF3D3D";
-  if (score < 70) return "#FFB700";
-  return "#00E676";
+  if (!score) return "#E84E2A";
+  if (score < 40) return "#F0705A";
+  if (score < 70) return "#E6B84A";
+  return "#7FD3A0";
 }
 
 export async function GET(request) {
@@ -42,9 +17,6 @@ export async function GET(request) {
   const user1 = searchParams.get("user1") || "player1";
   const user2 = searchParams.get("user2") || "player2";
 
-  // WHY fetch both scores in parallel:
-  //   Two independent requests — parallel is faster
-  //   If either fails → show default (no score shown)
   let score1 = null;
   let score2 = null;
   let winner = null;
@@ -70,14 +42,11 @@ export async function GET(request) {
       score2 = json?.history?.[0]?.score || null;
     }
 
-    // WHY lower score = winner:
-    //   Lower score = more roastable = winner of shame
     if (score1 !== null && score2 !== null) {
       if (score1 < score2) winner = user1;
       else if (score2 < score1) winner = user2;
     }
   } catch {
-    // WHY silent: fallback to names-only card — never 500
   }
 
   const color1 = getScoreColor(score1);
@@ -88,7 +57,7 @@ export async function GET(request) {
       style={{
         width: "1200px",
         height: "630px",
-        background: "#070707",
+        background: "#171711",
         display: "flex",
         flexDirection: "column",
         position: "relative",
@@ -96,7 +65,7 @@ export async function GET(request) {
         fontFamily: '"Courier New", monospace',
       }}
     >
-      {/* Top gradient bar */}
+      {}
       <div
         style={{
           position: "absolute",
@@ -104,12 +73,12 @@ export async function GET(request) {
           left: "0",
           right: "0",
           height: "3px",
-          background: "linear-gradient(90deg, #FF4500, #FF6B00, #FFB700)",
+          background: "linear-gradient(90deg, #E84E2A, #E84E2A, #E6B84A)",
           display: "flex",
         }}
       />
 
-      {/* Ambient glow */}
+      {}
       <div
         style={{
           position: "absolute",
@@ -119,13 +88,13 @@ export async function GET(request) {
           width: "800px",
           height: "400px",
           background:
-            "radial-gradient(ellipse, rgba(255,69,0,0.15) 0%, transparent 70%)",
+            "radial-gradient(ellipse, rgba(232, 78, 42,0.15) 0%, transparent 70%)",
           borderRadius: "50%",
           display: "flex",
         }}
       />
 
-      {/* Border */}
+      {}
       <div
         style={{
           position: "absolute",
@@ -133,12 +102,12 @@ export async function GET(request) {
           left: "0",
           right: "0",
           bottom: "0",
-          border: "1px solid #1C1C1C",
+          border: "1px solid #2E2D24",
           display: "flex",
         }}
       />
 
-      {/* Header */}
+      {}
       <div
         style={{
           display: "flex",
@@ -153,12 +122,12 @@ export async function GET(request) {
             display: "flex",
             fontSize: "30px",
             fontWeight: "900",
-            fontFamily: 'Impact, "Arial Black", sans-serif',
-            color: "#FF6B00",
+            fontFamily: 'Georgia, serif',
+            color: "#E84E2A",
             letterSpacing: "3px",
           }}
         >
-          GITROAST ⚔️
+          GitRoast Battle
         </div>
         <div
           style={{
@@ -172,7 +141,7 @@ export async function GET(request) {
         </div>
       </div>
 
-      {/* Main battle row */}
+      {}
       <div
         style={{
           display: "flex",
@@ -183,7 +152,7 @@ export async function GET(request) {
           gap: "0",
         }}
       >
-        {/* Player 1 */}
+        {}
         <div
           style={{
             display: "flex",
@@ -193,7 +162,7 @@ export async function GET(request) {
             gap: "12px",
           }}
         >
-          {/* Avatar circle */}
+          {}
           <div
             style={{
               display: "flex",
@@ -206,7 +175,7 @@ export async function GET(request) {
               border: `3px solid ${color1}`,
               fontSize: "32px",
               fontWeight: "900",
-              fontFamily: 'Impact, "Arial Black", sans-serif',
+              fontFamily: 'Georgia, serif',
               color: color1,
             }}
           >
@@ -238,7 +207,7 @@ export async function GET(request) {
                   display: "flex",
                   fontSize: "72px",
                   fontWeight: "900",
-                  fontFamily: 'Impact, "Arial Black", sans-serif',
+                  fontFamily: 'Georgia, serif',
                   color: color1,
                   lineHeight: "1",
                 }}
@@ -273,19 +242,19 @@ export async function GET(request) {
                 display: "flex",
                 fontSize: "13px",
                 padding: "4px 14px",
-                background: "rgba(255,61,61,0.15)",
-                border: "1px solid rgba(255,61,61,0.4)",
+                background: "rgba(240, 112, 90,0.15)",
+                border: "1px solid rgba(240, 112, 90,0.4)",
                 borderRadius: "6px",
-                color: "#FF3D3D",
+                color: "#F0705A",
                 letterSpacing: "1px",
               }}
             >
-              💀 MOST ROASTABLE
+              MOST ROASTABLE
             </div>
           )}
         </div>
 
-        {/* VS divider */}
+        {}
         <div
           style={{
             display: "flex",
@@ -301,8 +270,8 @@ export async function GET(request) {
               display: "flex",
               fontSize: "56px",
               fontWeight: "900",
-              fontFamily: 'Impact, "Arial Black", sans-serif',
-              color: "#FF6B00",
+              fontFamily: 'Georgia, serif',
+              color: "#E84E2A",
               letterSpacing: "4px",
             }}
           >
@@ -313,7 +282,7 @@ export async function GET(request) {
               style={{
                 display: "flex",
                 fontSize: "24px",
-                color: "#FF3D3D",
+                color: "#F0705A",
               }}
             >
               {winner === user1 ? "←" : "→"}
@@ -321,7 +290,7 @@ export async function GET(request) {
           )}
         </div>
 
-        {/* Player 2 */}
+        {}
         <div
           style={{
             display: "flex",
@@ -343,7 +312,7 @@ export async function GET(request) {
               border: `3px solid ${color2}`,
               fontSize: "32px",
               fontWeight: "900",
-              fontFamily: 'Impact, "Arial Black", sans-serif',
+              fontFamily: 'Georgia, serif',
               color: color2,
             }}
           >
@@ -375,7 +344,7 @@ export async function GET(request) {
                   display: "flex",
                   fontSize: "72px",
                   fontWeight: "900",
-                  fontFamily: 'Impact, "Arial Black", sans-serif',
+                  fontFamily: 'Georgia, serif',
                   color: color2,
                   lineHeight: "1",
                 }}
@@ -410,20 +379,20 @@ export async function GET(request) {
                 display: "flex",
                 fontSize: "13px",
                 padding: "4px 14px",
-                background: "rgba(255,61,61,0.15)",
-                border: "1px solid rgba(255,61,61,0.4)",
+                background: "rgba(240, 112, 90,0.15)",
+                border: "1px solid rgba(240, 112, 90,0.4)",
                 borderRadius: "6px",
-                color: "#FF3D3D",
+                color: "#F0705A",
                 letterSpacing: "1px",
               }}
             >
-              💀 MOST ROASTABLE
+              MOST ROASTABLE
             </div>
           )}
         </div>
       </div>
 
-      {/* Bottom bar */}
+      {}
       <div
         style={{
           display: "flex",
@@ -431,7 +400,7 @@ export async function GET(request) {
           justifyContent: "space-between",
           alignItems: "center",
           padding: "14px 64px",
-          borderTop: "1px solid #1C1C1C",
+          borderTop: "1px solid #2E2D24",
           background: "#080808",
         }}
       >
@@ -452,7 +421,7 @@ export async function GET(request) {
             color: "#3A3A3A",
           }}
         >
-          Start your own battle 🔥
+          Start your own battle
         </div>
       </div>
     </div>,
@@ -466,3 +435,4 @@ export async function GET(request) {
     },
   );
 }
+

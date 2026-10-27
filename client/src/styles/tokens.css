@@ -7,12 +7,13 @@
   --surface: #fffdf8;    /* cards */
   --surface-2: #ede5d9;  /* muted wells, table headers */
   --ink: #171711;        /* type + dark sections */
-  --ink-2: #6f6a60;      /* secondary text */
-  --ink-3: #9a9488;      /* tertiary text */
+  --ink-2: #5f5a52;      /* secondary text (AA on paper/surface/tints) */
+  --ink-3: #716c61;      /* tertiary text (AA on paper/surface) */
   --line: #e3dccf;       /* hairlines */
   --line-strong: #cfc6b5;
   --ember: #e84e2a;      /* action */
-  --ember-hover: #cf4222;
+  --ember-hover: #b83c1d;   /* ember used as TEXT on light surfaces (AA) and hover fill */
+  --ember-action: #d14626;  /* ember fill behind small white text (AA 4.5:1) */
   --ember-tint: #fbe0d6;
   --gold: #e6b84a;       /* reward */
   --gold-tint: #f8e9c8;

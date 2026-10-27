@@ -1,35 +1,9 @@
 "use client";
 
-// ============================================================
-// GITROAST — RoastCertificate Component
-// ============================================================
-// WHAT: Generates and downloads a "Certificate of GitHub Shame"
-//       as a PNG image using html2canvas.
-//
-// WHY this feature:
-//   Certificates are meme-worthy — people frame them, post them
-//   Nobody has done this for GitHub before = unique
-//   Shareable on LinkedIn, Twitter, Slack — highest virality
-//   "I got officially certified as a bad developer" = comedy gold
-//
-// HOW it works:
-//   Renders a hidden certificate div in the DOM
-//   html2canvas captures it as PNG
-//   Triggers download — same as roast card
-//
-// WHY hidden div (not canvas drawing):
-//   HTML/CSS = easier to style than raw canvas API
-//   Matches GitRoast brand perfectly with CSS variables
-//   html2canvas handles the conversion for us
-//
-// WHERE: Rendered in ShareButtons as a hidden element
-//        Button triggers handleCertificate()
-// ============================================================
 
 import { useState, useRef } from "react";
 import { toastPromise } from "@/utils/toast";
 
-// WHY grade messages: makes certificate feel official + comedic
 const GRADE_MESSAGES = {
     A: "Awarded for suspicious competence in a field that expects mediocrity.",
     B: "Awarded for maintaining a GitHub that is, at minimum, not embarrassing.",
@@ -77,11 +51,6 @@ export default function RoastCertificate({
                     const el = certRef.current;
                     if (!el) throw new Error("Certificate element not found");
 
-                    // WHY show then hide:
-                    //   Certificate div is hidden (display:none) by default
-                    //   Must be visible for html2canvas to capture it
-                    //   We show it, capture, then hide again — imperceptible
-                    
 
                     const canvas = await html2canvas(el, {
                         scale: 2,
@@ -92,16 +61,12 @@ export default function RoastCertificate({
                         windowHeight: 600,
                     });
 
-                    
 
-                    // WHY watermark on free certificate:
-                    //   Consistent with card download policy
-                    //   Pro = clean certificate, Free = watermarked
                     if (!isPro) {
                         const ctx = canvas.getContext("2d");
                         ctx.save();
                         ctx.globalAlpha = 0.12;
-                        ctx.fillStyle = "#FF6B00";
+                        ctx.fillStyle = "#E84E2A";
                         ctx.font = 'bold 32px "Courier New", monospace';
                         ctx.textAlign = "center";
                         const angle = -Math.PI / 6;
@@ -117,22 +82,6 @@ export default function RoastCertificate({
                         ctx.restore();
                     }
 
-                    // ── Cross-Browser Programmatic File Download ────────────────
-                    // ── WHAT: ────────────────────────────────────────────────────
-                    // Programmatically appends the generated certificate anchor to document.body,
-                    // clicks it to trigger the OS save dialog, and disposes of the element.
-                    //
-                    // ── WHY: ─────────────────────────────────────────────────────
-                    // Guarantees reliable file downloads across all mobile WebKit and desktop browsers.
-                    //
-                    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-                    // On certificate generation completion.
-                    //
-                    // ── USE CASES: ───────────────────────────────────────────────
-                    // Downloading Certificate of GitHub Shame PNG.
-                    //
-                    // ── WHEN NOT TO USE: ─────────────────────────────────────────
-                    // Do not use if streaming data directly via Blob URLs without revocation.
                     const link = document.createElement("a");
                     link.download = `gitroast-certificate-${username}.png`;
                     link.href = canvas.toDataURL("image/png", 1.0);
@@ -141,10 +90,10 @@ export default function RoastCertificate({
                     document.body.removeChild(link);
                 })(),
                 {
-                    loading: "🎓 Minting Certificate of GitHub Shame...",
+                    loading: "Minting your certificate…",
                     success: isPro
-                        ? "🎓 HD Certificate of Shame downloaded! (Pro Clean)"
-                        : "🎓 Certificate of GitHub Shame downloaded!",
+                        ? "HD certificate downloaded"
+                        : "Certificate downloaded",
                     error: "Certificate generation failed. Try again.",
                 }
             );
@@ -158,7 +107,7 @@ export default function RoastCertificate({
 
     return (
         <>
-            {/* Certificate trigger button */}
+            {}
             <button
                 type="button"
                 className="cert-btn font-mono"
@@ -166,23 +115,23 @@ export default function RoastCertificate({
                 disabled={generating}
                 title="Download Certificate of GitHub Shame"
             >
-                {generating ? "⏳ Generating..." : "🎓 Get Certificate"}
+                {generating ? "Generating…" : "Get certificate"}
             </button>
 
-            {/* Hidden certificate — captured by html2canvas */}
+            {}
             <div ref={certRef} style={{ position: "absolute", left: "-9999px", top: "-9999px" }} aria-hidden="true">
                 <div className="cert-container">
-                    {/* Decorative border */}
+                    {}
                     <div className="cert-border">
-                        {/* Header */}
+                        {}
                         <div className="cert-header">
-                            <div className="cert-logo font-mono">GITROAST 🔥</div>
+                            <div className="cert-logo font-mono">GITROAST</div>
                             <div className="cert-authority font-mono">
                                 OFFICIAL SHAME AUTHORITY
                             </div>
                         </div>
 
-                        {/* Title */}
+                        {}
                         <div className="cert-title-block">
                             <p className="cert-title font-display">
                                 Certificate of GitHub Shame
@@ -190,7 +139,7 @@ export default function RoastCertificate({
                             <div className="cert-divider" />
                         </div>
 
-                        {/* Body */}
+                        {}
                         <div className="cert-body">
                             <p className="cert-presents font-mono">This certifies that</p>
 
@@ -219,7 +168,7 @@ export default function RoastCertificate({
                             <p className="cert-grade-msg font-mono">{gradeMsg}</p>
                         </div>
 
-                        {/* Footer */}
+                        {}
                         <div className="cert-footer">
                             <div className="cert-sign-block">
                                 <div className="cert-sign-line" />
@@ -227,9 +176,9 @@ export default function RoastCertificate({
                                 <p className="cert-sign-title font-mono">Chief Roast Officer</p>
                             </div>
                             <div className="cert-center-block">
-                                <div className="cert-seal font-display">🔥</div>
+                                <div className="cert-seal font-display" aria-hidden="true">★</div>
                                 <div className="cert-qr-wrap">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    {}
                                     <img
                                         src={`https://api.qrserver.com/v1/create-qr-code/?size=72x72&margin=2&color=2c1810&bgcolor=fdfaf3&data=${encodeURIComponent(
                                             typeof window !== "undefined"
@@ -241,23 +190,6 @@ export default function RoastCertificate({
                                         crossOrigin="anonymous"
                                         loading="eager"
                                         onError={(e) => {
-                                            /* 
-                                              ── WHAT: ────────────────────────────────────────────────────────
-                                              Fallback placeholder SVG when the third-party QR API fails.
-                                              
-                                              ── WHY: ─────────────────────────────────────────────────────────
-                                              Prevents html2canvas export failure or broken image artifacts
-                                              if api.qrserver.com is blocked by privacy tools or network drops.
-                                              
-                                              ── WHERE & WHEN TO USE: ─────────────────────────────────────────
-                                              All third-party generated certificate QR codes.
-                                              
-                                              ── USE CASES: ───────────────────────────────────────────────────
-                                              Certificate PDF/PNG download when offline or firewalled.
-                                              
-                                              ── WHEN NOT TO USE: ─────────────────────────────────────────────
-                                              Do not use for primary user avatar icons.
-                                            */
                                             e.currentTarget.onerror = null;
                                             e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72"><rect width="72" height="72" fill="%23fdfaf3"/><rect x="8" y="8" width="56" height="56" fill="none" stroke="%232c1810" stroke-width="2"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="%232c1810">VERIFY</text></svg>';
                                         }}
@@ -296,7 +228,7 @@ export default function RoastCertificate({
         .cert-btn:hover:not(:disabled) {
           border-color: var(--fire);
           color: var(--fire);
-          background: rgba(255, 69, 0, 0.04);
+          background: rgba(232, 78, 42, 0.04);
         }
         .cert-btn:disabled {
           opacity: 0.6;
@@ -349,7 +281,7 @@ export default function RoastCertificate({
         }
         .cert-logo {
           font-size: 18px;
-          color: #ff4500;
+          color: var(--ember-hover);
           font-weight: 700;
         }
         .cert-authority {
@@ -390,7 +322,7 @@ export default function RoastCertificate({
         }
         .cert-username {
           font-size: 48px;
-          color: #ff4500;
+          color: var(--ember-hover);
           font-family: Impact, "Arial Black", sans-serif;
           letter-spacing: 2px;
           line-height: 1;
@@ -415,7 +347,7 @@ export default function RoastCertificate({
         }
         .cert-score {
           font-size: 56px;
-          color: #ff4500;
+          color: var(--ember-hover);
           line-height: 1;
           font-family: Impact, "Arial Black", sans-serif;
         }
@@ -525,3 +457,4 @@ export default function RoastCertificate({
         </>
     );
 }
+

@@ -77,23 +77,23 @@ Users can:
 
 ## 🛡️ Embed Your GitRoast Badge in Your GitHub README
 
-Developers can proudly display their fiery GitRoast score badge directly in their GitHub profile or repository `README.md`. The badge is dynamic, auto-updates with each roast, and links safely to your roast history!
+Developers can display their GitRoast score badge directly in their GitHub profile or repository `README.md`. The badge is dynamic, auto-updates with each roast, and links safely to your roast history!
 
-### Style 1: 🔥 Fiery Card Style (Recommended)
-An eye-catching 320×78px dark fiery card showing your GitHub avatar, roast score, and letter grade:
+### Style 1: Card (Recommended)
+A 380×112 ink card with the GitRoast mark, your handle, roast score, letter grade and a one-line quote:
 
 ```markdown
 [![GitRoast Score](https://gitroast.dev/api/badge/YOUR_USERNAME)](https://gitroast.dev/history/YOUR_USERNAME)
 ```
 
-### Style 2: 🛡️ Shield / Pill Style
-A clean, compact shields.io-compatible pill badge for minimalist READMEs:
+### Style 2: Shield / Pill
+A compact pill ("GitRoast 84 • Crispy") for minimalist READMEs:
 
 ```markdown
 [![GitRoast Score](https://gitroast.dev/api/badge/YOUR_USERNAME?style=shield)](https://gitroast.dev/history/YOUR_USERNAME)
 ```
 
-> **⚡ 1-Click Copy on Website**: Whenever you view your roast on GitRoast, click **"🛡️ Copy GitHub README Badge"** under your roast card to choose your style and copy the ready-to-paste snippet instantly!
+> **⚡ 1-Click Copy on Website**: Whenever you view your roast on GitRoast, use the **Wear the evidence** card on your result page or dashboard to choose your style and copy the ready-to-paste snippet instantly!
 
 ---
 

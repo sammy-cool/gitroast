@@ -165,6 +165,7 @@ router.get("/daily-burn", async (req, res) => {
 
     const topRoast = await Roast.findOne({
       roastText: { $exists: true, $ne: "" },
+      isPrivate: { $ne: true }, // Ghost Mode stays out of public discovery
     })
       .sort({ "reactions.savage": -1, "reactions.destroyed": -1, createdAt: -1 })
       .select("_id username score grade roastText reactions avatarUrl")

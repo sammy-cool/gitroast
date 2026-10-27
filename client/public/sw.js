@@ -1,7 +1,7 @@
 // GitRoast service worker v2 — offline-aware, never caches API calls.
 const STATIC_CACHE = 'gitroast-static-v2'
 const PAGE_CACHE = 'gitroast-pages-v2'
-const PRECACHE_ASSETS = ['/offline', '/manifest.json']
+const PRECACHE_ASSETS = ['/offline', '/manifest.json', '/icon.svg', '/icon-192.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

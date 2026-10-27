@@ -21,7 +21,7 @@
 .uv-btn { display: inline-flex; align-items: center; justify-content: center; min-height: var(--hit); padding: 0 16px; border-radius: var(--r-pill); border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.08); color: #fff; font: 600 13px var(--font-sans); cursor: pointer; text-decoration: none; transition: background var(--t-fast); }
 .uv-btn:hover { background: rgba(255,255,255,.16); }
 .uv-btn[aria-pressed="true"] { border-color: var(--gold); }
-.uv-btn--ember { background: var(--ember); border-color: var(--ember); } .uv-btn--ember:hover { background: var(--ember-hover); }
+.uv-btn--ember { background: var(--ember-action); border-color: var(--ember-action); } .uv-btn--ember:hover { background: var(--ember-hover); }
 
 .uv-metrics { position: absolute; top: 92px; left: 20px; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; pointer-events: none; }
 .uv-chip { padding: 5px 12px; border-radius: var(--r-pill); background: rgba(23,23,17,.78); border: 1px solid rgba(255,255,255,.12); font: 500 12px var(--font-code); color: #e9e4d8; backdrop-filter: blur(8px); }
@@ -44,7 +44,7 @@
 .uv-verdict__k { font: 600 10px var(--font-code); text-transform: uppercase; letter-spacing: .06em; color: var(--warn-ink); }
 .uv-verdict p { font-size: 14px; margin-top: 4px; }
 .uv-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-.uv-inspector .uv-btn { background: var(--surface); color: var(--ink); border-color: var(--line-strong); } .uv-inspector .uv-btn--ember { background: var(--ember); color: #fff; border-color: var(--ember); }
+.uv-inspector .uv-btn { background: var(--surface); color: var(--ink); border-color: var(--line-strong); } .uv-inspector .uv-btn--ember { background: var(--ember-action); color: #fff; border-color: var(--ember-action); }
 
 .uv-ticker { position: absolute; inset: auto 0 0 0; min-height: 52px; padding: 0 16px var(--safe-bottom); display: flex; align-items: center; gap: 12px; background: rgba(23,23,17,.85); backdrop-filter: blur(12px); border-top: 1px solid rgba(255,255,255,.1); }
 .uv-ticker__label { font: 600 10px var(--font-code); letter-spacing: .08em; text-transform: uppercase; color: var(--gold); flex: none; }

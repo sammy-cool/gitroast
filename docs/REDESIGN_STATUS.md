@@ -32,6 +32,16 @@ Toast status icons are now wired through the package's `icon` option (3.17+). Pe
 ## Phase 7 — ship-readiness (done)
 CI workflow (`.github/workflows/ci.yml`: import check, server tests, client tests, client build), README updated (intensity/persona vocabulary, regional pricing, AI quota, new env vars, new API endpoints, design system), `docs/DEPLOYMENT.md` (env, external setup, deploy order, smoke test, rollback), unused imports removed from changed files.
 
+## Phase 10 — full audit (done)
+Method: automated scans over every client and server file (legacy colours, emoji in UI copy, stale claims, undefined names, unused imports, hooks order, accessibility hygiene, contrast ratios), then manual fixes in every flagged file.
+Fixed:
+- **Security/privacy:** JSON-LD is now serialised safely (route params could break out of the script tag, 12 pages); Ghost Mode profiles no longer appear in the home "Live from the grill" feed or "Roast of the day"; recruiter profile lookup is exact-match; password length capped (128) before scrypt; `getHistory` escapes its regex.
+- **Stale or wrong content:** Wrapped was hard-coded to 2025 (now current/last year, client and server, with a sync test); "unlimited roasts per day" claims removed from the Pro modal and checkout; SEO titles and descriptions moved to the new voice; About/README badge text updated.
+- **Brand surfaces:** README badge (card + shield) redesigned and rendered/checked; social share images (`/api/og`, `/api/og-battle`) recoloured; Wrapped and Certificate recoloured and emoji removed; hydration loader redesigned; new favicon, apple-touch icon, PWA 192/512 + maskable icons and default share image (`og-default.png`) generated from the brand mark; manifest lists PNG icons (needed for install prompts).
+- **Accessibility:** AA contrast (ink-2, ink-3, ember text, ember behind white text); focus outlines stay visible on dark surfaces; Pro, Checkout and Wrapped dialogs now have dialog semantics, Escape, focus trap and focus return (nested dialogs close one at a time); `global-error.jsx` added.
+- **Cleanup:** four dead components removed (LeaderboardTable, CompanyLeaderboardTable, Pagination, GitHubLoginBtn); sitemap no longer lists the sign-in-gated dashboard; iOS status bar style matches the light theme.
+Not verifiable here (needs a browser): the OG image routes' rendering, Wrapped/Certificate visuals, and modal focus behaviour. The toast theme cleanup is planned in `docs/TOAST_THEME_PLAN.md`.
+
 ## Known limits
 - Quota is counted from saved AI roasts (source of truth); two simultaneous requests can exceed the limit by one. Repo-roast AI is still Pro-only and not counted.
 - Toast package (>= 3.17): max visible (3 desktop / 2 mobile), queue cap (5), top-center, reduced motion and pause-on-hover are set through `setConfig`; status icons through `icon`.

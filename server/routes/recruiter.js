@@ -14,9 +14,9 @@ const USERNAME_RE = /^[a-zA-Z0-9-]{1,39}$/;
 const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Latest public roast per username, excluding Ghost Mode (isPrivate) profiles.
-async function latestPublicProfiles({ q = "", language = "", limit = 200 }) {
+async function latestPublicProfiles({ q = "", language = "", limit = 200, exact = false }) {
   const match = { isPrivate: { $ne: true } };
-  if (q) match.username = { $regex: esc(q), $options: "i" };
+  if (q) match.username = exact ? new RegExp(`^${esc(q)}$`, "i") : { $regex: esc(q), $options: "i" };
   if (language) match.topLanguage = { $regex: `^${esc(language)}$`, $options: "i" };
   return Roast.aggregate([
     { $match: match },
@@ -102,7 +102,7 @@ router.get("/talent/:username", async (req, res) => {
   if (!USERNAME_RE.test(username)) return res.status(400).json({ error: "INVALID_USERNAME" });
   try {
     const roleKey = ROLE_MODELS[req.query.role] ? req.query.role : DEFAULT_ROLE;
-    const docs = await latestPublicProfiles({ q: username });
+    const docs = await latestPublicProfiles({ q: username, exact: true });
     const doc = docs.find((x) => x._id === username.toLowerCase());
     if (!doc) return res.status(404).json({ error: "PROFILE_NOT_FOUND", message: "No public evidence for this profile." });
     // Public score history for "Growth signals" (oldest → newest, max 12).

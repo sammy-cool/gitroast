@@ -1,4 +1,5 @@
 import BattleEntryClient from './BattleEntryClient'
+import { jsonLdString } from '@/utils/jsonLd'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev'
 
@@ -74,7 +75,7 @@ export default function BattlePage() {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
             />
             <BattleEntryClient />
         </>

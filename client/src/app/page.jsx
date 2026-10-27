@@ -1,4 +1,5 @@
 import LandingPageClient from "./LandingPageClient";
+import { jsonLdString } from '@/utils/jsonLd'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://gitroast.dev";
 
@@ -22,9 +23,9 @@ export const metadata = {
     canonical: SITE_URL,
   },
   openGraph: {
-    title: "GitRoast 🔥 — Get Your GitHub Brutally Roasted",
+    title: "GitRoast — Your GitHub has a story. We brought matches.",
     description:
-      "Paste any GitHub username and get savagely roasted by AI. Discover developer sins, commit shame, and repo grades.",
+      "AI-powered satire grounded in public code. Get the laugh, see the evidence, and leave with a better developer story.",
     url: SITE_URL,
     siteName: "GitRoast",
     type: "website",
@@ -33,15 +34,15 @@ export const metadata = {
         url: "/og-default.png",
         width: 1200,
         height: 630,
-        alt: "GitRoast — Brutal GitHub Roaster",
+        alt: "GitRoast — public code, useful satire",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "GitRoast 🔥 — Get Your GitHub Brutally Roasted",
+    title: "GitRoast — Your GitHub has a story. We brought matches.",
     description:
-      "Paste any GitHub username and get savagely roasted by AI. Discover developer sins and commit shame.",
+      "AI-powered satire grounded in public code. Get the laugh, see the evidence.",
     images: ["/og-default.png"],
     creator: "@gitroast",
   },
@@ -56,7 +57,7 @@ const jsonLd = {
       "name": "GitRoast",
       "url": SITE_URL,
       "description":
-        "Brutally honest AI-powered GitHub profile and repository roasting application.",
+        "AI-powered GitHub profile and repository roasting, grounded in public evidence.",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "All",
       "offers": {
@@ -90,7 +91,7 @@ const jsonLd = {
           "acceptedAnswer": {
             "@type": "Answer",
             "text":
-              "GitRoast is a developer comedy tool that analyzes GitHub repositories, commit patterns, and code habits to generate savagely entertaining roasts and developer scorecards.",
+              "GitRoast is a developer comedy tool that analyzes GitHub repositories, commit patterns, and code habits to generate entertaining, evidence-backed roasts and developer scorecards.",
           },
         },
         {
@@ -121,7 +122,7 @@ export default function HomePage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
       />
       <LandingPageClient />
     </>

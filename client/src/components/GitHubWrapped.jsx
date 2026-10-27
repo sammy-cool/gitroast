@@ -1,26 +1,21 @@
 "use client";
 
-// ============================================================
-// GITROAST — GitHubWrapped Component
-// ============================================================
-// WHAT: Spotify Wrapped-style "Your 2025 GitHub Roast Report".
-//       Shows annual stats, archetype, worst month, streaks,
-//       most abandoned repo, and generates a downloadable card.
-//
-// WHY this feature:
-//   Spotify Wrapped is the single most viral end-of-year mechanic.
-//   Developers love seeing their quirks summarized with humor.
-//   Shareable card on Twitter, LinkedIn, Discord drives viral loop.
-// ============================================================
 
-import { useState, useRef } from "react";
+import { defaultWrappedYear } from "@/utils/wrapped";
+import { useState, useRef, useCallback } from "react";
+import useModalA11y from "@/hooks/useModalA11y";
 import { toast, toastPromise } from "@/utils/toast";
 import { getWrapped } from "@/services/roastService";
 import { useAuth } from "@/context/AuthContext";
 
+const YEAR = defaultWrappedYear()
+
 export default function GitHubWrapped({ username, isPro }) {
     const { getToken } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
+    const dialogRef = useRef(null);
+    const closeModal = useCallback(() => setIsOpen(false), []);
+    useModalA11y(dialogRef, closeModal, isOpen);
     const [loading, setLoading] = useState(false);
     const [wrappedData, setWrappedData] = useState(null);
     const [downloading, setDownloading] = useState(false);
@@ -33,11 +28,11 @@ export default function GitHubWrapped({ username, isPro }) {
         setLoading(true);
         try {
             const token = getToken ? getToken() : null;
-            const data = await getWrapped(username, 2025, token);
+            const data = await getWrapped(username, YEAR, token);
             setWrappedData(data);
         } catch (err) {
             console.error("[Wrapped] Load error:", err);
-            toast.error(err.message || "Failed to load 2025 Wrapped report.");
+            toast.error(err.message || `Failed to load ${YEAR} Wrapped report.`);
             setIsOpen(false);
         } finally {
             setLoading(false);
@@ -54,25 +49,22 @@ export default function GitHubWrapped({ username, isPro }) {
                     const el = cardRef.current;
                     if (!el) throw new Error("Card capture element not found");
 
-                    
 
                     const canvas = await html2canvas(el, {
                         scale: 2,
                         useCORS: true,
-                        backgroundColor: "#0A0A0A",
+                        backgroundColor: "#171711",
                         logging: false,
                         windowWidth: 700,
                         windowHeight: 900,
                     });
 
-                    
 
-                    // Watermark for free tier
                     if (!isPro) {
                         const ctx = canvas.getContext("2d");
                         ctx.save();
                         ctx.globalAlpha = 0.15;
-                        ctx.fillStyle = "#FF6B00";
+                        ctx.fillStyle = "#E84E2A";
                         ctx.font = 'bold 32px "Courier New", monospace';
                         ctx.textAlign = "center";
                         const angle = -Math.PI / 6;
@@ -81,41 +73,25 @@ export default function GitHubWrapped({ username, isPro }) {
                                 ctx.save();
                                 ctx.translate(x, y);
                                 ctx.rotate(angle);
-                                ctx.fillText("GITROAST WRAPPED 2025", 0, 0);
+                                ctx.fillText(`GITROAST WRAPPED ${YEAR}`, 0, 0);
                                 ctx.restore();
                             }
                         }
                         ctx.restore();
                     }
 
-                    // ── Cross-Browser Programmatic File Download ────────────────
-                    // ── WHAT: ────────────────────────────────────────────────────
-                    // Programmatically appends the generated Wrapped card anchor to document.body,
-                    // clicks it to trigger the OS save dialog, and disposes of the element.
-                    //
-                    // ── WHY: ─────────────────────────────────────────────────────
-                    // Guarantees reliable file downloads across all mobile WebKit and desktop browsers.
-                    //
-                    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-                    // On Wrapped card PNG export.
-                    //
-                    // ── USE CASES: ───────────────────────────────────────────────
-                    // Downloading year-in-review Wrapped summary cards.
-                    //
-                    // ── WHEN NOT TO USE: ─────────────────────────────────────────
-                    // Do not use if streaming data directly via Blob URLs without revocation.
                     const link = document.createElement("a");
-                    link.download = `gitroast-wrapped-2025-${username}.png`;
+                    link.download = `gitroast-wrapped-${YEAR}-${username}.png`;
                     link.href = canvas.toDataURL("image/png", 1.0);
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                 })(),
                 {
-                    loading: "📦 Generating 2025 GitHub Wrapped card...",
+                    loading: `Generating ${YEAR} GitHub Wrapped card...`,
                     success: isPro
-                        ? "⚡ 2025 Wrapped Card downloaded (HD No Watermark)!"
-                        : "🔥 2025 Wrapped Card downloaded! Go Pro for watermark-free.",
+                        ? `${YEAR} Wrapped Card downloaded (HD No Watermark)!`
+                        : `${YEAR} Wrapped card downloaded. Go Pro for watermark-free.`,
                     error: "Download failed. Please try again.",
                 }
             );
@@ -132,81 +108,67 @@ export default function GitHubWrapped({ username, isPro }) {
         const worstMonthText = wrappedData.worstMonth?.month
             ? `Worst Month: ${wrappedData.worstMonth.month} (${wrappedData.worstMonth.commits || 0} commits)`
             : 'Worst Month: None';
-        const text = `My 2025 GitHub Wrapped Archetype: "${wrappedData.archetypeEmoji || '🔥'} ${wrappedData.archetype || 'Developer'}".\n\nTotal Commits: ${wrappedData.totalCommits || 0}\n${worstMonthText}\nAnnual Grade: ${wrappedData.annualGrade || 'B'}\n\nRoasted by @GitRoast 🔥\n${window.location.origin}/history/${username}`;
+        const text = `My ${YEAR} GitHub Wrapped Archetype: "${wrappedData.archetypeEmoji ? `${wrappedData.archetypeEmoji} ` : ''}${wrappedData.archetype || 'Developer'}".\n\nTotal Commits: ${wrappedData.totalCommits || 0}\n${worstMonthText}\nAnnual Grade: ${wrappedData.annualGrade || 'B'}\n\nRoasted by @GitRoast 🔥\n${window.location.origin}/history/${username}`;
         window.open(
             `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
             "_blank",
             "noopener,noreferrer",
         );
-        toast.success("🐦 Twitter opened! Share your 2025 Wrapped.");
+        toast.success(`Twitter opened! Share your ${YEAR} Wrapped.`);
     }
 
-    // ── Safe Monthly Commits Calculation ─────────────────────────
-    // ── WHAT: ────────────────────────────────────────────────────
-    // Computes the maximum monthly commit count across the target calendar year.
-    //
-    // ── WHY: ─────────────────────────────────────────────────────
-    // Optional chaining prevents unhandled TypeErrors if monthlyCommits is missing
-    // or undefined during transient payload deserialization.
-    //
-    // ── WHERE & WHEN TO USE: ─────────────────────────────────────
-    // Normalizing bar chart heights in data visualization components.
-    //
-    // ── USE CASES: ───────────────────────────────────────────────
-    // Dynamically scaling SVG or CSS flex bars relative to peak month.
-    //
-    // ── WHEN NOT TO USE: ─────────────────────────────────────────
-    // Do not use if monthlyCommits is guaranteed to be a non-empty typed Float64Array.
     const maxMonthly = wrappedData?.monthlyCommits?.length
         ? Math.max(1, ...wrappedData.monthlyCommits.map((m) => m.count || 0))
         : 1;
 
     return (
         <>
-            {/* Trigger Button */}
+            {}
             <button
                 type="button"
                 className="wrapped-trigger-btn font-mono"
                 onClick={handleOpen}
-                title="View 2025 GitHub Wrapped Roast Report"
+                title={`View ${YEAR} GitHub Wrapped Roast Report`}
             >
-                🎁 2025 Wrapped
+                {YEAR} Wrapped
             </button>
 
-            {/* Modal */}
+            {}
             {isOpen && (
                 <div
                     className="wrapped-backdrop"
-                    onClick={() => setIsOpen(false)}
-                    role="dialog"
-                    aria-modal="true"
+                    onClick={closeModal}
                 >
                     <div
+                        ref={dialogRef}
                         className="wrapped-modal"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={`${YEAR} GitHub Wrapped`}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <button
                             type="button"
                             className="close-btn"
-                            onClick={() => setIsOpen(false)}
-                            aria-label="Close Wrapped Modal"
+                            onClick={closeModal}
+                            aria-label="Close Wrapped"
                         >
                             ✕
                         </button>
 
                         {loading ? (
                             <div className="wrapped-loading">
-                                <div className="spinner font-display">🔥</div>
+                                <div className="spinner font-display" aria-hidden="true">●</div>
                                 <p className="font-mono loading-text">
-                                    Calculating your 2025 developer sins...
+                                    Calculating your {YEAR} developer sins...
                                 </p>
                             </div>
                         ) : wrappedData ? (
                             <div className="wrapped-content">
-                                {/* Header */}
+                                {}
                                 <div className="wrapped-header">
                                     <span className="wrapped-badge font-mono">
-                                        GITROAST 2025 WRAPPED
+                                        GITROAST {YEAR} WRAPPED
                                     </span>
                                     <h2 className="wrapped-title font-display">
                                         @{wrappedData.username}&rsquo;S YEAR IN REVIEW
@@ -216,14 +178,14 @@ export default function GitHubWrapped({ username, isPro }) {
                                     </p>
                                 </div>
 
-                                {/* Archetype Highlight */}
+                                {}
                                 <div className="archetype-card">
                                     <div className="archetype-emoji font-display">
                                         {wrappedData.archetypeEmoji}
                                     </div>
                                     <div className="archetype-details">
                                         <span className="archetype-tag font-mono">
-                                            YOUR 2025 ARCHETYPE
+                                            YOUR {YEAR} ARCHETYPE
                                         </span>
                                         <h3 className="archetype-name font-display">
                                             {wrappedData.archetype}
@@ -234,14 +196,14 @@ export default function GitHubWrapped({ username, isPro }) {
                                     </div>
                                 </div>
 
-                                {/* 4-Stat Grid */}
+                                {}
                                 <div className="wrapped-grid">
                                     <div className="stat-card">
                                         <span className="stat-label font-mono">Total Commits</span>
                                         <span className="stat-num font-display">
                                             {wrappedData.totalCommits}
                                         </span>
-                                        <span className="stat-sub font-mono">in 2025</span>
+                                        <span className="stat-sub font-mono">in {YEAR}</span>
                                     </div>
 
                                     <div className="stat-card">
@@ -275,11 +237,11 @@ export default function GitHubWrapped({ username, isPro }) {
                                     </div>
                                 </div>
 
-                                {/* Monthly Activity Chart */}
+                                {}
                                 <div className="chart-section">
                                     <div className="chart-title font-mono">
                                         <span>MONTHLY COMMIT SPREAD</span>
-                                        <span className="chart-year font-mono">2025</span>
+                                        <span className="chart-year font-mono">{YEAR}</span>
                                     </div>
                                     <div className="chart-bars">
                                         {(wrappedData.monthlyCommits || []).map((m) => {
@@ -304,7 +266,7 @@ export default function GitHubWrapped({ username, isPro }) {
                                     </div>
                                 </div>
 
-                                {/* Annual Grade & Roast */}
+                                {}
                                 <div className="verdict-banner">
                                     <div className="verdict-grade-block">
                                         <span className="grade-label font-mono">ANNUAL GRADE</span>
@@ -320,7 +282,7 @@ export default function GitHubWrapped({ username, isPro }) {
                                     </p>
                                 </div>
 
-                                {/* Actions */}
+                                {}
                                 <div className="wrapped-actions">
                                     <button
                                         type="button"
@@ -344,7 +306,7 @@ export default function GitHubWrapped({ username, isPro }) {
                 </div>
             )}
 
-            {/* Hidden Printable Card for html2canvas */}
+            {}
             <div
                 ref={cardRef}
                 style={{ position: "absolute", left: "-9999px", top: "-9999px" }}
@@ -354,8 +316,8 @@ export default function GitHubWrapped({ username, isPro }) {
                 {wrappedData && (
                     <div className="capture-container">
                         <div className="capture-header">
-                            <span className="capture-logo font-mono">GITROAST 🔥</span>
-                            <span className="capture-badge font-mono">2025 WRAPPED</span>
+                            <span className="capture-logo font-mono">GITROAST</span>
+                            <span className="capture-badge font-mono">{YEAR} WRAPPED</span>
                         </div>
 
                         <div className="capture-user">
@@ -363,7 +325,7 @@ export default function GitHubWrapped({ username, isPro }) {
                                 @{wrappedData.username}
                             </h1>
                             <p className="capture-sub font-mono">
-                                2025 GitHub Year In Review
+                                {YEAR} GitHub Year In Review
                             </p>
                         </div>
 
@@ -418,7 +380,7 @@ export default function GitHubWrapped({ username, isPro }) {
                         </div>
 
                         <div className="capture-footer font-mono">
-                            <span>gitroast · github roast report 2025</span>
+                            <span>gitroast · github roast report {YEAR}</span>
                             <span>Grade: {wrappedData.annualGrade} ({wrappedData.annualScore}/100)</span>
                         </div>
                     </div>
@@ -430,9 +392,9 @@ export default function GitHubWrapped({ username, isPro }) {
           flex: 1;
           padding: 10px 14px;
           border-radius: var(--radius-md);
-          background: rgba(255, 107, 0, 0.08);
-          border: 1px solid rgba(255, 107, 0, 0.35);
-          color: #ffb700;
+          background: rgba(232, 78, 42, 0.08);
+          border: 1px solid rgba(232, 78, 42, 0.35);
+          color: #E6B84A;
           font-size: 13px;
           font-weight: 600;
           cursor: pointer;
@@ -444,9 +406,9 @@ export default function GitHubWrapped({ username, isPro }) {
           gap: 6px;
         }
         .wrapped-trigger-btn:hover {
-          background: rgba(255, 107, 0, 0.16);
-          border-color: #ff6b00;
-          color: #ff4500;
+          background: rgba(232, 78, 42, 0.16);
+          border-color: #E84E2A;
+          color: #E84E2A;
           transform: translateY(-1px);
         }
 
@@ -470,9 +432,9 @@ export default function GitHubWrapped({ username, isPro }) {
           max-height: 90vh;
           overflow-y: auto;
           background: #0d0d0d;
-          border: 1px solid rgba(255, 107, 0, 0.3);
+          border: 1px solid rgba(232, 78, 42, 0.3);
           border-radius: var(--radius-lg, 12px);
-          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 32px rgba(255, 69, 0, 0.15);
+          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 32px rgba(232, 78, 42, 0.15);
           position: relative;
           padding: 28px;
         }
@@ -523,16 +485,16 @@ export default function GitHubWrapped({ username, isPro }) {
           letter-spacing: 2px;
           padding: 3px 10px;
           border-radius: 20px;
-          background: rgba(255, 69, 0, 0.12);
-          border: 1px solid rgba(255, 69, 0, 0.4);
-          color: #ff6b00;
+          background: rgba(232, 78, 42, 0.12);
+          border: 1px solid rgba(232, 78, 42, 0.4);
+          color: #E84E2A;
           margin-bottom: 8px;
         }
         .wrapped-title {
           font-size: 32px;
           line-height: 1.1;
           letter-spacing: 1px;
-          background: linear-gradient(135deg, #fff 0%, #ffb700 100%);
+          background: linear-gradient(135deg, #fff 0%, #E6B84A 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
         }
@@ -544,8 +506,8 @@ export default function GitHubWrapped({ username, isPro }) {
 
         /* Archetype */
         .archetype-card {
-          background: #141414;
-          border: 1px solid rgba(255, 107, 0, 0.25);
+          background: #22221A;
+          border: 1px solid rgba(232, 78, 42, 0.25);
           border-radius: var(--radius-md);
           padding: 16px 18px;
           display: flex;
@@ -563,7 +525,7 @@ export default function GitHubWrapped({ username, isPro }) {
         .archetype-tag {
           font-size: 9px;
           letter-spacing: 2px;
-          color: #ff6b00;
+          color: #E84E2A;
           display: block;
           margin-bottom: 2px;
         }
@@ -615,15 +577,15 @@ export default function GitHubWrapped({ username, isPro }) {
           text-overflow: ellipsis;
         }
         .text-danger {
-          color: #ff4500;
+          color: #E84E2A;
         }
         .text-fire {
-          color: #ffb700;
+          color: #E6B84A;
         }
         .text-repo {
           font-size: 14px;
           font-weight: 700;
-          color: #00e676;
+          color: #7FD3A0;
           overflow: hidden;
           text-overflow: ellipsis;
         }
@@ -645,7 +607,7 @@ export default function GitHubWrapped({ username, isPro }) {
           margin-bottom: 10px;
         }
         .chart-year {
-          color: #ff6b00;
+          color: #E84E2A;
         }
         .chart-bars {
           display: flex;
@@ -670,10 +632,10 @@ export default function GitHubWrapped({ username, isPro }) {
           transition: height 0.3s ease;
         }
         .bar:hover {
-          background: #ff6b00;
+          background: #E84E2A;
         }
         .bar-worst {
-          background: rgba(255, 69, 0, 0.5);
+          background: rgba(232, 78, 42, 0.5);
         }
         .bar-label {
           font-size: 9px;
@@ -682,8 +644,8 @@ export default function GitHubWrapped({ username, isPro }) {
 
         /* Verdict */
         .verdict-banner {
-          background: rgba(255, 69, 0, 0.05);
-          border: 1px dashed rgba(255, 69, 0, 0.3);
+          background: rgba(232, 78, 42, 0.05);
+          border: 1px dashed rgba(232, 78, 42, 0.3);
           border-radius: var(--radius-md);
           padding: 14px 16px;
           margin-bottom: 20px;
@@ -696,13 +658,13 @@ export default function GitHubWrapped({ username, isPro }) {
           flex-direction: column;
           align-items: center;
           flex-shrink: 0;
-          border-right: 1px solid rgba(255, 69, 0, 0.2);
+          border-right: 1px solid rgba(232, 78, 42, 0.2);
           padding-right: 14px;
         }
         .grade-label {
           font-size: 8px;
           letter-spacing: 1px;
-          color: #ff6b00;
+          color: #E84E2A;
         }
         .grade-value {
           font-size: 32px;
@@ -750,8 +712,8 @@ export default function GitHubWrapped({ username, isPro }) {
         }
         .capture-container {
           width: 650px;
-          background: #0a0a0a;
-          border: 2px solid #ff4500;
+          background: #171711;
+          border: 2px solid #E84E2A;
           padding: 36px;
           color: #fff;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -766,17 +728,17 @@ export default function GitHubWrapped({ username, isPro }) {
         .capture-logo {
           font-size: 18px;
           font-weight: 700;
-          color: #ff4500;
+          color: #E84E2A;
         }
         .capture-badge {
           font-size: 11px;
-          color: #ffb700;
+          color: #E6B84A;
           letter-spacing: 2px;
         }
         .capture-username {
           font-size: 42px;
           line-height: 1;
-          color: #ff6b00;
+          color: #E84E2A;
           letter-spacing: 1px;
         }
         .capture-sub {
@@ -785,7 +747,7 @@ export default function GitHubWrapped({ username, isPro }) {
           margin-bottom: 24px;
         }
         .capture-archetype {
-          background: #141414;
+          background: #22221A;
           border: 1px solid #333;
           border-radius: 8px;
           padding: 16px;
@@ -800,7 +762,7 @@ export default function GitHubWrapped({ username, isPro }) {
         .capture-arch-label {
           font-size: 9px;
           letter-spacing: 2px;
-          color: #ff6b00;
+          color: #E84E2A;
         }
         .capture-arch-title {
           font-size: 26px;
@@ -836,14 +798,14 @@ export default function GitHubWrapped({ username, isPro }) {
           color: #fff;
         }
         .cs-danger {
-          color: #ff4500;
+          color: #E84E2A;
         }
         .cs-fire {
-          color: #ffb700;
+          color: #E6B84A;
         }
         .capture-quote-box {
-          background: rgba(255, 69, 0, 0.06);
-          border: 1px dashed rgba(255, 69, 0, 0.4);
+          background: rgba(232, 78, 42, 0.06);
+          border: 1px dashed rgba(232, 78, 42, 0.4);
           border-radius: 8px;
           padding: 14px;
           margin-bottom: 20px;
@@ -884,7 +846,7 @@ export default function GitHubWrapped({ username, isPro }) {
           }
           .verdict-grade-block {
             border-right: none;
-            border-bottom: 1px solid rgba(255, 69, 0, 0.2);
+            border-bottom: 1px solid rgba(232, 78, 42, 0.2);
             padding-right: 0;
             padding-bottom: 8px;
           }
@@ -893,3 +855,4 @@ export default function GitHubWrapped({ username, isPro }) {
         </>
     );
 }
+

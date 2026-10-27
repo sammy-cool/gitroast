@@ -1,11 +1,12 @@
 import PricingPageClient from './PricingPageClient'
+import { jsonLdString } from '@/utils/jsonLd'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev'
 
 export const metadata = {
-    title: 'GitRoast Pro ⚡ — Pricing & Plans | Nuclear Roasts & AI Insights',
+    title: 'GitRoast Pricing — Free to get roasted, Pro to remember everything',
     description:
-        'Unlock Gemini AI roasts, Nuclear intensity mode, zero watermarks, high-resolution certificate downloads, private repository analysis, and unlimited daily roasts.',
+        'Free gets 3 AI roasts a month. Pro Roaster adds 30 AI roasts per billing cycle, Nuclear intensity, history and watermark-free cards. Historian adds trends and reports. Prices adjust to your region.',
     keywords: [
         'gitroast pricing',
         'gitroast pro',
@@ -18,9 +19,9 @@ export const metadata = {
         canonical: `${SITE_URL}/pricing`,
     },
     openGraph: {
-        title: 'GitRoast Pro ⚡ — Pricing & Plans',
+        title: 'GitRoast Pro — Pricing & Plans',
         description:
-            'Free gets you a taste. Pro gets you annihilated. Unlock Nuclear AI roasts, unlimited daily quotas, and watermark-free certificates.',
+            'Free to get roasted, Pro to remember everything. Nuclear AI roasts, 30 AI roasts per billing cycle, history and watermark-free cards. Prices adjust to your region.',
         url: `${SITE_URL}/pricing`,
         siteName: 'GitRoast',
         type: 'website',
@@ -35,8 +36,8 @@ export const metadata = {
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'GitRoast Pro ⚡ — Pricing & Plans',
-        description: 'Free gets you a taste. Pro gets you annihilated.',
+        title: 'GitRoast Pro — Pricing & Plans',
+        description: 'Free to get roasted. Pro to remember everything.',
         images: ['/og-default.png'],
         creator: '@gitroast',
     },
@@ -88,7 +89,7 @@ export default function PricingPage() {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
             />
             <PricingPageClient />
         </>

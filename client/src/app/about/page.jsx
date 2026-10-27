@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Breadcrumb from "@/components/Breadcrumb";
 import "./about.css";
+import { jsonLdString } from '@/utils/jsonLd'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://gitroast.dev";
 
@@ -94,7 +95,7 @@ const FAQS = [
   },
   {
     q: "How does the AI work?",
-    a: "We extract statistical signals from your GitHub profile (commit frequencies, star-to-repo ratios, commit message patterns, language distributions, and graveyard streaks) and pass this structured snapshot to Google Gemini AI to assemble a savage, context-aware roast.",
+    a: "We extract statistical signals from your GitHub profile (commit frequencies, star-to-repo ratios, commit message patterns, language distributions, and graveyard streaks) and pass this structured snapshot to Google Gemini AI, which writes the roast from the evidence. Humor never changes your score.",
   },
   {
     q: "What if Gemini AI or GitHub API is down?",
@@ -102,7 +103,7 @@ const FAQS = [
   },
   {
     q: "How can I add the GitRoast badge to my GitHub profile README?",
-    a: "Every roast page and history page features a 1-click '🛡️ Copy GitHub README Badge' button! You can choose between a fiery dark card style (320×78px) or a sleek shield/pill style. Paste the Markdown snippet into your GitHub profile README.md and it will dynamically update with your score!",
+    a: "Your result page and dashboard have a one-click badge generator. Choose a Card or Shield style, copy the Markdown, and paste it into your profile README.md. The badge shows your latest score and links back to your public history.",
   },
   {
     q: "How do I remove or re-roast my profile?",
@@ -113,10 +114,10 @@ const FAQS = [
 export default function AboutPage() {
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(aboutJsonLd) }} />
       <main className="ab">
         <div className="gr-page ab-body">
-          <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "About" }]} />
+          <Breadcrumb items={[{ label: "Home", href:"/" }, { label: "About" }]} />
 
           <header className="ab-head">
             <p className="gr-eyebrow">Mission and architecture</p>
@@ -195,9 +196,9 @@ export default function AboutPage() {
             <h2 id="ab-badges" className="gr-h3">README profile badges</h2>
             <p>Wear your roast like a badge of honor. GitRoast generates live SVG badges you can embed in your profile or repository <code className="ab-code">README.md</code>.</p>
             <div className="ab-grid ab-grid--2">
-              <div><b>Card style (recommended)</b><p className="ab-p">320×78 card with avatar, score and grade.</p>
+              <div><b>Card style (recommended)</b><p className="ab-p">380×112 ink card with the GitRoast mark, score, grade and a quote.</p>
                 <code className="ab-block gr-mono">[![GitRoast Score](https://gitroast.dev/api/badge/your-username)](https://gitroast.dev/history/your-username)</code></div>
-              <div><b>Shield style</b><p className="ab-p">Compact pill matching popular open-source badges.</p>
+              <div><b>Shield style</b><p className="ab-p">Compact pill: GitRoast, score and intensity.</p>
                 <code className="ab-block gr-mono">[![GitRoast Score](https://gitroast.dev/api/badge/your-username?style=shield)](https://gitroast.dev/history/your-username)</code></div>
             </div>
             <p className="gr-help">Tip: copy your personalized badge in one click from your result page or dashboard.</p>

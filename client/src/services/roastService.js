@@ -1,3 +1,5 @@
+import { defaultWrappedYear } from "../utils/wrapped.js";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 async function safeParseJson(res) {
@@ -206,7 +208,7 @@ export async function reactToBattle(battleId, type) {
   }
 }
 
-export async function getWrapped(username, year = 2025, token = null) {
+export async function getWrapped(username, year = defaultWrappedYear(), token = null) {
   const headers = { "Content-Type": "application/json" };
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;

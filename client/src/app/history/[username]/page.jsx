@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import HistoryPageClient from './HistoryPageClient'
+import { jsonLdString } from '@/utils/jsonLd'
 
 export async function generateMetadata({ params }) {
     const { username } = await params
@@ -80,7 +81,7 @@ export default async function HistoryPage({ params }) {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
             />
             <Suspense fallback={null}>
                 <HistoryPageClient username={username} />

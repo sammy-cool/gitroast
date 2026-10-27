@@ -109,7 +109,7 @@ export default function RoastPageClient({ username }) {
         if (err.code === 'USER_NOT_FOUND') {
           toast.error(`GitHub user "@${username}" not found.`, {
             cta: {
-              label: 'Search Wall 🔍',
+              label: 'Search Wall',
               onClick: () => router.push('/leaderboard'),
               autoClose: true,
             },

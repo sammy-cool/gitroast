@@ -1,15 +1,5 @@
 'use client'
 
-// ============================================================
-// GITROAST — Sound FX Toggle Component
-// ============================================================
-/**
- * WHAT: Accessible sound effects mute/unmute toggle button with persistent state.
- * WHY: Gives users immediate, one-click agency over audio feedback with clear visual states.
- * WHERE & WHEN TO USE: Placed in the top navigation bar or floating corner across all pages.
- * USE CASES: User wants silent browsing or wants to re-enable fiery audio feedback.
- * WHEN NOT TO USE: In headless environments or during SSR passes.
- */
 
 import { useCallback, useSyncExternalStore } from 'react'
 import { isMuted, toggleMute, playClick } from '@/utils/soundFX'
@@ -77,11 +67,11 @@ export default function SoundToggle() {
         }
         .sound-toggle-btn:hover {
           color: var(--text-primary);
-          border-color: rgba(255, 69, 0, 0.4);
-          background: rgba(255, 69, 0, 0.08);
+          border-color: rgba(232, 78, 42, 0.4);
+          background: rgba(232, 78, 42, 0.08);
         }
         .sound-toggle-btn--active {
-          border-color: rgba(255, 107, 0, 0.3);
+          border-color: rgba(232, 78, 42, 0.3);
         }
         .sound-toggle-btn--active .sound-toggle-icon {
           animation: pulseSpeaker 2s infinite ease-in-out;
@@ -115,3 +105,4 @@ export default function SoundToggle() {
     </button>
   )
 }
+

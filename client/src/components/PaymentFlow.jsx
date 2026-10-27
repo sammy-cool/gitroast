@@ -142,7 +142,7 @@ export default function PaymentFlow({ planId, onClose }) {
             setStatus('done')
 
             toast.paymentSuccess({
-                message: '⚡ You are now Pro! AI roasts + Nuclear unlocked.',
+                message: 'You are now Pro. AI roasts and Nuclear are unlocked.',
                 position: 'top-center',
             })
 
@@ -192,7 +192,7 @@ export default function PaymentFlow({ planId, onClose }) {
         return (
             <div className="pf-center" style={{ flexDirection: 'column', gap: '1rem', textAlign: 'center' }}>
                 <p className="font-display text-fire" style={{ fontSize: '36px' }}>
-                    ⚡ YOU&apos;RE PRO!
+                    You&apos;re Pro.
                 </p>
                 <p className="font-mono" style={{ fontSize: '14px', color: 'var(--good)' }}>
                     Redirecting you now...
@@ -254,9 +254,9 @@ export default function PaymentFlow({ planId, onClose }) {
             <div className="pf-unlocks font-mono">
                 <p className="pf-unlocks-title">After payment you unlock:</p>
                 <p className="pf-unlock-item">✓ Real Gemini AI roasts — not scripts</p>
-                <p className="pf-unlock-item">✓ ☢️ Nuclear intensity — zero mercy</p>
+                <p className="pf-unlock-item">✓ Nuclear intensity unlocked</p>
                 <p className="pf-unlock-item">✓ HD card — no watermark</p>
-                <p className="pf-unlock-item">✓ Unlimited roasts per day</p>
+                <p className="pf-unlock-item">✓ {planId === 'historian' ? '200' : '30'} AI roasts per billing cycle</p>
                 {planId === 'historian' && (
                     <p className="pf-unlock-item">✓ Monthly roast report email</p>
                 )}
@@ -268,11 +268,11 @@ export default function PaymentFlow({ planId, onClose }) {
                 className="btn btn-primary pf-pay-btn"
                 onClick={handlePayment}
             >
-                🔥 Pay with Razorpay
+                Pay with Razorpay
             </button>
 
             <p className="pf-secure font-mono">
-                🔒 Secured by Razorpay · PCI DSS compliant
+                Secured by Razorpay · PCI DSS compliant
             </p>
 
             <button type="button" className="btn btn-ghost pf-cancel" onClick={onClose}>

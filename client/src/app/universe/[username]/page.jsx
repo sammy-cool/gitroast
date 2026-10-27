@@ -1,28 +1,6 @@
-// ============================================================
-// GITROAST — 3D Code Solar System Page (SSR Shell)
-// ============================================================
-// WHAT: Server component providing dynamic OpenGraph and SEO metadata
-//       for a developer's 3D planetary universe, streaming into UniversePageClient.
-//
-// WHY server component:
-//   - Allows server-side OpenGraph tag generation for rich social sharing cards.
-//   - Embeds structured JSON-LD ProfilePage schema for search engine indexation.
-//   - Keeps heavy Three.js client bundle isolated behind client boundary.
-//
-// WHERE & WHEN TO USE:
-//   - Mounted at `/universe/:username` when visiting or sharing an interactive
-//     3D cosmic solar system representing a developer's GitHub repos and stars.
-//
-// USE CASES:
-//   - Developer sharing their 3D portfolio galaxy on Twitter/X or LinkedIn.
-//   - Recruiters exploring candidate codebases visually as an orbiting star system.
-//
-// WHEN NOT TO USE:
-//   - Do not use for raw text-only views or headless API responses.
-// ============================================================
-
 import { Suspense } from 'react'
 import UniversePageClient from './UniversePageClient'
+import { jsonLdString } from '@/utils/jsonLd'
 
 export async function generateMetadata({ params }) {
     const { username } = await params
@@ -30,7 +8,7 @@ export async function generateMetadata({ params }) {
     const ogImageUrl = `${siteUrl}/api/og?username=${encodeURIComponent(username)}`
 
     return {
-        title: `🌌 3D Code Solar System — @${username} | GitRoast Universe`,
+        title: `3D Code Solar System — @${username} | GitRoast Universe`,
         description: `Explore @${username}'s GitHub universe in interactive 3D WebGL. Repositories as orbiting planets, commit heatmaps as stellar corona, and tech debt black holes.`,
         keywords: [
             `${username} 3d universe`,
@@ -44,7 +22,7 @@ export async function generateMetadata({ params }) {
             canonical: `${siteUrl}/universe/${username}`,
         },
         openGraph: {
-            title: `🌌 @${username}'s 3D Code Solar System | GitRoast`,
+            title: `@${username}'s 3D Code Solar System | GitRoast`,
             description: `Step into the cosmic visualizer: watch @${username}'s GitHub repos orbit as habitable worlds, gas giants, and technical debt singularities.`,
             type: 'website',
             url: `${siteUrl}/universe/${username}`,
@@ -57,7 +35,7 @@ export async function generateMetadata({ params }) {
         },
         twitter: {
             card: 'summary_large_image',
-            title: `🌌 @${username}'s 3D Code Solar System | GitRoast`,
+            title: `@${username}'s 3D Code Solar System | GitRoast`,
             description: `Explore repositories as orbiting celestial bodies in interactive 3D WebGL.`,
             images: [ogImageUrl],
             creator: '@gitroast',
@@ -109,7 +87,7 @@ export default async function UniversePage({ params }) {
         <>
             <script
                 type="application/ld+json"
-                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+                dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }}
             />
             <Suspense fallback={null}>
                 <UniversePageClient username={username} />
@@ -117,3 +95,4 @@ export default async function UniversePage({ params }) {
         </>
     )
 }
+

@@ -1,9 +1,6 @@
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gitroast.dev';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-// WHAT: Dynamic sitemap revalidation interval (seconds)
-// WHY: 60 seconds ensures newly roasted profiles and leaderboard additions
-//      are automatically populated into the sitemap without manual redeployments.
 export const revalidate = 60;
 
 export default async function sitemap() {
@@ -39,12 +36,6 @@ export default async function sitemap() {
       priority: 0.8,
     },
     {
-      url: `${SITE_URL}/dashboard`,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    },
-    {
       url: `${SITE_URL}/about`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
@@ -61,7 +52,6 @@ export default async function sitemap() {
   const seenUsernames = new Set();
   const dynamicRoutes = [];
 
-  // Helper to add profile routes safely
   function addProfile(username, date, priority = 0.7) {
     if (!username || seenUsernames.has(username.toLowerCase())) return;
     seenUsernames.add(username.toLowerCase());
@@ -106,8 +96,8 @@ export default async function sitemap() {
       });
     }
   } catch {
-    // Graceful fallback if backend is warming up
   }
 
   return [...staticRoutes, ...dynamicRoutes];
 }
+
