@@ -42,6 +42,16 @@ Fixed:
 - **Cleanup:** four dead components removed (LeaderboardTable, CompanyLeaderboardTable, Pagination, GitHubLoginBtn); sitemap no longer lists the sign-in-gated dashboard; iOS status bar style matches the light theme.
 Not verifiable here (needs a browser): the OG image routes' rendering, Wrapped/Certificate visuals, and modal focus behaviour. The toast theme cleanup is planned in `docs/TOAST_THEME_PLAN.md`.
 
+## Phase 11 — gap closing (done)
+Recruiter workspace now has the three Figma controls that were missing: **Evidence window** (6 / 12 / 24 months / any; server-side), **More filters · N** (language, minimum fit; badge shows how many are active) and **Explain ranking** (role weights and the "sparse evidence is excluded" rule). Server messages no longer carry emoji.
+
+## Open items that need a decision (not built on purpose)
+1. Recruiter accounts: no password reset, no email verification, no account deletion. Needed before real recruiters sign up.
+2. Legal pages: no Privacy Policy, Terms or Refund/Cancellation page (Razorpay activation and Google OAuth consent screen ask for them). Footer "Privacy" currently points to the About page section.
+3. Shortlists: "shared this week" in the design needs a sharing feature (invite a colleague in the same organization).
+4. Recruiter approval: anyone can create a recruiter workspace today; decide between open, email-domain check, or manual approval.
+5. No integration tests for the new API routes (need a Mongo test database, e.g. mongodb-memory-server).
+
 ## Known limits
 - Quota is counted from saved AI roasts (source of truth); two simultaneous requests can exceed the limit by one. Repo-roast AI is still Pro-only and not counted.
 - Toast package (>= 3.17): max visible (3 desktop / 2 mobile), queue cap (5), top-center, reduced motion and pause-on-hover are set through `setConfig`; status icons through `icon`.

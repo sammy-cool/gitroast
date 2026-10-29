@@ -307,7 +307,7 @@ router.get("/:username/stream", optionalAuth, verifyCaptcha, async (req, res) =>
   if (intensity === "nuclear" && !isPro) {
     return res.status(403).json({
       error: "PRO_REQUIRED",
-      message: "☢️ Nuclear intensity requires Pro.",
+      message: "Nuclear intensity requires Pro.",
     });
   }
 

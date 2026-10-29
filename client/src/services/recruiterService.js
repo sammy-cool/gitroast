@@ -36,7 +36,7 @@ const qs = (o) => {
   const s = p.toString();
   return s ? `?${s}` : "";
 };
-export const searchTalent = (token, { q, role, language } = {}) => request(`/api/recruiter/talent${qs({ q, role, language })}`, { token });
+export const searchTalent = (token, { q, role, language, window } = {}) => request(`/api/recruiter/talent${qs({ q, role, language, window })}`, { token });
 export const getCandidate = (token, username, role) => request(`/api/recruiter/talent/${encodeURIComponent(username)}${qs({ role })}`, { token });
 export const saveTalent = (token, username) => request(`/api/recruiter/saved/${encodeURIComponent(username)}`, { method: "POST", token });
 export const unsaveTalent = (token, username) => request(`/api/recruiter/saved/${encodeURIComponent(username)}`, { method: "DELETE", token });

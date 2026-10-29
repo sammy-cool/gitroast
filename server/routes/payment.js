@@ -137,7 +137,7 @@ router.post("/verify", requireAuth, async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "⚡ Pro unlocked! Enjoy the nuclear roasts.",
+      message: "Pro unlocked. Nuclear intensity and AI roasts are active.",
       isPro: true,
       proPlan: req.user.proPlan,
     });

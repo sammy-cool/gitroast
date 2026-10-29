@@ -68,3 +68,6 @@
   .rc-row > :nth-child(4) { grid-area: act; justify-content: space-between; }
 }
 .rc-stack { display: grid; gap: 18px; min-width: 0; }
+.rc-more { flex-basis: 100%; display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; padding: 14px; border-radius: var(--r-2); background: var(--surface-2); }
+.rc-explain { border: 0; cursor: pointer; min-height: 32px; margin-top: 6px; font-family: var(--font-sans); }
+.rc-explain-card { margin: 0 24px 16px; padding: 14px 16px; border-radius: var(--r-2); background: var(--blue); display: grid; gap: 4px; }

@@ -21,6 +21,10 @@ export default function TalentWorkspace() {
   const { getToken, user } = useAuth();
   const [q, setQ] = useState("");
   const [language, setLanguage] = useState("");
+  const [windowMonths, setWindowMonths] = useState("12");
+  const [minFit, setMinFit] = useState("0");
+  const [showMore, setShowMore] = useState(false);
+  const [explain, setExplain] = useState(false);
   const [role, setRole] = useState("senior-ic");
   const [data, setData] = useState(null);
   const [status, setStatus] = useState("loading");
@@ -30,7 +34,7 @@ export default function TalentWorkspace() {
   const load = useCallback(async () => {
     setStatus("loading");
     try {
-      const [res, sl] = await Promise.all([searchTalent(getToken(), { q, role, language }), listShortlists(getToken())]);
+      const [res, sl] = await Promise.all([searchTalent(getToken(), { q, role, language, window: windowMonths }), listShortlists(getToken())]);
       setData(res);
       setLists(sl.shortlists || []);
       setStatus("ready");
@@ -40,7 +44,7 @@ export default function TalentWorkspace() {
     }
   }, [getToken, q, role, language, router]);
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [role]);
+  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [role, windowMonths]);
 
   async function toggleSave(c) {
     const next = !c.saved;
@@ -70,6 +74,8 @@ export default function TalentWorkspace() {
   const toggleSelect = (u) => setSelected((s) => (s.includes(u) ? s.filter((x) => x !== u) : [...s, u]));
   const pair = useMemo(() => (data?.results || []).filter((r) => selected.includes(r.username)).slice(0, 2), [data, selected]);
   const summary = data?.summary;
+  const extraFilters = (language ? 1 : 0) + (minFit !== "0" ? 1 : 0);
+  const visible = (data?.results || []).filter((r) => Number(minFit) === 0 || (r.fit.score ?? -1) >= Number(minFit));
   const list0 = lists[0];
 
   return (
@@ -97,10 +103,35 @@ export default function TalentWorkspace() {
           </select>
         </div>
         <div className="rc-field">
-          <label className="gr-label" htmlFor="rc-lang">Language</label>
-          <input id="rc-lang" className="gr-input" value={language} onChange={(e) => setLanguage(e.target.value)} placeholder="Any" />
+          <label className="gr-label" htmlFor="rc-window">Evidence window</label>
+          <select id="rc-window" className="gr-input" value={windowMonths} onChange={(e) => setWindowMonths(e.target.value)}>
+            <option value="6">Last 6 months</option>
+            <option value="12">Last 12 months</option>
+            <option value="24">Last 24 months</option>
+            <option value="0">Any time</option>
+          </select>
         </div>
+        <button type="button" className="gr-btn gr-btn--outline rc-filters__go" aria-expanded={showMore} aria-controls="rc-more" onClick={() => setShowMore((v) => !v)}>
+          <Icon name="list" /> More filters{extraFilters > 0 ? ` · ${extraFilters}` : ""}
+        </button>
         <button type="submit" className="gr-btn gr-btn--dark rc-filters__go"><Icon name="search" /> Search</button>
+        {showMore && (
+          <div id="rc-more" className="rc-more">
+            <div className="rc-field">
+              <label className="gr-label" htmlFor="rc-lang">Primary language</label>
+              <input id="rc-lang" className="gr-input" value={language} onChange={(e) => setLanguage(e.target.value)} placeholder="Any" />
+            </div>
+            <div className="rc-field">
+              <label className="gr-label" htmlFor="rc-minfit">Minimum fit</label>
+              <select id="rc-minfit" className="gr-input" value={minFit} onChange={(e) => setMinFit(e.target.value)}>
+                <option value="0">Any fit</option>
+                <option value="70">Good and above (70+)</option>
+                <option value="85">Strong only (85+)</option>
+              </select>
+            </div>
+            <button type="button" className="gr-btn gr-btn--quiet" onClick={() => { setLanguage(""); setMinFit("0"); }}>Clear extra filters</button>
+          </div>
+        )}
       </form>
 
       <section className="rc-stats" aria-label="Workspace summary">
@@ -124,22 +155,33 @@ export default function TalentWorkspace() {
             <div>
               <h2 id="rc-results" className="rc-card-title">Role-fit results</h2>
               <p className="gr-help">Ranked by selected public evidence signals, not identity or popularity.</p>
+              <button type="button" className="gr-pill gr-pill--blue rc-explain" aria-expanded={explain} aria-controls="rc-explain" onClick={() => setExplain((v) => !v)}>Explain ranking</button>
             </div>
             <Link href={pair.length === 2 ? `/recruiter/compare?u=${pair.map((p) => p.username).join(",")}&role=${role}` : "/recruiter/compare"} className="gr-btn gr-btn--outline" aria-disabled={selected.length < 2}>
               Compare selected
             </Link>
           </div>
 
+          {explain && data?.role?.weights && (
+            <div id="rc-explain" className="rc-explain-card" role="note">
+              <b>How {data.role.label} fit is computed</b>
+              <p className="gr-help">
+                Project depth {Math.round(data.role.weights.depth * 100)}%, collaboration {Math.round(data.role.weights.collaboration * 100)}%, documentation {Math.round(data.role.weights.documentation * 100)}%, consistency {Math.round(data.role.weights.consistency * 100)}%.
+                A signal without enough public evidence is left out and the remaining weights are renormalized, so sparse activity is never treated as a low score. Humor from roasts is not an input. <Link href="/recruiter/methodology" className="rc-link">Full methodology</Link>
+              </p>
+            </div>
+          )}
+
           {status === "loading" && <StateCard tone="loading" tag="Loading" title="Reading public evidence" text="Candidates appear in a moment." />}
           {status === "error" && <StateCard tone="error" tag="Error" title="Talent evidence is unavailable" text="Nothing was changed. Try again in a moment."><button type="button" className="gr-btn gr-btn--outline" onClick={load}>Retry</button></StateCard>}
-          {status === "ready" && !data.results.length && <StateCard tag="Empty" title="No public evidence matched" text="Try a broader search, or clear the language filter. Only opted-in public profiles appear here." />}
+          {status === "ready" && !visible.length && <StateCard tag="Empty" title="No public evidence matched" text="Try a broader search, or clear the language filter. Only opted-in public profiles appear here." />}
 
-          {status === "ready" && data.results.length > 0 && (
+          {status === "ready" && visible.length > 0 && (
             <div className="rc-table" role="table" aria-label="Role-fit results">
               <div className="rc-row rc-row--head" role="row">
                 <span role="columnheader">Candidate</span><span role="columnheader">Role evidence</span><span role="columnheader">Fit</span><span role="columnheader">Actions</span>
               </div>
-              {data.results.map((c) => (
+              {visible.map((c) => (
                 <div key={c.username} className="rc-row" role="row">
                   <span className="rc-cand" role="cell">
                     <input type="checkbox" className="rc-check" checked={selected.includes(c.username)} onChange={() => toggleSelect(c.username)} aria-label={`Select ${c.username} for comparison`} />

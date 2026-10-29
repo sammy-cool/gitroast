@@ -14,8 +14,13 @@ const USERNAME_RE = /^[a-zA-Z0-9-]{1,39}$/;
 const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Latest public roast per username, excluding Ghost Mode (isPrivate) profiles.
-async function latestPublicProfiles({ q = "", language = "", limit = 200, exact = false }) {
+async function latestPublicProfiles({ q = "", language = "", limit = 200, exact = false, sinceMonths = 0 }) {
   const match = { isPrivate: { $ne: true } };
+  if (sinceMonths > 0) {
+    const since = new Date();
+    since.setUTCMonth(since.getUTCMonth() - sinceMonths);
+    match.createdAt = { $gte: since }; // evidence window: only profiles analyzed recently
+  }
   if (q) match.username = exact ? new RegExp(`^${esc(q)}$`, "i") : { $regex: esc(q), $options: "i" };
   if (language) match.topLanguage = { $regex: `^${esc(language)}$`, $options: "i" };
   return Roast.aggregate([
@@ -70,7 +75,8 @@ router.get("/talent", async (req, res) => {
     const roleKey = ROLE_MODELS[req.query.role] ? req.query.role : DEFAULT_ROLE;
     const q = String(req.query.q || "").trim().slice(0, 60);
     const language = String(req.query.language || "").trim().slice(0, 30);
-    const docs = await latestPublicProfiles({ q, language });
+    const sinceMonths = [6, 12, 24].includes(parseInt(req.query.window, 10)) ? parseInt(req.query.window, 10) : 0;
+    const docs = await latestPublicProfiles({ q, language, sinceMonths });
     const saves = await TalentSave.find({ recruiterId: req.user._id }).select("username").lean();
     const savedSet = new Set(saves.map((s) => s.username));
     const withSaved = docs.map((d) => ({ ...d, _id: String(d._id) }));
@@ -81,8 +87,9 @@ router.get("/talent", async (req, res) => {
     const covered = results.filter((r) => r.fit.score !== null).length;
     res.json({
       success: true,
-      role: { id: roleKey, label: ROLE_MODELS[roleKey].label },
+      role: { id: roleKey, label: ROLE_MODELS[roleKey].label, weights: ROLE_MODELS[roleKey].weights },
       model: MODEL_VERSION,
+      window: sinceMonths,
       summary: {
         evidenceProfiles: results.length,
         savedTalent: saves.length,
