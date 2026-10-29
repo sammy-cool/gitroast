@@ -11,7 +11,7 @@
     "test": "node --test 'src/**/__tests__/**/*.test.js'"
   },
   "dependencies": {
-    "customizable-toast-notification": "^3.20.2",
+    "customizable-toast-notification": "^4.0.1",
     "html2canvas": "^1.4.1",
     "next": "^16.4.3",
     "react": "19.2.3",
