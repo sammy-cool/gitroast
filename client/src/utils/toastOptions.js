@@ -44,7 +44,6 @@ export function globalConfig({ mobile = false } = {}) {
     reducedMotion: "auto",
     pauseOnHover: true,
     sound: false,
-    showProgress: true,
   };
 }
 
