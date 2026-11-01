@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { sessionPredatesPasswordChange } = require("../services/accountTokens");
 const { verifyToken, extractToken } = require("../services/tokenService");
 const User = require("../models/User");
 
@@ -28,6 +29,12 @@ async function requireAuth(req, res, next) {
         message: "Account associated with this token was not found.",
       });
     }
+    if (sessionPredatesPasswordChange(user, decoded)) {
+      return res.status(401).json({
+        error: "TOKEN_INVALID",
+        message: "Your password changed. Please sign in again.",
+      });
+    }
     req.user = user;
     next();
   } catch {
@@ -49,7 +56,7 @@ async function optionalAuth(req, res, next) {
 
   try {
     const user = await User.findById(decoded.userId);
-    if (user) req.user = user;
+    if (user && !sessionPredatesPasswordChange(user, decoded)) req.user = user;
   } catch {
   }
 
@@ -84,5 +91,14 @@ function requireRecruiter(req, res, next) {
   next();
 }
 
-module.exports = { requireAuth, optionalAuth, requirePro, requireRecruiter };
+// Workspace features need a verified email (Google sign-ups arrive verified).
+function requireVerifiedEmail(req, res, next) {
+  if (req.user && req.user.emailVerified) return next();
+  return res.status(403).json({
+    error: "EMAIL_NOT_VERIFIED",
+    message: "Verify your email to use the recruiter workspace.",
+  });
+}
+
+module.exports = { requireAuth, optionalAuth, requirePro, requireRecruiter, requireVerifiedEmail };
 

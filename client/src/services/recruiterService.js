@@ -29,6 +29,14 @@ export const recruiterLogin = ({ email, password }) =>
 export const recruiterGoogle = ({ credential, acceptResponsibleUse }) =>
   request("/api/auth/recruiter/google", { method: "POST", body: { credential, acceptResponsibleUse } });
 
+// ── Account lifecycle ──
+export const forgotPassword = (email) => request("/api/auth/recruiter/forgot", { method: "POST", body: { email } });
+export const resetPassword = ({ token, password }) => request("/api/auth/recruiter/reset", { method: "POST", body: { token, password } });
+export const verifyEmail = (token) => request("/api/auth/recruiter/verify", { method: "POST", body: { token } });
+export const resendVerification = (token) => request("/api/auth/recruiter/verify/resend", { method: "POST", token });
+export const deleteRecruiterAccount = (token, { password, credential }) =>
+  request("/api/auth/recruiter/account", { method: "DELETE", token, body: { confirm: "DELETE", password, credential } });
+
 // ── Workspace ──
 const qs = (o) => {
   const p = new URLSearchParams();

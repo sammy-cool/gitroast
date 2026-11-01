@@ -218,6 +218,31 @@ const {
   orgFromEmail,
   verifyGoogleIdToken,
 } = require("../services/recruiterAuthService");
+const {
+  VERIFY_TTL_MS,
+  RESET_TTL_MS,
+  hashToken,
+  generateToken,
+  isExpired,
+  cooldownRemaining,
+  isWellFormedToken,
+} = require("../services/accountTokens");
+const { appBaseUrl, verificationEmail, resetEmail, sendEmail } = require("../services/transactionalEmail");
+const { requireRecruiter } = require("../middleware/auth");
+const TalentSave = require("../models/TalentSave");
+const Shortlist = require("../models/Shortlist");
+
+// Creates a fresh verification token on the user (does not save) and returns the emailed link.
+function issueVerification(user) {
+  const t = generateToken(VERIFY_TTL_MS);
+  user.emailVerification = { tokenHash: t.tokenHash, expiresAt: t.expiresAt, sentAt: new Date() };
+  return `${appBaseUrl()}/auth/verify?token=${t.token}`;
+}
+
+// Fire-and-forget: a slow or failing mail provider must never block or fail an API response.
+function sendInBackground(to, message) {
+  sendEmail({ to, ...message }).catch(() => {});
+}
 
 function recruiterSession(user) {
   return { success: true, token: createToken({ userId: user._id.toString() }), user: user.toSafeObject() };
@@ -243,8 +268,12 @@ router.post("/recruiter/signup", authLimiter, async (req, res) => {
       role: "recruiter",
       authProvider: "password",
       passwordHash: hashPassword(password),
+      emailVerified: false,
       recruiter: { organization: orgFromEmail(normalized), acceptedResponsibleUseAt: new Date() },
     });
+    const link = issueVerification(user);
+    await user.save();
+    sendInBackground(normalized, verificationEmail({ link }));
     return res.status(201).json(recruiterSession(user));
   } catch (err) {
     logger.error("Auth", "recruiter signup failed", { message: err.message });
@@ -283,15 +312,121 @@ router.post("/recruiter/google", authLimiter, async (req, res) => {
         role: "recruiter",
         authProvider: "google",
         googleId: g.googleId,
+        emailVerified: true, // Google only issues tokens for verified addresses (checked in verifyGoogleIdToken)
         recruiter: { organization: orgFromEmail(g.email), acceptedResponsibleUseAt: new Date() },
       });
-    } else if (!user.googleId) {
-      user.googleId = g.googleId;
+    } else if (!user.googleId || !user.emailVerified) {
+      user.googleId = user.googleId || g.googleId;
+      user.emailVerified = true;
       await user.save();
     }
     return res.json(recruiterSession(user));
   } catch (err) {
     return res.status(err.statusCode || 500).json({ error: "GOOGLE_AUTH_FAILED", message: err.message || "Google sign-in failed." });
+  }
+});
+
+
+// ── Recruiter account lifecycle: verify email, reset password, delete account ──
+const GENERIC_FORGOT = { success: true, message: "If an account exists for that email, a reset link is on its way." };
+
+router.post("/recruiter/verify", authLimiter, async (req, res) => {
+  const { token } = req.body || {};
+  if (!isWellFormedToken(token)) return res.status(400).json({ error: "INVALID_TOKEN", message: "This link is invalid or has expired." });
+  try {
+    const user = await User.findOne({ role: "recruiter", "emailVerification.tokenHash": hashToken(token) }).select("+emailVerification.tokenHash");
+    if (!user || isExpired(user.emailVerification?.expiresAt)) {
+      return res.status(400).json({ error: "INVALID_TOKEN", message: "This link is invalid or has expired." });
+    }
+    user.emailVerified = true;
+    user.emailVerification = { tokenHash: null, expiresAt: null, sentAt: user.emailVerification.sentAt };
+    await user.save();
+    return res.json({ success: true, verified: true });
+  } catch (err) {
+    logger.error("Auth", "email verification failed", { message: err.message });
+    return res.status(500).json({ error: "SERVER_ERROR", message: "Could not verify the email." });
+  }
+});
+
+router.post("/recruiter/verify/resend", authLimiter, requireAuth, requireRecruiter, async (req, res) => {
+  const user = req.user;
+  if (user.emailVerified) return res.json({ success: true, alreadyVerified: true });
+  const wait = cooldownRemaining(user.emailVerification?.sentAt);
+  if (wait > 0) {
+    return res.status(429).json({ error: "COOLDOWN", message: `Please wait ${wait}s before requesting another email.`, retryAfter: wait });
+  }
+  try {
+    const link = issueVerification(user);
+    await user.save();
+    sendInBackground(user.email, verificationEmail({ link }));
+    return res.json({ success: true, sent: true });
+  } catch (err) {
+    logger.error("Auth", "resend verification failed", { message: err.message });
+    return res.status(500).json({ error: "SERVER_ERROR", message: "Could not send the email." });
+  }
+});
+
+router.post("/recruiter/forgot", authLimiter, async (req, res) => {
+  const email = String(req.body?.email || "").toLowerCase().trim();
+  // Same response whether or not the account exists: no account enumeration.
+  if (!email || email.length > 254) return res.json(GENERIC_FORGOT);
+  try {
+    const user = await User.findOne({ email, role: "recruiter", authProvider: "password" });
+    if (user && cooldownRemaining(user.passwordReset?.requestedAt) === 0) {
+      const t = generateToken(RESET_TTL_MS);
+      user.passwordReset = { tokenHash: t.tokenHash, expiresAt: t.expiresAt, requestedAt: new Date() };
+      await user.save();
+      sendInBackground(user.email, resetEmail({ link: `${appBaseUrl()}/auth/reset?token=${t.token}` }));
+    }
+  } catch (err) {
+    logger.error("Auth", "forgot password failed", { message: err.message });
+  }
+  return res.json(GENERIC_FORGOT);
+});
+
+router.post("/recruiter/reset", authLimiter, async (req, res) => {
+  const { token, password } = req.body || {};
+  if (!isWellFormedToken(token)) return res.status(400).json({ error: "INVALID_TOKEN", message: "This link is invalid or has expired." });
+  const problem = validateSignup({ email: "x@x.co", password });
+  if (problem && /password/i.test(problem)) return res.status(400).json({ error: "INVALID_INPUT", message: problem });
+  try {
+    const user = await User.findOne({ role: "recruiter", "passwordReset.tokenHash": hashToken(token) }).select("+passwordReset.tokenHash");
+    if (!user || isExpired(user.passwordReset?.expiresAt)) {
+      return res.status(400).json({ error: "INVALID_TOKEN", message: "This link is invalid or has expired." });
+    }
+    user.passwordHash = hashPassword(password);
+    user.passwordChangedAt = new Date(); // signs out every existing session
+    user.emailVerified = true; // controlling the mailbox proves the address
+    user.passwordReset = { tokenHash: null, expiresAt: null, requestedAt: user.passwordReset.requestedAt };
+    await user.save();
+    return res.json({ success: true });
+  } catch (err) {
+    logger.error("Auth", "password reset failed", { message: err.message });
+    return res.status(500).json({ error: "SERVER_ERROR", message: "Could not reset the password." });
+  }
+});
+
+router.delete("/recruiter/account", authLimiter, requireAuth, requireRecruiter, async (req, res) => {
+  const { confirm, password, credential } = req.body || {};
+  if (confirm !== "DELETE") return res.status(400).json({ error: "CONFIRMATION_REQUIRED", message: "Type DELETE to confirm." });
+  try {
+    const user = await User.findById(req.user._id).select("+passwordHash");
+    if (user.authProvider === "password") {
+      if (!verifyPassword(String(password || ""), user.passwordHash)) {
+        return res.status(401).json({ error: "INVALID_CREDENTIALS", message: "Password is incorrect." });
+      }
+    } else {
+      const g = await verifyGoogleIdToken(String(credential || "")).catch(() => null);
+      if (!g || g.googleId !== user.googleId) {
+        return res.status(401).json({ error: "INVALID_CREDENTIALS", message: "Confirm with Google to delete this account." });
+      }
+    }
+    await Promise.all([TalentSave.deleteMany({ recruiterId: user._id }), Shortlist.deleteMany({ recruiterId: user._id })]);
+    await User.deleteOne({ _id: user._id });
+    return res.json({ success: true });
+  } catch (err) {
+    logger.error("Auth", "account deletion failed", { message: err.message });
+    return res.status(500).json({ error: "SERVER_ERROR", message: "Could not delete the account." });
   }
 });
 

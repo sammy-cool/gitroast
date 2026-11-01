@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "test": "node --env-file-if-exists=.env --test"
+    "test": "node --env-file-if-exists=.env --test",
+    "test:integration": "node --test --test-concurrency=1 \"tests/integration/*.int.js\""
   },
   "keywords": [],
   "author": "",
@@ -24,6 +25,7 @@
     "razorpay": "^2.9.6"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "nodemon": "^3.1.14",
+    "mongodb-memory-server": "^10.1.4"
   }
 }

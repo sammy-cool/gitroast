@@ -4,11 +4,13 @@ const Roast = require("../models/Roast");
 const User = require("../models/User");
 const TalentSave = require("../models/TalentSave");
 const Shortlist = require("../models/Shortlist");
-const { requireAuth, requireRecruiter } = require("../middleware/auth");
+const { requireAuth, requireRecruiter, requireVerifiedEmail } = require("../middleware/auth");
 const { MODEL_VERSION, ROLE_MODELS, DEFAULT_ROLE, computeSignals, computeFit } = require("../services/talentEvidence");
 const { logger } = require("../utils/logger");
 
 router.use(requireAuth, requireRecruiter);
+// Everything except the public methodology needs a verified email.
+router.use((req, res, next) => (req.path === "/methodology" ? next() : requireVerifiedEmail(req, res, next)));
 
 const USERNAME_RE = /^[a-zA-Z0-9-]{1,39}$/;
 const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

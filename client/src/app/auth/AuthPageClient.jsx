@@ -1,46 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Logo from "@/components/Logo";
+import GoogleSignInButton from "@/components/GoogleSignInButton";
 import { useAuth } from "@/context/AuthContext";
 import { toast, notify } from "@/utils/toast";
 import { recruiterSignup, recruiterLogin, recruiterGoogle } from "@/services/recruiterService";
 import "./auth.css";
-
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
-function GoogleButton({ onCredential, disabled }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || !ref.current) return undefined;
-    let cancelled = false;
-    const init = () => {
-      if (cancelled || !window.google?.accounts?.id || !ref.current) return;
-      window.google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: (r) => onCredential(r.credential) });
-      window.google.accounts.id.renderButton(ref.current, { theme: "outline", size: "large", shape: "pill", text: "continue_with", width: ref.current.offsetWidth || 360 });
-    };
-    if (window.google?.accounts?.id) init();
-    else {
-      const s = document.createElement("script");
-      s.src = "https://accounts.google.com/gsi/client";
-      s.async = true;
-      s.onload = init;
-      document.head.appendChild(s);
-    }
-    return () => { cancelled = true; };
-  }, [onCredential]);
-
-  if (!GOOGLE_CLIENT_ID) {
-    return (
-      <button type="button" className="gr-btn gr-btn--outline gr-btn--block" disabled title="Google sign-in is not configured for this environment">
-        Continue with Google
-      </button>
-    );
-  }
-  return <div ref={ref} className="auth-google" aria-disabled={disabled} />;
-}
 
 export default function AuthPageClient() {
   const router = useRouter();
@@ -150,13 +118,17 @@ export default function AuthPageClient() {
             <form onSubmit={submit} noValidate className="auth__form">
               <h3 className="auth__form-title">{mode === "signup" ? "Create your recruiter workspace" : "Sign in to your workspace"}</h3>
               <p className="gr-help">No GitHub account required.</p>
-              <GoogleButton onCredential={onGoogle} disabled={busy} />
+              <GoogleSignInButton onCredential={onGoogle} disabled={busy} />
               <div className="auth__or"><span>or professional email</span></div>
 
               <label className="gr-label" htmlFor="auth-email">Work email</label>
               <input id="auth-email" className="gr-input" type="email" autoComplete="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <label className="gr-label" htmlFor="auth-password">Password</label>
               <input id="auth-password" className="gr-input" type="password" autoComplete={mode === "signup" ? "new-password" : "current-password"} minLength={10} placeholder="At least 10 characters" value={password} onChange={(e) => setPassword(e.target.value)} required />
+
+              {mode === "login" && (
+                <p className="gr-help"><Link href="/auth/forgot" className="auth__link">Forgot password?</Link></p>
+              )}
 
               {mode === "signup" && (
                 <label className="auth__consent">

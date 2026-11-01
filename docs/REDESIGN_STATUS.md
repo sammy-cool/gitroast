@@ -45,12 +45,19 @@ Not verifiable here (needs a browser): the OG image routes' rendering, Wrapped/C
 ## Phase 11 — gap closing (done)
 Recruiter workspace now has the three Figma controls that were missing: **Evidence window** (6 / 12 / 24 months / any; server-side), **More filters · N** (language, minimum fit; badge shows how many are active) and **Explain ranking** (role weights and the "sparse evidence is excluded" rule). Server messages no longer carry emoji.
 
+## Phase 12 — recruiter accounts + integration tests (done)
+- **Email verification:** new password sign-ups get a link (24 h, single-use); the workspace stays closed until verified (methodology and Account stay open); resend has a 60 s cooldown; Google sign-ups are verified automatically.
+- **Password reset:** "Forgot password?" → emailed single-use link (1 h) → new password; the response never reveals whether an account exists; a reset signs out every earlier session and also verifies the email.
+- **Account deletion:** Recruiter → Account (type DELETE + password, or confirm with Google) removes the recruiter, saved talent and shortlists.
+- Security details: only SHA-256 hashes of tokens are stored; tokens are format-checked before any database lookup; per-account email cooldown on top of the IP rate limit; links are never logged in production.
+- **Integration tests** (`cd server && npm run test:integration`): real Express routers and Mongoose models on an in-memory MongoDB. Covers the recruiter account lifecycle, workspace API (privacy, ranking, window, filters, profile, saved, shortlists, compare), Ghost Mode on public discovery, regional pricing endpoint and AI quota against real data. CI runs them. First run downloads a MongoDB binary. **They were written without being able to execute them in the authoring environment: treat the first run as the real verification.**
+
 ## Open items that need a decision (not built on purpose)
-1. Recruiter accounts: no password reset, no email verification, no account deletion. Needed before real recruiters sign up.
+1. (done in Phase 12) Recruiter password reset, email verification and account deletion. Still open: emailing real addresses needs a verified Resend domain.
 2. Legal pages: no Privacy Policy, Terms or Refund/Cancellation page (Razorpay activation and Google OAuth consent screen ask for them). Footer "Privacy" currently points to the About page section.
 3. Shortlists: "shared this week" in the design needs a sharing feature (invite a colleague in the same organization).
 4. Recruiter approval: anyone can create a recruiter workspace today; decide between open, email-domain check, or manual approval.
-5. No integration tests for the new API routes (need a Mongo test database, e.g. mongodb-memory-server).
+5. (done in Phase 12) Integration tests for the new API routes; the first execution on your machine is still to be confirmed.
 
 ## Known limits
 - Quota is counted from saved AI roasts (source of truth); two simultaneous requests can exceed the limit by one. Repo-roast AI is still Pro-only and not counted.

@@ -41,6 +41,21 @@ const userSchema = new mongoose.Schema(
         },
 
         passwordHash: { type: String, default: null, select: false },
+        // Sessions issued before this moment are rejected (set on password reset).
+        passwordChangedAt: { type: Date, default: null },
+
+        // Recruiter account lifecycle. Only SHA-256 hashes of one-time tokens are stored.
+        emailVerified: { type: Boolean, default: false },
+        emailVerification: {
+            tokenHash: { type: String, default: null, select: false },
+            expiresAt: { type: Date, default: null },
+            sentAt: { type: Date, default: null },
+        },
+        passwordReset: {
+            tokenHash: { type: String, default: null, select: false },
+            expiresAt: { type: Date, default: null },
+            requestedAt: { type: Date, default: null },
+        },
         googleId: { type: String, default: null, index: { unique: true, sparse: true } },
 
         recruiter: {
@@ -147,6 +162,8 @@ userSchema.methods.toSafeObject = function () {
         githubId: this.role === 'recruiter' ? null : this.githubId,
         role: this.role || 'developer',
         organization: this.recruiter?.organization || '',
+        emailVerified: this.role === 'recruiter' ? Boolean(this.emailVerified) : true,
+        authProvider: this.authProvider || 'github',
         username: this.username,
         email: this.email,
         avatarUrl: this.avatarUrl,
